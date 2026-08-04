@@ -41,8 +41,28 @@ export function EndingPanel({
   // ⚑CF 문구는 아래 전용 카드에서 따로 다룹니다 — 필터 규칙은 엔진(collectCoaching)에 한 곳으로 모았습니다.
   const coachings = record.coachingPoints.slice(0, 2);
 
+  /**
+   * ⚑CF를 밟은 뒤 다시 해서 끝까지 오신 경우.
+   * 세션 중에는 “벌점은 없습니다”라고 안내해 놓고 엔딩만 ‘재훈련’으로 보이면 약속과 어긋나므로,
+   * 표시의 뜻을 먼저 풀어 드립니다. (판정 문구 자체는 시나리오 데이터가 가지고 있습니다.)
+   */
+  const recoveredAfterRetry =
+    verdict === "재훈련" && session.cfCount > 0 && session.retriesUsed > 0;
+
   return (
     <div className="space-y-6">
+      {recoveredAfterRetry && (
+        <Card tone="brand">
+          <h2 className="flex items-center gap-2 text-lg font-extrabold text-brand-900">
+            <span aria-hidden="true">↺</span>
+            재시도로 회복해 완주하셨습니다
+          </h2>
+          <p className="mt-2 text-base leading-relaxed font-semibold text-brand-800">
+            이 표시는 벌점이 아니라, 현장에서 되돌릴 수 없는 지점을 다시 볼 안내입니다.
+          </p>
+        </Card>
+      )}
+
       <Card tone={verdict === "충족" ? "ok" : verdict === "부분 충족" ? "warn" : "quiet"}>
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone={VERDICT_TONE[verdict]}>{verdict}</Badge>

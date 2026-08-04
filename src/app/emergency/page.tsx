@@ -47,12 +47,10 @@ export default function EmergencyPage() {
         </p>
       </header>
 
-      {/* 오프라인 보증 배지 */}
-      <div className="mb-6 space-y-3">
-        <p className="flex items-start gap-2 rounded-card border-2 border-ok-line bg-ok-soft px-4 py-3 text-base leading-relaxed font-extrabold text-ok-ink md:text-lg">
-          <span aria-hidden="true">💾</span>
-          <span>기기에 저장해 둡니다 — 한 번 열어 두면 서버가 죽어도 이 화면은 열립니다</span>
-        </p>
+      {/* 오프라인 안내 — 배지는 하나뿐입니다.
+          기기 저장 여부를 실측해 OfflineStatus 가 초록(저장 완료) 또는 주황(아직 준비 전) 중
+          하나만 표시합니다. 확인 전에 "서버가 죽어도 열립니다"라고 미리 단정하지 않습니다. */}
+      <div className="mb-6">
         <OfflineStatus />
       </div>
 

@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { Badge, BigButton, Call119Button, Card } from "@/components";
 import { cx } from "@/components/utils";
-import { isSilentStep, PROTOCOL_NOTICE } from "@/data/protocols";
-import { speak, stopSpeaking } from "@/lib/speech";
+import { ProtocolAddressCard } from "@/app/emergency/_components/ProtocolAddressCard";
+import { useProtocolPlayback } from "@/app/emergency/_components/useProtocolPlayback";
+import { PROTOCOL_NOTICE } from "@/data/protocols";
 import type { EmergencyProtocol } from "@/types";
 import { PROTOCOL_HANDOFF_BODY, PROTOCOL_HANDOFF_TITLE } from "./constants";
 
@@ -16,55 +17,21 @@ export interface ProtocolInlineProps {
   onDone: () => void;
 }
 
-/** 자막을 읽을 시간을 확보합니다 (TTS 미지원 기기에서도 단계가 순식간에 지나가지 않도록). */
-function dwellMs(text: string): number {
-  return Math.min(9000, Math.max(4000, text.length * 130));
-}
-
 /**
  * 훈련 세션 안에서 재생하는 L3 응급 프로토콜.
  *
  * 이 구간에는 생성 호출이 없습니다. 사전 검수된 고정 문구를 순서대로 음성과 자막으로 재생하고,
  * 119 버튼을 상시 노출합니다. 신체 술기 동작은 어떤 단계에서도 안내하지 않습니다.
+ *
+ * 재생 로직은 단독 화면(`/emergency/[id]`)과 **같은 훅**(`useProtocolPlayback`)을 씁니다.
+ * 낭독이 끝나기 전에 넘어가 문장이 잘리는 일이 없도록, 두 화면이 한 규칙으로 진행합니다.
  */
 export function ProtocolInline({ protocol, ttsOn, onDone }: ProtocolInlineProps) {
   const [started, setStarted] = useState(false);
-  const [index, setIndex] = useState(0);
-  const [playing, setPlaying] = useState(true);
 
   const steps = protocol.steps;
-  const step = steps[index];
-  const isLast = index >= steps.length - 1;
-  const silent = useMemo(() => (step ? isSilentStep(step) : true), [step]);
-
-  // 단계가 바뀌면 자막을 읽어 드립니다 (자막은 항상 화면에 남습니다).
-  useEffect(() => {
-    if (!started || !step || silent || !ttsOn) return;
-    void speak(step.voice);
-  }, [started, step, silent, ttsOn]);
-
-  // 자동 진행 — 자막을 읽을 시간을 확보한 뒤 다음 단계로 넘깁니다.
-  useEffect(() => {
-    if (!started || !step || !playing || silent || isLast) return;
-    const timer = window.setTimeout(() => {
-      setIndex((value) => Math.min(steps.length - 1, value + 1));
-    }, dwellMs(step.voice));
-    return () => window.clearTimeout(timer);
-  }, [started, step, silent, playing, isLast, steps.length]);
-
-  useEffect(() => {
-    return () => stopSpeaking();
-  }, []);
-
-  const goPrev = useCallback(() => {
-    stopSpeaking();
-    setIndex((value) => Math.max(0, value - 1));
-  }, []);
-
-  const goNext = useCallback(() => {
-    stopSpeaking();
-    setIndex((value) => Math.min(steps.length - 1, value + 1));
-  }, [steps.length]);
+  const playback = useProtocolPlayback({ steps, voiceOn: ttsOn, enabled: started });
+  const { index, step, total, silent, isFirst, isLast, playing } = playback;
 
   if (!started) {
     return (
@@ -100,7 +67,7 @@ export function ProtocolInline({ protocol, ttsOn, onDone }: ProtocolInlineProps)
           <Badge tone="neutral">{protocol.id} · {protocol.title}</Badge>
         </div>
         <span className="text-sm font-bold text-danger-ink">
-          {index + 1} / {steps.length} 단계
+          {index + 1} / {total} 단계
         </span>
       </div>
 
@@ -129,21 +96,25 @@ export function ProtocolInline({ protocol, ttsOn, onDone }: ProtocolInlineProps)
         {step?.screen && (
           <p className="mt-3 text-base leading-relaxed text-ink-muted">{step.screen}</p>
         )}
+        {step?.address && <ProtocolAddressCard address={step.address} />}
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <BigButton onClick={goPrev} variant="secondary" disabled={index === 0}>
+        <BigButton onClick={playback.goPrev} variant="secondary" disabled={isFirst}>
           이전 단계
         </BigButton>
         <BigButton
-          onClick={() => setPlaying((value) => !value)}
+          onClick={playback.togglePlaying}
           variant="secondary"
           className={cx(playing && "border-brand-400")}
         >
           {playing ? "자동 진행 멈추기" : "자동 진행 다시 하기"}
         </BigButton>
-        <BigButton onClick={goNext} variant="secondary" disabled={isLast}>
+        <BigButton onClick={playback.goNext} variant="secondary" disabled={isLast}>
           다음 단계
+        </BigButton>
+        <BigButton onClick={playback.replay} variant="ghost" disabled={silent || !ttsOn}>
+          이 단계 다시 듣기
         </BigButton>
       </div>
 

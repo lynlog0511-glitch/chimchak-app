@@ -147,8 +147,9 @@ export interface MatrixCell {
 export interface ProtocolStep {
   id: string; // "P-02-1"
   voice: string; // 고정 음성 문구 (변형 불가)
-  screen?: string; // 화면 표시 요소 설명
+  screen?: string; // 화면 보조 문구 (사용자에게 그대로 보이는 문장)
   emphasize119?: boolean; // 119 버튼 확대
+  address?: string; // 이 단계에서 크게 표시할 방문지 주소 (훈련 모드는 더미 주소)
 }
 
 export interface EmergencyProtocol {

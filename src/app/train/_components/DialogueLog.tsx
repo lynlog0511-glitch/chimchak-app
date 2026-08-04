@@ -81,19 +81,56 @@ function LearnerBubble({ item }: { item: Extract<LogItem, { kind: "learner" }> }
   );
 }
 
+/** 화면 움직임을 줄여 달라고 설정하신 분께는 부드러운 스크롤 대신 즉시 이동합니다. */
+function scrollBehavior(): ScrollBehavior {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return "auto";
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+}
+
+/** 로그에서 가장 마지막 피드백 항목의 키 (없으면 빈 문자열) */
+function latestFeedbackKey(items: LogItem[]): string {
+  for (let i = items.length - 1; i >= 0; i -= 1) {
+    const item = items[i];
+    if (item && item.kind === "feedback") return item.key;
+  }
+  return "";
+}
+
 /**
  * 대화 로그.
  * AI 대사 · 학습자 발화 · 턴 피드백 · 기록 초안 · 전환 안내를 시간 순으로 쌓습니다.
- * 새 항목이 들어오면 마지막 줄이 보이도록 스크롤합니다.
+ *
+ * 응답을 보내신 직후에는 **방금 생긴 피드백 카드**를 화면 한가운데로 끌어옵니다.
+ * (모바일에서 피드백과 새 대사가 화면 위쪽 밖에 남는 문제를 막기 위한 처리입니다.)
+ * 그 밖의 경우에는 마지막 줄이 보이도록 로그 안쪽만 내립니다.
  */
 export function DialogueLog({ items, className }: DialogueLogProps) {
   const boxRef = useRef<HTMLDivElement | null>(null);
+  const feedbackRef = useRef<HTMLDivElement | null>(null);
+  const shownFeedbackKeyRef = useRef<string>("");
+
+  const feedbackKey = latestFeedbackKey(items);
 
   useEffect(() => {
     const box = boxRef.current;
     if (!box) return;
+
+    // 다시 하기로 로그가 비워지면 기억을 지웁니다 (키가 같은 값으로 되돌아와도 다시 옮겨 드리도록).
+    if (feedbackKey.length === 0) shownFeedbackKeyRef.current = "";
+
+    const target = feedbackRef.current;
+    if (feedbackKey.length > 0 && target && shownFeedbackKeyRef.current !== feedbackKey) {
+      shownFeedbackKeyRef.current = feedbackKey;
+      // 새로 붙은 카드가 자리를 잡은 뒤에 옮겨야 위치가 어긋나지 않습니다.
+      const frame = window.requestAnimationFrame(() => {
+        target.scrollIntoView({ block: "center", behavior: scrollBehavior() });
+      });
+      return () => window.cancelAnimationFrame(frame);
+    }
+
     box.scrollTop = box.scrollHeight;
-  }, [items]);
+    return undefined;
+  }, [items, feedbackKey]);
 
   return (
     <div
@@ -102,7 +139,8 @@ export function DialogueLog({ items, className }: DialogueLogProps) {
       aria-live="polite"
       aria-label="대화 기록"
       className={cx(
-        "max-h-[30rem] space-y-4 overflow-y-auto rounded-card border border-line bg-paper p-4 md:max-h-[36rem] md:p-5",
+        // 모바일에서는 뷰포트에 맞춰 낮춥니다 — 로그가 화면을 다 먹고 응답부가 밀리는 것을 막습니다.
+        "max-h-[min(22rem,38vh)] space-y-4 overflow-y-auto rounded-card border border-line bg-paper p-4 md:max-h-[36rem] md:p-5",
         className,
       )}
     >
@@ -114,15 +152,16 @@ export function DialogueLog({ items, className }: DialogueLogProps) {
             return <LearnerBubble key={item.key} item={item} />;
           case "feedback":
             return (
-              <FeedbackCard
-                key={item.key}
-                ok={item.feedback.ok}
-                critical={item.feedback.criticalFail}
-                message={item.feedback.message}
-                docId={item.feedback.docId}
-                label={item.feedback.branchLabel}
-                className="animate-fade-up"
-              />
+              <div key={item.key} ref={item.key === feedbackKey ? feedbackRef : undefined}>
+                <FeedbackCard
+                  ok={item.feedback.ok}
+                  critical={item.feedback.criticalFail}
+                  message={item.feedback.message}
+                  docId={item.feedback.docId}
+                  label={item.feedback.branchLabel}
+                  className="animate-fade-up"
+                />
+              </div>
             );
           case "draft":
             return <RecordDraftPreview key={item.key} source={item.source} className="animate-fade-up" />;

@@ -17,11 +17,33 @@
 
 import type { EmergencyProtocol } from "@/types";
 
+/*
+ * screen 은 **사용자가 화면에서 그대로 읽는 문장**입니다.
+ * 레이아웃 지시문(확대·아이콘·배지 등 디자인 메모)은 여기에 적지 않습니다.
+ * 119 버튼 확대는 emphasize119, 주소 표시는 address 필드가 담당합니다.
+ */
+
 /** 마지막 침묵 단계에서 화면에 표시할 공통 문구입니다. */
-const SILENCE_SCREEN = "안내 종료 — 음성 침묵. 화면은 통화 상태와 119 버튼만 유지합니다.";
+const SILENCE_SCREEN =
+  "안내를 마쳤습니다. 통화는 그대로 두시고, 119 버튼은 화면에 남겨 둡니다.";
 
 /** 스피커폰 안내 — 양손을 써야 하는 상황을 위한 공통 단계입니다. */
 const SPEAKER_VOICE = "스피커폰을 켜고 휴대폰을 바닥에 두세요. 두 손을 쓰셔야 합니다.";
+
+/** 스피커폰 단계에서 자막 아래에 덧붙이는 화면 문구입니다. */
+const SPEAKER_SCREEN = "휴대폰은 바닥이나 탁자에 그대로 두셔도 됩니다.";
+
+/** 119 상황실로 지도를 넘긴 뒤 공통으로 쓰는 화면 문구입니다. */
+const HANDOFF_SCREEN = "지금은 119 상황실이 안내합니다. 통화를 끊지 마세요.";
+
+/**
+ * 훈련 모드에서 화면에 크게 띄우는 더미 방문지 주소입니다.
+ * 실제 방문지 주소가 아니며, 운영 시에는 사전 등록된 방문지 주소가 이 자리에 들어갑니다.
+ */
+const TRAINING_ADDRESS = "○○구 ○○로 00";
+
+/** 주소 단계에서 자막 아래에 덧붙이는 화면 문구입니다. */
+const ADDRESS_SCREEN = "아래 주소를 소리 내어 그대로 읽어 주세요.";
 
 export const PROTOCOLS: EmergencyProtocol[] = [
   /* ── P-01 낙상(의식 있음) ─────────────────────────────────────── */
@@ -35,36 +57,36 @@ export const PROTOCOLS: EmergencyProtocol[] = [
       {
         id: "P-01-1",
         voice: "지금 119를 누르세요.",
-        screen: "119 버튼 화면 60% 확대",
         emphasize119: true,
       },
-      { id: "P-01-2", voice: SPEAKER_VOICE, screen: "스피커폰 아이콘" },
+      { id: "P-01-2", voice: SPEAKER_VOICE, screen: SPEAKER_SCREEN },
       {
         id: "P-01-3",
         voice:
           "어르신을 옮기거나 일으키는 것은 119 상황실 지시가 있을 때까지 하지 않습니다.",
-        screen: "'이동 보류' 안내",
+        screen: "119에서 옮겨도 된다고 할 때까지 그대로 두세요.",
       },
       {
         id: "P-01-4",
         voice:
           "어르신께 여쭤보세요. 어디가 아프신지, 팔다리를 움직일 수 있으신지 여쭙고, 들으신 그대로 119에 말씀하세요.",
-        screen: "관찰 항목 체크리스트 — 통증 부위 · 움직임 · 의식",
+        screen: "여쭐 것 — 어디가 아프신지 · 팔다리를 움직이실 수 있는지 · 말씀에 답하시는지",
       },
       {
         id: "P-01-5",
         voice: "넘어지신 시각과 어디에서 넘어지셨는지 119에 말씀하세요.",
-        screen: "시각 자동 표시",
+        screen: "119에 전할 것 — 넘어지신 시각과 넘어지신 자리",
       },
       {
         id: "P-01-6",
         voice: "주소를 말하세요. 화면에 있습니다.",
-        screen: "사전 등록된 방문지 주소 표시 (훈련 모드에서는 더미 주소 ○○구 ○○로 00)",
+        screen: ADDRESS_SCREEN,
+        address: TRAINING_ADDRESS,
       },
       {
         id: "P-01-7",
         voice: "지금부터는 119 상황실 지시에 따르세요.",
-        screen: "'119 지도 중' 배지",
+        screen: HANDOFF_SCREEN,
       },
       { id: "P-01-8", voice: "", screen: SILENCE_SCREEN },
     ],
@@ -103,28 +125,29 @@ export const PROTOCOLS: EmergencyProtocol[] = [
       {
         id: "P-02-1",
         voice: "지금 119를 누르세요.",
-        screen: "119 버튼 화면 60% 확대",
         emphasize119: true,
       },
       {
         id: "P-02-2",
         voice: "스피커폰을 켜고 휴대폰을 바닥에 두세요. 두 손을 쓰셔야 합니다.",
-        screen: "스피커폰 아이콘",
+        screen: SPEAKER_SCREEN,
       },
       {
         id: "P-02-3",
         voice:
           "어르신이 소리를 낼 수 있는지 확인하세요. 소리가 나오지 않으면 그대로 119에 말씀하세요.",
+        screen: "보실 것 — 소리를 내시는지 · 기침이 나오는지",
       },
       {
         id: "P-02-4",
         voice: "주소를 말하세요. 화면에 있습니다.",
-        screen: "사전 등록된 방문지 주소 표시 (훈련 모드에서는 더미 주소 ○○구 ○○로 00)",
+        screen: ADDRESS_SCREEN,
+        address: TRAINING_ADDRESS,
       },
       {
         id: "P-02-5",
         voice: "지금부터는 119 상황실 지시에 따르세요.",
-        screen: "'119 지도 중' 배지",
+        screen: HANDOFF_SCREEN,
       },
       { id: "P-02-6", voice: "", screen: SILENCE_SCREEN },
     ],
@@ -163,30 +186,30 @@ export const PROTOCOLS: EmergencyProtocol[] = [
       {
         id: "P-03-1",
         voice: "지금 119를 누르세요.",
-        screen: "119 버튼 화면 60% 확대",
         emphasize119: true,
       },
-      { id: "P-03-2", voice: SPEAKER_VOICE, screen: "스피커폰 아이콘" },
+      { id: "P-03-2", voice: SPEAKER_VOICE, screen: SPEAKER_SCREEN },
       {
         id: "P-03-3",
         voice:
           "이름을 부르고 반응이 있는지 확인하세요. 눈을 뜨시는지, 소리를 내시는지 보신 그대로 119에 말씀하세요.",
-        screen: "관찰 항목 — 눈 뜸 · 소리 · 몸 움직임",
+        screen: "보실 것 — 눈을 뜨시는지 · 소리를 내시는지 · 몸을 움직이시는지",
       },
       {
         id: "P-03-4",
         voice: "숨을 쉬고 계신지, 가슴이 오르내리는지 보이는 그대로 119에 말씀하세요.",
-        screen: "관찰 항목 — 호흡",
+        screen: "보실 것 — 가슴이 오르내리는지",
       },
       {
         id: "P-03-5",
         voice: "주소를 말하세요. 화면에 있습니다.",
-        screen: "사전 등록된 방문지 주소 표시 (훈련 모드에서는 더미 주소 ○○구 ○○로 00)",
+        screen: ADDRESS_SCREEN,
+        address: TRAINING_ADDRESS,
       },
       {
         id: "P-03-6",
         voice: "지금부터는 119 상황실 지시에 따르세요.",
-        screen: "'119 지도 중' 배지",
+        screen: HANDOFF_SCREEN,
       },
       { id: "P-03-7", voice: "", screen: SILENCE_SCREEN },
     ],
@@ -225,30 +248,30 @@ export const PROTOCOLS: EmergencyProtocol[] = [
       {
         id: "P-04-1",
         voice: "지금 119를 누르세요.",
-        screen: "119 버튼 화면 60% 확대",
         emphasize119: true,
       },
-      { id: "P-04-2", voice: SPEAKER_VOICE, screen: "스피커폰 아이콘" },
+      { id: "P-04-2", voice: SPEAKER_VOICE, screen: SPEAKER_SCREEN },
       {
         id: "P-04-3",
         voice:
           "어르신을 붙잡거나 입에 무엇을 넣는 것은 하지 않습니다. 주변의 단단한 물건만 치워 주세요.",
-        screen: "'붙잡지 않기 · 입에 넣지 않기' 안내",
+        screen: "지금 하실 것은 주변의 단단한 물건을 치우는 것뿐입니다.",
       },
       {
         id: "P-04-4",
         voice: "경련이 시작된 시각을 보시고, 지금 몇 분째인지 119에 말씀하세요.",
-        screen: "경과 시간 타이머 표시",
+        screen: "119에 전할 것 — 경련이 시작된 시각과 지금까지 몇 분째인지",
       },
       {
         id: "P-04-5",
         voice: "주소를 말하세요. 화면에 있습니다.",
-        screen: "사전 등록된 방문지 주소 표시 (훈련 모드에서는 더미 주소 ○○구 ○○로 00)",
+        screen: ADDRESS_SCREEN,
+        address: TRAINING_ADDRESS,
       },
       {
         id: "P-04-6",
         voice: "지금부터는 119 상황실 지시에 따르세요.",
-        screen: "'119 지도 중' 배지",
+        screen: HANDOFF_SCREEN,
       },
       { id: "P-04-7", voice: "", screen: SILENCE_SCREEN },
     ],
@@ -287,30 +310,30 @@ export const PROTOCOLS: EmergencyProtocol[] = [
       {
         id: "P-05-1",
         voice: "지금 119를 누르세요.",
-        screen: "119 버튼 화면 60% 확대",
         emphasize119: true,
       },
-      { id: "P-05-2", voice: SPEAKER_VOICE, screen: "스피커폰 아이콘" },
+      { id: "P-05-2", voice: SPEAKER_VOICE, screen: SPEAKER_SCREEN },
       {
         id: "P-05-3",
         voice: "어디에서 피가 나는지, 언제부터인지 보신 그대로 119에 말씀하세요.",
-        screen: "관찰 항목 — 부위 · 시작 시각 · 양",
+        screen: "보실 것 — 어디에서 · 언제부터 · 어느 정도로 피가 나는지",
       },
       {
         id: "P-05-4",
         voice:
           "피를 멈추게 하는 방법은 119 상황실이 목소리로 직접 지도합니다. 상황실 지시를 그대로 따라 주세요.",
-        screen: "'119 지도 중' 안내",
+        screen: "지혈 방법은 상황실이 목소리로 알려 드립니다.",
       },
       {
         id: "P-05-5",
         voice: "주소를 말하세요. 화면에 있습니다.",
-        screen: "사전 등록된 방문지 주소 표시 (훈련 모드에서는 더미 주소 ○○구 ○○로 00)",
+        screen: ADDRESS_SCREEN,
+        address: TRAINING_ADDRESS,
       },
       {
         id: "P-05-6",
         voice: "지금부터는 119 상황실 지시에 따르세요.",
-        screen: "'119 지도 중' 배지",
+        screen: HANDOFF_SCREEN,
       },
       { id: "P-05-7", voice: "", screen: SILENCE_SCREEN },
     ],
@@ -343,9 +366,21 @@ export const PROTOCOLS: EmergencyProtocol[] = [
 export const PROTOCOL_NOTICE =
   "이 안내는 사전 검수된 고정 문구입니다 · AI 생성 아님";
 
-/** 오프라인 동작 안내 배지 문구입니다. */
-export const PROTOCOL_OFFLINE_NOTICE =
-  "서버가 죽어도 이 화면은 열립니다 — 오프라인 저장됨";
+/**
+ * 오프라인 동작 안내 문구입니다.
+ *
+ * 이 문구는 **서비스워커 등록·캐시가 실제로 확인된 뒤에만** 화면에 씁니다.
+ * 확인 전에 미리 단정해 붙이면 "저장되지 않았습니다" 안내와 화면에서 서로 반대말을 하게 됩니다.
+ */
+export const PROTOCOL_OFFLINE_READY_NOTICE =
+  "응급 안내 5종 기기 저장 완료 — 연결이 끊겨도 열립니다";
+
+/** 아직 기기에 저장되지 않았을 때 쓰는 안내 문구입니다. */
+export const PROTOCOL_OFFLINE_PENDING_NOTICE =
+  "기기 저장이 아직 준비되지 않았습니다 — 응급 안내 5종을 한 번씩 열어 두시면 연결이 끊겨도 열립니다";
+
+/** 주소 카드 옆에 붙는 고지입니다. 실제 주소가 아님을 화면에서 분명히 합니다. */
+export const PROTOCOL_ADDRESS_NOTICE = "훈련용 더미 주소 · 실제 주소 아님";
 
 /** 프로토콜 id 로 조회합니다. 대소문자 구분 없이(예: "p-02") 찾습니다. */
 export function getProtocol(id: string): EmergencyProtocol | undefined {

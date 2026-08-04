@@ -17,8 +17,14 @@ import { useEffect } from "react";
  * - 미지원 브라우저·차단된 환경(사생활 보호 모드 등)에서는 조용히 통과합니다.
  *   등록 실패는 무시하며, 데모 중 콘솔 에러가 남지 않게 합니다.
  * - 첫 화면 렌더링과 경쟁하지 않도록 `load` 이후에 등록합니다.
+ * - 저장이 끝나면 `SW_READY_EVENT` 를 창에 알립니다. 응급 화면의 안내 배지가
+ *   새로고침 없이 "저장 완료"로 바뀌도록 하기 위한 신호입니다.
  * - 화면에 그리는 것은 없습니다(항상 null 반환).
  */
+
+/** 서비스워커 저장이 끝났음을 알리는 창 이벤트 이름입니다. */
+export const SW_READY_EVENT = "chimchak:sw-ready";
+
 export function SwRegister() {
   useEffect(() => {
     if (process.env.NODE_ENV !== "production") return;
@@ -31,7 +37,15 @@ export function SwRegister() {
       if (done) return;
       done = true;
       try {
-        void navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => undefined);
+        void navigator.serviceWorker
+          .register("/sw.js", { scope: "/" })
+          .then(() =>
+            navigator.serviceWorker.ready.then(() => {
+              // 저장이 끝난 시점을 화면에 알립니다(응급 화면 배지가 사실대로 바뀝니다).
+              window.dispatchEvent(new Event(SW_READY_EVENT));
+            }),
+          )
+          .catch(() => undefined);
       } catch {
         /* 등록 실패는 무시합니다 — 앱 동작에는 영향이 없습니다. */
       }

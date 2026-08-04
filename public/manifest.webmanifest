@@ -1,0 +1,43 @@
+{
+  "name": "침착 ChimChak",
+  "short_name": "침착",
+  "description": "돌보는 사람을 훈련시키는 AI 시뮬레이터. 응급 음성 가이드는 네트워크가 끊겨도 열립니다.",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "id": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#17948A",
+  "background_color": "#F7FAF9",
+  "categories": ["education", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "응급 음성 가이드",
+      "short_name": "응급",
+      "description": "검수된 응급 프로토콜 5종을 바로 엽니다.",
+      "url": "/emergency"
+    },
+    {
+      "name": "기도폐쇄(질식) 안내",
+      "short_name": "기도폐쇄",
+      "description": "P-02 기도폐쇄 프로토콜을 바로 엽니다.",
+      "url": "/emergency/p-02"
+    }
+  ]
+}

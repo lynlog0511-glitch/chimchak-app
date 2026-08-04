@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-labelledby="chimchak-icon-title">
+  <title id="chimchak-icon-title">침착 ChimChak</title>
+  <!-- 바탕: 지면색(#F7FAF9) — 마스커블 아이콘으로 잘려도 모서리가 비지 않게 채웁니다. -->
+  <rect width="512" height="512" fill="#F7FAF9"/>
+  <!-- 브랜드 틸 원 -->
+  <circle cx="256" cy="256" r="240" fill="#17948A"/>
+  <!-- 흰 글자 "침착" — 외부 폰트 없이 시스템 한글 스택만 사용합니다(오프라인 보장). -->
+  <text
+    x="256"
+    y="262"
+    text-anchor="middle"
+    dominant-baseline="central"
+    font-family="'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR','Nanum Gothic','Segoe UI',sans-serif"
+    font-size="172"
+    font-weight="700"
+    letter-spacing="-4"
+    fill="#FFFFFF"
+  >침착</text>
+</svg>

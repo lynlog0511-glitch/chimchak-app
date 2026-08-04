@@ -1,0 +1,222 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────
+   침착(ChimChak) 디자인 토큰
+   톤: 틸/민트, 부드러운 카드, 따뜻한 돌봄.
+   접근성: 본문 18px 기준 · 터치 타겟 48px↑ · 명도 대비 WCAG AA.
+   ※ 이 파일은 design 에이전트가 소유합니다.
+   ───────────────────────────────────────────────────────────── */
+@theme {
+  /* 브랜드 틸 — 채움(fill)은 600, 본문 텍스트는 700 이상을 씁니다(AA). */
+  --color-brand-50: #f0faf8;
+  --color-brand-100: #d6f0ec;
+  --color-brand-200: #ade1da;
+  --color-brand-300: #7bccc2;
+  --color-brand-400: #4bb2a6;
+  --color-brand-500: #2aa79b;
+  --color-brand-600: #17948a;
+  --color-brand-700: #157f75;
+  --color-brand-800: #14665f;
+  --color-brand-900: #123f3c;
+
+  /* 민트 — 배경 강조용 저채도 */
+  --color-mint-50: #f4fbf9;
+  --color-mint-100: #e7f6f2;
+  --color-mint-200: #d2ede7;
+
+  /* 잉크·지면 */
+  --color-ink: #1f3d3b;
+  --color-ink-soft: #3c5c59;
+  --color-ink-muted: #4f716e;
+  --color-paper: #f7faf9;
+  --color-paper-2: #eef5f3;
+  --color-line: #dfeae8;
+  --color-line-strong: #c7dcd8;
+
+  /* 상태색 — `*-ink`는 작은 글자용(AA 통과), 기본값은 채움·막대용 */
+  --color-ok: #1e9e6a;
+  --color-ok-ink: #14764f;
+  --color-ok-soft: #e7f6ef;
+  --color-ok-line: #b9e3cf;
+
+  --color-warn: #e8833a;
+  --color-warn-ink: #a8571c;
+  --color-warn-soft: #fdf1e8;
+  --color-warn-line: #f6d3b4;
+
+  --color-danger: #d64545;
+  --color-danger-ink: #b03636;
+  --color-danger-soft: #fdedec;
+  --color-danger-line: #f3c3c1;
+
+  --color-neutral-soft: #eef2f1;
+  --color-neutral-line: #dde6e4;
+
+  /* 타이포 — 외부 폰트 CDN 없이 시스템 스택만 사용(오프라인 데모 보장) */
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+    "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif;
+
+  /* 모서리 — 카드 16~20px */
+  --radius-card: 20px;
+  --radius-panel: 24px;
+  --radius-field: 14px;
+  --radius-chip: 999px;
+
+  /* 그림자 — 은은하게, 틸 잉크 기반 */
+  --shadow-soft: 0 1px 2px rgb(31 61 59 / 0.05);
+  --shadow-card: 0 1px 2px rgb(31 61 59 / 0.04), 0 10px 24px -14px rgb(31 61 59 / 0.16);
+  --shadow-card-hover: 0 2px 4px rgb(31 61 59 / 0.06), 0 18px 38px -16px rgb(31 61 59 / 0.24);
+  --shadow-panel: 0 2px 6px rgb(31 61 59 / 0.05), 0 28px 56px -28px rgb(31 61 59 / 0.28);
+  --shadow-lift: 0 -3px 18px -8px rgb(31 61 59 / 0.16);
+
+  /* 모션 */
+  --ease-soft: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --animate-fade-up: chim-fade-up 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  --animate-gauge: chim-gauge 0.45s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@keyframes chim-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes chim-gauge {
+  from {
+    transform: scaleX(0.2);
+    opacity: 0.4;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* ── 고정 하단 크롬 높이 (고지 바 + 모바일 탭바) ───────────── */
+:root {
+  /* 고지 문구가 두 줄로 접히는 폭까지 감안한 값 (문구를 text-sm/base로 키운 만큼 함께 올림) */
+  --chim-disclaimer-h: 4.4rem;
+  /* 탭바 실측(내용 4.2rem + 상단 보더)보다 살짝 크게 잡아 문구가 가리지 않게 함 */
+  --chim-tabbar-h: 4.6rem;
+  --chim-safe-b: env(safe-area-inset-bottom, 0px);
+}
+
+@media (min-width: 768px) {
+  :root {
+    --chim-disclaimer-h: 3.1rem;
+    --chim-tabbar-h: 0rem;
+  }
+}
+
+@layer base {
+  html {
+    font-size: 18px; /* 고령 접근성: 본문 18px 기본 */
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    line-height: 1.65;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    line-height: 1.32;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-brand-500);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background: var(--color-brand-200);
+    color: var(--color-brand-900);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* 본문 컨테이너 */
+  .chim-container {
+    width: 100%;
+    max-width: 68rem;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+
+  @media (min-width: 768px) {
+    .chim-container {
+      padding-inline: 1.5rem;
+    }
+  }
+
+  /* 고정 하단 크롬만큼 본문 아래 여백 확보 */
+  .chim-main {
+    padding-bottom: calc(
+      var(--chim-disclaimer-h) + var(--chim-tabbar-h) + var(--chim-safe-b) + 1.25rem
+    );
+  }
+
+  /* 상단 고정 헤더 — 노치 대응 */
+  .chim-topbar {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* 하단 고지 바 — 모바일에서는 탭바 위에 얹힘.
+     bottom:0 + 탭바 높이만큼의 아래 패딩으로 두어, 탭바와의 사이에 빈 틈이 생기지 않게 합니다
+     (탭바가 z-50으로 그 패딩 영역을 정확히 덮습니다). */
+  .chim-disclaimer {
+    bottom: 0;
+    padding-bottom: calc(var(--chim-tabbar-h) + var(--chim-safe-b));
+  }
+
+  .chim-tabbar {
+    padding-bottom: var(--chim-safe-b);
+  }
+
+  /* 히어로 배경 글로우 */
+  .chim-hero-glow {
+    background-image:
+      radial-gradient(58rem 26rem at 12% -12%, var(--color-brand-100) 0%, transparent 62%),
+      radial-gradient(46rem 24rem at 92% 4%, var(--color-mint-100) 0%, transparent 58%);
+  }
+
+  /* 얇은 점선 연결선 (흐름도용) */
+  .chim-dotline {
+    background-image: linear-gradient(
+      to right,
+      var(--color-line-strong) 0 6px,
+      transparent 6px 12px
+    );
+    background-size: 12px 2px;
+    background-repeat: repeat-x;
+  }
+}

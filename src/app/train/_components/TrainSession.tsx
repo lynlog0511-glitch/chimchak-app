@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { Badge, BigButton, Card, Gauge } from "@/components";
+import { IconVolume, IconVolumeOff } from "@/components/icons";
 import { cx } from "@/components/utils";
 import { buildRecord, currentCue, currentTurn, protocolIdOf, resolveEnding } from "@/engine";
 import { isRecognitionSupported, primeVoices, speak, stopSpeaking } from "@/lib/speech";
@@ -14,7 +15,7 @@ import { DialogueLog } from "./DialogueLog";
 import { EndingPanel } from "./EndingPanel";
 import { ProtocolInline } from "./ProtocolInline";
 import { TierIndicator } from "./TierIndicator";
-import { FICTION_NOTICE, TIER_LABEL, TIER_TONE, TYPE_TONE } from "./constants";
+import { FICTION_NOTICE, TIER_LABEL, TYPE_TONE } from "./constants";
 import { initialTrainState, makeTrainReducer, type LogItem } from "./sessionMachine";
 
 export interface TrainSessionProps {
@@ -150,13 +151,17 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     <div className="space-y-6">
       {/* 상단 — 시나리오·게이지·상황 지문 */}
       <header className="space-y-4">
-        <div className="flex flex-wrap items-center gap-2">
+        {/* 필은 유형 하나만 — 난이도·계층은 hairline으로 나눈 텍스트로 둡니다. */}
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
           <Badge tone={TYPE_TONE[scenario.type]}>{scenario.typeLabel}</Badge>
-          <Badge tone="neutral">{scenario.levelLabel}</Badge>
+          <span className="text-sm font-semibold text-ink-muted">{scenario.levelLabel}</span>
           {scenario.tiers.map((tier) => (
-            <Badge key={tier} tone={TIER_TONE[tier]}>
+            <span
+              key={tier}
+              className="border-l border-line pl-2.5 text-sm font-bold text-ink-soft"
+            >
               {TIER_LABEL[tier]}
-            </Badge>
+            </span>
           ))}
         </div>
 
@@ -167,13 +172,17 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
             onClick={toggleTts}
             aria-pressed={ttsOn}
             className={cx(
-              "inline-flex min-h-[48px] items-center gap-2 rounded-field border-2 px-4 text-base font-bold transition-colors duration-150",
+              "inline-flex min-h-[48px] items-center gap-2 rounded-field border px-4 text-base font-bold transition-colors duration-150",
               ttsOn
-                ? "border-brand-300 bg-brand-50 text-brand-800"
+                ? "border-brand-300 bg-white text-brand-800"
                 : "border-line bg-white text-ink-muted",
             )}
           >
-            <span aria-hidden="true">{ttsOn ? "🔊" : "🔇"}</span>
+            {ttsOn ? (
+              <IconVolume className="h-5 w-5 shrink-0" />
+            ) : (
+              <IconVolumeOff className="h-5 w-5 shrink-0" />
+            )}
             <span>대사 읽어 주기 {ttsOn ? "켜짐" : "꺼짐"}</span>
           </button>
         </div>

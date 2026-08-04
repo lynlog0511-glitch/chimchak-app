@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { IconClock, IconOffline, IconSave } from "@/components/icons";
 import { SW_READY_EVENT } from "@/components/SwRegister";
 import {
   PROTOCOL_OFFLINE_PENDING_NOTICE,
@@ -106,9 +107,13 @@ export function OfflineStatus() {
     return (
       <p
         role="status"
-        className="flex items-start gap-2 rounded-card border-2 border-ok-line bg-ok-soft px-4 py-3 text-base leading-relaxed font-extrabold text-ok-ink md:text-lg"
+        className="flex items-start gap-2.5 rounded-card border border-ok-line bg-ok-soft px-4 py-3 text-base leading-relaxed font-extrabold text-ok-ink md:text-lg"
       >
-        <span aria-hidden="true">{offline ? "📴" : "💾"}</span>
+        {offline ? (
+          <IconOffline className="mt-1 h-5 w-5 shrink-0" />
+        ) : (
+          <IconSave className="mt-1 h-5 w-5 shrink-0" />
+        )}
         <span>
           {offline
             ? "지금 네트워크가 끊겨 있습니다. 응급 안내 5종은 이 기기에 저장되어 있어 그대로 사용하실 수 있습니다."
@@ -121,9 +126,13 @@ export function OfflineStatus() {
   return (
     <p
       role="status"
-      className="flex items-start gap-2 rounded-card border border-warn-line bg-warn-soft px-4 py-3 text-base leading-relaxed font-bold text-warn-ink"
+      className="flex items-start gap-2.5 rounded-card border border-warn-line bg-warn-soft px-4 py-3 text-base leading-relaxed font-bold text-warn-ink"
     >
-      <span aria-hidden="true">{offline ? "📴" : "⏳"}</span>
+      {offline ? (
+        <IconOffline className="mt-1 h-5 w-5 shrink-0" />
+      ) : (
+        <IconClock className="mt-1 h-5 w-5 shrink-0" />
+      )}
       <span>
         {offline
           ? "지금 네트워크가 끊겨 있습니다. 이 화면은 이미 열려 있어 그대로 보실 수 있지만, 기기 저장은 아직 준비되지 않았습니다."

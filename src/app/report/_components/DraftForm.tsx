@@ -77,7 +77,7 @@ export function DraftForm({ draft, onChange, onBack, onConfirm }: DraftFormProps
         {missingCount > 0 && (
           <p
             role="status"
-            className="mt-4 rounded-field border border-warn-line bg-warn-soft px-4 py-3 text-base leading-relaxed font-bold text-warn-ink"
+            className="mt-4 rounded-field border border-warn-line bg-white px-4 py-3 text-base leading-relaxed font-bold text-warn-ink"
           >
             비어 있는 칸이 {missingCount}곳 있습니다 — {draft.missing.join(" · ")}. 아래에서 채워
             주세요.
@@ -92,22 +92,25 @@ export function DraftForm({ draft, onChange, onBack, onConfirm }: DraftFormProps
             const fieldId = `draft-${slot.key}`;
             const hintId = `${fieldId}-hint`;
             const shared = cx(
-              "mt-2 w-full rounded-field border-2 bg-white p-3.5 text-base leading-relaxed text-ink placeholder:text-ink-muted/70 focus:outline-none",
-              empty ? "border-warn focus:border-warn-ink" : "border-line focus:border-brand-400",
+              "mt-2 w-full rounded-field border bg-white p-3.5 text-base leading-relaxed text-ink placeholder:text-ink-muted/70 focus:outline-none",
+              empty
+                ? "border-warn focus:border-warn-ink"
+                : "border-line-strong focus:border-brand-400",
             );
 
             return (
               <div
                 key={slot.key}
+                // 빈 칸도 색 배경 대신 보더로만 구분합니다 — 다섯 칸이 모두 색이면 화면이 무너집니다.
                 className={cx(
-                  "rounded-card border p-4",
-                  empty ? "border-warn-line bg-warn-soft/60" : "border-line bg-paper-2/60",
+                  "rounded-card border bg-white p-4",
+                  empty ? "border-warn-line" : "border-line",
                 )}
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span
                     aria-hidden="true"
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-chip bg-brand-100 text-sm font-extrabold text-brand-800"
+                    className="chim-num w-5 shrink-0 text-base font-extrabold text-brand-700"
                   >
                     {index + 1}
                   </span>
@@ -115,9 +118,7 @@ export function DraftForm({ draft, onChange, onBack, onConfirm }: DraftFormProps
                     {label}
                   </label>
                   {empty && (
-                    <span className="rounded-chip border border-warn-line bg-white px-2.5 py-0.5 text-sm font-extrabold text-warn-ink">
-                      채워 주세요
-                    </span>
+                    <span className="text-sm font-extrabold text-warn-ink">채워 주세요</span>
                   )}
                 </div>
 
@@ -156,7 +157,7 @@ export function DraftForm({ draft, onChange, onBack, onConfirm }: DraftFormProps
 
       <PrivacyPath reached={4} />
 
-      <Card tone="brand">
+      <Card>
         <h3 className="text-base font-extrabold text-brand-900">확정은 사용자가 누릅니다</h3>
         <p className="mt-2 text-base leading-relaxed text-ink">
           사용자가 확정한 뒤에만 기관 시스템으로 전달됩니다. 확정 직전에 2차 가명처리를 한 번 더

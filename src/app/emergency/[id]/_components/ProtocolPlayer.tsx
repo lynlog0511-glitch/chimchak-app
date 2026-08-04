@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { ProtocolStep } from "@/types";
 import { Badge, BigButton, Call119Button, Card } from "@/components";
+import { IconNext, IconPause, IconPlay, IconPrev } from "@/components/icons";
 import { isSpeechSynthesisSupported, primeVoices, stopSpeaking } from "@/lib/speech";
 import { ProtocolAddressCard } from "../../_components/ProtocolAddressCard";
 import { useProtocolPlayback } from "../../_components/useProtocolPlayback";
@@ -71,12 +72,10 @@ export function ProtocolPlayer({ protocolId, title, steps }: ProtocolPlayerProps
 
       {/* 1단계 119 확대 연출 */}
       {emphasize && (
-        <Card tone="danger" className="border-2 border-danger">
+        <Card tone="danger">
           <div className="flex items-center justify-center gap-2">
-            <span
-              aria-hidden="true"
-              className="inline-block h-3 w-3 animate-pulse rounded-chip bg-danger"
-            />
+            {/* 장식성 깜빡임은 쓰지 않습니다 — 크기와 색만으로 우선순위를 말합니다. */}
+            <span aria-hidden="true" className="inline-block h-3 w-3 rounded-chip bg-danger" />
             <p className="text-lg font-extrabold text-danger-ink md:text-xl">
               먼저 119부터 누르세요
             </p>
@@ -88,16 +87,18 @@ export function ProtocolPlayer({ protocolId, title, steps }: ProtocolPlayerProps
       )}
 
       {/* 대형 자막 */}
-      <Card
-        tone={silent ? "quiet" : "default"}
-        className={silent ? "" : "border-2 border-brand-200"}
-      >
-        <div className="flex flex-wrap items-center gap-2">
+      <Card tone={silent ? "quiet" : "default"}>
+        {/* 필은 단계 번호 하나만 — 진행 수치와 침묵 표시는 작은 텍스트로 둡니다. */}
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
           <Badge tone="brand">{step ? step.id : protocolId}</Badge>
-          <Badge tone="neutral">
+          <span className="chim-num border-l border-line pl-2.5 text-sm font-bold text-ink-soft">
             {index + 1} / {total}
-          </Badge>
-          {silent && <Badge tone="neutral">의도된 침묵</Badge>}
+          </span>
+          {silent && (
+            <span className="border-l border-line pl-2.5 text-sm font-bold text-ink-soft">
+              의도된 침묵
+            </span>
+          )}
         </div>
 
         <p
@@ -135,11 +136,11 @@ export function ProtocolPlayer({ protocolId, title, steps }: ProtocolPlayerProps
           >
             {playing ? (
               <>
-                <span aria-hidden="true">⏸</span> 일시정지
+                <IconPause className="h-5 w-5" /> 일시정지
               </>
             ) : (
               <>
-                <span aria-hidden="true">▶</span> 재생
+                <IconPlay className="h-5 w-5" /> 재생
               </>
             )}
           </BigButton>
@@ -151,7 +152,7 @@ export function ProtocolPlayer({ protocolId, title, steps }: ProtocolPlayerProps
             block
             className="order-2 whitespace-nowrap sm:order-1"
           >
-            <span aria-hidden="true">◀</span> 이전
+            <IconPrev className="h-5 w-5" /> 이전
           </BigButton>
           <BigButton
             onClick={() => goTo(index + 1)}
@@ -161,7 +162,7 @@ export function ProtocolPlayer({ protocolId, title, steps }: ProtocolPlayerProps
             block
             className="order-3 whitespace-nowrap"
           >
-            다음 <span aria-hidden="true">▶</span>
+            다음 <IconNext className="h-5 w-5" />
           </BigButton>
         </div>
 
@@ -208,7 +209,7 @@ export function ProtocolPlayer({ protocolId, title, steps }: ProtocolPlayerProps
                   onClick={() => goTo(i)}
                   aria-current={current ? "step" : undefined}
                   className={[
-                    "flex w-full min-h-[48px] items-start gap-3 rounded-card border-2 px-4 py-3 text-left transition-colors duration-150",
+                    "flex w-full min-h-[48px] items-start gap-3 rounded-card border px-4 py-3 text-left transition-colors duration-150",
                     // 아직 지나지 않은 단계는 opacity 대신 배경색으로만 약하게 표시합니다.
                     // (불투명도를 걸면 본문 대비가 WCAG AA 4.5:1 아래로 떨어집니다.)
                     current

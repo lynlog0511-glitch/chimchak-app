@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
 import { BigButton, Card, cx } from "@/components";
+import { IconMic, IconWave } from "@/components/icons";
 import { createRecognizer, type Recognizer } from "@/lib/speech";
 import { EXAMPLE_NOTICE, EXAMPLE_PARTIAL, EXAMPLE_WANDERING } from "./examples";
 
@@ -160,15 +161,17 @@ export function VoiceInput({ value, onChange, onNext, onInputStart }: VoiceInput
             }
             style={{ touchAction: "none" }}
             className={cx(
-              "flex w-full max-w-md min-h-[104px] flex-col items-center justify-center gap-1 rounded-card border-2 px-6 py-4 font-extrabold transition-colors duration-150",
+              "flex w-full max-w-md min-h-[104px] flex-col items-center justify-center gap-1 rounded-card border px-6 py-4 font-extrabold transition-colors duration-150",
               listening
                 ? "border-danger bg-danger-soft text-danger-ink"
-                : "border-brand-300 bg-brand-50 text-brand-800 hover:bg-brand-100",
+                : "border-brand-300 bg-white text-brand-800 hover:bg-brand-50",
             )}
           >
-            <span aria-hidden="true" className="text-2xl leading-none">
-              {listening ? "🔴" : "🎤"}
-            </span>
+            {listening ? (
+              <IconWave className="h-7 w-7 shrink-0" />
+            ) : (
+              <IconMic className="h-7 w-7 shrink-0" />
+            )}
             <span className="text-lg">
               {listening ? "듣고 있습니다 — 손을 떼면 멈춥니다" : "누르고 있는 동안 듣습니다"}
             </span>
@@ -218,7 +221,7 @@ export function VoiceInput({ value, onChange, onNext, onInputStart }: VoiceInput
           }}
           rows={8}
           placeholder="예) 오후 4시 40분쯤 어르신이 현관 앞에서 집에 가야 한다며 나가려 하셨습니다."
-          className="mt-3 w-full rounded-field border-2 border-line bg-white p-4 text-base leading-relaxed text-ink placeholder:text-ink-muted/70 focus:border-brand-400 focus:outline-none"
+          className="mt-3 w-full rounded-field border border-line-strong bg-white p-4 text-base leading-relaxed text-ink placeholder:text-ink-muted/70 focus:border-brand-400 focus:outline-none"
         />
 
         <div className="mt-4 flex flex-wrap gap-3">

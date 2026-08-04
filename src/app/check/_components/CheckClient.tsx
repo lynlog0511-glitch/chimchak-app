@@ -2,15 +2,17 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { BigButton, Card } from "@/components";
+import { StatusMark, type StatusMarkKind } from "@/components/icons";
 import { cx } from "@/components/utils";
 import type { CheckResult, CheckStatus } from "./checks";
 import { loadingResults, runAllChecks } from "./checks";
 
-const STATUS_MARK: Record<CheckStatus, string> = {
-  ok: "🟢",
-  fail: "🔴",
-  unknown: "⚪",
-  loading: "⚪",
+/** 판정 표기는 전 화면 공통 마크(StatusMark)로 통일합니다 — 이모지를 쓰지 않습니다. */
+const STATUS_MARK: Record<CheckStatus, StatusMarkKind> = {
+  ok: "met",
+  fail: "stop",
+  unknown: "coach",
+  loading: "coach",
 };
 
 const STATUS_LABEL: Record<CheckStatus, string> = {
@@ -20,9 +22,10 @@ const STATUS_LABEL: Record<CheckStatus, string> = {
   loading: "확인 중",
 };
 
+/** 항목이 많으므로 색 배경 대신 보더로만 구분합니다(화면당 색 블록 2개 규칙). */
 const STATUS_BOX: Record<CheckStatus, string> = {
-  ok: "border-ok-line bg-ok-soft",
-  fail: "border-danger-line bg-danger-soft",
+  ok: "border-ok-line bg-white",
+  fail: "border-danger-line bg-white",
   unknown: "border-line bg-white",
   loading: "border-line bg-paper-2",
 };
@@ -37,15 +40,13 @@ const STATUS_TEXT: Record<CheckStatus, string> = {
 function CheckRow({ result }: { result: CheckResult }) {
   return (
     <li>
-      <div className={cx("rounded-card border p-4 shadow-soft md:p-5", STATUS_BOX[result.status])}>
-        <div className="flex flex-wrap items-center gap-2">
-          <span aria-hidden="true" className="text-lg leading-none">
-            {STATUS_MARK[result.status]}
-          </span>
+      <div className={cx("rounded-card border p-4 md:p-5", STATUS_BOX[result.status])}>
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+          <StatusMark kind={STATUS_MARK[result.status]} size="sm" />
           <span className={cx("text-base font-extrabold", STATUS_TEXT[result.status])}>
             {result.title}
           </span>
-          <span className="rounded-chip border border-line bg-white/70 px-2 py-0.5 text-sm font-semibold text-ink-muted">
+          <span className="border-l border-line pl-2.5 text-sm font-semibold text-ink-muted">
             {STATUS_LABEL[result.status]}
           </span>
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge, BigButton, Card, SourceChip } from "@/components";
+import { IconCheck, IconRefresh, StatusMark } from "@/components/icons";
 import type { EndingDef, Scenario, SessionRecord, SessionState } from "@/types";
 import { VERDICT_TONE } from "./constants";
 
@@ -25,7 +26,7 @@ const VERDICT_LEAD: Record<EndingDef["verdict"], string> = {
 /**
  * 훈련 종료 화면.
  *
- * 표시는 🟢 충족 목록과 ⚪ 코칭 2개까지입니다.
+ * 표시는 충족 목록과 코칭 2개까지이며, 마크는 StatusMark가 그립니다(이모지 없음).
  * 점수·등급·순위·백분위는 어떤 형태로도 보여 주지 않습니다(브리프 §3-1).
  */
 export function EndingPanel({
@@ -52,21 +53,24 @@ export function EndingPanel({
   return (
     <div className="space-y-6">
       {recoveredAfterRetry && (
-        <Card tone="brand">
-          <h2 className="flex items-center gap-2 text-lg font-extrabold text-brand-900">
-            <span aria-hidden="true">↺</span>
+        <Card>
+          <h2 className="flex items-center gap-2 text-lg font-extrabold text-ink">
+            <IconRefresh className="h-5 w-5 shrink-0 text-brand-700" />
             재시도로 회복해 완주하셨습니다
           </h2>
-          <p className="mt-2 text-base leading-relaxed font-semibold text-brand-800">
+          <p className="mt-2 text-base leading-relaxed font-semibold text-ink-soft">
             이 표시는 벌점이 아니라, 현장에서 되돌릴 수 없는 지점을 다시 볼 안내입니다.
           </p>
         </Card>
       )}
 
+      {/* 이 화면의 색 배경은 판정 카드와 즉시 중단 카드 둘까지만 씁니다. */}
       <Card tone={verdict === "충족" ? "ok" : verdict === "부분 충족" ? "warn" : "quiet"}>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
           <Badge tone={VERDICT_TONE[verdict]}>{verdict}</Badge>
-          <Badge tone="neutral">{scenario.typeLabel}</Badge>
+          <span className="border-l border-line pl-2.5 text-sm font-bold text-ink-soft">
+            {scenario.typeLabel}
+          </span>
         </div>
         <h2 className="mt-3 text-2xl font-extrabold text-ink md:text-3xl">
           {ending?.title ?? record.endingTitle}
@@ -80,9 +84,11 @@ export function EndingPanel({
       </Card>
 
       {advisoryEnding && (
-        <Card tone="warn">
+        <Card>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge tone="warn">{advisoryEnding.verdict}</Badge>
+            <Badge tone="warn" variant="outline">
+              {advisoryEnding.verdict}
+            </Badge>
             <h3 className="text-lg font-extrabold text-ink">{advisoryEnding.title}</h3>
           </div>
           <p className="mt-2 text-base leading-relaxed text-ink">{advisoryEnding.message}</p>
@@ -92,7 +98,7 @@ export function EndingPanel({
       {session.cfCount > 0 && (
         <Card tone="danger">
           <h3 className="flex items-center gap-2 text-lg font-extrabold text-danger-ink">
-            <span aria-hidden="true">⚑</span>
+            <StatusMark kind="stop" size="sm" />
             즉시 중단이 있었던 지점이 있습니다
           </h3>
           <p className="mt-2 text-base leading-relaxed text-ink">
@@ -105,16 +111,14 @@ export function EndingPanel({
       <div className="grid gap-5 lg:grid-cols-2">
         <Card>
           <h3 className="flex items-center gap-2 text-lg font-extrabold text-ink">
-            <span aria-hidden="true">🟢</span>
+            <StatusMark kind="met" size="sm" />
             지키신 것
           </h3>
           {greens.length > 0 ? (
             <ul className="mt-3 space-y-2.5">
               {greens.map((green) => (
                 <li key={green} className="flex gap-2.5 text-base leading-relaxed text-ink">
-                  <span aria-hidden="true" className="text-ok-ink">
-                    ✓
-                  </span>
+                  <IconCheck className="mt-1 h-4 w-4 shrink-0 text-ok-ink" />
                   <span>{green}</span>
                 </li>
               ))}
@@ -129,16 +133,13 @@ export function EndingPanel({
 
         <Card>
           <h3 className="flex items-center gap-2 text-lg font-extrabold text-ink">
-            <span aria-hidden="true">⚪</span>
+            <StatusMark kind="coach" size="sm" />
             다음에 바꿔볼 것 (최대 두 가지)
           </h3>
           {coachings.length > 0 ? (
-            <ul className="mt-3 space-y-3">
+            <ul className="chim-hairline mt-3 border-t border-line">
               {coachings.map((coaching) => (
-                <li
-                  key={coaching}
-                  className="rounded-card border border-line bg-paper-2 p-3.5 text-base leading-relaxed text-ink"
-                >
+                <li key={coaching} className="py-3 text-base leading-relaxed text-ink">
                   {coaching}
                 </li>
               ))}
@@ -151,7 +152,7 @@ export function EndingPanel({
         </Card>
       </div>
 
-      <Card tone="quiet">
+      <Card>
         <h3 className="text-lg font-extrabold text-ink">이 판정의 근거 문서</h3>
         <div className="mt-3 flex flex-wrap gap-2">
           {scenario.sourceDocs.map((docId) => (

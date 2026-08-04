@@ -45,3 +45,9 @@ export type { Call119ButtonProps } from "./Call119Button";
 export { SwRegister } from "./SwRegister";
 
 export { cx } from "./utils";
+
+/**
+ * 아이콘 시스템 — 개별 import(`@/components/icons`)를 권장하지만,
+ * 여기서도 함께 꺼내 쓸 수 있게 재수출합니다.
+ */
+export * from "./icons";

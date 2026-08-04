@@ -62,23 +62,19 @@ export function PageShell({
         {bleed ? (
           children
         ) : (
-          <div className={cx("chim-container pt-7 pb-10 md:pt-10", wide && "max-w-[80rem]")}>
+          <div className={cx("chim-container pt-8 pb-14 md:pt-12 md:pb-20", wide && "max-w-[80rem]")}>
             {hasHead && (
-              <header className="mb-7 md:mb-9">
+              <header className="mb-8 md:mb-12">
                 {eyebrow && (
-                  <p className="mb-2 text-sm font-bold tracking-wide text-brand-700 uppercase">
-                    {eyebrow}
-                  </p>
+                  <p className="mb-2 text-sm font-bold tracking-wide text-brand-700">{eyebrow}</p>
                 )}
-                {title && (
-                  <h1 className="text-2xl font-extrabold text-ink md:text-4xl">{title}</h1>
-                )}
+                {title && <h1 className="chim-h1 text-ink">{title}</h1>}
                 {description && (
                   <p className="mt-3 max-w-3xl text-base leading-relaxed text-ink-soft md:text-lg">
                     {description}
                   </p>
                 )}
-                {headerSlot && <div className="mt-5">{headerSlot}</div>}
+                {headerSlot && <div className="mt-6">{headerSlot}</div>}
               </header>
             )}
             {children}

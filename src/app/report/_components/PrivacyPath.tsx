@@ -1,4 +1,5 @@
 import { Card, cx } from "@/components";
+import { IconCheck } from "@/components/icons";
 
 export interface PrivacyPathProps {
   /**
@@ -41,11 +42,12 @@ export function PrivacyPath({ reached, className }: PrivacyPathProps) {
               <div
                 aria-current={active ? "step" : undefined}
                 className={cx(
+                  // 색 배경은 '지금 단계' 하나에만 둡니다 — 지나온 단계는 선으로만 표시합니다.
                   "flex h-full flex-col rounded-card border p-3.5",
                   active
                     ? "border-brand-300 bg-brand-50"
                     : done
-                      ? "border-ok-line bg-ok-soft"
+                      ? "border-ok-line bg-white"
                       : "border-line bg-white",
                 )}
               >
@@ -61,7 +63,7 @@ export function PrivacyPath({ reached, className }: PrivacyPathProps) {
                           : "bg-neutral-soft text-ink-muted",
                     )}
                   >
-                    {done ? "✓" : step.n}
+                    {done ? <IconCheck className="h-4 w-4" /> : step.n}
                   </span>
                   <span className="text-base font-bold text-ink">{step.title}</span>
                 </span>
@@ -72,6 +74,7 @@ export function PrivacyPath({ reached, className }: PrivacyPathProps) {
         })}
       </ol>
 
+      {/* 이 화면에서 색 배경으로 남기는 블록은 이 경계 안내 하나입니다. */}
       <Card tone="warn" className="mt-3">
         <p className="text-base leading-relaxed font-bold text-warn-ink">
           기기 밖으로 나가는 것은 가명처리 2단을 통과한 텍스트뿐입니다.

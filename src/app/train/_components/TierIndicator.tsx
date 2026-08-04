@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { IconDot } from "@/components/icons";
 import { cx } from "@/components/utils";
 import type { SessionStatus, Tier } from "@/types";
 import {
@@ -99,7 +100,7 @@ export function TierIndicator({ tiers, status, judgeTick, className }: TierIndic
               aria-current={isActive ? "step" : undefined}
               aria-label={used ? undefined : `${TIER_LABEL[tier]} — ${TIER_UNUSED_NOTE}`}
               className={cx(
-                "flex min-h-[3.25rem] flex-col justify-center rounded-field border-2 px-2 py-2 text-center transition-colors duration-200",
+                "flex min-h-[3.25rem] flex-col justify-center rounded-field border px-2 py-2 text-center transition-colors duration-200",
                 isActive
                   ? ACTIVE_STYLE[tier]
                   : used
@@ -110,7 +111,7 @@ export function TierIndicator({ tiers, status, judgeTick, className }: TierIndic
             >
               {/* 좁은 화면에서도 접히지 않게 계층 기호와 이름을 두 줄로 나눠 적습니다. */}
               <span className="flex items-center justify-center gap-1.5 text-base leading-tight font-extrabold">
-                <span aria-hidden="true">{isActive ? "●" : "○"}</span>
+                <IconDot className="h-3.5 w-3.5" filled={isActive} />
                 {tier}
               </span>
               <span className="mt-0.5 text-sm leading-tight font-semibold">

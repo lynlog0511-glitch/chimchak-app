@@ -77,9 +77,11 @@ export function SourceChip({
     </>
   );
 
+  /* 근거 칩은 한 화면에 여러 개가 붙습니다 — 민트 채움 대신 흰 지면 + 1px 틸 보더로 두어
+     색 블록 수를 줄입니다(DESIGN_DIRECTION §1-2). */
   const chipClass = cx(
-    "inline-flex max-w-full items-center gap-1.5 rounded-chip border border-brand-200 bg-brand-50 px-3 py-1 text-sm text-brand-800",
-    interactive && "min-h-[48px] hover:bg-brand-100 transition-colors duration-150",
+    "inline-flex max-w-full items-center gap-1.5 rounded-chip border border-brand-200 bg-white px-3 py-1 text-sm text-brand-800",
+    interactive && "min-h-[48px] hover:bg-brand-50 hover:border-brand-300 transition-colors duration-150",
     className,
   );
 
@@ -100,12 +102,13 @@ export function SourceChip({
         {label}
       </button>
 
+      {/* 팝오버는 "떠 있는 것"이므로 그림자(shadow-panel)를 쓰는 유일한 자리입니다. */}
       {open && (
         <span
           id={panelId}
           role="dialog"
           aria-label="근거 문서 설명"
-          className="animate-fade-up absolute bottom-full left-0 z-50 mb-2 block w-[min(22rem,80vw)] rounded-card border border-line bg-white p-4 text-left shadow-panel"
+          className="animate-fade-up absolute bottom-full left-0 z-50 mb-2 block w-[min(22rem,80vw)] rounded-panel border border-line bg-white p-4 text-left shadow-panel"
         >
           <span className="block text-base font-bold text-ink">{resolvedTitle}</span>
           {resolvedKind && (

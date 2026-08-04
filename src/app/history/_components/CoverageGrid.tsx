@@ -1,5 +1,14 @@
+import type { ComponentType } from "react";
 import type { ScenarioType, SessionRecord } from "@/types";
 import { Badge, Card, cx } from "@/components";
+import {
+  IconAlert,
+  IconHeartHand,
+  IconLock,
+  IconSiren,
+  IconUsers,
+  type IconProps,
+} from "@/components/icons";
 import { TYPE_LABELS } from "./format";
 
 /**
@@ -17,11 +26,12 @@ export interface CoverageGridProps {
 
 const ORDER: ScenarioType[] = ["BPSD", "EMERGENCY", "CONFLICT", "RISK"];
 
-const ICONS: Record<ScenarioType, string> = {
-  BPSD: "🌿",
-  EMERGENCY: "🚨",
-  CONFLICT: "🤝",
-  RISK: "🧭",
+/** 유형 아이콘 — 이모지 대신 공용 스트로크 아이콘을 씁니다(라벨은 항상 옆에 있습니다). */
+const ICONS: Record<ScenarioType, ComponentType<IconProps>> = {
+  BPSD: IconHeartHand,
+  EMERGENCY: IconSiren,
+  CONFLICT: IconUsers,
+  RISK: IconAlert,
 };
 
 /**
@@ -45,22 +55,26 @@ export function CoverageGrid({ records, typeByScenarioId, activeTypes }: Coverag
       {ORDER.map((type) => {
         const available = activeTypes.includes(type);
         const done = counts[type];
+        const Icon = ICONS[type];
         return (
           <li key={type}>
-            <Card
-              tone={done > 0 ? "ok" : "default"}
-              className={cx("h-full", !available && "opacity-90")}
-            >
+            {/* 네 칸이 모두 색 배경이 되지 않도록, 연습한 유형은 잉크 색과 라벨로만 구분합니다. */}
+            <Card className="h-full">
               <div className="flex items-center gap-2">
-                <span aria-hidden="true" className="text-xl leading-none">
-                  {ICONS[type]}
-                </span>
+                <Icon
+                  className={cx(
+                    "h-5 w-5 shrink-0",
+                    done > 0 ? "text-ok-ink" : "text-ink-muted",
+                  )}
+                />
                 <p className="text-base font-extrabold text-ink">{TYPE_LABELS[type]}</p>
               </div>
 
               <p className="mt-3 text-base font-bold text-ink">
                 {done > 0 ? (
-                  <span className="text-ok-ink">완료 {done}회</span>
+                  <span className="text-ok-ink">
+                    완료 <span className="chim-num">{done}</span>회
+                  </span>
                 ) : available ? (
                   <span className="text-ink-soft">아직 연습하지 않으셨습니다</span>
                 ) : (
@@ -70,11 +84,14 @@ export function CoverageGrid({ records, typeByScenarioId, activeTypes }: Coverag
 
               <div className="mt-3">
                 {available ? (
-                  <Badge tone={done > 0 ? "ok" : "neutral"}>
+                  <Badge tone={done > 0 ? "ok" : "neutral"} variant="outline">
                     {done > 0 ? "훈련 이력 있음" : "훈련 가능"}
                   </Badge>
                 ) : (
-                  <Badge tone="neutral">🔒 베타 편성 예정</Badge>
+                  <Badge tone="neutral" variant="outline">
+                    <IconLock className="h-4 w-4" />
+                    베타 편성 예정
+                  </Badge>
                 )}
               </div>
             </Card>

@@ -1,4 +1,5 @@
 import { cx } from "@/components";
+import { IconCheck } from "@/components/icons";
 
 export interface StepBarProps {
   /** 현재 단계 (1 입력 · 2 가명처리 · 3 초안) */
@@ -26,11 +27,12 @@ export function StepBar({ current, finished = false }: StepBarProps) {
               <div
                 aria-current={active ? "step" : undefined}
                 className={cx(
-                  "flex h-full items-start gap-3 rounded-card border-2 p-4 transition-colors duration-150",
+                  // 색 배경은 '지금 단계' 하나에만 둡니다 — 끝난 단계는 선으로만 표시합니다.
+                  "flex h-full items-start gap-3 rounded-card border p-4 transition-colors duration-150",
                   active
-                    ? "border-brand-300 bg-brand-50 shadow-card"
+                    ? "border-brand-300 bg-brand-50"
                     : done
-                      ? "border-ok-line bg-ok-soft"
+                      ? "border-ok-line bg-white"
                       : "border-line bg-white",
                 )}
               >
@@ -45,7 +47,7 @@ export function StepBar({ current, finished = false }: StepBarProps) {
                         : "bg-neutral-soft text-ink-muted",
                   )}
                 >
-                  {done ? "✓" : step.n}
+                  {done ? <IconCheck className="h-5 w-5" /> : step.n}
                 </span>
                 <span className="min-w-0">
                   <span className="block text-base font-extrabold text-ink">

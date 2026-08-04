@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Badge, BigButton, Card, PageShell } from "@/components";
+import { Badge, BigButton, PageShell } from "@/components";
+import { IconChevronDown, IconChevronLeft, IconShield, IconX } from "@/components/icons";
 import { PROTOCOLS, getProtocol } from "@/data/protocols";
 import { StickyCallBar } from "../_components/StickyCallBar";
 import { ProtocolPlayer } from "./_components/ProtocolPlayer";
@@ -42,19 +43,22 @@ export default async function ProtocolPage({ params }: PageParams) {
       <nav aria-label="이동 경로" className="mb-4">
         <Link
           href="/emergency"
-          className="inline-flex min-h-[48px] items-center gap-1 text-base font-bold text-brand-800"
+          className="inline-flex min-h-[48px] items-center gap-1.5 text-base font-bold text-brand-800"
         >
-          <span aria-hidden="true">←</span> 응급 프로토콜 목록
+          <IconChevronLeft className="h-5 w-5" /> 응급 프로토콜 목록
         </Link>
       </nav>
 
       <header className="mb-7">
-        <div className="flex flex-wrap items-center gap-2">
+        {/* 필은 프로토콜 번호와 검수 상태 둘까지 — 단계 수는 그냥 작은 텍스트로 둡니다. */}
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
           <Badge tone="danger">{protocol.id}</Badge>
-          <Badge tone={complete ? "ok" : "warn"}>
+          <Badge tone={complete ? "ok" : "warn"} variant="outline">
             {complete ? "감수 완료" : "알파 초안"}
           </Badge>
-          <Badge tone="neutral">{protocol.steps.length}단계</Badge>
+          <span className="border-l border-line pl-2.5 text-sm font-semibold text-ink-muted">
+            <span className="chim-num">{protocol.steps.length}</span>단계
+          </span>
         </div>
         <h1 className="mt-3 text-2xl font-extrabold text-ink md:text-4xl">{protocol.title}</h1>
         <p className="mt-3 max-w-3xl text-base leading-relaxed text-ink-soft md:text-lg">
@@ -72,14 +76,15 @@ export default async function ProtocolPage({ params }: PageParams) {
       />
 
       {/* 앱이 하지 않는 것 — 접이식 */}
-      <details className="mt-8 rounded-card border-2 border-danger-line bg-white shadow-card">
+      <details className="group mt-8 rounded-card border border-danger-line bg-white">
         <summary className="flex min-h-[56px] cursor-pointer list-none items-center gap-3 px-5 py-4 text-lg font-extrabold text-danger-ink [&::-webkit-details-marker]:hidden">
-          <span aria-hidden="true">🛡</span>
+          <IconShield className="h-6 w-6 shrink-0" />
           <span className="flex-1">
             앱이 하지 않는 것 — 이 부분은 119 상황실이 목소리로 직접 지도합니다
           </span>
-          <span aria-hidden="true" className="text-base font-bold text-ink-muted">
-            펼치기 ▾
+          <span className="flex shrink-0 items-center gap-1.5 text-base font-bold text-ink-muted">
+            펼치기
+            <IconChevronDown className="h-5 w-5 transition-transform duration-150 group-open:rotate-180" />
           </span>
         </summary>
 
@@ -89,24 +94,24 @@ export default async function ProtocolPage({ params }: PageParams) {
             무엇을 하는지를 함께 적어 두었습니다.
           </p>
 
-          <ul className="mt-5 space-y-4">
+          {/* 항목마다 카드를 두지 않고 hairline으로만 나눕니다 — 위계가 낮은 목록입니다. */}
+          <ul className="chim-hairline mt-5 border-t border-line">
             {protocol.notDoing.map((item) => (
-              <li key={item.what}>
-                <Card tone="quiet" className="h-full">
-                  <p className="text-base font-extrabold text-danger-ink md:text-lg">
-                    <span aria-hidden="true">✕</span> {item.what}
-                  </p>
-                  <dl className="mt-3 space-y-2">
-                    <div>
-                      <dt className="text-sm font-bold text-ink-muted">하지 않는 이유</dt>
-                      <dd className="mt-0.5 text-base leading-relaxed text-ink">{item.why}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-bold text-ink-muted">대신 하는 것</dt>
-                      <dd className="mt-0.5 text-base leading-relaxed text-ink">{item.instead}</dd>
-                    </div>
-                  </dl>
-                </Card>
+              <li key={item.what} className="py-4">
+                <p className="flex items-start gap-2 text-base font-extrabold text-danger-ink md:text-lg">
+                  <IconX className="mt-1 h-5 w-5 shrink-0" />
+                  <span>{item.what}</span>
+                </p>
+                <dl className="mt-3 space-y-2 pl-7">
+                  <div>
+                    <dt className="text-sm font-bold text-ink-muted">하지 않는 이유</dt>
+                    <dd className="mt-0.5 text-base leading-relaxed text-ink">{item.why}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-bold text-ink-muted">대신 하는 것</dt>
+                    <dd className="mt-0.5 text-base leading-relaxed text-ink">{item.instead}</dd>
+                  </div>
+                </dl>
               </li>
             ))}
           </ul>

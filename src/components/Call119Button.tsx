@@ -1,3 +1,4 @@
+import { IconPhone } from "./icons";
 import { cx } from "./utils";
 
 export interface Call119ButtonProps {
@@ -11,15 +12,24 @@ export interface Call119ButtonProps {
 }
 
 const SIZE = {
-  md: "min-h-[56px] px-6 text-lg",
-  lg: "min-h-[68px] px-8 text-xl",
-  xl: "min-h-[96px] px-10 text-3xl",
+  md: "min-h-[56px] px-6 text-lg gap-2.5",
+  lg: "min-h-[68px] px-8 text-xl gap-3",
+  xl: "min-h-[96px] px-10 text-3xl gap-4",
+} as const;
+
+const ICON_SIZE = {
+  md: "h-6 w-6",
+  lg: "h-7 w-7",
+  xl: "h-9 w-9",
 } as const;
 
 /**
  * 119 신고 버튼.
  * 응급 화면에서는 상시 노출하고, 프로토콜 1단계에서는 size="xl"로 확대합니다.
  * 링크는 전화 앱을 여는 tel: 링크이며, 자동으로 발신되지는 않습니다.
+ *
+ * 그라데이션·그림자·이모지 없이 danger 단색 하나로만 세웁니다 —
+ * 이 화면에서 눈에 띄어야 하는 것은 이 버튼 하나뿐이기 때문입니다.
  */
 export function Call119Button({
   className,
@@ -32,12 +42,12 @@ export function Call119Button({
       <a
         href="tel:119"
         className={cx(
-          "inline-flex items-center justify-center gap-3 rounded-field border-2 border-danger bg-danger font-extrabold text-white shadow-card transition-colors duration-150 hover:bg-danger-ink active:bg-danger-ink",
+          "inline-flex items-center justify-center rounded-field border border-danger bg-danger font-extrabold text-white transition-colors duration-150 hover:bg-danger-ink active:bg-danger-ink",
           SIZE[size],
           block && "w-full",
         )}
       >
-        <span aria-hidden="true">🚨</span>
+        <IconPhone className={ICON_SIZE[size]} strokeWidth={2} />
         <span>119 신고</span>
       </a>
       {caption && (

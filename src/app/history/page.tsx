@@ -9,7 +9,7 @@ import type { ScenarioTypeMap } from "./_components/CoverageGrid";
 export const metadata: Metadata = {
   title: "성장 기록",
   description:
-    "훈련 이력과 확정한 기록을 이 기기에 쌓아 둡니다. 🟢 충족한 것과 ⚪ 다음에 살려 볼 것만 문장으로 남기고, 점수·등급은 만들지 않습니다.",
+    "훈련 이력과 확정한 기록을 이 기기에 쌓아 둡니다. 충족한 것과 다음에 살려 볼 것만 문장으로 남기고, 점수·등급은 만들지 않습니다.",
 };
 
 /**

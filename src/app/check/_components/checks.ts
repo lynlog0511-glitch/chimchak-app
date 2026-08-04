@@ -8,7 +8,7 @@
  * 않습니다(읽기 전용 점검 + localStorage 쓰기 테스트 키 하나만 예외).
  */
 
-/** 개별 항목 상태. ok=🟢, fail=🔴, unknown=⚪(확인 불가/참고용), loading=검사 중 */
+/** 개별 항목 상태. ok=정상, fail=확인 필요, unknown=확인 불가(참고용), loading=검사 중 */
 export type CheckStatus = "ok" | "fail" | "unknown" | "loading";
 
 export interface CheckResult {

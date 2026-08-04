@@ -16,7 +16,8 @@ export function StickyCallBar({ spaced = true }: StickyCallBarProps) {
   return (
     <div
       className={[
-        "sticky top-[4.5rem] z-30 rounded-card border-2 border-danger-line bg-white/95 p-3 shadow-card backdrop-blur md:top-[5rem]",
+        // 떠 있는 바이므로 그림자는 최소 한 단계만 남깁니다(카드에는 쓰지 않는 값).
+        "sticky top-[4.5rem] z-30 rounded-card border border-danger-line bg-white/95 p-3 shadow-card backdrop-blur md:top-[5rem]",
         spaced ? "mb-6" : "",
       ]
         .filter(Boolean)

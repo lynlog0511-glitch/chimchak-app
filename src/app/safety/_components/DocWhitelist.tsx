@@ -1,7 +1,5 @@
 "use client";
 
-import { Badge } from "@/components/Badge";
-import { Card } from "@/components/Card";
 import { useSourceDocs } from "@/components/SourceDocsContext";
 
 /** 데이터가 아직 주입되지 않았을 때 보여 줄 문서군 요약 */
@@ -31,24 +29,20 @@ const FALLBACK_GROUPS = [
 /**
  * 근거 문서 화이트리스트 표시.
  * `PageShell`이 내려 준 문서 목록이 있으면 문서 단위로, 없으면 문서군 요약으로 보여 줍니다.
+ *
+ * 위계가 낮은 목록이라 카드로 감싸지 않고 hairline으로만 나눕니다(문서 종류 → 제목 → 설명).
  */
 export function DocWhitelist() {
   const docs = useSourceDocs();
 
   if (docs.length > 0) {
     return (
-      <ul className="grid gap-3 md:grid-cols-2">
+      <ul className="grid border-b border-line md:grid-cols-2 md:gap-x-10">
         {docs.map((d) => (
-          <li key={d.id}>
-            <Card className="h-full" padded={false}>
-              <div className="p-5">
-                <Badge tone="brand">{d.kind}</Badge>
-                <p className="mt-2.5 text-base font-bold text-ink">{d.title}</p>
-                {d.note && (
-                  <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">{d.note}</p>
-                )}
-              </div>
-            </Card>
+          <li key={d.id} className="border-t border-line py-4">
+            <p className="text-sm font-bold tracking-wide text-brand-700">{d.kind}</p>
+            <p className="mt-1 text-base font-extrabold text-ink">{d.title}</p>
+            {d.note && <p className="mt-1.5 text-base leading-relaxed text-ink-soft">{d.note}</p>}
           </li>
         ))}
       </ul>
@@ -56,23 +50,21 @@ export function DocWhitelist() {
   }
 
   return (
-    <ul className="grid gap-3 md:grid-cols-2">
+    <ul className="grid border-b border-line md:grid-cols-2 md:gap-x-10">
       {FALLBACK_GROUPS.map((g) => (
-        <li key={g.kind}>
-          <Card className="h-full">
-            <Badge tone="brand">{g.kind}</Badge>
-            <ul className="mt-3 space-y-1.5">
-              {g.items.map((it) => (
-                <li key={it} className="flex gap-2 text-base leading-relaxed text-ink">
-                  <span
-                    aria-hidden="true"
-                    className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-chip bg-brand-400"
-                  />
-                  <span>{it}</span>
-                </li>
-              ))}
-            </ul>
-          </Card>
+        <li key={g.kind} className="border-t border-line py-4">
+          <p className="text-sm font-bold tracking-wide text-brand-700">{g.kind}</p>
+          <ul className="mt-2 space-y-1.5">
+            {g.items.map((it) => (
+              <li key={it} className="flex gap-2 text-base leading-relaxed text-ink">
+                <span
+                  aria-hidden="true"
+                  className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-chip bg-brand-400"
+                />
+                <span>{it}</span>
+              </li>
+            ))}
+          </ul>
         </li>
       ))}
     </ul>

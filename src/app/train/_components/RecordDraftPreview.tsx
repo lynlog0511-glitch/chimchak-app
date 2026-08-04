@@ -11,6 +11,7 @@ import {
   splitMasked,
   type RecordSlot,
 } from "@/engine";
+import { IconNote } from "@/components/icons";
 import { cx } from "@/components/utils";
 
 const SLOT_ORDER: RecordSlot[] = ["time", "who", "what", "action", "status"];
@@ -59,14 +60,14 @@ export function RecordDraftPreview({
     <div
       className={cx(
         "rounded-card border p-4 md:p-5",
-        variant === "live" ? "border-line bg-paper-2" : "border-brand-200 bg-brand-50",
+        variant === "live" ? "border-line bg-paper-2" : "border-brand-200 bg-white",
         className,
       )}
     >
-      <div className="flex flex-wrap items-center gap-2">
-        <span aria-hidden="true">📝</span>
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+        <IconNote className="h-5 w-5 shrink-0 text-brand-700" />
         <h4 className="text-base font-extrabold text-ink">기록 초안 미리보기</h4>
-        <span className="rounded-chip border border-line bg-white px-2 py-0.5 text-sm font-semibold text-ink-muted">
+        <span className="border-l border-line pl-2.5 text-sm font-semibold text-ink-muted">
           급여제공기록지 5요소
         </span>
       </div>

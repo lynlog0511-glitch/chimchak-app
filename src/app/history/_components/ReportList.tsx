@@ -44,11 +44,15 @@ function ReportItem({ report }: { report: StoredReport }) {
     <Card className="h-full">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm font-semibold text-ink-muted">{formatDateTime(report.createdAt)}</p>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
           {isDisplayableElapsed(report.elapsedSec) && (
-            <Badge tone="neutral">{formatElapsedDuration(report.elapsedSec)} 만에 작성</Badge>
+            <span className="text-sm font-semibold text-ink-muted">
+              {formatElapsedDuration(report.elapsedSec)} 만에 작성
+            </span>
           )}
-          <Badge tone="brand">가명처리 2단 통과</Badge>
+          <Badge tone="brand" variant="outline">
+            가명처리 2단 통과
+          </Badge>
         </div>
       </div>
 
@@ -56,14 +60,12 @@ function ReportItem({ report }: { report: StoredReport }) {
         <TokenText text={report.maskedText} />
       </p>
 
+      {/* 가림 건수는 칩이 아니라 hairline으로 나눈 작은 텍스트로 둡니다. */}
       {counts.length > 0 && (
-        <ul className="mt-3 flex flex-wrap gap-2">
+        <ul className="mt-3 flex flex-wrap items-baseline gap-x-2.5 gap-y-1 text-sm font-semibold text-ink-muted">
           {counts.map(([kind, value]) => (
-            <li
-              key={kind}
-              className="rounded-chip border border-line bg-white px-3 py-1 text-sm font-semibold text-ink-soft"
-            >
-              {kind} {value}곳 가림
+            <li key={kind} className="border-l border-line pl-2.5 first:border-l-0 first:pl-0">
+              {kind} <span className="chim-num">{value}</span>곳 가림
             </li>
           ))}
         </ul>

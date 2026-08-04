@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Badge, BigButton, Card, PageShell } from "@/components";
+import { IconArrowRight, IconInfo, IconLock } from "@/components/icons";
 import { SOURCE_DOCS } from "@/data/docs";
 import {
   MATRIX_LEVEL_LABELS,
@@ -15,7 +16,6 @@ import {
   PRACTICE_LINE,
   scenarioHref,
   TIER_LABEL,
-  TIER_TONE,
   TYPE_TONE,
 } from "./_components/constants";
 
@@ -30,21 +30,24 @@ export const metadata: Metadata = {
 function ScenarioCard({ scenario }: { scenario: Scenario }) {
   return (
     <Card hoverable className="flex h-full flex-col">
-      <div className="flex flex-wrap items-center gap-2">
+      {/* 필은 유형 하나만 — 난이도·소요는 그냥 작은 텍스트로 둡니다. */}
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
         <Badge tone={TYPE_TONE[scenario.type]}>{scenario.typeLabel}</Badge>
-        <Badge tone="neutral">{scenario.levelLabel}</Badge>
-        <Badge tone="neutral">약 {scenario.durationMin}분</Badge>
+        <span className="text-sm font-semibold text-ink-muted">
+          {scenario.levelLabel} · 약 {scenario.durationMin}분
+        </span>
       </div>
 
       <h3 className="mt-4 text-xl font-extrabold text-ink md:text-2xl">{scenario.title}</h3>
       <p className="mt-2.5 text-base leading-relaxed text-ink-soft">{scenario.summary}</p>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <span className="text-sm font-semibold text-ink-muted">생성 통제</span>
+      {/* 계층 표기도 배지 대신 hairline으로 나눈 텍스트로 둡니다. */}
+      <div className="mt-4 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm">
+        <span className="font-semibold text-ink-muted">생성 통제</span>
         {scenario.tiers.map((tier) => (
-          <Badge key={tier} tone={TIER_TONE[tier]}>
+          <span key={tier} className="border-l border-line pl-2.5 font-bold text-ink-soft">
             {TIER_LABEL[tier]}
-          </Badge>
+          </span>
         ))}
       </div>
 
@@ -77,10 +80,13 @@ function MatrixCellBox({ cell }: { cell: MatrixCell }) {
     return (
       <Link
         href={scenarioHref(cell.scenarioId)}
-        className="flex min-h-[92px] flex-col justify-between gap-2 rounded-card border-2 border-brand-200 bg-brand-50 p-3.5 transition-colors duration-150 hover:bg-brand-100"
+        className="flex min-h-[92px] flex-col justify-between gap-2 rounded-card border border-brand-300 bg-white p-3.5 transition-colors duration-150 hover:bg-brand-50"
       >
-        <span className="text-base leading-snug font-bold text-brand-900">{cell.title}</span>
-        <span className="text-sm font-bold text-brand-800">지금 연습할 수 있습니다 →</span>
+        <span className="text-base leading-snug font-bold text-ink">{cell.title}</span>
+        <span className="flex items-center gap-1.5 text-sm font-bold text-brand-800">
+          지금 연습할 수 있습니다
+          <IconArrowRight className="h-4 w-4" />
+        </span>
       </Link>
     );
   }
@@ -89,7 +95,7 @@ function MatrixCellBox({ cell }: { cell: MatrixCell }) {
     <div className="flex min-h-[92px] flex-col justify-between gap-2 rounded-card border border-dashed border-line-strong bg-paper-2 p-3.5">
       <span className="text-base leading-snug font-semibold text-ink-muted">{cell.title}</span>
       <span className="flex items-center gap-1.5 text-sm font-semibold text-ink-muted">
-        <span aria-hidden="true">🔒</span>
+        <IconLock className="h-4 w-4" />
         준비 중입니다
       </span>
     </div>
@@ -152,7 +158,7 @@ export default function TrainIndexPage() {
           입력만으로도 끝까지 진행하실 수 있습니다.
         </p>
         <p className="mt-3 flex items-start gap-2 text-sm leading-relaxed font-semibold text-brand-800">
-          <span aria-hidden="true">◆</span>
+          <IconInfo className="mt-0.5 h-4 w-4 shrink-0" />
           <span>{FICTION_NOTICE}</span>
         </p>
       </Card>
@@ -191,7 +197,8 @@ export default function TrainIndexPage() {
         <h2 id="train-guide" className="text-xl font-extrabold text-ink md:text-2xl">
           훈련은 이렇게 진행됩니다
         </h2>
-        <div className="mt-5 grid gap-4 md:grid-cols-4">
+        {/* 카드 그리드 대신 hairline으로 나눈 에디토리얼 목록 — 앞 두 섹션과 리듬을 다르게 둡니다. */}
+        <ol className="chim-hairline mt-5 border-t border-line">
           {[
             {
               step: "1",
@@ -206,7 +213,7 @@ export default function TrainIndexPage() {
             {
               step: "3",
               title: "턴 피드백",
-              body: "🟢 충족과 ⚪ 코칭 두 가지로만 알려 드리고, 근거 문서를 함께 보여 드립니다.",
+              body: "충족과 코칭 두 가지로만 알려 드리고, 근거 문서를 함께 보여 드립니다.",
             },
             {
               step: "4",
@@ -214,18 +221,25 @@ export default function TrainIndexPage() {
               body: "충족한 원칙과 다음에 바꿔볼 점을 정리해 기기 안에만 저장합니다.",
             },
           ].map((item) => (
-            <Card key={item.step} tone="quiet" className="h-full">
+            <li
+              key={item.step}
+              className="grid grid-cols-[3rem_1fr] gap-x-4 py-5 md:grid-cols-[5rem_1fr] md:gap-x-6"
+            >
               <span
                 aria-hidden="true"
-                className="flex h-9 w-9 items-center justify-center rounded-chip bg-brand-100 text-base font-extrabold text-brand-800"
+                className="chim-stat text-2xl text-brand-600 md:text-3xl"
               >
                 {item.step}
               </span>
-              <h3 className="mt-3 text-lg font-extrabold text-ink">{item.title}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{item.body}</p>
-            </Card>
+              <div>
+                <h3 className="text-lg font-extrabold text-ink">{item.title}</h3>
+                <p className="mt-1.5 max-w-2xl text-base leading-relaxed text-ink-soft">
+                  {item.body}
+                </p>
+              </div>
+            </li>
           ))}
-        </div>
+        </ol>
       </section>
     </PageShell>
   );

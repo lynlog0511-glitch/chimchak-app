@@ -17,7 +17,7 @@ export function ProtocolAddressCard({ address, className }: ProtocolAddressCardP
   return (
     <div
       className={[
-        "mt-4 rounded-card border-2 border-brand-200 bg-brand-50 px-4 py-4 text-center",
+        "mt-4 rounded-card border border-brand-300 bg-brand-50 px-4 py-4 text-center",
         className ?? "",
       ]
         .filter(Boolean)

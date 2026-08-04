@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Badge, BigButton, Card, PageShell } from "@/components";
+import { Badge, BigButton, Card, IconArrowRight, PageShell, cx } from "@/components";
 import { PROTOCOLS } from "@/data/protocols";
 import { OfflineStatus } from "./_components/OfflineStatus";
+import { getProtocolIcon } from "./_components/ProtocolIcons";
 import { StickyCallBar } from "./_components/StickyCallBar";
 
 export const metadata: Metadata = {
@@ -69,6 +70,7 @@ export default function EmergencyPage() {
           {PROTOCOLS.map((protocol) => {
             const href = `/emergency/${protocol.id.toLowerCase()}`;
             const complete = isReviewComplete(protocol.reviewed);
+            const ProtocolIcon = getProtocolIcon(protocol.id);
             return (
               <li key={protocol.id}>
                 <Link
@@ -76,29 +78,44 @@ export default function EmergencyPage() {
                   className="block h-full rounded-card focus-visible:outline-3"
                   aria-label={`${protocol.title} 안내 열기`}
                 >
-                  <Card hoverable className="flex h-full flex-col">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge tone="danger">{protocol.id}</Badge>
-                      <Badge tone={complete ? "ok" : "warn"}>
-                        {reviewedLabel(protocol.reviewed)}
-                      </Badge>
-                      <Badge tone="neutral">{protocol.steps.length}단계</Badge>
+                  {/* 검수 상태는 채운 배지 대신 hairline 색 코드(왼쪽 선 + 테두리형 배지)로만
+                      구분합니다 — 감수 완료는 ok, 초안은 warn. */}
+                  <Card
+                    hoverable
+                    className={cx(
+                      "flex h-full flex-col border-l-4",
+                      complete ? "border-l-ok-line" : "border-l-warn-line",
+                    )}
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-field border border-line bg-paper-2 text-ink">
+                        <ProtocolIcon className="h-6 w-6" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold tracking-wide text-ink-muted">
+                          {protocol.id} · {protocol.steps.length}단계
+                        </p>
+                        <h3 className="mt-1 text-2xl font-extrabold tracking-[-0.02em] text-ink">
+                          {protocol.title}
+                        </h3>
+                      </div>
                     </div>
 
-                    <h3 className="mt-3 text-xl font-extrabold text-ink md:text-2xl">
-                      {protocol.title}
-                    </h3>
-
-                    <p className="mt-2 flex-1 text-base leading-relaxed text-ink-soft">
+                    <p className="mt-3 flex-1 text-base leading-relaxed text-ink-soft">
                       {firstSentence(protocol.situation)}
                     </p>
 
-                    <p className="mt-3 text-sm leading-relaxed text-ink-muted">
-                      검수 상태 · {protocol.reviewed}
-                    </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <Badge tone={complete ? "ok" : "warn"} variant="outline">
+                        {reviewedLabel(protocol.reviewed)}
+                      </Badge>
+                      <p className="text-sm leading-relaxed text-ink-muted">
+                        검수 상태 · {protocol.reviewed}
+                      </p>
+                    </div>
 
-                    <p className="mt-4 text-base font-extrabold text-brand-800">
-                      음성 안내 열기 <span aria-hidden="true">→</span>
+                    <p className="mt-4 flex items-center gap-1 text-base font-extrabold text-brand-800">
+                      음성 안내 열기 <IconArrowRight className="h-5 w-5" />
                     </p>
                   </Card>
                 </Link>

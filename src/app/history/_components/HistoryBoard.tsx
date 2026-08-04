@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { ScenarioType, SessionRecord } from "@/types";
 import { BigButton, Card } from "@/components";
+import { StatusMark } from "@/components/icons";
 import {
   clearReports,
   clearSessions,
@@ -35,7 +36,8 @@ function SectionHead({ title, lead }: { title: string; lead: string }) {
  * 성장 기록 화면 본문.
  *
  * localStorage 는 브라우저에만 있으므로 마운트 뒤에 읽습니다(서버 렌더 결과와 어긋나지 않게).
- * 표시는 🟢 충족 / ⚪ 코칭 두 가지와 판정 문구까지이며, 점수·등급·순위·백분위는 만들지 않습니다.
+ * 표시는 충족 / 코칭 두 가지와 판정 문구까지이며, 점수·등급·순위·백분위는 만들지 않습니다.
+ * (판정 마크는 StatusMark — 이모지를 쓰지 않습니다.)
  */
 export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProps) {
   const [loaded, setLoaded] = useState(false);
@@ -77,8 +79,10 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
             아직 쌓인 기록이 없습니다. 첫 훈련부터 시작해 보시겠어요?
           </p>
           <p className="mt-3 text-base leading-relaxed text-ink">
-            정답을 맞히는 시험이 아니라, 말이 나오게 만드는 연습입니다. 한 번 해 보시면 이 자리에
-            🟢 충족한 것과 ⚪ 다음에 살려 볼 것이 문장으로 남습니다.
+            정답을 맞히는 시험이 아니라, 말이 나오게 만드는 연습입니다. 한 번 해 보시면 이 자리에{" "}
+            <StatusMark kind="met" size="sm" quiet label="충족" />한 것과{" "}
+            <StatusMark kind="coach" size="sm" quiet label="다음에 살려 볼 것" />이 문장으로
+            남습니다.
           </p>
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
             <BigButton href="/train" size="lg">
@@ -130,7 +134,7 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
       <section>
         <SectionHead
           title="훈련 이력"
-          lead="회차마다 🟢 충족한 것과 ⚪ 다음에 살려 볼 것을 문장으로 남깁니다. 점수·등급·순위는 만들지 않고, 발화 원문도 저장하지 않습니다."
+          lead="회차마다 충족한 것과 다음에 살려 볼 것을 문장으로 남깁니다. 점수·등급·순위는 만들지 않고, 발화 원문도 저장하지 않습니다."
         />
         {sessions.length > 0 ? (
           <ul className="grid gap-4">

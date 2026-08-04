@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/Badge";
 import { Card } from "@/components/Card";
+import { IconSave } from "@/components/icons";
 
 /**
  * 보안 라이브 증명 패널 — "외부로 나간 요청 0건"을 문장이 아니라 계측치로 보여 줍니다.
@@ -183,17 +184,15 @@ function MetricTile({
       ? "border-ok-line bg-ok-soft"
       : tone === "danger"
         ? "border-danger-line bg-danger-soft"
-        : "border-line bg-white";
+        : "border-line bg-paper";
   const numberTone =
     tone === "ok" ? "text-ok-ink" : tone === "danger" ? "text-danger-ink" : "text-brand-800";
 
   return (
     <div className={`rounded-card border p-4 md:p-5 ${box}`}>
       <p className="text-base font-bold text-ink-soft">{label}</p>
-      <p className={`mt-1 text-3xl leading-tight font-extrabold tabular-nums ${numberTone}`}>
-        {value}
-      </p>
-      <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">{caption}</p>
+      <p className={`chim-stat mt-1.5 text-4xl ${numberTone}`}>{value}</p>
+      <p className="mt-2 text-sm leading-relaxed text-ink-muted">{caption}</p>
     </div>
   );
 }
@@ -343,10 +342,12 @@ export function LiveProofPanel() {
   const clean = counts.cross === 0;
 
   return (
-    <Card tone="quiet" className="border-brand-200">
+    <Card>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <Badge tone="brand">라이브 계측</Badge>
-        <h2 className="text-xl font-extrabold text-ink md:text-2xl">
+        <Badge tone="brand" variant="outline">
+          라이브 계측
+        </Badge>
+        <h2 className="text-xl font-extrabold tracking-[-0.02em] text-ink md:text-2xl">
           말이 아니라 계측치로 — 이 페이지가 열려 있는 동안
         </h2>
       </div>
@@ -408,8 +409,9 @@ export function LiveProofPanel() {
       {/* 2. 기기 저장 목록 */}
       {mounted && cacheVisible && (
         <div className="mt-6 border-t border-line pt-5">
-          <p className="text-base font-extrabold text-ink">
-            <span aria-hidden="true">💾</span> 이 기기에 저장된 화면 — 서버가 죽어도 열리는 목록
+          <p className="flex items-center gap-2 text-base font-extrabold text-ink">
+            <IconSave className="h-5 w-5 shrink-0 text-brand-700" />
+            이 기기에 저장된 화면 — 서버가 죽어도 열리는 목록
           </p>
 
           {cacheState.status === "measuring" && (
@@ -461,7 +463,7 @@ export function LiveProofPanel() {
       )}
 
       {/* 3. 직접 확인 안내 */}
-      <p className="mt-6 rounded-card border border-brand-200 bg-white px-4 py-3 text-base leading-relaxed font-bold text-brand-800">
+      <p className="mt-6 border-l-4 border-brand-600 pl-5 text-base leading-relaxed font-bold text-brand-800">
         직접 확인하실 수 있습니다 — 브라우저 개발자도구(F12) → 네트워크 탭을 열어 두고 이 앱을
         사용해 보세요. 같은 목록이 그대로 보입니다.
       </p>

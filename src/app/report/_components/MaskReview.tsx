@@ -71,7 +71,7 @@ export function MaskReview({ text, onBack, onNext }: MaskReviewProps) {
           <h2 className="text-lg font-extrabold text-ink md:text-xl">
             2. 무엇을 가렸는지 먼저 확인해 주세요
           </h2>
-          <span className="rounded-chip border border-line bg-paper-2 px-3 py-1 text-sm font-bold text-ink-soft">
+          <span className="text-sm font-bold text-ink-muted">
             이 원문은 이 기기 안에만 있습니다
           </span>
         </div>
@@ -127,11 +127,12 @@ export function MaskReview({ text, onBack, onNext }: MaskReviewProps) {
         )}
       </Card>
 
-      <Card tone="brand">
+      {/* 색 배경을 걷어냅니다 — 이 화면의 색 블록은 아래 경계 안내 하나로 충분합니다. */}
+      <Card>
         <h3 className="text-base font-extrabold text-brand-900">
           기기 밖으로 나가는 텍스트는 여기까지입니다
         </h3>
-        <p className="mt-3 rounded-card border border-brand-200 bg-white p-4 text-base leading-loose text-ink">
+        <p className="mt-3 rounded-card border border-line bg-paper-2 p-4 text-base leading-loose text-ink">
           {maskedParts.map((part, index) =>
             part.masked ? (
               <strong

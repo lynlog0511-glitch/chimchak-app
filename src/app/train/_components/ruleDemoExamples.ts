@@ -11,7 +11,8 @@
  * - 버튼은 **입력창을 채우기만** 하고 전송하지 않습니다. 보내는 것은 사람이 합니다(조작 아님).
  * - 문장은 전부 `src/engine/rules.ts`의 사전 용어와 실제로 대조해 확정했습니다.
  *   (`matchedTerm`이 그 사전에 들어 있는 신호이고, `ruleId`가 발동하는 규칙입니다.)
- * - 점수·등급 표기는 두지 않습니다. 표기는 ⚑CF(전면 인터럽트) / ⚪ 코칭 두 갈래뿐입니다.
+ * - 점수·등급 표기는 두지 않습니다. 표기는 ⚑CF(전면 인터럽트) / 코칭 두 갈래뿐이고,
+ *   화면의 마크는 이모지가 아니라 StatusMark가 그립니다.
  *
  * 대조 결과 메모 (2026-08-04, rules.ts 대조)
  * - "물 한 모금 드려서 넘겨 보겠습니다"는 **걸리지 않습니다**. 사전 용어가 "물 한 잔 드"·"물을 드"
@@ -37,7 +38,7 @@ export const RULE_DEMO_HINT =
 
 /** ⚑CF 예시가 없는 유형(갈등)에서 대신 보여 드리는 안내 */
 export const RULE_DEMO_NO_CRITICAL_NOTE =
-  "이 유형은 안전 위험이 아니라 존엄·관계를 다루므로 ⚑CF를 적용하지 않습니다. 규칙 엔진은 ⚪ 코칭으로만 남깁니다.";
+  "이 유형은 안전 위험이 아니라 존엄·관계를 다루므로 ⚑CF를 적용하지 않습니다. 규칙 엔진은 코칭으로만 남깁니다.";
 
 /** 규칙 엔진이 내리는 두 갈래 — 점수·등급은 두지 않습니다. */
 export type RuleDemoKind = "critical" | "coaching";
@@ -96,7 +97,7 @@ export const RULE_DEMO_EXAMPLES: RuleDemoExample[] = [
   {
     id: "demo-reality-home",
     sentence: "어르신, 여기가 집이에요.",
-    expectation: "→ 현실 직면 사전이 「여기가 집이에요」를 잡아 ⚪ 코칭으로 남깁니다 · 생성 없음",
+    expectation: "→ 현실 직면 사전이 「여기가 집이에요」를 잡아 코칭으로 남깁니다 · 생성 없음",
     ruleId: "WARN-REALITY",
     itemId: "RE-02",
     ruleLabel: "현실 직면 강요",
@@ -135,7 +136,7 @@ export const RULE_DEMO_EXAMPLES: RuleDemoExample[] = [
     id: "demo-reality-said",
     sentence: "아까도 말씀드렸잖아요.",
     expectation:
-      "→ 현실 직면 사전이 「아까도 말씀드렸잖아요」를 잡아 ⚪ 코칭으로 남깁니다 · 생성 없음",
+      "→ 현실 직면 사전이 「아까도 말씀드렸잖아요」를 잡아 코칭으로 남깁니다 · 생성 없음",
     ruleId: "WARN-REALITY",
     itemId: "RE-02",
     ruleLabel: "현실 직면 강요",
@@ -146,7 +147,7 @@ export const RULE_DEMO_EXAMPLES: RuleDemoExample[] = [
   {
     id: "demo-title",
     sentence: "아줌마, 진정 좀 하세요.",
-    expectation: "→ 호칭 사전이 「아줌마」를 잡아 ⚪ 코칭으로 남깁니다 · 생성 없음",
+    expectation: "→ 호칭 사전이 「아줌마」를 잡아 코칭으로 남깁니다 · 생성 없음",
     ruleId: "WARN-TITLE",
     itemId: "CO-07",
     ruleLabel: "호칭·존칭 위반",
@@ -159,7 +160,7 @@ export const RULE_DEMO_EXAMPLES: RuleDemoExample[] = [
   {
     id: "demo-pii",
     sentence: "보호자님께 010-1234-5678로 지금 전화드리겠습니다.",
-    expectation: "→ 가명처리 규칙이 전화번호를 「번호」로 알아보고 ⚪ 코칭으로 남깁니다 · 생성 없음",
+    expectation: "→ 가명처리 규칙이 전화번호를 「번호」로 알아보고 코칭으로 남깁니다 · 생성 없음",
     ruleId: "WARN-PII",
     itemId: "CO-08",
     ruleLabel: "개인정보 노출",

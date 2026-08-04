@@ -1,5 +1,6 @@
 import type { SessionRecord } from "@/types";
 import { Badge, BigButton, Card } from "@/components";
+import { StatusMark } from "@/components/icons";
 import { formatDateTime, verdictNote, verdictTone } from "./format";
 
 export interface SessionCardProps {
@@ -8,7 +9,8 @@ export interface SessionCardProps {
 
 /**
  * 훈련 세션 1건 카드.
- * 표시는 🟢 충족 목록 · ⚪ 코칭 요약 · 판정 문구까지이며, 점수·등급·순위·백분위는 표시하지 않습니다.
+ * 표시는 충족 목록 · 코칭 요약 · 판정 문구까지이며, 점수·등급·순위·백분위는 표시하지 않습니다.
+ * 판정 마크는 StatusMark가 그립니다 — 이모지를 쓰지 않습니다.
  */
 export function SessionCard({ record }: SessionCardProps) {
   const hasGreen = record.greenChecks.length > 0;
@@ -23,8 +25,8 @@ export function SessionCard({ record }: SessionCardProps) {
           </p>
           <h3 className="mt-1 text-lg font-extrabold text-ink">{record.scenarioTitle}</h3>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge tone="neutral">{record.typeLabel}</Badge>
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+          <span className="text-sm font-semibold text-ink-muted">{record.typeLabel}</span>
           <Badge tone={verdictTone(record.verdict)} size="md">
             {record.verdict}
           </Badge>
@@ -38,13 +40,17 @@ export function SessionCard({ record }: SessionCardProps) {
 
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         <div>
-          <p className="text-base font-extrabold text-ok-ink">🟢 충족한 것</p>
+          <p className="flex items-center gap-1.5 text-base font-extrabold text-ok-ink">
+            <StatusMark kind="met" size="sm" />
+            충족한 것
+          </p>
+          {/* 항목마다 색 상자를 두지 않고 hairline으로만 나눕니다. */}
           {hasGreen ? (
-            <ul className="mt-2 space-y-2">
+            <ul className="chim-hairline mt-2 border-t border-line">
               {record.greenChecks.map((item, index) => (
                 <li
                   key={`${record.id}-green-${index}`}
-                  className="rounded-field border border-ok-line bg-ok-soft px-3.5 py-2.5 text-base leading-relaxed text-ink"
+                  className="py-2.5 text-base leading-relaxed text-ink"
                 >
                   {item}
                 </li>
@@ -58,13 +64,16 @@ export function SessionCard({ record }: SessionCardProps) {
         </div>
 
         <div>
-          <p className="text-base font-extrabold text-ink-soft">⚪ 다음에 살려 볼 것</p>
+          <p className="flex items-center gap-1.5 text-base font-extrabold text-ink-soft">
+            <StatusMark kind="coach" size="sm" />
+            다음에 살려 볼 것
+          </p>
           {hasCoaching ? (
-            <ul className="mt-2 space-y-2">
+            <ul className="chim-hairline mt-2 border-t border-line">
               {record.coachingPoints.map((item, index) => (
                 <li
                   key={`${record.id}-coach-${index}`}
-                  className="rounded-field border border-line bg-white px-3.5 py-2.5 text-base leading-relaxed text-ink"
+                  className="py-2.5 text-base leading-relaxed text-ink"
                 >
                   {item}
                 </li>
@@ -79,22 +88,24 @@ export function SessionCard({ record }: SessionCardProps) {
       </div>
 
       {record.cfCount > 0 && (
-        <p className="mt-4 rounded-field border border-danger-line bg-danger-soft px-4 py-3 text-base leading-relaxed font-bold text-danger-ink">
-          🔴 안전과 직결된 구간에서 즉시 중단 안내를 받으셨습니다. 대안 행동을 확인하신 뒤 같은
-          시나리오를 다시 연습해 보세요.
+        <p className="mt-4 flex gap-2 rounded-field border border-danger-line bg-white px-4 py-3 text-base leading-relaxed font-bold text-danger-ink">
+          <StatusMark kind="stop" size="sm" className="mt-0.5" />
+          <span>
+            안전과 직결된 구간에서 즉시 중단 안내를 받으셨습니다. 대안 행동을 확인하신 뒤 같은
+            시나리오를 다시 연습해 보세요.
+          </span>
         </p>
       )}
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <span className="rounded-chip border border-line bg-white px-3 py-1 text-sm font-semibold text-ink-soft">
-          대화 {record.turnCount}턴
+      {/* 메타 정보는 칩이 아니라 hairline으로 나눈 작은 텍스트로 둡니다. */}
+      <div className="mt-4 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm font-semibold text-ink-muted">
+        <span>
+          대화 <span className="chim-num">{record.turnCount}</span>턴
         </span>
         {record.retriesUsed > 0 && (
-          <span className="rounded-chip border border-line bg-white px-3 py-1 text-sm font-semibold text-ink-soft">
-            다시 해보기 사용
-          </span>
+          <span className="border-l border-line pl-2.5">다시 해보기 사용</span>
         )}
-        <span className="rounded-chip border border-line bg-white px-3 py-1 text-sm font-semibold text-ink-soft">
+        <span className="border-l border-line pl-2.5">
           마친 시각 {formatDateTime(record.endedAt)}
         </span>
       </div>

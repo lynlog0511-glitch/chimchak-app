@@ -26,7 +26,10 @@ const TONE: Record<CardTone, string> = {
 
 /**
  * 공용 카드 컨테이너.
- * radius 20px · 은은한 그림자 · 넉넉한 여백이 기본값입니다.
+ * radius 14px · **그림자 없음** · 1px 보더로 정리 · 넉넉한 여백이 기본값입니다.
+ * (그림자는 떠 있는 것 — 모달·팝오버 — 에만 씁니다.)
+ *
+ * 정보 위계가 낮은 목록·표라면 카드로 감싸지 말고 `.chim-hairline` 구분선을 쓰세요.
  */
 export function Card({
   children,
@@ -40,11 +43,11 @@ export function Card({
     <div
       id={id}
       className={cx(
-        "rounded-card border shadow-card",
+        "rounded-card border",
         TONE[tone],
         padded && "p-5 md:p-6",
         hoverable &&
-          "transition-shadow transition-transform duration-200 ease-soft hover:-translate-y-0.5 hover:shadow-card-hover",
+          "transition-colors duration-150 ease-soft hover:border-brand-300 hover:bg-brand-50/50",
         className,
       )}
     >

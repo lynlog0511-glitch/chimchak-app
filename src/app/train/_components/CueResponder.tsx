@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BigButton, Card } from "@/components";
+import { IconChevronDown, IconMic, IconWave, StatusMark } from "@/components/icons";
 import { cx } from "@/components/utils";
 import { cueOptions } from "@/engine";
 import { createRecognizer, stopSpeaking, type Recognizer } from "@/lib/speech";
@@ -279,9 +280,9 @@ export function CueResponder({
     <Card className="space-y-5">
       {/* 진행 표시 — 점수가 아니라 위치 안내입니다 (퍼센트·등급 표기 없음) */}
       <div>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="inline-flex items-center gap-2 rounded-chip border border-brand-200 bg-brand-50 px-3 py-1 text-sm font-bold text-brand-800">
-            <span aria-hidden="true">▸</span>
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          {/* 필 대신 그냥 작은 텍스트 — 진행 위치는 아래 막대가 이미 보여 줍니다. */}
+          <span className="text-sm font-bold text-brand-800">
             {stepIndex}번째 상황 · 약 {stepTotal}개 중
           </span>
           <span className="text-sm leading-relaxed text-ink-muted">
@@ -289,7 +290,7 @@ export function CueResponder({
           </span>
         </div>
         <div
-          className="mt-2 h-1.5 w-full overflow-hidden rounded-chip bg-brand-100"
+          className="mt-2 h-1.5 w-full overflow-hidden rounded-chip bg-line"
           role="img"
           aria-label={`약 ${stepTotal}개 상황 가운데 ${stepIndex}번째를 진행하고 있습니다`}
         >
@@ -335,12 +336,12 @@ export function CueResponder({
 
       {/* 마이크 첫 사용 안내 — 세션에서 처음 한 번만 나옵니다 */}
       {micSupported && micIntroOpen && (
-        <div className="rounded-card border-2 border-brand-200 bg-brand-50 p-4">
-          <h3 className="flex items-center gap-2 text-base font-extrabold text-brand-900">
-            <span aria-hidden="true">🎙</span>
+        <div className="rounded-card border border-brand-200 bg-white p-4">
+          <h3 className="flex items-center gap-2 text-base font-extrabold text-ink">
+            <IconMic className="h-5 w-5 text-brand-700" />
             마이크를 처음 쓰실 때
           </h3>
-          <p className="mt-2 text-base leading-relaxed font-semibold text-brand-800">
+          <p className="mt-2 text-base leading-relaxed font-semibold text-ink-soft">
             마이크 버튼을 누르면 브라우저가 마이크 허용을 물어봅니다. ‘허용’을 누르신 뒤 버튼을 다시
             눌러 말씀해 주세요. 마이크 없이 아래 보기 버튼만으로도 끝까지 진행됩니다.
           </p>
@@ -383,16 +384,18 @@ export function CueResponder({
               }
             }}
             className={cx(
-              "inline-flex min-h-[72px] w-full shrink-0 items-center justify-center gap-3 rounded-field border-2 px-6 text-lg font-extrabold transition-colors duration-150 sm:w-auto",
+              "inline-flex min-h-[72px] w-full shrink-0 items-center justify-center gap-3 rounded-field border px-6 text-lg font-extrabold transition-colors duration-150 sm:w-auto",
               listening
                 ? "border-danger bg-danger text-white"
                 : "border-brand-700 bg-brand-700 text-white hover:bg-brand-800",
               !micSupported && "cursor-not-allowed border-line bg-neutral-soft text-ink-muted",
             )}
           >
-            <span aria-hidden="true" className="text-2xl leading-none">
-              🎙
-            </span>
+            {listening ? (
+              <IconWave className="h-7 w-7 shrink-0" />
+            ) : (
+              <IconMic className="h-7 w-7 shrink-0" />
+            )}
             <span>{listening ? "듣고 있습니다 — 손을 떼면 끝납니다" : "누르고 말하기"}</span>
           </button>
 
@@ -428,7 +431,7 @@ export function CueResponder({
             }}
             rows={3}
             placeholder="여기에 하실 말씀을 적으시거나, 마이크로 말씀하신 내용을 확인해 주세요."
-            className="mt-2 w-full rounded-field border-2 border-line bg-white p-3 text-lg leading-relaxed text-ink placeholder:text-ink-muted focus:border-brand-400"
+            className="mt-2 w-full rounded-field border border-line-strong bg-white p-3 text-lg leading-relaxed text-ink placeholder:text-ink-muted focus:border-brand-400"
           />
 
           {reportMode && text.trim().length > 0 && (
@@ -454,12 +457,10 @@ export function CueResponder({
 
           {/* 규칙 엔진 시연 장치 — 채우기만 하고 전송은 사용자가 직접 하십니다 */}
           {demoExamples.length > 0 && (
-            <details className="mt-4 rounded-card border border-line bg-white">
-              <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 rounded-card px-4 py-3 text-base font-extrabold text-ink hover:bg-brand-50">
+            <details className="group mt-4 rounded-card border border-line bg-white">
+              <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 rounded-card px-4 py-3 text-base font-extrabold text-ink hover:bg-brand-50 [&::-webkit-details-marker]:hidden">
                 <span>{RULE_DEMO_TITLE}</span>
-                <span aria-hidden="true" className="text-ink-muted">
-                  ▾
-                </span>
+                <IconChevronDown className="h-5 w-5 shrink-0 text-ink-muted transition-transform duration-150 group-open:rotate-180" />
               </summary>
 
               <div className="border-t border-line p-4">
@@ -475,24 +476,20 @@ export function CueResponder({
                         type="button"
                         onClick={() => fillExample(example)}
                         className={cx(
-                          "w-full rounded-field border-2 px-4 py-3 text-left transition-colors duration-150",
+                          "w-full rounded-field border px-4 py-3 text-left transition-colors duration-150",
                           filledExampleId === example.id
                             ? "border-brand-400 bg-brand-50"
                             : "border-line bg-white hover:border-brand-400 hover:bg-brand-50",
                         )}
                       >
-                        <span className="flex flex-wrap items-center gap-2">
-                          <span
-                            className={cx(
-                              "rounded-chip border px-2 py-0.5 text-sm font-bold",
-                              example.kind === "critical"
-                                ? "border-danger-line bg-danger-soft text-danger-ink"
-                                : "border-line bg-paper-2 text-ink-muted",
-                            )}
-                          >
-                            {example.kind === "critical" ? "⚑CF 전면 정지" : "⚪ 코칭"}
-                          </span>
-                          <span className="text-sm font-bold text-ink-muted">
+                        <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                          {/* 칩을 걷어내고 판정 마크로 대신합니다 — 표기 문구는 그대로입니다. */}
+                          {example.kind === "critical" ? (
+                            <StatusMark kind="stop" size="sm" label="⚑CF 전면 정지" />
+                          ) : (
+                            <StatusMark kind="coach" size="sm" label="코칭" />
+                          )}
+                          <span className="border-l border-line pl-2.5 text-sm font-bold text-ink-muted">
                             {example.ruleId} · {example.itemId} {example.ruleLabel}
                           </span>
                         </span>
@@ -537,7 +534,7 @@ export function CueResponder({
       {options.length > 0 && (
         <div
           className={cx(
-            "rounded-card border-2 p-4 transition-colors duration-300",
+            "rounded-card border p-4 transition-colors duration-300",
             timeUp ? "border-warn bg-warn-soft" : "border-line bg-white",
           )}
         >
@@ -553,7 +550,7 @@ export function CueResponder({
                 <button
                   type="button"
                   onClick={() => pick(branch.id)}
-                  className="w-full rounded-field border-2 border-brand-200 bg-white px-4 py-3.5 text-left text-base leading-relaxed font-semibold text-ink transition-colors duration-150 hover:border-brand-400 hover:bg-brand-50"
+                  className="w-full rounded-field border border-brand-300 bg-white px-4 py-3.5 text-left text-base leading-relaxed font-semibold text-ink transition-colors duration-150 hover:border-brand-500 hover:bg-brand-50"
                 >
                   {branch.fallbackOption}
                 </button>

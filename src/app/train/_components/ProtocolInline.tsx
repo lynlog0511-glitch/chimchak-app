@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Badge, BigButton, Call119Button, Card } from "@/components";
+import { IconChevronDown } from "@/components/icons";
 import { cx } from "@/components/utils";
 import { ProtocolAddressCard } from "@/app/emergency/_components/ProtocolAddressCard";
 import { useProtocolPlayback } from "@/app/emergency/_components/useProtocolPlayback";
@@ -62,11 +63,13 @@ export function ProtocolInline({ protocol, ttsOn, onDone }: ProtocolInlineProps)
   return (
     <Card tone="danger" className="animate-fade-up space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
           <Badge tone="danger">L3 · 실전 응급</Badge>
-          <Badge tone="neutral">{protocol.id} · {protocol.title}</Badge>
+          <span className="text-sm font-bold text-ink-soft">
+            {protocol.id} · {protocol.title}
+          </span>
         </div>
-        <span className="text-sm font-bold text-danger-ink">
+        <span className="chim-num text-sm font-bold text-danger-ink">
           {index + 1} / {total} 단계
         </span>
       </div>
@@ -82,7 +85,7 @@ export function ProtocolInline({ protocol, ttsOn, onDone }: ProtocolInlineProps)
 
       <div
         aria-live="polite"
-        className="min-h-[9rem] rounded-card border-2 border-danger-line bg-white p-5 text-center md:p-7"
+        className="min-h-[9rem] rounded-card border border-danger-line bg-white p-5 text-center md:p-7"
       >
         {silent ? (
           <p className="text-lg leading-relaxed font-bold text-ink-soft">
@@ -118,13 +121,14 @@ export function ProtocolInline({ protocol, ttsOn, onDone }: ProtocolInlineProps)
         </BigButton>
       </div>
 
-      <details className="rounded-card border border-line bg-white p-4">
-        <summary className="cursor-pointer text-base font-extrabold text-ink">
-          이 앱이 하지 않는 것
+      <details className="group rounded-card border border-line bg-white p-4">
+        <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 text-base font-extrabold text-ink [&::-webkit-details-marker]:hidden">
+          <span>이 앱이 하지 않는 것</span>
+          <IconChevronDown className="h-5 w-5 shrink-0 text-ink-muted transition-transform duration-150 group-open:rotate-180" />
         </summary>
-        <ul className="mt-3 space-y-3">
+        <ul className="chim-hairline mt-3 border-t border-line">
           {protocol.notDoing.map((item) => (
-            <li key={item.what} className="border-t border-line pt-3 first:border-t-0 first:pt-0">
+            <li key={item.what} className="py-3">
               <p className="text-base font-bold text-ink">{item.what}</p>
               <p className="mt-1 text-sm leading-relaxed text-ink-soft">왜 — {item.why}</p>
               <p className="mt-0.5 text-sm leading-relaxed text-brand-800">

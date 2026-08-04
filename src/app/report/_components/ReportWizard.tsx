@@ -2,7 +2,8 @@
 
 import { useRef, useState } from "react";
 import type { RecordDraft } from "@/types";
-import { Badge, BigButton, Card } from "@/components";
+import { BigButton, Card } from "@/components";
+import { StatusMark } from "@/components/icons";
 import { maskText } from "@/engine/masking";
 import { RECORD_SLOT_LABELS, extractDraft, recomputeMissing, type RecordSlot } from "@/engine/record";
 import { saveReport, type StoredReport } from "@/lib/storage";
@@ -156,12 +157,12 @@ export function ReportWizard() {
         <StepBar current={3} finished />
 
         <Card tone="ok">
-          <div className="flex flex-wrap items-center gap-3">
-            <span aria-hidden="true" className="text-2xl leading-none">
-              🟢
-            </span>
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+            <StatusMark kind="met" />
             <h2 className="text-lg font-extrabold text-ok-ink md:text-xl">확정했습니다</h2>
-            <Badge tone="ok">이 기기에만 저장</Badge>
+            <span className="border-l border-ok-line pl-2.5 text-sm font-bold text-ok-ink">
+              이 기기에만 저장
+            </span>
           </div>
           <p className="mt-3 text-base leading-relaxed text-ink">
             사용자가 확정한 뒤에만 기관 시스템으로 전달됩니다. 지금 남은 것은 가명처리 2단을 통과한

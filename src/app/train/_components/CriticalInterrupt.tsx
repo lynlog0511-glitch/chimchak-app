@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { BigButton, DISCLAIMER_TEXT, SourceChip } from "@/components";
+import { IconStop } from "@/components/icons";
 import type { TurnFeedback } from "@/types";
 
 export interface CriticalInterruptProps {
@@ -65,11 +66,10 @@ export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalI
       aria-labelledby="cf-title"
       ref={panelRef}
     >
-      <div className="animate-fade-up max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-panel border-4 border-danger bg-white shadow-panel">
+      {/* 빨간 헤더는 의미 색이라 그대로 둡니다 — 테두리 두께만 줄이고 그라데이션은 쓰지 않습니다. */}
+      <div className="animate-fade-up max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-panel border border-danger bg-white shadow-panel">
         <div className="flex items-center gap-3 bg-danger px-5 py-4 text-white md:px-6">
-          <span aria-hidden="true" className="text-2xl leading-none">
-            ⚑
-          </span>
+          <IconStop className="h-7 w-7 shrink-0" />
           <h2 id="cf-title" className="text-xl font-extrabold md:text-2xl">
             여기서 멈추겠습니다
           </h2>
@@ -86,16 +86,15 @@ export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalI
           )}
 
           {alternatives.length > 0 && (
-            <div className="rounded-card border border-brand-200 bg-brand-50 p-4 md:p-5">
-              <h3 className="text-base font-extrabold text-brand-900">
-                지금 하실 수 있었던 것
-              </h3>
-              <ol className="mt-3 space-y-2.5">
+            <div>
+              <h3 className="text-base font-extrabold text-ink">지금 하실 수 있었던 것</h3>
+              {/* 색 배경 카드 대신 hairline 목록 — 이 화면의 색은 헤더 하나로 충분합니다. */}
+              <ol className="chim-hairline mt-3 border-t border-line">
                 {alternatives.map((alternative, index) => (
-                  <li key={alternative} className="flex gap-3">
+                  <li key={alternative} className="flex gap-3 py-3">
                     <span
                       aria-hidden="true"
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-chip bg-brand-200 text-sm font-extrabold text-brand-900"
+                      className="chim-num w-5 shrink-0 text-base font-extrabold text-brand-700"
                     >
                       {index + 1}
                     </span>
@@ -120,7 +119,7 @@ export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalI
           {/* 이 모달이 하단 고정 고지 바를 덮으므로, 고지 문구를 여기에도 그대로 둡니다 (안전 규칙 §3-2). */}
           <p
             role="note"
-            className="rounded-field border border-warn-line bg-warn-soft px-3 py-2 text-center text-sm leading-snug font-semibold text-warn-ink"
+            className="rounded-field border border-warn-line bg-white px-3 py-2 text-center text-sm leading-snug font-semibold text-warn-ink"
           >
             {DISCLAIMER_TEXT}
           </p>

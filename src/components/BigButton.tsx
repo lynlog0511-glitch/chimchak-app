@@ -21,15 +21,15 @@ export interface BigButtonProps {
   title?: string;
 }
 
+/* 그림자는 쓰지 않습니다 — 채움 색과 1px 보더만으로 버튼임을 알립니다. */
 const VARIANT: Record<BigButtonVariant, string> = {
   // 채움 배경은 brand-700 — 흰 글자와의 대비가 AA를 통과합니다.
-  primary:
-    "bg-brand-700 text-white border-brand-700 hover:bg-brand-800 active:bg-brand-900 shadow-card",
+  primary: "bg-brand-700 text-white border-brand-700 hover:bg-brand-800 active:bg-brand-900",
   secondary:
-    "bg-white text-brand-800 border-brand-200 hover:bg-brand-50 active:bg-brand-100 shadow-soft",
-  danger:
-    "bg-danger text-white border-danger hover:bg-danger-ink active:bg-danger-ink shadow-card",
-  ghost: "bg-transparent text-ink-soft border-transparent hover:bg-neutral-soft",
+    "bg-white text-brand-800 border-brand-300 hover:bg-brand-50 hover:border-brand-400 active:bg-brand-100",
+  danger: "bg-danger text-white border-danger hover:bg-danger-ink active:bg-danger-ink",
+  ghost:
+    "bg-transparent text-ink-soft border-transparent hover:bg-neutral-soft hover:text-ink active:bg-neutral-line",
 };
 
 const SIZE: Record<BigButtonSize, string> = {
@@ -59,7 +59,7 @@ export function BigButton({
   title,
 }: BigButtonProps) {
   const base = cx(
-    "inline-flex items-center justify-center gap-2 rounded-field border-2 font-bold",
+    "inline-flex items-center justify-center gap-2 rounded-field border font-bold",
     "transition-colors duration-150 ease-soft",
     "disabled:cursor-not-allowed disabled:opacity-45",
     SIZE[size],

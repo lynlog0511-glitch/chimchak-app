@@ -159,6 +159,8 @@ export function DialogueLog({ items, className }: DialogueLogProps) {
                   message={item.feedback.message}
                   docId={item.feedback.docId}
                   label={item.feedback.branchLabel}
+                  // 「이 판정이 나온 이유」 — 판정 경로와 걸린 루브릭 항목을 접이식으로 밝힙니다.
+                  trace={item.feedback.trace}
                   className="animate-fade-up"
                 />
               </div>

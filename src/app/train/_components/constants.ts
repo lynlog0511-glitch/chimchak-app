@@ -32,6 +32,26 @@ export const TIER_TONE: Record<Tier, BadgeTone> = {
   L3: "danger",
 };
 
+/** 계층 표시기 — 좁은 화면에서 두 줄로 나눠 적기 위한 짧은 이름입니다. */
+export const TIER_SHORT: Record<Tier, string> = {
+  L1: "훈련",
+  L2: "채점",
+  L3: "실전 응급",
+};
+
+/** 계층 표시기 — 지금 어느 계층이 작동 중인지 한 줄로 설명하는 문구입니다. */
+export const TIER_NOW_NOTE: Record<Tier, string> = {
+  L1: "지금은 훈련 대화 구간입니다 — 대사는 시나리오 데이터의 고정 문구를 재생합니다.",
+  L2: "방금 응답을 채점했습니다 — 규칙 사전과 루브릭이 근거 문서 안에서만 판정합니다.",
+  L3: "지금부터 생성 호출 0건 — 검수된 고정 안내만 재생",
+};
+
+/** 계층 표시기 — 이 시나리오에서 쓰지 않는 계층에 붙는 문구입니다. */
+export const TIER_UNUSED_NOTE = "이 시나리오에서는 쓰지 않습니다";
+
+/** 계층 표시기 — 세션이 끝난 뒤 문구입니다. */
+export const TIER_ENDED_NOTE = "이번 훈련이 끝났습니다 — 계층 표시를 멈춥니다.";
+
 export const TYPE_TONE: Record<ScenarioType, BadgeTone> = {
   BPSD: "brand",
   EMERGENCY: "danger",

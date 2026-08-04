@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Badge, BigButton, Card, PageShell } from "@/components";
 import { DocWhitelist } from "./_components/DocWhitelist";
+import { LiveProofPanel } from "./_components/LiveProofPanel";
 
 export const metadata: Metadata = {
   title: "안전·개인정보 설계",
@@ -152,6 +153,9 @@ export default function SafetyPage() {
       wide
     >
       <div className="space-y-12">
+        {/* 0. 라이브 증명 — 주장보다 먼저 계측치를 보여 줍니다 */}
+        <LiveProofPanel />
+
         {/* 1. 3계층 생성통제 */}
         <Section
           id="tiers"

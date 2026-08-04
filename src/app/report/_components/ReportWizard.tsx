@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { RecordDraft } from "@/types";
 import { Badge, BigButton, Card } from "@/components";
 import { maskText } from "@/engine/masking";
@@ -11,6 +11,20 @@ import { MaskReview } from "./MaskReview";
 import { PrivacyPath } from "./PrivacyPath";
 import { StepBar } from "./StepBar";
 import { VoiceInput } from "./VoiceInput";
+
+/** 60분 초과·0초 이하는 측정 오류로 보고 표시하지 않는다(진단서 기준). */
+const MAX_DISPLAYABLE_ELAPSED_SEC = 60 * 60;
+
+/**
+ * 초 단위 소요시간을 "N분 N초"로 표시합니다(1분 미만이면 "N초"만).
+ *
+ * @example formatElapsed(102) // "1분 42초"
+ */
+function formatElapsed(totalSec: number): string {
+  const minutes = Math.floor(totalSec / 60);
+  const seconds = totalSec % 60;
+  return minutes > 0 ? `${minutes}분 ${seconds}초` : `${seconds}초`;
+}
 
 const SLOT_ORDER: RecordSlot[] = ["time", "who", "what", "action", "status"];
 
@@ -60,6 +74,12 @@ export function ReportWizard() {
   const [saved, setSaved] = useState<StoredReport | null>(null);
   /** 2차 가명처리에서 추가로 가린 건수 */
   const [secondPassCount, setSecondPassCount] = useState(0);
+  /** 실제 입력 시작 시각(첫 타이핑 또는 마이크 시작). 예시 문장 채우기는 포함하지 않는다. */
+  const inputStartRef = useRef<number | null>(null);
+
+  const markInputStart = (): void => {
+    if (inputStartRef.current === null) inputStartRef.current = Date.now();
+  };
 
   const goDraft = (): void => {
     setDraft(extractDraft(maskText(text).masked));
@@ -99,10 +119,16 @@ export function ReportWizard() {
       missing: [],
     });
 
+    const elapsedSec =
+      inputStartRef.current !== null
+        ? Math.round((Date.now() - inputStartRef.current) / 1000)
+        : undefined;
+
     const stored = saveReport({
       maskedText: body.masked,
       draft: finalDraft,
       maskedCounts: counts,
+      elapsedSec,
     });
 
     setSecondPassCount(extraSpans.length);
@@ -115,10 +141,16 @@ export function ReportWizard() {
     setDraft(EMPTY_DRAFT);
     setSaved(null);
     setSecondPassCount(0);
+    inputStartRef.current = null;
     setStep(1);
   };
 
   if (saved) {
+    const showElapsed =
+      typeof saved.elapsedSec === "number" &&
+      saved.elapsedSec > 0 &&
+      saved.elapsedSec <= MAX_DISPLAYABLE_ELAPSED_SEC;
+
     return (
       <div className="space-y-6">
         <StepBar current={3} finished />
@@ -140,6 +172,12 @@ export function ReportWizard() {
               ? `저장 직전 2차 검사에서 ${secondPassCount}곳을 더 가렸습니다.`
               : "저장 직전 2차 검사에서 추가로 가릴 항목은 나오지 않았습니다."}
           </p>
+          {showElapsed && (
+            <p className="mt-2 text-base leading-relaxed text-ink-soft">
+              이번 기록 {formatElapsed(saved.elapsedSec as number)} · 손으로 쓰면 20~30분(현직
+              인터뷰 실측)
+            </p>
+          )}
         </Card>
 
         <Card>
@@ -184,7 +222,14 @@ export function ReportWizard() {
     <div className="space-y-6">
       <StepBar current={step} />
 
-      {step === 1 && <VoiceInput value={text} onChange={setText} onNext={() => setStep(2)} />}
+      {step === 1 && (
+        <VoiceInput
+          value={text}
+          onChange={setText}
+          onNext={() => setStep(2)}
+          onInputStart={markInputStart}
+        />
+      )}
 
       {step === 2 && <MaskReview text={text} onBack={() => setStep(1)} onNext={goDraft} />}
 

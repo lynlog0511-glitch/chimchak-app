@@ -26,7 +26,7 @@ import type {
   TurnDef,
   TurnFeedback,
 } from "@/types";
-import { classifyInput, defaultBranch, findBranch } from "./classify";
+import { classifyInput, defaultBranch, findBranch, type ClassifySource } from "./classify";
 import { advisoryHits, checkAdvisory, checkCritical, getRule } from "./rules";
 import { collectCoaching, collectGreenChecks, judgeInternal, lowestScore, mergeHits, isMet } from "./scoring";
 
@@ -46,11 +46,56 @@ export interface SubmitInput {
   viaButton: boolean;
 }
 
+/* ── 판정 경로 흔적 (「이 판정이 나온 이유」 화면용) ───────── */
+
+/**
+ * 판정이 어느 경로로 나왔는지.
+ * - `rule`            : 규칙 사전(rules.ts)이 단독으로 잡았다 (결정론 · 생성 없음)
+ * - `criticalPattern` : ⚑CF 분기의 판정 신호에 걸렸다
+ * - `pattern`         : 시나리오 분기의 판정 신호에 걸렸다
+ * - `button`          : 학습자가 보기 버튼으로 분기를 직접 골랐다
+ * - `default`         : 어느 신호에도 걸리지 않아 기본 분기로 처리했다
+ */
+export type TraceSource = ClassifySource | "rule";
+
+/**
+ * 턴 피드백에 붙는 판정 근거.
+ *
+ * `src/types/index.ts`(리드 소유)는 수정하지 않으므로 엔진 안에 두는 지역 확장 타입이다.
+ * 점수·등급·앵커는 **담지 않는다** — 화면 표기 금지 규칙(브리프 §3-1) 때문이며,
+ * 화면은 여기 담긴 경로 라벨과 루브릭 항목 id·행동지표 문장까지만 보여 준다.
+ */
+export interface FeedbackTrace {
+  source: TraceSource;
+  /** 분기 판정 신호 중 실제로 걸린 문자열 (예: "집에 가야") */
+  matchedPattern?: string;
+  /** 규칙 사전에서 발동한 규칙 id (예: "CF-RESTRAINT") */
+  ruleId?: string;
+  /** 규칙 이름 (예: "신체 자유 제한") */
+  ruleLabel?: string;
+  /** 이 턴에서 걸린 루브릭 항목 id 목록 (점수는 담지 않는다) */
+  itemIds?: string[];
+  /** 함께 적용된 코칭 규칙 이름 목록 (⚑CF 아님) */
+  advisoryLabels?: string[];
+}
+
+/** 판정 근거를 함께 실어 나르는 TurnFeedback (계약은 그대로, 필드만 옵셔널로 확장) */
+export type TracedFeedback = TurnFeedback & { trace?: FeedbackTrace };
+
 export interface SubmitResult {
   state: SessionState;
-  feedback: TurnFeedback;
+  feedback: TracedFeedback;
   /** true면 ⚑CF 인터럽트 — 화면은 전면 모달을 띄우고 advanceAfterCF()로 재시도시킨다 */
   interrupted: boolean;
+}
+
+/** 같은 항목이 여러 번 걸려도 한 번만 남긴다 (표시용) */
+function uniqueItemIds(hits: RubricHit[]): string[] {
+  const out: string[] = [];
+  for (const hit of hits) {
+    if (!out.includes(hit.itemId)) out.push(hit.itemId);
+  }
+  return out;
 }
 
 /* ── 조회 ──────────────────────────────────────────────── */
@@ -222,7 +267,7 @@ export function submitResponse(s: Scenario, state: SessionState, input: SubmitIn
           )
         : undefined;
       const hits: RubricHit[] = critical.itemId ? [{ itemId: critical.itemId, score: 1 }] : [];
-      const feedback: TurnFeedback = {
+      const feedback: TracedFeedback = {
         branchId: dataBranch?.id ?? `rule:${critical.ruleId ?? "CF"}`,
         branchLabel: dataBranch?.label ?? critical.label ?? "치명적 실패",
         ok: false,
@@ -231,6 +276,14 @@ export function submitResponse(s: Scenario, state: SessionState, input: SubmitIn
         docId: dataBranch?.docId ?? critical.docId,
         gaugeDelta: 0,
         rubricHits: hits,
+        // 규칙 사전이 단독으로 잡은 판정 — 분기 데이터를 거치지 않았음을 화면이 그대로 밝힌다.
+        trace: {
+          source: "rule",
+          ruleId: critical.ruleId,
+          ruleLabel: critical.label,
+          matchedPattern: critical.matched,
+          itemIds: uniqueItemIds(hits),
+        },
       };
       const event: SessionEvent = {
         turnId: turn.id,
@@ -260,7 +313,7 @@ export function submitResponse(s: Scenario, state: SessionState, input: SubmitIn
   // 3) 분기 자체가 ⚑CF
   if (branch.criticalFail) {
     const hits = branch.rubricHits.length > 0 ? branch.rubricHits : [];
-    const feedback: TurnFeedback = {
+    const feedback: TracedFeedback = {
       branchId: branch.id,
       branchLabel: branch.label,
       ok: false,
@@ -269,6 +322,11 @@ export function submitResponse(s: Scenario, state: SessionState, input: SubmitIn
       docId: branch.docId,
       gaugeDelta: 0,
       rubricHits: hits,
+      trace: {
+        source: classified.source,
+        matchedPattern: classified.matchedPattern,
+        itemIds: uniqueItemIds(hits),
+      },
     };
     const event: SessionEvent = {
       turnId: turn.id,
@@ -310,7 +368,10 @@ export function submitResponse(s: Scenario, state: SessionState, input: SubmitIn
     ? branch.praise ?? DEFAULT_PRAISE
     : branch.coaching ?? advisoryMessage ?? DEFAULT_COACHING;
 
-  const feedback: TurnFeedback = {
+  const advisoryLabels = advisories
+    .map((finding) => finding.label)
+    .filter((label, index, all) => all.indexOf(label) === index);
+  const feedback: TracedFeedback = {
     branchId: branch.id,
     branchLabel: branch.label,
     ok,
@@ -319,6 +380,12 @@ export function submitResponse(s: Scenario, state: SessionState, input: SubmitIn
     docId: branch.docId ?? (ok ? undefined : advisories[0]?.docId),
     gaugeDelta: branch.gaugeDelta,
     rubricHits: hits,
+    trace: {
+      source: classified.source,
+      matchedPattern: classified.matchedPattern,
+      itemIds: uniqueItemIds(hits),
+      advisoryLabels: advisoryLabels.length > 0 ? advisoryLabels : undefined,
+    },
   };
 
   const event: SessionEvent = {

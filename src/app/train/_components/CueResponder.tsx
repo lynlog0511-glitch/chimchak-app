@@ -8,6 +8,14 @@ import { createRecognizer, stopSpeaking, type Recognizer } from "@/lib/speech";
 import type { CueDef, Scenario, SessionState } from "@/types";
 import { isReportCue } from "./sessionMachine";
 import { RecordDraftPreview } from "./RecordDraftPreview";
+import {
+  RULE_DEMO_HINT,
+  RULE_DEMO_NO_CRITICAL_NOTE,
+  RULE_DEMO_NOTE,
+  RULE_DEMO_TITLE,
+  ruleDemoExamplesFor,
+  type RuleDemoExample,
+} from "./ruleDemoExamples";
 
 export interface CueResponderProps {
   scenario: Scenario;
@@ -62,12 +70,21 @@ export function CueResponder({
   const [notice, setNotice] = useState<string | null>(null);
   const [micIntroOpen, setMicIntroOpen] = useState(false);
   const [micPermission, setMicPermission] = useState<MicPermission>("unknown");
+  /** 규칙 엔진 예시 문장을 방금 채워 넣었는지 (전송은 사용자가 직접 하십니다) */
+  const [filledExampleId, setFilledExampleId] = useState<string | null>(null);
   const recognizerRef = useRef<Recognizer | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   /** 권한 팝업이 떠 있는 첫 회에만 인식을 끊지 않고 안내로 대신합니다 */
   const micGraceUsedRef = useRef(false);
 
   const options = useMemo(() => cueOptions(scenario, session), [scenario, session]);
   const reportMode = useMemo(() => isReportCue(scenario, cue), [scenario, cue]);
+  /** 지금 화면에서 실제로 발동하는 규칙 예시만 남깁니다 (유형·CUE 게이트 반영) */
+  const demoExamples = useMemo(
+    () => ruleDemoExamplesFor(scenario.type, cue.id),
+    [scenario.type, cue.id],
+  );
+  const filledExample = demoExamples.find((example) => example.id === filledExampleId);
   const resetKey = `${cue.id}-${attempt}`;
   const secondsLeft = useCountdown(cue.waitSec, resetKey);
   const timeUp = secondsLeft <= 0;
@@ -96,6 +113,7 @@ export function CueResponder({
   useEffect(() => {
     setText("");
     setNotice(null);
+    setFilledExampleId(null);
   }, [resetKey]);
 
   useEffect(() => {
@@ -220,6 +238,7 @@ export function CueResponder({
     stopListening();
     setText("");
     setNotice(null);
+    setFilledExampleId(null);
     onSubmit({ utterance, viaButton: false });
   }, [onSubmit, stopListening, text]);
 
@@ -228,9 +247,30 @@ export function CueResponder({
       stopListening();
       setText("");
       setNotice(null);
+      setFilledExampleId(null);
       onSubmit({ branchId, viaButton: true });
     },
     [onSubmit, stopListening],
+  );
+
+  /**
+   * 규칙 엔진 예시 문장을 입력창에 **채우기만** 합니다.
+   * 전송은 사용자가 직접 「이 내용으로 답하기」를 눌러 정하십니다 (자동 전송하지 않습니다).
+   */
+  const fillExample = useCallback(
+    (example: RuleDemoExample) => {
+      stopListening();
+      setNotice(null);
+      setText(example.sentence);
+      setFilledExampleId(example.id);
+      const node = textareaRef.current;
+      if (node) {
+        node.focus();
+        const caret = example.sentence.length;
+        node.setSelectionRange(caret, caret);
+      }
+    },
+    [stopListening],
   );
 
   const ratio = cue.waitSec > 0 ? Math.max(0, Math.min(1, secondsLeft / cue.waitSec)) : 0;
@@ -379,8 +419,13 @@ export function CueResponder({
           </label>
           <textarea
             id="cue-utterance"
+            ref={textareaRef}
             value={text}
-            onChange={(event) => setText(event.target.value)}
+            onChange={(event) => {
+              setText(event.target.value);
+              // 직접 손대신 뒤에는 "예시를 채웠습니다" 안내를 걷어 냅니다.
+              setFilledExampleId(null);
+            }}
             rows={3}
             placeholder="여기에 하실 말씀을 적으시거나, 마이크로 말씀하신 내용을 확인해 주세요."
             className="mt-2 w-full rounded-field border-2 border-line bg-white p-3 text-lg leading-relaxed text-ink placeholder:text-ink-muted focus:border-brand-400"
@@ -395,7 +440,10 @@ export function CueResponder({
               이 내용으로 답하기
             </BigButton>
             <BigButton
-              onClick={() => setText("")}
+              onClick={() => {
+                setText("");
+                setFilledExampleId(null);
+              }}
               variant="ghost"
               disabled={text.length === 0}
               className="shrink-0 whitespace-nowrap sm:w-auto"
@@ -403,6 +451,85 @@ export function CueResponder({
               지우기
             </BigButton>
           </div>
+
+          {/* 규칙 엔진 시연 장치 — 채우기만 하고 전송은 사용자가 직접 하십니다 */}
+          {demoExamples.length > 0 && (
+            <details className="mt-4 rounded-card border border-line bg-white">
+              <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 rounded-card px-4 py-3 text-base font-extrabold text-ink hover:bg-brand-50">
+                <span>{RULE_DEMO_TITLE}</span>
+                <span aria-hidden="true" className="text-ink-muted">
+                  ▾
+                </span>
+              </summary>
+
+              <div className="border-t border-line p-4">
+                <p className="text-sm leading-relaxed font-semibold text-ink-soft">
+                  {RULE_DEMO_NOTE}
+                </p>
+                <p className="mt-1 text-sm leading-relaxed text-ink-muted">{RULE_DEMO_HINT}</p>
+
+                <ul className="mt-3 space-y-3">
+                  {demoExamples.map((example) => (
+                    <li key={example.id}>
+                      <button
+                        type="button"
+                        onClick={() => fillExample(example)}
+                        className={cx(
+                          "w-full rounded-field border-2 px-4 py-3 text-left transition-colors duration-150",
+                          filledExampleId === example.id
+                            ? "border-brand-400 bg-brand-50"
+                            : "border-line bg-white hover:border-brand-400 hover:bg-brand-50",
+                        )}
+                      >
+                        <span className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={cx(
+                              "rounded-chip border px-2 py-0.5 text-sm font-bold",
+                              example.kind === "critical"
+                                ? "border-danger-line bg-danger-soft text-danger-ink"
+                                : "border-line bg-paper-2 text-ink-muted",
+                            )}
+                          >
+                            {example.kind === "critical" ? "⚑CF 전면 정지" : "⚪ 코칭"}
+                          </span>
+                          <span className="text-sm font-bold text-ink-muted">
+                            {example.ruleId} · {example.itemId} {example.ruleLabel}
+                          </span>
+                        </span>
+                        <span className="mt-1.5 block text-base leading-relaxed font-semibold text-ink">
+                          “{example.sentence}”
+                        </span>
+                      </button>
+                      <p className="mt-1 px-1 text-sm leading-relaxed text-ink-muted">
+                        {example.expectation}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+
+                {!demoExamples.some((example) => example.kind === "critical") && (
+                  <p className="mt-3 rounded-field border border-line bg-paper-2 px-3 py-2 text-sm leading-relaxed text-ink-muted">
+                    {RULE_DEMO_NO_CRITICAL_NOTE}
+                  </p>
+                )}
+
+                <p role="status" className="sr-only">
+                  {filledExample
+                    ? `${filledExample.ruleLabel} 예시 문장을 입력창에 채웠습니다. 보내시려면 이 내용으로 답하기 버튼을 눌러 주세요.`
+                    : ""}
+                </p>
+                {filledExample && (
+                  <p
+                    aria-hidden="true"
+                    className="mt-3 rounded-field border border-brand-200 bg-brand-50 px-3 py-2 text-sm leading-relaxed font-semibold text-brand-800"
+                  >
+                    입력창에 채워 드렸습니다. 아직 보내지 않았습니다 — 위의 「이 내용으로 답하기」를
+                    누르시면 규칙 엔진이 판정합니다.
+                  </p>
+                )}
+              </div>
+            </details>
+          )}
         </div>
       </div>
 

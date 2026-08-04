@@ -13,6 +13,7 @@ import { CueResponder } from "./CueResponder";
 import { DialogueLog } from "./DialogueLog";
 import { EndingPanel } from "./EndingPanel";
 import { ProtocolInline } from "./ProtocolInline";
+import { TierIndicator } from "./TierIndicator";
 import { FICTION_NOTICE, TIER_LABEL, TIER_TONE, TYPE_TONE } from "./constants";
 import { initialTrainState, makeTrainReducer, type LogItem } from "./sessionMachine";
 
@@ -178,6 +179,14 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
         </div>
 
         <Card padded={false} className="p-4 md:p-5">
+          {/* 지금 어느 계층이 작동 중인지 — 채점 순간 L2, 응급 구간에서는 L3로 넘어갑니다 */}
+          <TierIndicator
+            tiers={scenario.tiers}
+            status={state.session.status}
+            judgeTick={state.judgeTick}
+            className="mb-4"
+          />
+
           <div key={state.gaugeTick} className="animate-gauge">
             <Gauge
               value={state.session.gauge}

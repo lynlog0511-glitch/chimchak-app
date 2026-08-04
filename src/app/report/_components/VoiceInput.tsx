@@ -11,6 +11,12 @@ export interface VoiceInputProps {
   onChange: (next: string) => void;
   /** 다음 단계(가명처리 확인)로 이동 */
   onNext: () => void;
+  /**
+   * 실제 입력이 시작된 시점(첫 타이핑 또는 마이크 시작)에 호출합니다.
+   * 예시 문장 채우기 버튼은 실제 입력이 아니므로 호출하지 않습니다.
+   * 소요시간 측정용이며, 여러 번 불려도 안전하도록 호출부에서 최초 1회만 기록합니다.
+   */
+  onInputStart: () => void;
 }
 
 /** 인식 결과를 기존 내용 뒤에 자연스럽게 이어 붙입니다. */
@@ -27,7 +33,7 @@ function appendUtterance(base: string, added: string): string {
  * 마이크는 **누르고 있는 동안에만** 인식하고, 타이핑 입력은 항상 열려 있습니다.
  * 음성 인식이 되지 않는 환경에서도 타이핑만으로 끝까지 진행할 수 있습니다.
  */
-export function VoiceInput({ value, onChange, onNext }: VoiceInputProps) {
+export function VoiceInput({ value, onChange, onNext, onInputStart }: VoiceInputProps) {
   const recognizerRef = useRef<Recognizer | null>(null);
   const valueRef = useRef(value);
   const onChangeRef = useRef(onChange);
@@ -79,6 +85,7 @@ export function VoiceInput({ value, onChange, onNext }: VoiceInputProps) {
       setNotice("이 기기에서는 음성 인식을 쓸 수 없습니다. 아래 칸에 직접 적어 주세요.");
       return;
     }
+    onInputStart();
     setListening(true);
     recognizer.start();
   };
@@ -205,7 +212,10 @@ export function VoiceInput({ value, onChange, onNext }: VoiceInputProps) {
         <textarea
           id="report-utterance"
           value={value}
-          onChange={(event) => onChange(event.target.value)}
+          onChange={(event) => {
+            onInputStart();
+            onChange(event.target.value);
+          }}
           rows={8}
           placeholder="예) 오후 4시 40분쯤 어르신이 현관 앞에서 집에 가야 한다며 나가려 하셨습니다."
           className="mt-3 w-full rounded-field border-2 border-line bg-white p-4 text-base leading-relaxed text-ink placeholder:text-ink-muted/70 focus:border-brand-400 focus:outline-none"

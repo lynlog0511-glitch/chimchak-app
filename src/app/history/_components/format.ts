@@ -81,3 +81,24 @@ export const MASK_TOKEN_SPLIT = /(\[(?:대상자|번호|기관|주소|생년)\])
 export function isMaskToken(text: string): boolean {
   return /^\[(?:대상자|번호|기관|주소|생년)\]$/.test(text);
 }
+
+/**
+ * 초 단위 소요시간을 "N분 N초"로 표시합니다(1분 미만이면 "N초"만).
+ *
+ * @example formatElapsedDuration(102) // "1분 42초"
+ */
+export function formatElapsedDuration(totalSec: number): string {
+  const minutes = Math.floor(totalSec / 60);
+  const seconds = totalSec % 60;
+  return minutes > 0 ? `${minutes}분 ${seconds}초` : `${seconds}초`;
+}
+
+/**
+ * 화면에 표시할 만한 정상 범위인지 (0초 이하·60분 초과는 측정 오류로 보고 숨긴다).
+ *
+ * @example isDisplayableElapsed(102) // true
+ * @example isDisplayableElapsed(0) // false
+ */
+export function isDisplayableElapsed(sec: number | undefined): sec is number {
+  return typeof sec === "number" && sec > 0 && sec <= 3600;
+}

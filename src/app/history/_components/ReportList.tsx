@@ -1,7 +1,13 @@
 import { Badge, Card } from "@/components";
 import { RECORD_SLOT_LABELS, type RecordSlot } from "@/engine/record";
 import type { StoredReport } from "@/lib/storage";
-import { MASK_TOKEN_SPLIT, formatDateTime, isMaskToken } from "./format";
+import {
+  MASK_TOKEN_SPLIT,
+  formatDateTime,
+  formatElapsedDuration,
+  isDisplayableElapsed,
+  isMaskToken,
+} from "./format";
 
 export interface ReportListProps {
   reports: StoredReport[];
@@ -38,7 +44,12 @@ function ReportItem({ report }: { report: StoredReport }) {
     <Card className="h-full">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm font-semibold text-ink-muted">{formatDateTime(report.createdAt)}</p>
-        <Badge tone="brand">가명처리 2단 통과</Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          {isDisplayableElapsed(report.elapsedSec) && (
+            <Badge tone="neutral">{formatElapsedDuration(report.elapsedSec)} 만에 작성</Badge>
+          )}
+          <Badge tone="brand">가명처리 2단 통과</Badge>
+        </div>
       </div>
 
       <p className="mt-3 rounded-card border border-line bg-paper-2/70 p-4 text-base leading-loose text-ink">

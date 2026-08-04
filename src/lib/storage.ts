@@ -29,6 +29,11 @@ export interface StoredReport {
   maskedCounts?: Record<string, number>;
   /** 훈련 세션에서 이어진 보고면 시나리오 id */
   scenarioId?: string;
+  /**
+   * 입력 시작(첫 타이핑 또는 마이크 시작)부터 확정까지 걸린 초.
+   * 옛 저장 데이터에는 없을 수 있어 옵셔널이다. 0 이하·3600 초과는 표시하지 않는다(호출부에서 걸러냄).
+   */
+  elapsedSec?: number;
 }
 
 function getStorage(): Storage | undefined {

@@ -6,7 +6,7 @@
  * 시나리오 데이터를 해석하거나 대사를 지어내지 않습니다(대사는 데이터의 앵커 문구 그대로).
  */
 
-import type { CueDef, PersonaDef, Scenario, SessionState, TurnDef, TurnFeedback } from "@/types";
+import type { CueDef, PersonaDef, Scenario, SessionState, TurnDef } from "@/types";
 import {
   advanceAfterCF,
   advanceAuto,
@@ -19,6 +19,7 @@ import {
   startSession,
   submitResponse,
 } from "@/engine";
+import type { TracedFeedback } from "@/engine";
 import { PROTOCOL_HANDOFF_BODY, PROTOCOL_HANDOFF_TITLE } from "./constants";
 
 /* ── 로그 ──────────────────────────────────────────────── */
@@ -34,12 +35,12 @@ export type LogItem =
       triggerName?: string;
     }
   | { key: string; kind: "learner"; text: string; viaButton: boolean }
-  | { key: string; kind: "feedback"; feedback: TurnFeedback }
+  | { key: string; kind: "feedback"; feedback: TracedFeedback }
   | { key: string; kind: "draft"; source: string }
   | { key: string; kind: "notice"; text: string; tone: "brand" | "danger" };
 
 export interface CriticalInterruptState {
-  feedback: TurnFeedback;
+  feedback: TracedFeedback;
   alternatives: string[];
 }
 
@@ -50,9 +51,14 @@ export interface TrainState {
   /** ⚑CF 전면 인터럽트 — null이 아니면 모달을 띄웁니다 */
   critical: CriticalInterruptState | null;
   /** 마지막 턴 피드백 (게이지 변동 안내용) */
-  lastFeedback: TurnFeedback | null;
+  lastFeedback: TracedFeedback | null;
   /** 게이지 애니메이션 트리거 — 값이 바뀔 때마다 다시 그립니다 */
   gaugeTick: number;
+  /**
+   * 채점이 일어난 횟수 — 계층 표시기(L2 점등) 신호로만 씁니다.
+   * ⚑CF 인터럽트도 규칙 엔진이 판정한 것이므로 함께 셉니다. 화면에는 숫자를 표시하지 않습니다.
+   */
+  judgeTick: number;
   /** CUE 시도 횟수 — 대기 타이머·입력창 초기화 키로 씁니다 */
   attempt: number;
   seq: number;
@@ -166,6 +172,7 @@ export function initialTrainState(scenario: Scenario): TrainState {
     critical: null,
     lastFeedback: null,
     gaugeTick: 0,
+    judgeTick: 0,
     attempt: 0,
     seq: 0,
   };
@@ -193,6 +200,7 @@ export function makeTrainReducer(scenario: Scenario) {
           critical: null,
           lastFeedback: null,
           gaugeTick: 0,
+          judgeTick: 0,
           attempt: 0,
           seq: entered.seq,
         };
@@ -243,6 +251,12 @@ export function makeTrainReducer(scenario: Scenario) {
         }
 
         if (result.interrupted) {
+          // 전면 모달은 잠시 뒤 닫히지만, 어떤 규칙이 왜 멈춰 세웠는지는 로그에 남겨 둡니다
+          // (피드백 카드의 「이 판정이 나온 이유」로 나중에 다시 확인하실 수 있게).
+          if (result.feedback.message.trim().length > 0) {
+            log = [...log, { key: `fb-${seq}`, kind: "feedback", feedback: result.feedback }];
+            seq += 1;
+          }
           return {
             ...state,
             session: result.state,
@@ -253,6 +267,7 @@ export function makeTrainReducer(scenario: Scenario) {
               alternatives: criticalAlternatives(scenario, result.state, result.feedback),
             },
             lastFeedback: result.feedback,
+            judgeTick: state.judgeTick + 1,
           };
         }
 
@@ -281,6 +296,7 @@ export function makeTrainReducer(scenario: Scenario) {
             critical: null,
             lastFeedback: result.feedback,
             gaugeTick: state.gaugeTick + 1,
+            judgeTick: state.judgeTick + 1,
             attempt: state.attempt + 1,
           };
         }
@@ -299,6 +315,7 @@ export function makeTrainReducer(scenario: Scenario) {
           critical: null,
           lastFeedback: result.feedback,
           gaugeTick: state.gaugeTick + 1,
+          judgeTick: state.judgeTick + 1,
           attempt: state.attempt + 1,
         };
       }
@@ -385,6 +402,7 @@ export function makeTrainReducer(scenario: Scenario) {
           critical: null,
           lastFeedback: null,
           gaugeTick: 0,
+          judgeTick: 0,
           attempt: 0,
           seq: entered.seq,
         };

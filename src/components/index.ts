@@ -10,7 +10,13 @@ export { PageShell } from "./PageShell";
 export type { PageShellProps } from "./PageShell";
 
 export { TabBar } from "./TabBar";
-export type { TabBarProps, TabKey } from "./TabBar";
+export type { TabBarProps } from "./TabBar";
+
+export { TopNav } from "./TopNav";
+export type { TopNavProps } from "./TopNav";
+
+export { NAV_ITEMS, matchesNav } from "./navItems";
+export type { NavItem, TabKey } from "./navItems";
 
 export { SettingsBoot } from "./SettingsBoot";
 

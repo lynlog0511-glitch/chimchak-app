@@ -2,11 +2,12 @@
 
 import { useRef, useState } from "react";
 import type { RecordDraft } from "@/types";
-import { BigButton, EyebrowLabel } from "@/components";
+import { BigButton } from "@/components";
 import { maskText } from "@/engine/masking";
-import { RECORD_SLOT_LABELS, extractDraft, recomputeMissing, type RecordSlot } from "@/engine/record";
+import { extractDraft, recomputeMissing } from "@/engine/record";
 import { saveReport, type StoredReport } from "@/lib/storage";
 import { DraftForm } from "./DraftForm";
+import { DraftRows } from "./DraftRows";
 import { MaskReview } from "./MaskReview";
 import { PrivacyPath } from "./PrivacyPath";
 import { StepBar } from "./StepBar";
@@ -26,8 +27,6 @@ function formatElapsed(totalSec: number): string {
   return minutes > 0 ? `${minutes}분 ${seconds}초` : `${seconds}초`;
 }
 
-const SLOT_ORDER: RecordSlot[] = ["time", "who", "what", "action", "status"];
-
 const EMPTY_DRAFT: RecordDraft = recomputeMissing({
   time: "",
   who: "",
@@ -37,33 +36,12 @@ const EMPTY_DRAFT: RecordDraft = recomputeMissing({
   missing: [],
 });
 
-/** 가명처리 토큰([대상자] 등)만 강조해서 보여 줍니다. 채움만 쓰고 보더는 두지 않습니다. */
-function TokenText({ text }: { text: string }) {
-  const parts = text.split(/(\[(?:대상자|번호|기관|주소|생년)\])/g);
-  return (
-    <>
-      {parts.map((part, index) =>
-        /^\[(?:대상자|번호|기관|주소|생년)\]$/.test(part) ? (
-          <strong
-            key={index}
-            className="mx-[2px] rounded-[6px] bg-tint px-[5px] py-[1px] font-extrabold text-brand-900"
-          >
-            {part}
-          </strong>
-        ) : (
-          <span key={index}>{part}</span>
-        ),
-      )}
-    </>
-  );
-}
-
 /**
- * 음성 보고 → 기록 코칭 3단계 위저드 (v4 언어).
+ * 음성 보고 → 기록 코칭 3단계 위저드 (시안 6e 언어).
  *
- * 1) 입력   : 마이크(누르는 동안 인식) 또는 타이핑
- * 2) 가명처리: 무엇을 왜 가렸는지 원문 위에 표시
- * 3) 초안   : 급여제공기록지 5요소를 고치고 확정(이 기기에만 저장)
+ * 1) 말하기: 마이크(누르는 동안 인식) 또는 타이핑
+ * 2) 가리기: 무엇이 왜 가려졌는지 인라인 칩과 범례로 표시
+ * 3) 확인  : 급여제공기록지 5요소를 고치고 확정(이 기기에만 저장)
  *
  * 모든 처리는 브라우저 안에서 끝나며 외부 호출이 0건입니다.
  * 재구현에서 바뀐 것은 면·글자 크기뿐이고, 단계·검사·저장 규칙은 그대로입니다.
@@ -153,11 +131,11 @@ export function ReportWizard() {
       saved.elapsedSec <= MAX_DISPLAYABLE_ELAPSED_SEC;
 
     return (
-      <div className="mt-4">
+      <div>
         <StepBar current={3} finished />
 
         {/* 확정 직후의 주인공은 이 한 줄입니다. */}
-        <div className="mt-5">
+        <div className="mt-[18px]">
           <h2 className="text-[19px] leading-[1.4] font-extrabold text-ok-ink">확정했습니다</h2>
           <p className="mt-[3px] text-[12px] leading-[1.5] font-bold text-ok-ink">
             이 기기에만 저장
@@ -179,28 +157,10 @@ export function ReportWizard() {
           )}
         </div>
 
-        <EyebrowLabel className="mt-6 mb-[8px]">확정한 기록 초안</EyebrowLabel>
-        <dl className="chim-hairline border-t border-line">
-          {SLOT_ORDER.map((slot) => {
-            const value = saved.draft[slot];
-            return (
-              <div key={slot} className="py-[11px]">
-                <dt className="text-[11.5px] leading-[1.4] font-bold text-ink-muted">
-                  {RECORD_SLOT_LABELS[slot]}
-                </dt>
-                <dd className="mt-[2px] text-[14.5px] leading-[1.7] text-ink">
-                  {value.trim().length > 0 ? (
-                    <TokenText text={value} />
-                  ) : (
-                    <span className="text-[12.5px] font-semibold text-warn-ink">
-                      비어 있는 채로 확정하셨습니다
-                    </span>
-                  )}
-                </dd>
-              </div>
-            );
-          })}
-        </dl>
+        <p className="mt-6 text-[12.5px] leading-[1.5] font-bold text-ink-muted">
+          확정한 기록 초안 — 다섯 칸
+        </p>
+        <DraftRows draft={saved.draft} empty="confirmed" className="mt-[2px]" />
 
         {/* 저장까지 끝났으므로 5단계 전부 완료 표시 */}
         <PrivacyPath reached={6} className="mt-6" />
@@ -216,10 +176,10 @@ export function ReportWizard() {
   }
 
   return (
-    <div className="mt-4">
+    <div>
       <StepBar current={step} />
 
-      <div className="mt-5">
+      <div className="mt-[18px]">
         {step === 1 && (
           <VoiceInput
             value={text}

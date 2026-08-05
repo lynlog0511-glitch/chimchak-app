@@ -1,9 +1,10 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { BigButton, InlineDisclaimer, SessionTopBar, SourceChip } from "@/components";
+import Link from "next/link";
+import { BigButton, InlineDisclaimer, SourceChip } from "@/components";
 import { progressStepCount, type SessionProgress } from "@/lib/storage";
-import type { Scenario } from "@/types";
+import type { PersonaDef, Scenario, ScenarioType } from "@/types";
 import { FICTION_NOTICE, PRACTICE_LINE, ROLE_LABEL } from "./constants";
 
 export interface BriefingPanelProps {
@@ -14,6 +15,89 @@ export interface BriefingPanelProps {
   /** 이 시나리오에 진행하던 훈련이 남아 있으면 맨 위에 「이어서 하기」 카드를 띄웁니다 */
   checkpoint?: SessionProgress | null;
   onResume?: () => void;
+}
+
+/** 브리핑 eyebrow의 유형 낱말 — 시안 6f의 표기(「치매 행동 대응」)를 씁니다. */
+const TYPE_BRIEF: Record<ScenarioType, string> = {
+  BPSD: "치매 행동 대응",
+  EMERGENCY: "응급 초기 대응",
+  CONFLICT: "이용자·보호자 갈등 화법",
+  RISK: "위험 판단",
+};
+
+const COUNT_WORD = ["", "한", "두", "세", "네", "다섯", "여섯", "일곱", "여덟", "아홉", "열"];
+
+/** 「여섯 상황」 — 열 이하는 한글 수사로, 그보다 많으면 숫자로 적습니다. */
+function countWord(n: number): string {
+  return COUNT_WORD[n] ?? String(n);
+}
+
+/**
+ * 이 상황에서 학습자가 말하게 되는 지점의 수.
+ * 돌발 변수 턴은 조건이 맞을 때만 열리므로 세지 않습니다 — 세션 헤더의 「N째 상황」과 같은 기준입니다.
+ */
+function situationCount(scenario: Scenario): number {
+  return scenario.turns.filter((turn) => turn.cue && !turn.isTrigger).length;
+}
+
+/**
+ * 학습목표에서 코드 표기를 걷어냅니다 — 「LO-1 …합니다. (RE-01, RE-02)」 → 「…합니다.」
+ * 루브릭 코드는 기본 화면에 내지 않고 「이 훈련의 설계 보기」 안에서 원문 그대로 보여 드립니다(가이드 v4 §4.10).
+ */
+function objectiveText(raw: string): string {
+  return raw
+    .replace(/^LO-\d+\s*/, "")
+    .replace(/\s*\([^()]*\)\s*$/, "")
+    .trim();
+}
+
+/** 「박 어르신 (가상 인물)」 → 「박 어르신」 — 한 줄 소개에서 괄호가 두 번 나오지 않게 합니다. */
+function plainName(name: string): string {
+  return name.replace(/\s*\((?:가상 인물|사용자 본인)\)\s*/g, " ").trim();
+}
+
+/** 프로필 첫 마디만 — 「자격 취득 2개월 · 이 가정 배정 3일차 …」 → 「자격 취득 2개월」 */
+function shortProfile(profile: string): string {
+  const head = profile.split("·")[0] ?? "";
+  return head
+    .trim()
+    .replace(/입니다\.?$/, "")
+    .replace(/[.·]$/, "")
+    .trim();
+}
+
+/**
+ * 상황 카드 아래 한 줄 — 「나 — 배정 3주차 · 박 어르신 — AI가 연기하는 가상 인물」.
+ * 나머지 인물은 「등장인물 자세히」 접힘 안에 있습니다.
+ */
+function castLine(personas: readonly PersonaDef[]): string {
+  const learner = personas.find((p) => p.role === "learner");
+  const counterpart = personas.find((p) => p.role !== "learner");
+  const parts: string[] = [];
+  if (learner) {
+    const short = shortProfile(learner.profile);
+    parts.push(short ? `나 — ${short}` : "나");
+  }
+  if (counterpart) parts.push(`${plainName(counterpart.name)} — AI가 연기하는 가상 인물`);
+  return parts.join(" · ");
+}
+
+/** 접이식 한 칸 — 시안 6f의 접힘 행(14.5px/600 + ⌄)입니다. 터치 영역은 48px을 지킵니다. */
+function Fold({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <details className="group border-t border-line">
+      <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 px-[2px] py-[13px] text-[14.5px] leading-[1.4] font-semibold text-ink [&::-webkit-details-marker]:hidden">
+        <span>{title}</span>
+        <span
+          aria-hidden
+          className="flex-none text-[13px] leading-none text-ink-ghost transition-transform duration-150 group-open:rotate-180"
+        >
+          ⌄
+        </span>
+      </summary>
+      <div className="px-[2px] pb-5">{children}</div>
+    </details>
+  );
 }
 
 /**
@@ -36,24 +120,6 @@ function formatSavedAt(iso: string): string {
   }
 }
 
-/** 접이식 한 칸 — 시안에는 없는 화면이라 같은 문법(면 없는 hairline 행 + ⌄)으로 전개합니다. */
-function Fold({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <details className="group border-t border-line">
-      <summary className="flex min-h-[56px] cursor-pointer list-none items-center justify-between gap-3 text-[15px] font-semibold text-ink [&::-webkit-details-marker]:hidden">
-        <span>{title}</span>
-        <span
-          aria-hidden
-          className="text-[13px] text-faint transition-transform duration-150 group-open:rotate-180"
-        >
-          ⌄
-        </span>
-      </summary>
-      <div className="pb-5">{children}</div>
-    </details>
-  );
-}
-
 /**
  * 「이어서 하기」 — 진행하던 훈련이 남아 있을 때만 맨 위에 섭니다.
  * 조용한 안내라 면 하나(`#f5f6f6`)에 얹고 배지도 액센트도 쓰지 않습니다.
@@ -72,7 +138,7 @@ function ResumeBlock({
   const meta = savedAt ? `${step}번째 상황까지 · ${savedAt} 저장` : `${step}번째 상황까지`;
 
   return (
-    <div className="rounded-card bg-paper-2 p-4">
+    <div className="rounded-[14px] bg-paper-2 px-4 py-[15px]">
       <h2 className="text-[15px] leading-[1.4] font-bold text-ink">진행하던 훈련이 있습니다</h2>
       <p className="mt-1 text-[12.5px] leading-[1.5] font-semibold text-ink-muted">{meta}</p>
       <p className="mt-2 text-[12.5px] leading-[1.6] text-ink-muted">
@@ -92,13 +158,12 @@ function ResumeBlock({
 }
 
 /**
- * 시나리오 시작 전 브리핑.
+ * 시나리오 시작 전 브리핑 = 시안 6f.
  *
- * 시안에는 없는 화면이라 v4 §3의 문법으로 전개합니다 —
- * 컴팩트 상단 바 → 22px 제목 → 지문·등장인물 → 고정 문구 → CTA → 접이식 → 인라인 고지.
- *
- * 기본 노출은 네 가지입니다: 상황 지문 · 등장인물 한 줄 · 고정 문구와 가상 인물 고지 · 시작 버튼.
- * 인물 상세, 제약 조건, 오늘 연습할 것, 판정 근거, 응답 방법은 접어 두었습니다.
+ * **시작 버튼이 첫 화면 안에 들어옵니다** — 기본 노출은 네 가지뿐입니다:
+ * 상황 지문 카드 · 인물 한 줄 · 고정 문구 · 「훈련 시작하기」.
+ * 학습목표·인물 상세·응답 방법(마이크 권한 안내)·설계(루브릭 코드·근거 문서·제약 조건)는
+ * 전부 ⌄ 접힘 안에 있습니다.
  */
 export function BriefingPanel({
   scenario,
@@ -107,14 +172,37 @@ export function BriefingPanel({
   checkpoint,
   onResume,
 }: BriefingPanelProps) {
+  const situations = situationCount(scenario);
+  const eyebrow = [
+    TYPE_BRIEF[scenario.type],
+    `약 ${scenario.durationMin}분`,
+    situations > 0 ? `${countWord(situations)} 상황` : null,
+  ]
+    .filter((part): part is string => Boolean(part))
+    .join(" · ");
+
+  const cast = castLine(scenario.personas);
+
+  /* 고정 문구는 한 글자도 바꾸지 않고, 시안처럼 가운데 한 마디만 굵게 둡니다.
+     문구가 바뀌어 갈라지지 않으면 그대로 한 덩어리로 나갑니다. */
+  const EMPHASIS = "말이 나오게 만드는 연습";
+  const [lineHead, lineTail] = PRACTICE_LINE.split(EMPHASIS);
+  const splitOk = typeof lineTail === "string";
+
   return (
-    <div className="px-[18px] pb-10">
-      <SessionTopBar
-        title="훈련 준비"
-        status={`${scenario.typeLabel} · ${scenario.levelLabel} · 약 ${scenario.durationMin}분`}
-        backHref="/train"
-        backLabel="훈련 목록으로"
-      />
+    <div className="mx-auto w-full max-w-[600px] px-5 pb-10">
+      {/* 상단 — 시안 6f는 제목을 얹지 않고 돌아갈 곳만 적습니다(제목은 아래 h1이 맡습니다). */}
+      <div className="pt-1 pb-1">
+        <Link
+          href="/train"
+          className="-ml-[2px] inline-flex min-h-[48px] items-center gap-[10px] pr-2 text-[14px] leading-none font-semibold text-ink-muted transition-colors duration-150 hover:text-ink"
+        >
+          <span aria-hidden className="text-[22px] leading-none text-ink-soft">
+            ‹
+          </span>
+          훈련 목록
+        </Link>
+      </div>
 
       {/* 진행하던 훈련이 있으면 브리핑보다 먼저 보여 드립니다 — 「처음부터」는 새로 시작하는 것과 같습니다. */}
       {checkpoint && onResume && (
@@ -123,103 +211,77 @@ export function BriefingPanel({
         </div>
       )}
 
-      {/* 상단 바가 이미 h1(「훈련 준비」)을 가지고 있어 상황 제목은 h2로 둡니다. */}
-      <h2 className="text-[22px] leading-[1.3] font-extrabold tracking-[-0.01em] text-ink">
+      <p className="text-[12px] leading-[1.5] font-bold tracking-[0.06em] text-ink-muted">
+        {eyebrow}
+      </p>
+      <h1 className="mt-[6px] text-[24px] leading-[1.35] font-extrabold tracking-[-0.02em] text-ink">
         {scenario.title}
-      </h2>
-      <p className="mt-2.5 text-[15px] leading-[1.65] text-ink-soft">{scenario.context}</p>
+      </h1>
 
-      {/* 등장인물 — 위계가 낮은 목록이라 카드 대신 여백으로만 나눕니다. */}
-      <ul className="mt-4 space-y-1">
-        {scenario.personas.map((persona) => (
-          <li key={persona.name} className="flex items-baseline gap-2 text-[13px] leading-[1.6]">
-            <span className="font-bold text-ink">{persona.name}</span>
-            <span className="text-ink-muted">{ROLE_LABEL[persona.role]}</span>
-          </li>
-        ))}
-      </ul>
-
-      {/* 고정 문구 · 가상 인물 고지 — 이 화면에서 색 면은 이 블록 하나입니다. */}
-      <div className="mt-5 rounded-card bg-tint p-4">
-        <p className="text-[16px] leading-[1.55] font-bold text-deep">“{PRACTICE_LINE}”</p>
-        <p className="mt-2 text-[12.5px] leading-[1.6] font-semibold text-brand-800">
-          {FICTION_NOTICE}
-        </p>
+      {/* 상황 지문 — 이 화면에서 면(paper-2)을 쓰는 곳은 여기 하나입니다. */}
+      <div className="mt-[14px] rounded-[14px] bg-paper-2 px-4 py-[15px]">
+        <p className="text-[15.5px] leading-[1.65] text-ink">{scenario.context}</p>
+        {cast && <p className="mt-2 text-[12.5px] leading-[1.55] text-ink-muted">{cast}</p>}
       </div>
 
-      <div className="mt-5 space-y-2">
-        <BigButton onClick={onStart} size="lg" block>
+      {/* 고정 문구 — 안전 규칙에 걸린 문장입니다. 한 글자도 바꾸지 마세요. */}
+      <p className="mt-[10px] text-[13.5px] leading-[1.6] text-ink-soft">
+        {splitOk ? (
+          <>
+            {lineHead}
+            <b className="font-bold">{EMPHASIS}</b>
+            {lineTail}
+          </>
+        ) : (
+          PRACTICE_LINE
+        )}{" "}
+        틀려도 벌점은 없습니다.
+      </p>
+
+      {/* 시작 버튼은 접힘보다 위, 첫 화면 안에 있습니다(시안 6f의 핵심). */}
+      <div className="mt-[14px]">
+        <BigButton onClick={onStart} size="lg" block className="font-bold">
           훈련 시작하기
         </BigButton>
-        <BigButton href="/train" variant="secondary" block>
-          다른 상황 고르기
-        </BigButton>
       </div>
 
-      <div className="mt-6 border-b border-line">
-        <Fold title="인물 소개">
-          <p className="text-[12.5px] leading-[1.6] font-semibold text-ink-muted">
-            {FICTION_NOTICE}
-          </p>
-          <ul className="mt-2 space-y-3">
+      <div className="mt-4 border-b border-line">
+        <Fold title={`오늘 연습할 것 ${scenario.objectives.length}가지`}>
+          <ul className="space-y-2">
+            {scenario.objectives.map((objective) => (
+              <li key={objective} className="flex gap-2 text-[13.5px] leading-[1.65] text-ink-soft">
+                <span aria-hidden className="flex-none text-ink-ghost">
+                  ·
+                </span>
+                <span>{objectiveText(objective)}</span>
+              </li>
+            ))}
+          </ul>
+        </Fold>
+
+        <Fold title="등장인물 자세히">
+          <p className="text-[12px] leading-[1.6] font-semibold text-ink-muted">{FICTION_NOTICE}</p>
+          <ul className="mt-3 space-y-3">
             {scenario.personas.map((persona) => (
               <li key={persona.name}>
                 <p className="text-[14px] leading-[1.5] font-bold text-ink">
-                  {persona.name}
+                  {plainName(persona.name)}
                   <span className="ml-2 text-[12.5px] font-semibold text-ink-muted">
                     {ROLE_LABEL[persona.role]}
                   </span>
                 </p>
-                <p className="mt-1 text-[13px] leading-[1.65] text-ink-soft">{persona.profile}</p>
+                <p className="mt-1 text-[13.5px] leading-[1.65] text-ink-soft">{persona.profile}</p>
               </li>
             ))}
           </ul>
         </Fold>
 
-        <Fold title="제약 조건">
-          <ul className="space-y-1.5">
-            {scenario.constraints.map((constraint) => (
-              <li key={constraint} className="flex gap-2 text-[13px] leading-[1.65] text-ink">
-                <span aria-hidden className="text-faint">
-                  ·
-                </span>
-                <span>{constraint}</span>
-              </li>
-            ))}
-          </ul>
-        </Fold>
-
-        <Fold title="오늘 연습할 것">
-          <ul className="space-y-1.5">
-            {scenario.objectives.map((objective) => (
-              <li key={objective} className="flex gap-2 text-[13px] leading-[1.65] text-ink-soft">
-                <span aria-hidden className="text-brand-400">
-                  ·
-                </span>
-                <span>{objective}</span>
-              </li>
-            ))}
-          </ul>
-        </Fold>
-
-        <Fold title="이 훈련의 판정 근거">
-          <p className="text-[13px] leading-[1.65] text-ink-soft">
-            피드백에는 아래 문서에서 확인한 내용만 붙습니다. 근거를 찾지 못하면 “공식 지침에서
-            근거를 찾지 못했습니다. 담당 간호사 또는 기관에 확인해 주세요.”라고 그대로 말씀드립니다.
-          </p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {scenario.sourceDocs.map((docId) => (
-              <SourceChip key={docId} docId={docId} />
-            ))}
-          </div>
-        </Fold>
-
-        <Fold title="응답 방법">
-          <ul className="space-y-2 text-[13px] leading-[1.65] text-ink-soft">
+        <Fold title="응답 방법 · 마이크 권한 안내">
+          <ul className="space-y-2.5 text-[13.5px] leading-[1.65] text-ink-soft">
             <li>
               <span className="font-bold text-ink">말하기 — </span>
               {micSupported
-                ? "마이크 버튼을 누르면 브라우저가 마이크 허용을 물어봅니다. ‘허용’을 누르신 뒤 버튼을 다시 눌러 말씀해 주세요."
+                ? "마이크 버튼을 누르면 브라우저가 마이크 허용을 물어봅니다. ‘허용’을 누르신 뒤 버튼을 다시 눌러 말씀해 주세요. 허용하지 않으셔도 버튼과 직접 입력으로 끝까지 하실 수 있습니다."
                 : "이 기기에서는 음성 인식을 쓸 수 없습니다. 버튼과 직접 입력만으로 끝까지 진행하실 수 있습니다."}
             </li>
             <li>
@@ -232,14 +294,68 @@ export function BriefingPanel({
             </li>
             <li>
               <span className="font-bold text-ink">여유 시간 — </span>
-              남은 시간이 표시되지만, 시간이 지나도 자동으로 넘어가지 않습니다. 천천히 하셔도
+              여유 시간이 표시되지만, 시간이 지나도 자동으로 넘어가지 않습니다. 천천히 하셔도
               됩니다.
             </li>
           </ul>
         </Fold>
+
+        {/* 루브릭 코드·근거 문서·제약 조건은 전부 이 안에 있습니다(가이드 v4 §4.10). */}
+        <Fold title="이 훈련의 설계 보기">
+          <p className="text-[12px] leading-[1.6] font-bold tracking-[0.06em] text-ink-muted">
+            학습목표와 루브릭 항목
+          </p>
+          <ul className="mt-2 space-y-1.5">
+            {scenario.objectives.map((objective) => (
+              <li key={objective} className="text-[13px] leading-[1.65] text-ink-soft">
+                {objective}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-[12.5px] leading-[1.6] text-ink-muted">
+            이 상황에서 보는 항목은 {scenario.appliedRubric.length}개이며, 점수와 등급은 화면에
+            내지 않습니다.
+          </p>
+
+          <p className="mt-4 text-[12px] leading-[1.6] font-bold tracking-[0.06em] text-ink-muted">
+            이 상황의 제약 조건
+          </p>
+          <ul className="mt-2 space-y-1.5">
+            {scenario.constraints.map((constraint) => (
+              <li
+                key={constraint}
+                className="flex gap-2 text-[13px] leading-[1.65] text-ink-soft"
+              >
+                <span aria-hidden className="flex-none text-ink-ghost">
+                  ·
+                </span>
+                <span>{constraint}</span>
+              </li>
+            ))}
+          </ul>
+
+          <p className="mt-4 text-[12px] leading-[1.6] font-bold tracking-[0.06em] text-ink-muted">
+            판정 근거 문서
+          </p>
+          <p className="mt-2 text-[13px] leading-[1.65] text-ink-soft">
+            피드백에는 아래 문서에서 확인한 내용만 붙습니다. 근거를 찾지 못하면 “공식 지침에서
+            근거를 찾지 못했습니다. 담당 간호사 또는 기관에 확인해 주세요.”라고 그대로 말씀드립니다.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {scenario.sourceDocs.map((docId) => (
+              <SourceChip key={docId} docId={docId} />
+            ))}
+          </div>
+        </Fold>
       </div>
 
-      <InlineDisclaimer size="md" tone="readable" className="mt-6" />
+      <p className="mt-3 text-[11.5px] leading-[1.6] text-ink-faint">
+        마이크가 없어도 버튼만으로 끝까지 할 수 있어요.
+        <br />
+        {FICTION_NOTICE}
+      </p>
+
+      <InlineDisclaimer size="md" tone="readable" className="mt-5" />
     </div>
   );
 }

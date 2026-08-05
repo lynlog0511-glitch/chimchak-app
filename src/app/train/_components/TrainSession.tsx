@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { BigButton, InlineDisclaimer, SessionTopBar } from "@/components";
+import { BigButton, InlineDisclaimer } from "@/components";
 import { cx } from "@/components/utils";
 import { buildRecord, currentCue, currentTurn, protocolIdOf, resolveEnding } from "@/engine";
 import { isRecognitionSupported, primeVoices, speak, stopSpeaking } from "@/lib/speech";
@@ -19,17 +19,24 @@ import { CueResponder } from "./CueResponder";
 import { DialogueLog } from "./DialogueLog";
 import { EndingPanel } from "./EndingPanel";
 import { ProtocolInline } from "./ProtocolInline";
+import { SessionHeader } from "./SessionHeader";
 import { SessionProgressBar } from "./SessionProgressBar";
+import { SessionRail } from "./SessionRail";
 import {
-  aiRoleNote,
   EMOTION_WORD,
   emotionLevel,
   FICTION_NOTICE,
   SESSION_STATUS_ENDED,
   SESSION_STATUS_PROTOCOL,
+  sessionSubtitle,
 } from "./constants";
 import { cueProgress } from "./sessionProgress";
-import { initialTrainState, makeTrainReducer, type LogItem } from "./sessionMachine";
+import {
+  initialTrainState,
+  makeTrainReducer,
+  type CriticalInterruptState,
+  type LogItem,
+} from "./sessionMachine";
 
 export interface TrainSessionProps {
   scenario: Scenario;
@@ -61,6 +68,12 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   const [listening, setListening] = useState(false);
   /** 종료 확인 */
   const [exitOpen, setExitOpen] = useState(false);
+  /**
+   * 이번 훈련에서 마지막으로 멈춰 세웠던 ⚑CF 지점.
+   * 시트가 닫힌 뒤에도 엔딩의 「다시 볼 장면」 카드가 **그때 보여 드린 근거와 대안 그대로**를
+   * 다시 펴야 하므로, 시트에 넘긴 내용을 그대로 붙들어 둡니다.
+   */
+  const [criticalScene, setCriticalScene] = useState<CriticalInterruptState | null>(null);
   /** 지금 읽어 주고 있는 대사의 키 — 이름줄 파형·「읽어 주는 중」 표시에 씁니다 */
   const [speakingKey, setSpeakingKey] = useState("");
   const spokenKeyRef = useRef<string>("");
@@ -131,6 +144,11 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     });
   }, []);
 
+  /** ⚑CF 시트가 뜰 때마다 그 내용을 붙들어 둡니다 (엔딩의 「다시 볼 장면」 카드용). */
+  useEffect(() => {
+    if (state.critical) setCriticalScene(state.critical);
+  }, [state.critical]);
+
   /* ── 저장 ─────────────────────────────────────────────── */
 
   useEffect(() => {
@@ -177,6 +195,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     clearProgress(scenario.id);
     setCheckpoint(null);
     setAtBriefing(false);
+    setCriticalScene(null);
     dispatch({ type: "start" });
     scrollToTop();
   }, [scenario.id, scrollToTop]);
@@ -188,9 +207,18 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     clearProgress(scenario.id);
     setCheckpoint(null);
     setAtBriefing(false);
+    setCriticalScene(null);
     dispatch({ type: "restart" });
     scrollToTop();
   }, [scenario.id, scrollToTop]);
+
+  /**
+   * ⚑CF 시트를 닫고 같은 장면으로 돌아갑니다.
+   * 대안을 고르셨으면 그 문구를 로그에 한 줄로 남깁니다 — 발화로 전송하지는 않습니다.
+   */
+  const handleRetryAfterCritical = useCallback((alternative?: string) => {
+    dispatch({ type: "retryAfterCritical", alternative });
+  }, []);
 
   /** 이어서 하기 — 저장해 둔 결정 목록을 엔진에 순서대로 다시 넣습니다. */
   const handleResume = useCallback(() => {
@@ -244,115 +272,148 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     ? SESSION_STATUS_ENDED
     : inProtocol
       ? SESSION_STATUS_PROTOCOL
-      : aiRoleNote(scenario);
+      : sessionSubtitle(scenario, progress.index);
+
+  const interrupted = state.critical !== null;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex-none px-[18px]">
-        <SessionTopBar
-          title={scenario.title}
-          status={statusText}
-          statusTone={ended ? "neutral" : inProtocol ? "danger" : "brand"}
-          backHref={ended ? "/train" : undefined}
-          onBack={ended ? undefined : handleBackToBriefing}
-          backLabel={ended ? "훈련 목록으로" : "브리핑으로 돌아가기"}
-          action={
-            <div className="-mr-2 flex items-center">
-              <button
-                type="button"
-                onClick={toggleTts}
-                aria-pressed={ttsOn}
-                className="flex min-h-[48px] items-center px-2 text-[13px] font-semibold text-ink-muted"
-              >
-                {ttsOn ? "소리 끄기" : "소리 켜기"}
-              </button>
-              {!ended && (
-                <button
-                  type="button"
-                  onClick={() => setExitOpen(true)}
-                  className="flex min-h-[48px] items-center px-2 text-[14px] font-semibold text-ink-muted"
-                >
-                  종료
-                </button>
-              )}
-            </div>
-          }
-        />
-        <SessionProgressBar index={progress.index} total={progress.total} />
-      </div>
-
-      {/* 본문 — 지문과 대화. 말하는 중에는 옅어집니다(시안 4b). */}
+    <>
+      {/* ⚑CF 시트가 떠 있는 동안 세션은 뒤로 물러납니다 (시안 6c — 배경 .25 + 딤 .32). */}
       <div
+        aria-hidden={interrupted || undefined}
         className={cx(
-          "min-h-0 flex-1 overflow-y-auto px-[18px] pt-4 pb-6 transition-opacity duration-200",
-          listening && "pointer-events-none opacity-45",
+          "flex min-h-0 flex-1 flex-col",
+          interrupted && "pointer-events-none opacity-30",
         )}
       >
-        <p className="text-center text-[12.5px] leading-[1.6] text-tertiary">{scenario.context}</p>
-        {/* 가상 인물 고지 — 화면마다 한 번은 또렷하게 남습니다(말풍선의 「AI 생성 · 가상 인물」과 별도). */}
-        <p className="mt-1 mb-4 text-center text-[11.5px] leading-[1.6] text-ink-muted">
-          {FICTION_NOTICE}
-        </p>
+        <div className="flex-none px-[18px] md:border-b md:border-line md:px-8">
+          <SessionHeader
+            title={scenario.title}
+            status={statusText}
+            statusTone={ended ? "neutral" : inProtocol ? "danger" : "brand"}
+            backHref={ended ? "/train" : undefined}
+            onBack={ended ? undefined : handleBackToBriefing}
+            backLabel={ended ? "훈련 목록으로" : "브리핑으로 돌아가기"}
+            progress={progress}
+            action={
+              <div className="-mr-2 flex items-center">
+                <button
+                  type="button"
+                  onClick={toggleTts}
+                  aria-pressed={ttsOn}
+                  className="flex min-h-[48px] items-center px-2 text-[13px] font-semibold text-ink-muted"
+                >
+                  {ttsOn ? "소리 끄기" : "소리 켜기"}
+                </button>
+                {!ended && (
+                  <button
+                    type="button"
+                    onClick={() => setExitOpen(true)}
+                    className="flex min-h-[48px] items-center px-2 text-[14px] font-semibold text-ink-muted"
+                  >
+                    종료
+                  </button>
+                )}
+              </div>
+            }
+          />
+          {/* 모바일 진행바 — 데스크톱에서는 헤더 안으로 들어갑니다(시안 7d). */}
+          <SessionProgressBar index={progress.index} total={progress.total} className="md:hidden" />
+        </div>
 
-        <DialogueLog
-          items={state.log}
-          gaugeLabel={scenario.gauge.label}
-          emotion={emotion}
-          speaking={speakingKey.length > 0}
-        />
+        {/* md↑ 2단 — 대화는 가운데 560px, 곁의 것은 오른쪽 270px 레일로 (시안 7d). */}
+        <div className="flex min-h-0 flex-1">
+          <div className="flex min-h-0 flex-1 flex-col md:border-r md:border-line">
+            {/* 본문 — 지문과 대화. 말하는 중에는 옅어집니다(시안 4b). */}
+            <div
+              className={cx(
+                "min-h-0 flex-1 overflow-y-auto px-[18px] pt-4 pb-6 transition-opacity duration-200 md:px-8 md:pt-6",
+                listening && "pointer-events-none opacity-45",
+              )}
+            >
+              <div className="md:mx-auto md:max-w-[560px]">
+                <p className="text-center text-[12.5px] leading-[1.6] text-tertiary">
+                  {scenario.context}
+                </p>
+                {/* 가상 인물 고지 — 화면마다 한 번은 또렷하게 남습니다(말풍선의 「AI 생성 · 가상 인물」과 별도). */}
+                <p className="mt-1 mb-4 text-center text-[11.5px] leading-[1.6] text-ink-muted">
+                  {FICTION_NOTICE}
+                </p>
 
-        {ended && record ? (
-          <EndingPanel
+                <DialogueLog
+                  items={state.log}
+                  gaugeLabel={scenario.gauge.label}
+                  emotion={emotion}
+                  speaking={speakingKey.length > 0}
+                />
+
+                {ended && record ? (
+                  <EndingPanel
+                    scenario={scenario}
+                    session={state.session}
+                    ending={ending}
+                    record={record}
+                    advisoryEnding={advisoryEnding}
+                    criticalFeedback={criticalScene?.feedback}
+                    criticalAlternatives={criticalScene?.alternatives}
+                    onRestart={handleRestart}
+                    className="mt-6"
+                  />
+                ) : inProtocol ? (
+                  protocol ? (
+                    <ProtocolInline
+                      protocol={protocol}
+                      ttsOn={ttsOn}
+                      onDone={() => dispatch({ type: "protocolDone" })}
+                      className="mt-6"
+                    />
+                  ) : (
+                    <div className="mt-6 rounded-card bg-danger-soft p-4">
+                      <p className="text-[15px] leading-[1.6] font-bold text-danger-ink">
+                        응급 안내를 불러오지 못했습니다. 아래 버튼으로 이어서 진행해 주세요.
+                      </p>
+                      <BigButton
+                        onClick={() => dispatch({ type: "protocolDone" })}
+                        size="lg"
+                        block
+                        className="mt-3"
+                      >
+                        이어서 인계·보고로 돌아가기
+                      </BigButton>
+                    </div>
+                  )
+                ) : null}
+              </div>
+            </div>
+
+            {/* 입력 도크 — 대화 중에만 섭니다. 그 밖의 구간에서는 고지 한 줄만 남깁니다. */}
+            {cue && turn && !ended && !inProtocol ? (
+              <CueResponder
+                scenario={scenario}
+                session={state.session}
+                cue={cue}
+                attempt={state.attempt}
+                micSupported={micSupported}
+                onSubmit={handleSubmit}
+                onListeningChange={setListening}
+              />
+            ) : (
+              <div className="flex-none border-t border-line bg-paper px-[18px] pt-3 pb-6 md:px-8">
+                <InlineDisclaimer tone="readable" />
+              </div>
+            )}
+          </div>
+
+          <SessionRail
             scenario={scenario}
             session={state.session}
-            ending={ending}
-            record={record}
-            advisoryEnding={advisoryEnding}
-            onRestart={handleRestart}
-            className="mt-6"
+            emotion={emotion}
+            lastDelta={state.lastFeedback?.gaugeDelta}
+            log={state.log}
+            className="hidden md:block"
           />
-        ) : inProtocol ? (
-          protocol ? (
-            <ProtocolInline
-              protocol={protocol}
-              ttsOn={ttsOn}
-              onDone={() => dispatch({ type: "protocolDone" })}
-              className="mt-6"
-            />
-          ) : (
-            <div className="mt-6 rounded-card bg-danger-soft p-4">
-              <p className="text-[15px] leading-[1.6] font-bold text-danger-ink">
-                응급 안내를 불러오지 못했습니다. 아래 버튼으로 이어서 진행해 주세요.
-              </p>
-              <BigButton
-                onClick={() => dispatch({ type: "protocolDone" })}
-                size="lg"
-                block
-                className="mt-3"
-              >
-                이어서 인계·보고로 돌아가기
-              </BigButton>
-            </div>
-          )
-        ) : null}
-      </div>
-
-      {/* 입력 도크 — 대화 중에만 섭니다. 그 밖의 구간에서는 고지 한 줄만 남깁니다. */}
-      {cue && turn && !ended && !inProtocol ? (
-        <CueResponder
-          scenario={scenario}
-          session={state.session}
-          cue={cue}
-          attempt={state.attempt}
-          micSupported={micSupported}
-          onSubmit={handleSubmit}
-          onListeningChange={setListening}
-        />
-      ) : (
-        <div className="flex-none border-t border-line bg-paper px-[18px] pt-3 pb-6">
-          <InlineDisclaimer tone="readable" />
         </div>
-      )}
+      </div>
 
       {/* 종료 확인 */}
       {exitOpen && (
@@ -388,15 +449,15 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
         </div>
       )}
 
-      {/* ⚑CF 전면 인터럽트 */}
+      {/* ⚑CF 즉시 중단 — 바텀시트 (시안 6c) */}
       {state.critical && (
         <CriticalInterrupt
           feedback={state.critical.feedback}
           alternatives={state.critical.alternatives}
-          onRetry={() => dispatch({ type: "retryAfterCritical" })}
+          onRetry={handleRetryAfterCritical}
         />
       )}
-    </div>
+    </>
   );
 }
 

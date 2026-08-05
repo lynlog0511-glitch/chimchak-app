@@ -4,8 +4,11 @@ import { BigButton, InlineDisclaimer, PageShell, ScreenHeader, cx } from "@/comp
 import { StatusMark } from "@/components/icons";
 import { DocWhitelist } from "./_components/DocWhitelist";
 import { EvidenceFlow } from "./_components/EvidenceFlow";
+import { LiveMeterPanel } from "./_components/LiveMeterPanel";
 import { LiveProofPanel } from "./_components/LiveProofPanel";
 import { MaskingPipeline } from "./_components/MaskingPipeline";
+import { SafetyToc, type TocItem } from "./_components/SafetyToc";
+import { TierShareDiagram } from "./_components/TierShareDiagram";
 
 export const metadata: Metadata = {
   title: "안전·개인정보 설계",
@@ -13,15 +16,26 @@ export const metadata: Metadata = {
     "3계층 생성통제, 기록 코칭 개인정보 경로, 폴백 매트릭스, 근거 문서 화이트리스트, 의료기기 경계, 접근권한 3등급",
 };
 
-/* ── 안전·개인정보 설계 ────────────────────────────────────────
-   시안에 없는 화면이라 v4 §2 공통 문법으로 전개했습니다 —
-   22px 제목 헤더 + 번호 아이브로 + 면 카드(r14) + hairline 행, 그림자 없음.
+/* ── 안전 설계 = 시안 7b ───────────────────────────────────────
+   위에서부터: 제목 + 목차 칩(가로 스크롤·활성 잉크 채움)
+     → 「위험할수록 AI의 지분이 줄어듭니다」 지분 막대
+     → 「지금 이 기기에서 — 실시간 계측」 두 칸
+     → 「개인정보가 움직이는 길 — 한 줄뿐입니다」 3칩
+     → 그 아래로 상세(3계층 표·개인정보 경로·폴백·화이트리스트·의료기기 경계·접근권한).
 
-   내용은 v3와 같습니다(라이브 계측 · 3계층 · 개인정보 경로 · 폴백 · 화이트리스트 ·
-   의료기기 경계 · 접근권한). 앱 프레임이 430px 고정이라 **표를 가로로 펼치지 않고**
-   행마다 [항목 제목 + 항목별 dt/dd]로 세워, 지면이 가로로 밀리지 않게 했습니다.
-   크기: 섹션 제목 17px w800 · 리드 13.5px · 본문 13.5px · 캡션 11.5px.
+   상세는 하나도 지우지 않았습니다 — 목차 칩이 가리키는 여섯 항목으로 자리만 옮겼고,
+   길이가 부담스러운 흐름도만 접어 두었습니다(펼치면 그대로 있습니다).
+   px·색은 시안의 인라인 값 그대로입니다.
    ─────────────────────────────────────────────────────────── */
+
+/** 목차 칩 — 시안 7b의 다섯 개. 「의료기기 경계」는 근거 문서 다음에 이어서 읽히므로 칩을 따로 두지 않습니다. */
+const TOC: readonly TocItem[] = [
+  { id: "tiers", label: "3계층" },
+  { id: "privacy", label: "데이터" },
+  { id: "fallback", label: "폴백" },
+  { id: "docs", label: "근거 문서" },
+  { id: "access", label: "접근권한" },
+];
 
 function Section({
   id,
@@ -37,7 +51,8 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section id={id} className="scroll-mt-4">
+    // 목차 칩이 위에 붙어 있으므로, 앵커로 뛰었을 때 제목이 칩 아래에 놓이도록 여백을 둡니다.
+    <section id={id} className="scroll-mt-[68px]">
       <p className="chim-num text-[12px] leading-[1.5] font-bold tracking-[0.06em] text-ink-muted">
         {num}
       </p>
@@ -162,6 +177,13 @@ function DataRows({
 
 /* ── 데이터 ────────────────────────────────────────────────── */
 
+/** 개인정보가 지나가는 길 — 시안 7b는 이 세 칸으로 요약합니다(상세 6단은 「데이터」 항목 안에). */
+const PATH_CHIPS: readonly { label: string; tint?: boolean }[] = [
+  { label: "말한 원문" },
+  { label: "기기에서 가리기", tint: true },
+  { label: "가려진 글만 저장" },
+];
+
 const PRIVACY_STEPS = [
   { step: "마이크", desc: "버튼을 누르는 동안만 켜집니다. 상시 청취는 없습니다." },
   {
@@ -214,63 +236,106 @@ const COACH = <StatusMark kind="coach" label="코칭" size="sm" quiet />;
 export default function SafetyPage() {
   return (
     <PageShell>
-      <ScreenHeader
-        title="안전 설계"
-        subtitle="잘 답하는 AI보다, 안전하게 멈추는 AI — 근거가 없으면 만들지 않습니다"
-      />
+      <ScreenHeader title="안전 설계" subtitle="판정은 지침이, 응급은 119가 합니다" />
 
-      <p className="mt-[10px] text-[13.5px] leading-[1.65] text-ink-soft">
+      <SafetyToc items={TOC} className="mt-[12px]" />
+
+      {/* 1. 지분 막대 — 이 화면의 주장을 한 장으로 줄인 그림입니다. */}
+      <section aria-labelledby="tier-share-title" className="pt-[10px]">
+        <h2
+          id="tier-share-title"
+          className="text-[16px] leading-[1.4] font-extrabold tracking-[-0.01em] text-ink"
+        >
+          위험할수록 AI의 지분이 줄어듭니다
+        </h2>
+        <TierShareDiagram className="mt-[10px]" />
+      </section>
+
+      {/* 2. 실시간 계측 — 주장 다음에 곧바로 계측치를 놓습니다(상세는 「데이터」 항목 안에). */}
+      <LiveMeterPanel className="mt-[14px]" />
+
+      {/* 3. 개인정보 경로 3칩 — 길이 하나뿐이라는 사실을 세 칸으로 보입니다. */}
+      <section aria-labelledby="privacy-path-title" className="mt-[16px]">
+        <h2
+          id="privacy-path-title"
+          className="text-[12.5px] leading-[1.5] font-bold text-ink-muted"
+        >
+          개인정보가 움직이는 길 — 한 줄뿐입니다
+        </h2>
+        <ol className="mt-[7px] flex flex-wrap items-center gap-[7px]">
+          {PATH_CHIPS.map((chip, i) => (
+            <li key={chip.label} className="flex items-center gap-[7px]">
+              <span
+                className={cx(
+                  "rounded-[8px] px-[10px] py-[7px] text-[12.5px] leading-[1.4] font-semibold",
+                  chip.tint ? "bg-brand-tint text-brand-on-tint" : "bg-paper-2 text-ink-soft",
+                )}
+              >
+                {chip.label}
+              </span>
+              {i < PATH_CHIPS.length - 1 && (
+                <span aria-hidden className="text-[12.5px] leading-none text-faint">
+                  ›
+                </span>
+              )}
+            </li>
+          ))}
+        </ol>
+        <p className="mt-[7px] text-[11.5px] leading-[1.6] text-tertiary">
+          원문은 저장하지 않습니다 — 세션이 끝나면 사라집니다
+        </p>
+      </section>
+
+      <p className="mt-[22px] text-[13.5px] leading-[1.65] text-ink-soft">
         침착은 공식 근거가 확인된 범위에서만 피드백하고, 근거가 부족하거나 실제 응급 상황에서는
         생성 대신 검수된 안내를 내보냅니다. 아래는 그 경계를 어디에 그었는지에 대한 기록입니다.
       </p>
 
       <div className="mt-[22px] space-y-[30px]">
-        {/* 0. 라이브 증명 — 주장보다 먼저 계측치를 보여 줍니다 */}
-        <LiveProofPanel />
-
         {/* 1. 3계층 생성통제 */}
         <Section
           id="tiers"
           num="01"
-          title="3계층 생성통제 — 위험할수록 AI의 지분을 줄입니다"
+          title="3계층 생성통제 — 구간마다 잠근 범위가 다릅니다"
           lead="구간마다 AI가 할 수 있는 일의 범위를 다르게 잠갔습니다. 안전 직결 3항목(업무 범위를 벗어난 행위 · 신체 제한 · 119 지연)은 확률 모델이 아니라 규칙 엔진이 단독으로 판정합니다."
         >
-          <EvidenceFlow />
+          <DataRows
+            caption="생성 통제 3계층"
+            columns={["적용 구간", "AI가 하는 일", "AI가 하지 않는 일", "근거가 없을 때"]}
+            rows={[
+              {
+                head: "L1 · 훈련",
+                cells: [
+                  "시나리오 대화",
+                  "어르신·보호자 역 대사를 대본 범위 안에서 재생·변주합니다.",
+                  "대본 밖 상황을 지어내지 않고, 실존 인물·기관을 언급하지 않습니다.",
+                  "이탈이 감지되면 검수된 고정 대사로 되돌립니다.",
+                ],
+              },
+              {
+                head: "L2 · 채점",
+                cells: [
+                  "턴별 피드백",
+                  "검색된 근거 문서 안에서만 코칭 문장을 만듭니다.",
+                  "근거 없는 판정이나 추측을 내놓지 않습니다.",
+                  "생성을 중단하고 「공식 지침에서 근거를 찾지 못했습니다. 담당 간호사 또는 기관에 확인해 주세요.」로 넘깁니다.",
+                ],
+              },
+              {
+                head: "L3 · 실전 응급",
+                cells: [
+                  "응급 프로토콜",
+                  "없습니다. 생성 호출이 0건입니다.",
+                  "생성·요약·변형을 전부 하지 않습니다.",
+                  "해당 없음 — 처음부터 사전 검수된 고정 스크립트만 재생하고 119 안내를 최우선으로 띄웁니다.",
+                ],
+              },
+            ]}
+          />
 
+          {/* 흐름도 — 세로 스텝 목록은 그대로 보이고, 큰 다이어그램은 그 안에서 한 번 더 접힙니다. */}
           <div className="mt-6">
-            <DataRows
-              caption="생성 통제 3계층"
-              columns={["적용 구간", "AI가 하는 일", "AI가 하지 않는 일", "근거가 없을 때"]}
-              rows={[
-                {
-                  head: "L1 · 훈련",
-                  cells: [
-                    "시나리오 대화",
-                    "어르신·보호자 역 대사를 대본 범위 안에서 재생·변주합니다.",
-                    "대본 밖 상황을 지어내지 않고, 실존 인물·기관을 언급하지 않습니다.",
-                    "이탈이 감지되면 검수된 고정 대사로 되돌립니다.",
-                  ],
-                },
-                {
-                  head: "L2 · 채점",
-                  cells: [
-                    "턴별 피드백",
-                    "검색된 근거 문서 안에서만 코칭 문장을 만듭니다.",
-                    "근거 없는 판정이나 추측을 내놓지 않습니다.",
-                    "생성을 중단하고 「공식 지침에서 근거를 찾지 못했습니다. 담당 간호사 또는 기관에 확인해 주세요.」로 넘깁니다.",
-                  ],
-                },
-                {
-                  head: "L3 · 실전 응급",
-                  cells: [
-                    "응급 프로토콜",
-                    "없습니다. 생성 호출이 0건입니다.",
-                    "생성·요약·변형을 전부 하지 않습니다.",
-                    "해당 없음 — 처음부터 사전 검수된 고정 스크립트만 재생하고 119 안내를 최우선으로 띄웁니다.",
-                  ],
-                },
-              ]}
-            />
+            <EvidenceFlow />
           </div>
 
           <Note tone="danger" className="mt-4">
@@ -285,7 +350,7 @@ export default function SafetyPage() {
           </Note>
         </Section>
 
-        {/* 2. 개인정보 경로 */}
+        {/* 2. 데이터 — 개인정보 경로 + 라이브 계측 상세 */}
         <Section
           id="privacy"
           num="02"
@@ -323,6 +388,9 @@ export default function SafetyPage() {
               확정 버튼을 누른 뒤에만 기관 시스템으로 보냅니다.
             </p>
           </Note>
+
+          {/* 위 두 칸(외부 출처 요청·저장된 응급 안내)의 근거가 되는 상세 계측입니다. */}
+          <LiveProofPanel className="mt-6 border-t border-line pt-5" />
         </Section>
 
         {/* 3. 폴백 매트릭스 */}
@@ -500,8 +568,8 @@ export default function SafetyPage() {
       </div>
 
       {/* 하단 — 고정 문구를 다시 한 번 놓고 훈련·응급으로 내보냅니다. */}
-      <div className="mt-7 rounded-[14px] bg-tint px-[15px] py-[16px]">
-        <p className="text-[15px] leading-[1.5] font-extrabold text-brand-900">
+      <div className="mt-7 rounded-[14px] bg-paper-2 px-[15px] py-[16px]">
+        <p className="text-[15px] leading-[1.5] font-extrabold text-ink">
           정답을 맞히는 시험이 아니라, 말이 나오게 만드는 연습입니다.
         </p>
         <div className="mt-[14px] flex flex-col gap-2">

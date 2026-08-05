@@ -255,7 +255,7 @@ export function VoiceInput({ value, onChange, onNext, onInputStart }: VoiceInput
       </p>
 
       <BigButton size="lg" block className="mt-4" onClick={onNext} disabled={empty}>
-        가명처리 확인하기
+        가리기로 넘어가기
       </BigButton>
       {empty && (
         <p className="mt-[6px] text-center text-[11.5px] leading-[1.5] text-tertiary">

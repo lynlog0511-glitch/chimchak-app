@@ -15,21 +15,21 @@ export const metadata: Metadata = {
  * 3단계 위저드: ① 말하기·쓰기 → ② 가명처리 확인 → ③ 기록 초안 확정.
  * 전 과정이 브라우저 안에서 끝나며 외부 호출이 0건입니다.
  *
- * 화면 문법(v4 §0·§2): 22px 제목 상단 바 + 면 카드 + 하단 인라인 고지.
- * 상단 고지는 카드가 아니라 옅은 면 위 한 줄로 두고, 뒤에 이어지는 설명은 기본 접힘입니다 —
+ * 화면 문법(시안 6e): 22px 제목 바로 아래에 「① 말하기 ✓ — ② 가리기 — ③ 확인」 한 줄이 붙습니다.
+ * 서버 고지는 제목과 단계 사이를 벌리지 않도록 화면 끝 접힘 행으로 내렸습니다 —
  * 문구는 한 글자도 지우지 않고 자리만 옮겼습니다.
  */
 export default function ReportPage() {
   return (
     <PageShell sourceDocs={SOURCE_DOCS}>
-      <ScreenHeader
-        title="기록 코칭"
-        subtitle="말로 보고하면 기록의 뼈대가 남습니다 — 저장은 확정 버튼을 누르실 때만"
-      />
+      {/* 시안 6e — 제목과 단계 인디케이터 사이는 10px. 사이에 아무것도 끼우지 않습니다. */}
+      <ScreenHeader title="보고 · 기록" className="pb-[10px]" />
+
+      <ReportWizard />
 
       {/* 고지는 존재하되 조용히. 첫 문장만 보이고 나머지는 펼쳐서 봅니다. */}
-      <details className="group mt-4 rounded-[14px] bg-paper-2 px-4">
-        <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-2 text-[12.5px] font-bold text-ink-soft [&::-webkit-details-marker]:hidden">
+      <details className="group mt-6 border-y border-line">
+        <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-2 px-[2px] text-[12.5px] leading-[1.5] font-bold text-ink-soft [&::-webkit-details-marker]:hidden">
           <span
             aria-hidden
             className="text-[15px] leading-none text-faint transition-transform duration-150 group-open:rotate-90"
@@ -50,8 +50,6 @@ export default function ReportPage() {
           </div>
         </div>
       </details>
-
-      <ReportWizard />
 
       <InlineDisclaimer size="md" tone="readable" className="mt-6 mb-3" />
     </PageShell>

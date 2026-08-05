@@ -2,12 +2,8 @@
 
 import type { RecordDraft } from "@/types";
 import { BigButton, SourceChip, cx } from "@/components";
-import {
-  RECORD_SLOT_HINTS,
-  RECORD_SLOT_LABELS,
-  recomputeMissing,
-  type RecordSlot,
-} from "@/engine/record";
+import { RECORD_SLOT_LABELS, recomputeMissing, type RecordSlot } from "@/engine/record";
+import { SLOT_PROMPTS } from "./DraftRows";
 import { PrivacyPath } from "./PrivacyPath";
 
 export interface DraftFormProps {
@@ -73,12 +69,9 @@ export function DraftForm({ draft, onChange, onBack, onConfirm }: DraftFormProps
       </div>
 
       {missingCount > 0 && (
-        <p
-          role="status"
-          className="mt-4 rounded-[14px] bg-warn-soft px-4 py-[12px] text-[13px] leading-[1.6] font-semibold text-warn-ink"
-        >
-          비어 있는 칸이 {missingCount}곳 있습니다 — {draft.missing.join(" · ")}. 아래에서 채워
-          주세요.
+        <p role="status" className="mt-4 text-[13px] leading-[1.6] font-bold text-warn-ink">
+          비어 있는 칸이 <span className="chim-num">{missingCount}</span>곳 있습니다 —{" "}
+          {draft.missing.join(" · ")}. 아래에서 채워 주세요.
         </p>
       )}
 
@@ -103,7 +96,9 @@ export function DraftForm({ draft, onChange, onBack, onConfirm }: DraftFormProps
                   {label}
                 </label>
                 {empty && (
-                  <span className="text-[11.5px] font-extrabold text-warn-ink">채워 주세요</span>
+                  <span id={hintId} className="text-[12px] leading-[1.5] font-bold text-warn-ink">
+                    채워 주세요 — {SLOT_PROMPTS[slot.key]}
+                  </span>
                 )}
               </div>
 
@@ -127,12 +122,6 @@ export function DraftForm({ draft, onChange, onBack, onConfirm }: DraftFormProps
                   aria-describedby={empty ? hintId : undefined}
                   className={cx(shared, "min-h-[48px]")}
                 />
-              )}
-
-              {empty && (
-                <p id={hintId} className="mt-[5px] text-[11.5px] leading-[1.6] text-warn-ink">
-                  {RECORD_SLOT_HINTS[slot.key]}
-                </p>
               )}
             </div>
           );
@@ -159,7 +148,7 @@ export function DraftForm({ draft, onChange, onBack, onConfirm }: DraftFormProps
         </p>
       )}
       <BigButton variant="secondary" block className="mt-2" onClick={onBack}>
-        가명처리 화면으로 돌아가기
+        가리기 화면으로 돌아가기
       </BigButton>
     </div>
   );

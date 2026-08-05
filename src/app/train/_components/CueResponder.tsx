@@ -318,7 +318,8 @@ export function CueResponder({
   if (listening) {
     return (
       <div className="flex-none border-t border-line bg-paper">
-        <div className="px-[18px] pt-3.5 pb-7">
+        {/* md↑에서는 가운데 대화 폭(560px)에 맞춰 도크 안쪽만 좁힙니다 — 시안 7d */}
+        <div className="mx-auto w-full max-w-[624px] px-[18px] pt-3.5 pb-7 md:px-8">
           <p className="mb-3.5 text-[17px] leading-[1.5] font-bold text-ink">{cue.prompt}</p>
 
           <div className="rounded-panel bg-paper-2 px-4 py-3.5">
@@ -381,7 +382,7 @@ export function CueResponder({
 
   return (
     <div className="flex-none border-t border-line bg-paper">
-      <div className="max-h-[62dvh] overflow-y-auto px-[18px] pt-3.5 pb-7">
+      <div className="mx-auto max-h-[62dvh] w-full max-w-[624px] overflow-y-auto px-[18px] pt-3.5 pb-7 md:px-8">
         <div className="mb-3 flex items-baseline gap-2">
           {/* 지시문은 코어 콘텐츠입니다 — 17px w700 (§3). */}
           <h2 className="min-w-0 flex-1 text-[17px] leading-[1.5] font-bold text-ink">

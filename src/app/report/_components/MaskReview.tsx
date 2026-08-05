@@ -2,16 +2,19 @@
 
 import { useMemo } from "react";
 import type { MaskSpan } from "@/types";
-import { BigButton, cx } from "@/components";
+import { BigButton } from "@/components";
 import {
   MASK_KIND_LABELS,
   MASK_KIND_REASONS,
+  MASK_TOKENS,
   countByKind,
   maskSpansOnOriginal,
   maskText,
   splitMasked,
   type MaskKind,
 } from "@/engine/masking";
+import { extractDraft } from "@/engine/record";
+import { DraftRows } from "./DraftRows";
 import { PrivacyPath } from "./PrivacyPath";
 
 export interface MaskReviewProps {
@@ -21,33 +24,37 @@ export interface MaskReviewProps {
   onNext: () => void;
 }
 
+const KIND_ORDER: MaskKind[] = ["성명", "번호", "기관명", "주소", "생년"];
+
 /**
- * 종류별 하이라이트 — 아이콘 없이 옅은 면과 텍스트 라벨을 함께 씁니다.
- * 채움 위에 다시 선을 두르면 서식처럼 보이므로 보더는 두지 않습니다.
+ * 범례 왼쪽 — 「무엇이」 가려졌는지. 오른쪽(치환 결과)은 엔진의 `MASK_TOKENS`에서 그대로 가져옵니다.
+ * 규칙이 바뀌면 범례도 따라 바뀌도록 손으로 적어 두지 않았습니다.
  */
-const KIND_STYLE: Record<MaskKind, string> = {
-  성명: "bg-tint text-brand-900",
-  번호: "bg-warn-soft text-warn-ink",
-  기관명: "bg-mint-200 text-brand-900",
-  주소: "bg-danger-soft text-danger-ink",
-  생년: "bg-neutral-line text-ink",
+const KIND_SOURCE: Record<MaskKind, string> = {
+  성명: "성명",
+  번호: "연락처·6자리 이상 숫자",
+  기관명: "기관명",
+  주소: "주소",
+  생년: "생년월일",
 };
 
-const KIND_ORDER: MaskKind[] = ["성명", "번호", "기관명", "주소", "생년"];
+/** 화면에 보이는 치환어 — 저장 문자열은 대괄호를 그대로 두고, 여기서만 벗깁니다. */
+function tokenWord(kind: MaskKind): string {
+  return MASK_TOKENS[kind].replace(/[[\]]/g, "");
+}
 
 interface OriginalPart {
   text: string;
   kind?: MaskKind;
-  replaced?: string;
 }
 
-/** 원문을 가림 구간 기준으로 쪼갭니다(하이라이트 렌더링용). */
+/** 원문을 가림 구간 기준으로 쪼갭니다(원문 대조용). */
 function splitOriginal(text: string, spans: MaskSpan[]): OriginalPart[] {
   const parts: OriginalPart[] = [];
   let cursor = 0;
   for (const span of spans) {
     if (span.start > cursor) parts.push({ text: text.slice(cursor, span.start) });
-    parts.push({ text: text.slice(span.start, span.end), kind: span.kind, replaced: span.replaced });
+    parts.push({ text: text.slice(span.start, span.end), kind: span.kind });
     cursor = span.end;
   }
   if (cursor < text.length) parts.push({ text: text.slice(cursor) });
@@ -55,110 +62,134 @@ function splitOriginal(text: string, spans: MaskSpan[]): OriginalPart[] {
 }
 
 /**
- * 2단계 가명처리 확인 화면 (v4 언어).
+ * 2단계 「가리기」 화면 — 시안 6e.
  *
- * 원문 위에 무엇을 가렸는지 색으로 표시하고, 기기 밖으로 나가는 텍스트를 나란히 보여 줍니다.
- * **가명처리 시각화는 한 곳도 줄이지 않았습니다** — 면과 글자 크기만 시안 문법으로 바꿨습니다.
+ * 무엇이 왜 가려졌는지를 **인라인으로** 보여 줍니다: 기기 밖으로 나갈 글을 그대로 한 문단 띄우고,
+ * 가려진 자리에는 brand-tint 칩(대상자·기관·번호…)을 앉힌 뒤 아래 한 줄 범례로 규칙을 밝힙니다.
+ * 원문 대조와 종류별 사유는 접힘 행 안에 그대로 남겨 두었습니다 — 기능은 한 곳도 줄이지 않았습니다.
  */
 export function MaskReview({ text, onBack, onNext }: MaskReviewProps) {
-  const originalSpans = useMemo(() => maskSpansOnOriginal(text), [text]);
   const result = useMemo(() => maskText(text), [text]);
+  const originalSpans = useMemo(() => maskSpansOnOriginal(text), [text]);
   const parts = useMemo(() => splitOriginal(text, originalSpans), [text, originalSpans]);
   const maskedParts = useMemo(() => splitMasked(result), [result]);
   const counts = useMemo(() => countByKind(result.spans), [result]);
+  /** 다음 화면에서 만들 초안을 미리 보여 줍니다 — 같은 결정론 함수라 결과가 어긋나지 않습니다. */
+  const preview = useMemo(() => extractDraft(result.masked), [result.masked]);
   const foundKinds = KIND_ORDER.filter((kind) => (counts[kind] ?? 0) > 0);
   const total = result.spans.length;
 
   return (
     <div>
-      <h2 className="text-[17px] leading-[1.45] font-bold text-ink">
-        무엇을 가렸는지 먼저 확인해 주세요
-      </h2>
-      <p className="mt-[6px] text-[12.5px] leading-[1.7] text-ink-muted">
+      {/* 이 화면의 주인공 — 기기 밖으로 나갈 글 한 문단 */}
+      <h2 className="text-[12.5px] leading-[1.5] font-bold tracking-normal text-ink-muted">
         {total > 0
-          ? `말씀하신 내용에서 ${total}곳을 가렸습니다. 색이 칠해진 부분이 가려지는 곳이고, 옆에 적힌 것이 대신 들어갈 표기입니다.`
-          : "가릴 항목을 찾지 못했습니다. 이름·연락처·기관명·주소·생년이 들어 있다면 앞 단계로 돌아가 다시 확인해 주세요."}
-      </p>
+          ? "이렇게 가렸어요 — 기기 밖으로 나가는 건 이 글뿐입니다"
+          : "가릴 항목을 찾지 못했어요 — 기기 밖으로 나가는 건 이 글뿐입니다"}
+      </h2>
 
-      {/* 원문 — 이 화면 안에만 있고 저장되지 않습니다. */}
-      <div className="mt-4 rounded-[14px] bg-paper-2 px-4 py-[14px]">
-        <p className="text-[12px] leading-[1.5] font-bold tracking-[0.06em] text-ink-muted">
-          말씀하신 원문 · 이 기기 안에만 있습니다
-        </p>
-        <p className="mt-[8px] text-[14.5px] leading-[1.9] text-ink">
-          {parts.map((part, index) =>
-            part.kind ? (
-              <mark
-                key={index}
-                className={cx(
-                  "mx-[2px] inline-flex flex-wrap items-baseline gap-1 rounded-[8px] px-[6px] py-[1px] align-baseline",
-                  KIND_STYLE[part.kind],
-                )}
-              >
-                <span className="line-through decoration-2">{part.text}</span>
-                <span className="text-[0.8em] font-extrabold whitespace-nowrap">
-                  {MASK_KIND_LABELS[part.kind]} → {part.replaced}
-                </span>
-              </mark>
-            ) : (
-              <span key={index}>{part.text}</span>
-            ),
-          )}
-        </p>
+      <div className="mt-[8px] mb-[10px] rounded-[14px] bg-paper-2 px-4 py-[15px] text-[16px] leading-[1.85] text-ink">
+        {maskedParts.map((part, index) =>
+          part.masked && part.kind ? (
+            <strong
+              key={index}
+              className="mx-[1px] rounded-[6px] bg-brand-tint px-[7px] py-[1px] font-bold text-brand-on-tint"
+            >
+              {part.text.replace(/[[\]]/g, "")}
+              <span className="sr-only"> ({MASK_KIND_LABELS[part.kind]} 가림)</span>
+            </strong>
+          ) : (
+            <span key={index}>{part.text}</span>
+          ),
+        )}
       </div>
 
-      {/* 종류별 이유 — 상자 대신 hairline 행으로 나눕니다. */}
-      {foundKinds.length > 0 && (
-        <ul className="chim-hairline mt-4 border-t border-line">
-          {foundKinds.map((kind) => (
-            <li key={kind} className="flex flex-wrap items-baseline gap-x-[10px] gap-y-1 py-[10px]">
-              <span
-                className={cx(
-                  "shrink-0 rounded-[8px] px-[8px] py-[2px] text-[12px] font-extrabold",
-                  KIND_STYLE[kind],
-                )}
-              >
-                {MASK_KIND_LABELS[kind]} {counts[kind]}곳
-              </span>
-              <span className="min-w-[11rem] flex-1 text-[12.5px] leading-[1.6] text-ink-soft">
-                {MASK_KIND_REASONS[kind]}
-              </span>
-            </li>
+      {foundKinds.length > 0 ? (
+        <p className="mb-4 text-[12px] leading-[1.7] text-ink-muted">
+          {foundKinds.map((kind, index) => (
+            <span key={kind}>
+              {index > 0 && " · "}
+              {KIND_SOURCE[kind]} → <b className="font-bold text-ink-soft">{tokenWord(kind)}</b>
+            </span>
           ))}
-        </ul>
+        </p>
+      ) : (
+        <p className="mb-4 text-[12px] leading-[1.7] text-ink-muted">
+          이름·연락처·기관명·주소·생년이 들어 있다면 「다시 말하기」로 돌아가 확인해 주세요.
+        </p>
       )}
 
-      <div className="mt-5">
-        <h3 className="text-[15px] leading-[1.45] font-bold text-ink">
-          기기 밖으로 나가는 텍스트는 여기까지입니다
-        </h3>
-        <p className="mt-[8px] rounded-[14px] bg-paper-2 px-4 py-[14px] text-[14.5px] leading-[1.9] text-ink">
-          {maskedParts.map((part, index) =>
-            part.masked ? (
-              <strong
-                key={index}
-                className="mx-[2px] rounded-[6px] bg-tint px-[5px] py-[1px] font-extrabold text-brand-900"
-              >
-                {part.text}
-              </strong>
-            ) : (
-              <span key={index}>{part.text}</span>
-            ),
-          )}
-        </p>
-        <p className="mt-[8px] text-[12.5px] leading-[1.7] text-ink-soft">
-          이 문장은 아직 저장되지 않았습니다. 다음 화면에서 초안을 확인하고 확정하실 때 한 번 더
-          검사한 뒤에 저장합니다.
-        </p>
-      </div>
+      {/* 다섯 칸 초안 미리보기 — 고치는 것은 다음 화면입니다. */}
+      <p className="text-[12.5px] leading-[1.5] font-bold text-ink-muted">기록 초안 — 다섯 칸</p>
+      <DraftRows draft={preview} className="mt-[2px]" />
+      <p className="mt-[10px] text-[12.5px] leading-[1.7] text-ink-soft">
+        아직 저장되지 않았습니다. 다음 화면에서 고치고 확정하실 때 한 번 더 검사한 뒤에 이 기기에만
+        남깁니다.
+      </p>
+
+      {/* 원문 대조 · 종류별 사유 — 시안에는 없지만 기능은 그대로 두고 접어 둡니다. */}
+      {total > 0 && (
+        <details className="group mt-4 border-y border-line">
+          <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 px-[2px] text-[14.5px] leading-[1.5] font-semibold text-ink [&::-webkit-details-marker]:hidden">
+            <span>
+              말씀하신 원문과 나란히 보기 — <span className="chim-num">{total}</span>곳
+            </span>
+            <span
+              aria-hidden
+              className="text-[15px] leading-none text-faint transition-transform duration-150 group-open:rotate-180"
+            >
+              ⌄
+            </span>
+          </summary>
+
+          <div className="pb-4">
+            <p className="text-[12px] leading-[1.5] font-bold text-ink-muted">
+              말씀하신 원문 · 이 기기 안에만 있습니다
+            </p>
+            <p className="mt-[8px] rounded-[14px] bg-paper-2 px-4 py-[14px] text-[14.5px] leading-[1.9] text-ink">
+              {parts.map((part, index) =>
+                part.kind ? (
+                  <mark
+                    key={index}
+                    className="mx-[2px] inline-flex flex-wrap items-baseline gap-[4px] rounded-[6px] bg-brand-tint px-[6px] py-[1px] align-baseline text-brand-on-tint"
+                  >
+                    <span className="line-through decoration-1">{part.text}</span>
+                    <span className="text-[0.8em] font-bold whitespace-nowrap">
+                      → {tokenWord(part.kind)}
+                    </span>
+                  </mark>
+                ) : (
+                  <span key={index}>{part.text}</span>
+                ),
+              )}
+            </p>
+
+            <ul className="chim-hairline mt-[10px] border-t border-line">
+              {foundKinds.map((kind) => (
+                <li
+                  key={kind}
+                  className="flex flex-wrap items-baseline gap-x-[10px] gap-y-[2px] py-[10px]"
+                >
+                  <span className="flex-none text-[12.5px] leading-[1.5] font-bold text-ink">
+                    {MASK_KIND_LABELS[kind]} <span className="chim-num">{counts[kind]}</span>곳
+                  </span>
+                  <span className="min-w-[11rem] flex-1 text-[12.5px] leading-[1.6] text-ink-soft">
+                    {MASK_KIND_REASONS[kind]}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </details>
+      )}
 
       <PrivacyPath reached={3} className="mt-6" />
 
       <BigButton size="lg" block className="mt-5" onClick={onNext}>
-        기록 초안 만들기
+        확인으로 넘어가기
       </BigButton>
       <BigButton variant="secondary" block className="mt-2" onClick={onBack}>
-        앞으로 돌아가 고치기
+        다시 말하기
       </BigButton>
     </div>
   );

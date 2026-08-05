@@ -2,28 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { NAV_ITEMS, matchesNav, type TabKey } from "./navItems";
 import { cx } from "./utils";
 
-export type TabKey = "home" | "train" | "emergency" | "report" | "history";
-
-interface TabItem {
-  key: TabKey;
-  href: string;
-  label: string;
-  /** `/` 처럼 정확히 일치할 때만 활성인 항목 */
-  exact?: boolean;
-  /** 활성색이 딥 레드인 항목(응급) */
-  danger?: boolean;
-}
-
-/** 하단 탭바 5칸 — 순서는 시안 5a·5b·5c 고정입니다. */
-const TABS: readonly TabItem[] = [
-  { key: "home", href: "/", label: "홈", exact: true },
-  { key: "train", href: "/train", label: "훈련" },
-  { key: "emergency", href: "/emergency", label: "응급", danger: true },
-  { key: "report", href: "/report", label: "기록" },
-  { key: "history", href: "/history", label: "성장" },
-];
+/** 목록·판정 로직은 데스크톱 상단 네비(`TopNav`)와 공유합니다. */
+export type { TabKey };
 
 export interface TabBarProps {
   /** 활성 탭 강제 지정 — 경로로 판정되지 않는 화면(상세·리다이렉트)에서 씁니다. */
@@ -31,19 +14,15 @@ export interface TabBarProps {
   className?: string;
 }
 
-function matches(pathname: string, item: TabItem): boolean {
-  if (item.exact) return pathname === item.href;
-  return pathname === item.href || pathname.startsWith(`${item.href}/`);
-}
-
 /**
- * 하단 탭바 — **텍스트 온리 5칸**(아이콘 없음, v4 §0).
+ * 하단 탭바 — **텍스트 온리 5칸**(아이콘 없음, v4 §0 · 가이드 §4.10).
  *
- * 12.5px · 비활성 `tertiary`(#9aa5a2) w600 · 활성 w700 —
+ * 12.5px · 비활성 `ink-faint`(#9aa5a2) w600 · 활성 w700 —
  * 홈/훈련/기록/성장은 `brand-800`(#14665f), 응급만 `danger-ink`(#b03636)입니다.
  * 응급 탭도 **활성일 때만** 빨강입니다(평소에는 다른 탭과 같은 회색).
  *
  * 위치는 `PageShell`이 잡습니다(`.chim-tabbar` = 문서 흐름 안 sticky).
+ * **md↑에서는 숨습니다** — 그 자리는 상단 가로 네비(`TopNav`, 시안 7c)가 대신합니다.
  * 각 칸의 터치 영역은 48px 이상입니다.
  */
 export function TabBar({ active, className }: TabBarProps) {
@@ -52,8 +31,8 @@ export function TabBar({ active, className }: TabBarProps) {
   return (
     <nav aria-label="주요 메뉴" className={cx("chim-tabbar", className)}>
       <ul className="flex px-2 pt-1 pb-2">
-        {TABS.map((item) => {
-          const isActive = active ? active === item.key : matches(pathname, item);
+        {NAV_ITEMS.map((item) => {
+          const isActive = active ? active === item.key : matchesNav(pathname, item);
           return (
             <li key={item.key} className="flex-1">
               <Link
@@ -66,7 +45,7 @@ export function TabBar({ active, className }: TabBarProps) {
                     ? item.danger
                       ? "font-bold text-danger-ink"
                       : "font-bold text-brand-800"
-                    : "font-semibold text-tertiary",
+                    : "font-semibold text-ink-faint",
                 )}
               >
                 {item.label}

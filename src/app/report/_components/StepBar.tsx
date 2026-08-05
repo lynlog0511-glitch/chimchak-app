@@ -1,52 +1,65 @@
 import { cx } from "@/components";
 
 export interface StepBarProps {
-  /** 현재 단계 (1 입력 · 2 가명처리 · 3 초안) */
+  /** 현재 단계 (1 말하기 · 2 가리기 · 3 확인) */
   current: 1 | 2 | 3;
   /** 확정까지 마쳤는지 — true면 3단계도 완료로 표시합니다. */
   finished?: boolean;
 }
 
-const STEPS: { n: 1 | 2 | 3; title: string; desc: string }[] = [
-  { n: 1, title: "말하기 · 쓰기", desc: "마이크는 누르는 동안만 켜집니다." },
-  { n: 2, title: "가명처리 확인", desc: "무엇을 왜 가렸는지 보여 드립니다." },
-  { n: 3, title: "기록 초안 확정", desc: "5요소를 채우고 확정합니다." },
+const STEPS: { n: 1 | 2 | 3; mark: string; label: string }[] = [
+  { n: 1, mark: "①", label: "말하기" },
+  { n: 2, mark: "②", label: "가리기" },
+  { n: 3, mark: "③", label: "확인" },
 ];
 
 /**
- * 기록 코칭 3단계 진행 표시 — **세그먼트 3칸**입니다 (v4 §3 세션 진행바와 같은 문법).
+ * 기록 코칭 3단계 인디케이터 — 시안 6e의 **텍스트 + 헤어라인**입니다.
  *
- * 칸마다 상자를 두르지 않고 3px 막대 세 개로만 위치를 알리고,
- * 지금 무엇을 하는 단계인지는 아래 한 줄로 말합니다.
+ * 세그먼트 막대를 쓰지 않습니다: 「① 말하기 ✓ — ② 가리기 — ③ 확인」 한 줄이
+ * 지나온 곳·지금 있는 곳·남은 곳을 그대로 말합니다(완료 ok-ink ✓ · 활성 brand-700 800 · 대기 ink-disabled).
+ *
+ * 색만으로 상태를 말하지 않도록 ✓ 기호와 스크린리더 문구를 함께 둡니다.
  */
 export function StepBar({ current, finished = false }: StepBarProps) {
-  const active = STEPS.find((step) => step.n === current) ?? STEPS[0];
-
   return (
     <nav aria-label="기록 코칭 진행 단계">
-      <div aria-hidden className="flex gap-[5px]">
-        {STEPS.map((step) => (
-          <span
-            key={step.n}
-            className={cx(
-              "h-[3px] flex-1 rounded-full",
-              finished || step.n <= current ? "bg-brand-600" : "bg-line",
-            )}
-          />
-        ))}
-      </div>
-
-      <p className="mt-[8px] text-[12px] leading-[1.5] text-ink-muted">
-        {finished ? (
-          <span className="font-bold text-brand-800">3단계 모두 마쳤습니다</span>
-        ) : (
-          <>
-            <span className="chim-num font-bold text-brand-800">{active.n}</span>
-            <span className="chim-num"> / {STEPS.length}</span>{" "}
-            <span className="font-bold text-ink">· {active.title}</span> — {active.desc}
-          </>
-        )}
-      </p>
+      <ol className="flex items-center gap-[8px] text-[12.5px] leading-[1.4] font-semibold">
+        {STEPS.map((step, index) => {
+          const done = finished || step.n < current;
+          const active = !finished && step.n === current;
+          return (
+            <li
+              key={step.n}
+              aria-current={active ? "step" : undefined}
+              className={cx(
+                "flex items-center gap-[8px]",
+                index > 0 ? "min-w-0 flex-1" : "flex-none",
+              )}
+            >
+              {index > 0 && <span aria-hidden className="h-px flex-1 bg-line" />}
+              <span
+                className={cx(
+                  "flex-none whitespace-nowrap",
+                  done
+                    ? "text-ok-ink"
+                    : active
+                      ? "font-extrabold text-brand-700"
+                      : "text-ink-disabled",
+                )}
+              >
+                <span aria-hidden>{step.mark} </span>
+                {step.label}
+                {done && <span aria-hidden> ✓</span>}
+                <span className="sr-only">
+                  {" "}
+                  {step.n}단계 · {done ? "마쳤습니다" : active ? "지금 여기입니다" : "아직입니다"}
+                </span>
+              </span>
+            </li>
+          );
+        })}
+      </ol>
     </nav>
   );
 }

@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { EyebrowLabel, InlineDisclaimer, PageShell, SessionTopBar } from "@/components";
-import { PROTOCOLS, PROTOCOL_NOTICE, getProtocol } from "@/data/protocols";
-import { Call119Bar } from "../_components/Call119Bar";
+import { EyebrowLabel, InlineDisclaimer, PageShell } from "@/components";
+import { PROTOCOLS, getProtocol } from "@/data/protocols";
 import { ProtocolPlayer } from "./_components/ProtocolPlayer";
 
 interface PageParams {
@@ -33,22 +32,13 @@ export default async function ProtocolPage({ params }: PageParams) {
   if (!protocol) notFound();
 
   return (
-    <PageShell>
-      {/* 컴팩트 헤더 — 이 화면의 주인공은 자막이라 제목을 16px로 낮춥니다(세션과 같은 언어). */}
-      <SessionTopBar
-        title={protocol.title}
-        status={`${protocol.id} · 전체 ${protocol.steps.length}단계 · 고정 문구 재생`}
-        statusTone="ok"
-        backHref="/emergency"
-        backLabel="응급 안내 목록"
-      />
+    /* 재생기에서는 탭바를 접습니다(가이드 §4.10) — 나가는 문은 「‹ 안내 종료」 하나로 좁힙니다. */
+    <PageShell tabBar={false}>
+      {/* 화면에 보이는 제목은 재생기 상단의 「{프로토콜명} · N / M」 한 줄입니다(시안 6d).
+          단계마다 바뀌는 줄을 h1으로 두면 보조기기에서 제목이 계속 흔들려, 문서 제목만 따로 둡니다. */}
+      <h1 className="sr-only">{protocol.title} — 응급 안내</h1>
 
-      {/* 119 버튼은 스크롤과 무관하게 화면에 남습니다(안전 규칙 §3-5). */}
-      <div className="sticky top-0 z-30 -mx-[20px] bg-paper px-[20px] pt-1 pb-3">
-        <Call119Bar />
-      </div>
-
-      <ProtocolPlayer protocolId={protocol.id} title={protocol.title} steps={protocol.steps} />
+      <ProtocolPlayer title={protocol.title} steps={protocol.steps} backHref="/emergency" />
 
       {/* 이 안내를 언제 쓰는지 — 재생을 방해하지 않도록 아래에 조용히 둡니다. */}
       <section className="mt-8">
@@ -105,14 +95,8 @@ export default async function ProtocolPage({ params }: PageParams) {
         </div>
       </details>
 
-      {/* 하단 고지 2줄 — 목록 화면과 같은 문장을 상세에서도 유지합니다. */}
-      <p className="mt-6 text-center text-[12px] leading-[1.6] text-tertiary">
-        {PROTOCOL_NOTICE}
-        <br />
-        신체 술기는 119 상황실이 목소리로 직접 지도합니다
-      </p>
-
-      <InlineDisclaimer size="md" tone="readable" className="mt-4 mb-6" />
+      {/* 각주 2줄(생성 통제 · 술기 경계)은 재생기 컨트롤 바로 아래에 있습니다 — 시안 6d 자리입니다. */}
+      <InlineDisclaimer size="md" tone="readable" className="mt-6 mb-6" />
     </PageShell>
   );
 }

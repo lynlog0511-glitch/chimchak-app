@@ -1,166 +1,165 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import type { ProtocolStep } from "@/types";
 import { EyebrowLabel, cx } from "@/components";
 import { isSpeechSynthesisSupported, primeVoices, stopSpeaking } from "@/lib/speech";
 import { Call119Bar } from "../../_components/Call119Bar";
+import {
+  CONTROL_OUTLINE,
+  CONTROL_PRIMARY,
+  CONTROL_QUIET,
+  ProtocolFootnote,
+  ProtocolReadingLine,
+  ProtocolSegments,
+  nextStepPreview,
+  type ReadingState,
+} from "../../_components/PlayerParts";
 import { ProtocolAddressCard } from "../../_components/ProtocolAddressCard";
 import { useProtocolPlayback } from "../../_components/useProtocolPlayback";
 
 export interface ProtocolPlayerProps {
-  protocolId: string;
   title: string;
   steps: ProtocolStep[];
+  /** 「‹ 안내 종료」가 돌아갈 곳 */
+  backHref: string;
 }
 
-/* 컨트롤은 아이콘 없이 **텍스트 + 면 버튼**입니다(v4 §3 응급).
-   면은 surface `#f5f6f6`, 라운드 14px, 터치 영역 52px — 손이 바쁜 상황에서 눌리는 크기입니다. */
-const CONTROL =
-  "flex min-h-[52px] items-center justify-center rounded-[14px] px-3 text-[16px] font-bold " +
-  "transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-45";
-const CONTROL_SURFACE = `${CONTROL} bg-paper-2 text-ink active:bg-line-strong`;
-/** 지금 누를 버튼 하나만 옅은 틸 면으로 구분합니다(채움 CTA는 119 버튼 몫입니다). */
-const CONTROL_PRIMARY = `${CONTROL} bg-tint text-deep active:bg-brand-200`;
-/** 부수 조작 — 텍스트만. 48px 터치는 지킵니다. */
-const CONTROL_QUIET =
-  "flex min-h-[48px] items-center justify-center rounded-[12px] px-3 text-[13px] font-semibold " +
-  "text-ink-muted transition-colors duration-150 active:bg-paper-2 disabled:cursor-not-allowed disabled:opacity-45";
-
 /**
- * 응급 프로토콜 단계별 재생기.
+ * 응급 프로토콜 단계별 재생기 (시안 6d · 가이드 §4.8).
  *
  * - 검수된 고정 문구를 **음성 + 대형 자막**으로 순서대로 재생합니다(자막 없는 음성은 만들지 않습니다).
- * - 한 단계를 다 읽으면 자동으로 다음 단계로 넘어갑니다. 일시정지·이전·다음은 언제든 수동 조작할 수 있습니다.
+ * - 한 단계를 다 읽으면 자동으로 다음 단계로 넘어갑니다. 잠시 멈춤·이전·다음은 언제든 수동 조작할 수 있습니다.
  * - 음성 합성을 쓸 수 없는 기기에서도 자막이 같은 속도로 자동 진행되어 안내가 끊기지 않습니다.
  * - 마지막 침묵 단계에서는 소리를 내지 않고 화면만 유지합니다.
  *
- * 이 화면에서는 생성 호출이 한 건도 일어나지 않습니다. 데이터에 적힌 문구를 그대로 읽을 뿐입니다.
+ * 화면의 주인은 자막입니다 — 그래서 제목을 13px 한 줄로 낮추고, 상단에는 **119 버튼·진행바만** 남깁니다.
+ * 119 버튼은 스크롤과 무관하게 자리를 지킵니다(안전 규칙 §3-5 상시 노출).
  *
- * 진행 규칙은 훈련 세션 안의 L3 구간과 **같은 훅**(`useProtocolPlayback`)에서 옵니다 — v4 재단장에서도
- * 로직은 한 줄도 바꾸지 않았고, 진행 표시만 세션과 같은 세그먼트 막대로 맞췄습니다.
+ * 이 화면에서는 생성 호출이 한 건도 일어나지 않습니다. 데이터에 적힌 문구를 그대로 읽을 뿐입니다.
+ * 진행 규칙은 훈련 세션 안의 L3 구간과 **같은 훅**(`useProtocolPlayback`)에서 옵니다.
  */
-export function ProtocolPlayer({ protocolId, title, steps }: ProtocolPlayerProps) {
+export function ProtocolPlayer({ title, steps, backHref }: ProtocolPlayerProps) {
   const [voiceOn, setVoiceOn] = useState(true);
   const [ttsSupported, setTtsSupported] = useState(true);
 
   const playback = useProtocolPlayback({ steps, voiceOn });
   const { index, step, total, silent, playing, goTo, togglePlaying, replay, restart } = playback;
   const voiceText = step ? step.voice.trim() : "";
+  const preview = nextStepPreview(steps, index);
 
   useEffect(() => {
     primeVoices();
     setTtsSupported(isSpeechSynthesisSupported());
   }, []);
 
-  const emphasize = Boolean(step?.emphasize119);
+  /* 상태줄은 지금 실제로 일어나는 일만 말합니다 — 소리가 없는데 「읽어 주는 중」이라고 하지 않습니다. */
+  const readingState: ReadingState = silent
+    ? "done"
+    : !playing
+      ? "paused"
+      : voiceOn && ttsSupported
+        ? "reading"
+        : "caption";
 
   return (
     <div>
-      {/* 세그먼트 진행 — 3px 막대 N칸. 세션의 진행바와 같은 언어입니다. */}
-      <div
-        className="flex gap-[3px]"
-        role="progressbar"
-        aria-valuemin={1}
-        aria-valuemax={total}
-        aria-valuenow={index + 1}
-        aria-valuetext={`전체 ${total}단계 중 ${index + 1}단계`}
-      >
-        {steps.map((s, i) => (
-          <span
-            key={s.id}
-            aria-hidden
-            className={cx(
-              "h-[3px] flex-1 rounded-full transition-colors duration-300",
-              i <= index ? "bg-brand-600" : "bg-line",
-            )}
-          />
-        ))}
+      {/* 상단 — 「‹ 안내 종료」 + 「{프로토콜명} · N / M」 + danger 진행바 + 119 버튼.
+          스크롤해도 이 덩어리는 화면에 남습니다. */}
+      <div className="sticky top-0 z-30 -mx-[20px] bg-paper px-[20px] pt-[2px] pb-3">
+        <div className="flex items-center gap-3">
+          <Link
+            href={backHref}
+            className="-ml-2 flex min-h-[48px] items-center gap-[5px] px-2 text-[14px] font-semibold text-ink-muted transition-colors duration-150 active:text-ink"
+          >
+            <span aria-hidden className="text-[19px] leading-none">
+              ‹
+            </span>
+            안내 종료
+          </Link>
+          {/* 제목이 길어도 「N / M」은 잘리지 않습니다 — 잘리는 쪽은 언제나 제목입니다. */}
+          <p className="ml-auto flex min-w-0 items-baseline gap-[5px] text-[13px] leading-[1.4] font-bold text-ink-soft">
+            <span className="min-w-0 truncate">{title}</span>
+            <span className="chim-num flex-none">
+              · {index + 1} / {total}
+            </span>
+          </p>
+        </div>
+
+        <ProtocolSegments steps={steps} index={index} />
+
+        {/* 119 버튼은 단계와 무관하게 같은 크기(58px)로 늘 같은 자리에 있습니다.
+            데이터의 `emphasize119`가 가리키는 1단계에서는 자막 자체가 「지금 119를 누르세요」라
+            버튼을 키워 상단 높이를 흔들 이유가 없습니다 — 강조는 29px 자막이 이미 하고 있습니다. */}
+        <Call119Bar className="mt-3" />
       </div>
 
-      <div className="mt-2 flex items-baseline justify-between gap-3">
-        <p className="chim-num text-[12.5px] font-bold text-ink">
-          {index + 1} / {total}단계
-        </p>
-        <p className="text-[12.5px] text-ink-muted">
-          {playing ? "자동으로 다음 단계로 넘어갑니다" : "일시정지 상태입니다"}
-        </p>
-      </div>
-
-      {/* 대형 자막 — 이 화면 전체에서 가장 큰 글자입니다(코어 중의 코어). */}
-      <section
-        className={cx("mt-3 rounded-[14px] px-5 py-6", emphasize ? "bg-danger-soft" : "bg-paper-2")}
-      >
-        <p className="chim-num text-[11.5px] font-bold tracking-[0.06em] text-ink-muted">
-          {step ? step.id : protocolId}
-          {silent && " · 의도된 침묵"}
-        </p>
+      {/* 본문 — 이 화면 전체에서 가장 큰 글자는 자막 하나뿐입니다. */}
+      <div className="pt-4 pb-6">
+        <ProtocolReadingLine state={readingState} />
 
         <p
           aria-live="polite"
-          className="mt-2 text-[28px] leading-[1.32] font-extrabold tracking-[-0.02em] text-ink"
+          className="mt-3 text-[29px] leading-[1.45] font-extrabold tracking-[-0.015em] text-ink md:text-[40px]"
         >
           {silent ? "안내 음성을 여기서 멈춥니다." : voiceText}
         </p>
 
-        {silent && (
-          <p className="mt-3 text-[16px] leading-[1.6] text-ink-soft">
-            지금부터는 119 상황실 지시에 따르세요. 화면은 이대로 두셔도 됩니다.
-          </p>
-        )}
-
+        {/* 화면 보조 문구 — 데이터의 `screen`은 사용자가 그대로 읽는 문장입니다(레이아웃 지시문 아님). */}
         {step?.screen && (
-          <p className="mt-4 border-t border-line-strong pt-4 text-[15px] leading-[1.65] text-ink-soft">
-            {step.screen}
-          </p>
+          <p className="mt-3 text-[15px] leading-[1.65] text-ink-soft">{step.screen}</p>
         )}
 
-        {step?.address && <ProtocolAddressCard address={step.address} />}
+        {step?.address && <ProtocolAddressCard address={step.address} className="mt-4" />}
 
-        {/* 1단계 119 확대 — 깜빡임·아이콘 없이 버튼 크기로만 말합니다. */}
-        {emphasize && (
-          <>
-            <p className="mt-5 text-center text-[15px] font-bold text-danger-ink">
-              먼저 119부터 누르세요
-            </p>
-            <Call119Bar size="lg" className="mt-2" />
-          </>
+        {preview && (
+          <p className="mt-4 text-[13.5px] leading-[1.6] text-tertiary">다음 — {preview}</p>
         )}
-      </section>
+      </div>
 
-      {/* 조작 — 텍스트·면 버튼만 둡니다. */}
-      <div className="mt-3 grid grid-cols-3 gap-2">
+      {/* 컨트롤 — 아웃라인 둘 + 틸 채움 하나. 지금 누를 것 하나만 채움입니다. */}
+      <div className="flex gap-2">
         <button
           type="button"
           onClick={() => goTo(index - 1)}
           disabled={index === 0}
-          className={CONTROL_SURFACE}
+          className={CONTROL_OUTLINE}
         >
           이전
         </button>
-        <button type="button" onClick={togglePlaying} className={CONTROL_PRIMARY}>
-          {playing ? "일시정지" : "재생"}
+        <button type="button" onClick={togglePlaying} className={CONTROL_OUTLINE}>
+          {playing ? "잠시 멈춤" : "이어서 듣기"}
         </button>
         <button
           type="button"
           onClick={() => goTo(index + 1)}
           disabled={index === total - 1}
-          className={CONTROL_SURFACE}
+          className={CONTROL_PRIMARY}
         >
-          다음
+          다음 단계
         </button>
       </div>
 
-      <button
-        type="button"
-        onClick={replay}
-        disabled={silent || !ttsSupported || !voiceOn}
-        className={cx(CONTROL_SURFACE, "mt-2 w-full")}
-      >
-        이 단계 다시 듣기
-      </button>
+      <ProtocolFootnote className="mt-3" />
 
-      <div className="mt-1 flex justify-center gap-1">
+      {/* 아래는 재생을 방해하지 않는 보조 영역입니다 — 위계를 낮춰 선 하나로만 나눕니다. */}
+      {!ttsSupported && (
+        <p className="mt-5 rounded-[14px] bg-warn-soft px-4 py-3 text-[14px] leading-[1.6] font-semibold text-warn-ink">
+          이 기기에서는 음성 안내를 사용할 수 없습니다. 자막이 같은 속도로 자동 진행되니 화면을 보고
+          따라 주세요.
+        </p>
+      )}
+
+      <div className="mt-5 flex gap-1 border-t border-line pt-2">
+        <button
+          type="button"
+          onClick={replay}
+          disabled={silent || !ttsSupported || !voiceOn}
+          className={CONTROL_QUIET}
+        >
+          이 단계 다시 듣기
+        </button>
         <button
           type="button"
           onClick={() => {
@@ -176,13 +175,6 @@ export function ProtocolPlayer({ protocolId, title, steps }: ProtocolPlayerProps
           처음부터 다시
         </button>
       </div>
-
-      {!ttsSupported && (
-        <p className="mt-2 rounded-[14px] bg-warn-soft px-4 py-3 text-[14px] leading-[1.6] font-semibold text-warn-ink">
-          이 기기에서는 음성 안내를 사용할 수 없습니다. 자막이 같은 속도로 자동 진행되니 화면을 보고
-          따라 주세요.
-        </p>
-      )}
 
       {/* 전체 단계 — 위계가 낮은 목록이라 카드 없이 선으로만 나눕니다. */}
       <section aria-labelledby="steps-heading" className="mt-8">
@@ -202,7 +194,8 @@ export function ProtocolPlayer({ protocolId, title, steps }: ProtocolPlayerProps
                   aria-hidden
                   className={cx(
                     "chim-num flex h-7 w-7 flex-none items-center justify-center rounded-[9px] text-[12.5px] font-extrabold",
-                    current ? "bg-brand-700 text-white" : "bg-paper-2 text-ink-muted",
+                    /* 빨강은 119 버튼 하나로 족합니다 — 지금 단계 표시는 danger **면**으로만(5b 마커와 같은 언어). */
+                    current ? "bg-danger-soft text-danger-ink" : "bg-paper-2 text-ink-muted",
                   )}
                 >
                   {i + 1}

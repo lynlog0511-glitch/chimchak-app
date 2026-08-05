@@ -7,6 +7,7 @@
 
 import type { BadgeTone } from "@/components";
 import type { StatusMarkKind } from "@/components/icons";
+import type { TracedFeedback } from "@/engine";
 import type { EndingDef, GaugeDef, PersonaDef, Scenario, ScenarioType, Tier, TurnDef } from "@/types";
 
 /** 첫 화면·훈련 시작 전 고정 문구 */
@@ -114,6 +115,43 @@ export function aiRoleNote(scenario: Scenario): string {
   return `대화 단계 · AI는 ${roles} 역만 맡습니다`;
 }
 
+/**
+ * 진행 번호의 한글 서수 (가이드 §4.1 · 시안 7d 「셋째 상황」).
+ * 열한째부터는 읽기 쉬운 숫자 표기로 넘깁니다.
+ *
+ * @example situationOrdinal(3) // "셋째"
+ * @example situationOrdinal(12) // "12번째"
+ */
+const SITUATION_ORDINAL = [
+  "",
+  "첫째",
+  "둘째",
+  "셋째",
+  "넷째",
+  "다섯째",
+  "여섯째",
+  "일곱째",
+  "여덟째",
+  "아홉째",
+  "열째",
+];
+
+export function situationOrdinal(index: number): string {
+  const n = Math.max(1, Math.round(Number.isFinite(index) ? index : 1));
+  return SITUATION_ORDINAL[n] ?? `${n}번째`;
+}
+
+/**
+ * 세션 헤더 부제 — 「셋째 상황 · 대화 단계 · AI는 어르신 역만 맡습니다」 (가이드 §4.1).
+ *
+ * 진행 번호는 점수가 아니라 **지금 몇째 장면인가**입니다(§4.2와 같은 뜻).
+ *
+ * @example sessionSubtitle(CHK_A01, 3) // "셋째 상황 · 대화 단계 · AI는 어르신 역만 맡습니다"
+ */
+export function sessionSubtitle(scenario: Scenario, index: number): string {
+  return `${situationOrdinal(index)} 상황 · ${aiRoleNote(scenario)}`;
+}
+
 /* ── 감정 상태 (시안 4a③ — 게이지가 숫자 막대 대신 인물에 붙습니다) ── */
 
 export type EmotionLevel = "calm" | "uneasy" | "crisis";
@@ -191,4 +229,68 @@ export function gaugeDeltaTone(delta: number): string {
   return delta < 0
     ? "bg-ok-soft text-brand-700"
     : "bg-warn-soft text-warn-ink";
+}
+
+/**
+ * 데스크톱 레일의 게이지 변동 문장 (시안 7d 「방금 한 칸 내려갔어요」).
+ * 칩과 달리 문장이라 숫자·화살표를 쓰지 않습니다.
+ *
+ * @example gaugeDeltaSentence(-1) // "방금 한 칸 내려갔어요"
+ */
+export function gaugeDeltaSentence(delta: number): string | null {
+  if (!Number.isFinite(delta) || delta === 0) return null;
+  const steps = Math.min(Math.abs(Math.round(delta)), COUNT_WORD.length - 1);
+  const word = COUNT_WORD[steps] ?? "한";
+  return delta < 0 ? `방금 ${word} 칸 내려갔어요` : `방금 ${word} 칸 올라갔어요`;
+}
+
+/**
+ * 게이지가 설명하는 인물을 앞에 붙인 이름 — 「어르신 초조도」 (시안 7d).
+ *
+ * @example gaugeRailLabel(CHK_A01) // "어르신 초조도"
+ */
+export function gaugeRailLabel(scenario: Scenario): string {
+  const roles = scenario.personas.map((persona) => persona.role);
+  if (roles.includes("care_recipient")) return `어르신 ${scenario.gauge.label}`;
+  if (roles.includes("guardian")) return `보호자 ${scenario.gauge.label}`;
+  return scenario.gauge.label;
+}
+
+/* ── ⚑CF 판정 주체 (시안 6c 근거 박스 · 가이드 §4.6) ───────── */
+
+/**
+ * 판정 주체 한 줄 — 「판정: 규칙 사전 CF-RESTRAINT (AI 아님)」.
+ *
+ * 규칙 사전이 단독으로 잡은 판정과 시나리오 분기 데이터가 정한 판정은 주체가 다릅니다.
+ * 둘 다 결정론이지만, 아닌 것을 「규칙 사전」이라고 적지는 않습니다.
+ * (⚑CF 시트와 엔딩의 「다시 볼 장면」 카드가 같은 문장을 씁니다.)
+ *
+ * @example cfVerdictSourceLine(feedback) // "판정: 규칙 사전 CF-RESTRAINT (AI 아님)"
+ */
+export function cfVerdictSourceLine(feedback: TracedFeedback): string {
+  const trace = feedback.trace;
+  const itemId = trace?.itemIds?.[0];
+  if (trace?.source === "rule") {
+    return `판정: 규칙 사전 ${trace.ruleId ?? itemId ?? "⚑CF"} (AI 아님)`;
+  }
+  return `판정: 시나리오 규칙표 ${itemId ?? feedback.branchId} (AI 아님)`;
+}
+
+/* ── 소요 시간 (시안 6a 「약 4분 12초」) ────────────────────── */
+
+/**
+ * 두 시각 사이를 사람이 읽는 어림 문구로 바꿉니다.
+ * 기록에는 초 단위까지 남지만, 화면에는 「약」을 붙여 계측값이 아님을 밝힙니다.
+ *
+ * @example durationText("2026-08-05T09:00:00.000Z", "2026-08-05T09:04:12.000Z") // "약 4분 12초"
+ */
+export function durationText(startedAt: string | number, endedAt: string | number): string {
+  const start = typeof startedAt === "number" ? startedAt : Date.parse(startedAt);
+  const end = typeof endedAt === "number" ? endedAt : Date.parse(endedAt);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return "";
+  const seconds = Math.max(0, Math.round((end - start) / 1000));
+  if (seconds < 60) return `약 ${Math.max(1, seconds)}초`;
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  return rest === 0 ? `약 ${minutes}분` : `약 ${minutes}분 ${rest}초`;
 }

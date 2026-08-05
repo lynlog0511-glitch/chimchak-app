@@ -83,7 +83,8 @@ export interface TrainState {
 export type TrainAction =
   | { type: "start" }
   | { type: "submit"; input: { utterance?: string; branchId?: string; viaButton: boolean } }
-  | { type: "retryAfterCritical" }
+  /** ⚑CF 시트에서 고르신 대안 문구 — 로그에 남길 뿐, 발화로 전송하지는 않습니다 */
+  | { type: "retryAfterCritical"; alternative?: string }
   | { type: "protocolDone" }
   | { type: "restart" }
   /** 저장해 둔 결정 목록을 순서대로 다시 넣어 진행 상태를 되짚습니다 */
@@ -384,6 +385,7 @@ export function makeTrainReducer(scenario: Scenario) {
       case "retryAfterCritical": {
         if (state.session.status !== "interrupted") return state;
         const resumed = advanceAfterCF(scenario, state.session);
+        const picked = (action.alternative ?? "").trim();
         return {
           ...state,
           session: resumed,
@@ -395,7 +397,10 @@ export function makeTrainReducer(scenario: Scenario) {
             {
               key: `again-${state.seq}`,
               kind: "notice",
-              text: "같은 지점에서 다시 해보겠습니다. 벌점은 없습니다.",
+              text:
+                picked.length > 0
+                  ? `「${picked}」 — 이 대안으로 같은 지점에서 다시 해보겠습니다. 벌점은 없습니다.`
+                  : "같은 지점에서 다시 해보겠습니다. 벌점은 없습니다.",
               tone: "brand",
             },
           ],

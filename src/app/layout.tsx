@@ -39,7 +39,10 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ko">
+    // suppressHydrationWarning: 글자 크기 설정(src/lib/settings.ts)이 하이드레이션 전에
+    // <html>에 font-size·data-chim-font-scale을 심습니다. 서버 HTML에는 없는 속성이라
+    // React가 불일치로 경고하지만, 사용자 설정을 첫 페인트부터 적용하기 위한 의도된 차이입니다.
+    <html lang="ko" suppressHydrationWarning>
       <body className="min-h-screen antialiased">
         {children}
         <SwRegister />

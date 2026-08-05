@@ -10,7 +10,11 @@
  *   훈련 화면은 언제나 **버튼 폴백만으로 완주 가능**해야 하므로, 이 파일이 실패해도 앱은 멈추지 않는다.
  * - TTS는 항상 자막(화면 텍스트)과 함께 쓴다. 소리만 있는 안내는 만들지 않는다.
  * - SSR 가드: 서버 렌더링 중에는 window가 없으므로 전부 안전하게 빠져나간다.
+ * - 낭독 속도는 사용자 설정(설정 메뉴 「음성 빠르기」)을 따른다. 호출부는 아무것도 바꾸지 않아도 되고,
+ *   특정 문장만 다른 속도로 읽어야 할 때만 opts.rate로 덮어쓴다.
  */
+
+import { getSpeechRateValue } from "./settings";
 
 /* ── 브라우저 타입 (lib.dom 유무와 무관하게 쓰기 위해 지역 정의) ── */
 
@@ -219,7 +223,10 @@ export function createRecognizer(handlers: RecognizerHandlers): Recognizer {
 /* ── 합성(TTS) ─────────────────────────────────────────── */
 
 export interface SpeakOptions {
-  /** 기본 0.95 — 고령 사용자를 위해 조금 느리게 */
+  /**
+   * 기본 0.95 — 고령 사용자를 위해 조금 느리게.
+   * 값을 주지 않으면 사용자 설정을 따른다(느리게 0.8 · 표준 0.95 · 빠르게 1.1).
+   */
   rate?: number;
   pitch?: number;
   volume?: number;
@@ -319,7 +326,8 @@ export function speak(text: string, opts: SpeakOptions = {}): Promise<void> {
 
     const utterance = new SpeechSynthesisUtterance(content);
     utterance.lang = opts.lang ?? LANG;
-    utterance.rate = opts.rate ?? 0.95;
+    // rate를 주지 않으면 사용자가 고른 「음성 빠르기」를 쓴다(설정이 없으면 표준 0.95).
+    utterance.rate = opts.rate ?? getSpeechRateValue();
     utterance.pitch = opts.pitch ?? 1;
     utterance.volume = opts.volume ?? 1;
     const voice = pickKoreanVoice();

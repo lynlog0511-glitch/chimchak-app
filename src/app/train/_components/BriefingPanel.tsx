@@ -8,6 +8,7 @@ import {
   IconKeyboard,
   IconMic,
 } from "@/components/icons";
+import { progressStepCount, type SessionProgress } from "@/lib/storage";
 import type { Scenario } from "@/types";
 import { IconPointer } from "./icons";
 import {
@@ -23,6 +24,76 @@ export interface BriefingPanelProps {
   /** 마이크를 쓸 수 있는 환경인지 — 폴백 안내 문구를 바꿉니다 */
   micSupported: boolean;
   onStart: () => void;
+  /** 이 시나리오에 진행하던 훈련이 남아 있으면 맨 위에 「이어서 하기」 카드를 띄웁니다 */
+  checkpoint?: SessionProgress | null;
+  onResume?: () => void;
+}
+
+/**
+ * 저장 시각 표기 — "8월 5일 오후 2:13".
+ * 브라우저에서만 그려지므로(체크포인트를 기기에서 읽어 옵니다) 서버·클라이언트 표기가 어긋날 일이 없습니다.
+ */
+function formatSavedAt(iso: string): string {
+  if (!iso) return "";
+  const at = new Date(iso);
+  if (Number.isNaN(at.getTime())) return "";
+  try {
+    return new Intl.DateTimeFormat("ko-KR", {
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(at);
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * 「이어서 하기」 카드.
+ *
+ * 조용한 안내입니다 — 색 면은 브리핑의 고정 문구 블록 하나로 이미 쓰고 있으므로(§1-3)
+ * 여기는 보조 면(paper-2) 한 겹으로만 두고, 세로 액센트도 배지도 쓰지 않습니다.
+ */
+function ResumeCard({
+  progress,
+  onResume,
+  onRestart,
+}: {
+  progress: SessionProgress;
+  onResume: () => void;
+  onRestart: () => void;
+}) {
+  const savedAt = formatSavedAt(progress.savedAt);
+  const step = progressStepCount(progress);
+  const meta = savedAt ? `${step}번째 상황까지 · ${savedAt} 저장` : `${step}번째 상황까지`;
+
+  return (
+    <Card tone="quiet" padded={false} className="p-4 md:p-5">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
+          <h2 className="chim-body font-extrabold text-ink">진행하던 훈련이 있습니다</h2>
+          <p className="chim-caption mt-1.5 flex items-center gap-2 font-semibold text-ink-muted">
+            <IconClock className="h-4 w-4 shrink-0" />
+            <span>{meta}</span>
+          </p>
+          <p className="chim-caption mt-2 max-w-[36rem] leading-relaxed text-ink-muted">
+            저장해 둔 것은 어느 갈래를 고르셨는지와 진행 위치뿐입니다. 말씀하신 내용은 기기에도
+            남기지 않았습니다.
+          </p>
+        </div>
+
+        <div className="flex shrink-0 flex-col gap-2 sm:flex-row md:items-start">
+          <BigButton onClick={onResume} className="w-full sm:w-auto">
+            이어서 하기
+          </BigButton>
+          <BigButton onClick={onRestart} variant="ghost" className="w-full sm:w-auto">
+            처음부터 하기
+          </BigButton>
+        </div>
+      </div>
+    </Card>
+  );
 }
 
 /**
@@ -48,10 +119,23 @@ function StartButtons({ onStart }: { onStart: () => void }) {
  * 기본 노출은 네 가지만 둡니다 — 상황 지문 · 등장인물 한 줄 · 고정 문구와 가상 인물 고지 · 시작 버튼.
  * 페르소나 상세, 제약 조건, 오늘 연습할 것, 판정 근거, 응답 방법은 “자세히 보기”로 접어 두어
  * 첫 화면에서 바로 훈련을 시작하실 수 있게 했습니다.
+ *
+ * 진행하던 훈련이 남아 있을 때만 맨 위에 「이어서 하기」 카드가 한 장 더 붙습니다.
  */
-export function BriefingPanel({ scenario, micSupported, onStart }: BriefingPanelProps) {
+export function BriefingPanel({
+  scenario,
+  micSupported,
+  onStart,
+  checkpoint,
+  onResume,
+}: BriefingPanelProps) {
   return (
     <div className="space-y-5">
+      {/* 진행하던 훈련이 있으면 브리핑보다 먼저 보여 드립니다 — 「처음부터」는 새로 시작하는 것과 같습니다. */}
+      {checkpoint && onResume && (
+        <ResumeCard progress={checkpoint} onResume={onResume} onRestart={onStart} />
+      )}
+
       <header>
         {/* 필은 유형 하나만 두고, 난이도·소요·계층은 세로줄 없이 여백으로만 나눕니다(§1-2). */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">

@@ -10,6 +10,7 @@ import {
   SourceChip,
   cx,
 } from "@/components";
+import { FirstVisitHint } from "./_components/FirstVisitHint";
 import {
   IconArrowRight,
   IconChat,
@@ -305,6 +306,8 @@ export default function Home() {
                   응급 음성 가이드 보기
                 </BigButton>
               </div>
+
+              <FirstVisitHint />
 
               <ul className="chim-meta mt-7 flex flex-wrap gap-x-4 gap-y-1.5 text-ink-muted">
                 <li>설치 없이 브라우저에서 바로</li>

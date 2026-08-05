@@ -20,7 +20,23 @@ import {
   submitResponse,
 } from "@/engine";
 import type { TracedFeedback } from "@/engine";
+import type { SessionProgress } from "@/lib/storage";
 import { PROTOCOL_HANDOFF_BODY, PROTOCOL_HANDOFF_TITLE } from "./constants";
+
+/* ── 이어서 하기 문구 ──────────────────────────────────────── */
+
+/** 복원된 로그 맨 위에 한 줄 붙습니다 — 지금 보시는 기록이 되짚어 만든 것임을 밝힙니다. */
+export const RESTORED_LOG_NOTICE = "이어서 하기로 복원된 기록입니다.";
+
+/** 되살릴 수 없는 구간이 있었을 때의 문구 (규칙 사전이 단독으로 잡은 ⚑CF 등) */
+export const RESTORED_LOG_NOTICE_PARTIAL =
+  "이어서 하기로 복원된 기록입니다. 되살리지 못한 구간은 건너뛰었습니다.";
+
+/**
+ * 음성·타이핑으로 답하신 턴의 자리 표기.
+ * 발화 원문은 저장하지 않으므로(브리프 §2) 되살릴 때는 이 문구로 대신합니다.
+ */
+export const RESTORED_UTTERANCE = "(직접 말씀하신 응답)";
 
 /* ── 로그 ──────────────────────────────────────────────── */
 
@@ -69,7 +85,9 @@ export type TrainAction =
   | { type: "submit"; input: { utterance?: string; branchId?: string; viaButton: boolean } }
   | { type: "retryAfterCritical" }
   | { type: "protocolDone" }
-  | { type: "restart" };
+  | { type: "restart" }
+  /** 저장해 둔 결정 목록을 순서대로 다시 넣어 진행 상태를 되짚습니다 */
+  | { type: "resume"; progress: SessionProgress };
 
 /* ── 헬퍼 ──────────────────────────────────────────────── */
 
@@ -161,6 +179,49 @@ function enterCurrent(
 
 function phaseOf(session: SessionState): TrainState["phase"] {
   return session.status === "ended" ? "ended" : "session";
+}
+
+/**
+ * 되짚어 만든 로그에서, 음성·타이핑으로 답하셨던 턴의 표기를 바로잡습니다.
+ *
+ * 저장된 것은 분기 id뿐이라 되살린 발화 자리에는 보기 문구가 들어가 있습니다.
+ * 실제로 하신 말씀이 아니므로 대체 표기로 바꾸고, 그 문장을 원문으로 삼는
+ * 기록 초안 미리보기는 아예 다시 만들지 않습니다.
+ *
+ * @param from 이번 턴에서 새로 붙은 항목의 시작 위치
+ */
+function maskRestoredTurn(log: LogItem[], from: number): LogItem[] {
+  const out: LogItem[] = [];
+  for (let i = 0; i < log.length; i += 1) {
+    const item = log[i];
+    if (!item) continue;
+    if (i < from) {
+      out.push(item);
+      continue;
+    }
+    if (item.kind === "learner") {
+      out.push({ ...item, text: RESTORED_UTTERANCE });
+      continue;
+    }
+    // 원문이 없으니 가명처리·5요소 추출을 다시 돌릴 수 없습니다.
+    if (item.kind === "draft") continue;
+    if (item.kind === "feedback") {
+      // 어떤 판정 신호에 걸렸는지는 발화가 있어야 알 수 있습니다. 되살린 턴에
+      // 「보기 버튼 선택」이라고 적으면 사실과 달라지므로 판정 경로는 붙이지 않습니다.
+      const feedback: TracedFeedback = { ...item.feedback };
+      delete feedback.trace;
+      out.push({ ...item, feedback });
+      continue;
+    }
+    out.push(item);
+  }
+  return out;
+}
+
+/** 저장값이 훼손돼 있어도 말이 되는 범위 안으로만 받습니다 (0 이상 정수, 상한 있음). */
+function clampCount(value: number, max: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.min(Math.max(Math.floor(value), 0), max);
 }
 
 /** 시나리오 진입 직후 상태 (브리핑 화면) */
@@ -389,6 +450,77 @@ export function makeTrainReducer(scenario: Scenario) {
           critical: null,
           lastFeedback: null,
           attempt: state.attempt + 1,
+        };
+      }
+
+      /**
+       * 이어서 하기 — 저장해 둔 결정 목록을 엔진에 순서대로 다시 넣습니다.
+       *
+       * 판정은 그대로 엔진이 다시 합니다(화면이 결과를 지어내지 않습니다).
+       * 다만 규칙 사전이 단독으로 잡았던 ⚑CF처럼 시나리오 분기로 되돌릴 수 없는 결정은
+       * 되살리지 못합니다 — 그 턴은 건너뛰고, 로그 맨 위에 그 사실을 밝힙니다.
+       * (⚑CF 인터럽트는 같은 CUE에 머무르므로 건너뛰어도 이후 순서는 어긋나지 않습니다.
+       *  다만 ⚑CF 횟수는 체크포인트에 적힌 값을 함께 살려 종합 판정이 느슨해지지 않게 합니다.)
+       */
+      case "resume": {
+        const begun = reduce(state, { type: "start" });
+        const decisions = action.progress.decisions;
+        let next = begun;
+        let replayed = 0;
+        let skipped = 0;
+
+        for (const decision of decisions) {
+          // 앞 결정이 ⚑CF·L3로 이어졌으면 먼저 그 구간을 지나갑니다.
+          if (next.session.status === "interrupted") next = reduce(next, { type: "retryAfterCritical" });
+          if (next.session.status === "protocol") next = reduce(next, { type: "protocolDone" });
+          if (next.phase !== "session" || next.session.status !== "running") break;
+
+          const turn = currentTurn(scenario, next.session);
+          const cue = turn?.cue;
+          if (!turn || !cue) break;
+          // 시나리오 데이터가 바뀌어 순서가 어긋나면 거기까지만 되살립니다.
+          if (decision.turnId.length > 0 && decision.turnId !== turn.id) break;
+          if (!findBranch(cue, decision.branchId)) {
+            skipped += 1;
+            continue;
+          }
+
+          const before = next.log.length;
+          const after = reduce(next, {
+            type: "submit",
+            input: { branchId: decision.branchId, viaButton: decision.viaButton },
+          });
+          if (after === next) break;
+          next = decision.viaButton ? after : { ...after, log: maskRestoredTurn(after.log, before) };
+          replayed += 1;
+        }
+
+        // 한 턴도 되살리지 못했으면 그냥 처음부터 시작하는 편이 정직합니다.
+        if (replayed === 0) return begun;
+
+        // 되살리지 못한 ⚑CF가 있어도 횟수만은 사실대로 남깁니다.
+        // (새로고침 한 번으로 ⚑CF가 없던 일이 되면 안 됩니다. 판정 자체는 그대로 엔진이 한 것입니다.)
+        const cfCount = Math.max(
+          next.session.cfCount,
+          clampCount(action.progress.cfCount, decisions.length),
+        );
+        const retriesUsed = Math.max(
+          next.session.retriesUsed,
+          clampCount(action.progress.retriesUsed, 99),
+        );
+
+        return {
+          ...next,
+          session: { ...next.session, cfCount, retriesUsed },
+          log: [
+            {
+              key: "resume-notice",
+              kind: "notice",
+              text: skipped > 0 ? RESTORED_LOG_NOTICE_PARTIAL : RESTORED_LOG_NOTICE,
+              tone: "brand",
+            },
+            ...next.log,
+          ],
         };
       }
 

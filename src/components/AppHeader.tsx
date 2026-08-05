@@ -1,8 +1,11 @@
 "use client";
 
 import type { ComponentType } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { initSettings } from "@/lib/settings";
+import { SettingsMenu } from "./SettingsMenu";
 import {
   IconChat,
   IconHome,
@@ -13,6 +16,12 @@ import {
   type IconProps,
 } from "./icons";
 import { cx } from "./utils";
+
+/* 저장된 글자 크기는 화면이 그려지기 전에 적용될수록 깜빡임이 적습니다.
+   이 모듈은 헤더가 모든 페이지의 최상단이라 클라이언트 번들에서 가장 먼저 평가되므로,
+   여기서 한 번 적용해 둡니다. 서버 렌더 중에는 settings.ts의 가드가 조용히 빠져나갑니다.
+   (멱등이라 아래 useEffect에서 다시 불러도 안전합니다.) */
+initSettings();
 
 interface NavItem {
   href: string;
@@ -59,6 +68,11 @@ export function AppHeader({ className }: AppHeaderProps) {
   const desktopNav = [...NAV, ...DESKTOP_EXTRA];
   const safetyActive = pathname.startsWith("/safety");
 
+  // 하이드레이션 이후에도 저장된 설정이 확실히 반영되게 합니다(멱등).
+  useEffect(() => {
+    initSettings();
+  }, []);
+
   return (
     <>
       <header
@@ -78,47 +92,54 @@ export function AppHeader({ className }: AppHeaderProps) {
             </span>
           </Link>
 
-          {/* 데스크톱 네비 — 아이콘 없이 텍스트만. 활성은 색과 굵기로만 알립니다. */}
-          <nav aria-label="주요 메뉴" className="hidden md:block">
-            <ul className="-mr-3 flex items-center">
-              {desktopNav.map((item) => {
-                const active = isActive(pathname, item);
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      aria-current={active ? "page" : undefined}
-                      className={cx(
-                        "chim-label inline-flex min-h-[48px] items-center px-3 transition-colors duration-150",
-                        item.danger
-                          ? "text-danger-ink"
-                          : active
-                            ? "text-brand-800"
-                            : "text-ink-soft",
-                        !active && !item.danger && "hover:text-brand-800",
-                        active ? "font-extrabold" : "font-semibold",
-                      )}
-                    >
-                      {item.label}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </nav>
+          {/* 우측 묶음: 네비(데스크톱) · 안전 설계(모바일) · 설정.
+              설정은 데스크톱·모바일 모두 여기 한 자리에 둡니다 — 탭바 5칸은 이동 전용이기 때문입니다. */}
+          <div className="flex shrink-0 items-center gap-1">
+            {/* 데스크톱 네비 — 아이콘 없이 텍스트만. 활성은 색과 굵기로만 알립니다. */}
+            <nav aria-label="주요 메뉴" className="hidden md:block">
+              <ul className="flex items-center">
+                {desktopNav.map((item) => {
+                  const active = isActive(pathname, item);
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        aria-current={active ? "page" : undefined}
+                        className={cx(
+                          "chim-label inline-flex min-h-[48px] items-center px-3 transition-colors duration-150",
+                          item.danger
+                            ? "text-danger-ink"
+                            : active
+                              ? "text-brand-800"
+                              : "text-ink-soft",
+                          !active && !item.danger && "hover:text-brand-800",
+                          active ? "font-extrabold" : "font-semibold",
+                        )}
+                      >
+                        {item.label}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </nav>
 
-          {/* 모바일: 안전 설계 바로가기 — 필도 밑줄도 없는 조용한 텍스트 링크 */}
-          <Link
-            href="/safety"
-            aria-current={safetyActive ? "page" : undefined}
-            className={cx(
-              "chim-meta inline-flex min-h-[48px] items-center gap-1.5 pl-2 md:hidden",
-              safetyActive ? "font-extrabold text-brand-800" : "font-semibold text-ink-soft",
-            )}
-          >
-            <IconShield className="h-5 w-5" />
-            안전 설계
-          </Link>
+            {/* 모바일: 안전 설계 바로가기 — 필도 밑줄도 없는 조용한 텍스트 링크 */}
+            <Link
+              href="/safety"
+              aria-current={safetyActive ? "page" : undefined}
+              className={cx(
+                "chim-meta inline-flex min-h-[48px] items-center gap-1.5 pl-2 md:hidden",
+                safetyActive ? "font-extrabold text-brand-800" : "font-semibold text-ink-soft",
+              )}
+            >
+              <IconShield className="h-5 w-5" />
+              안전 설계
+            </Link>
+
+            {/* 표시·음성 설정 — 글자 크기와 낭독 속도를 여기서 바꿉니다. */}
+            <SettingsMenu className="-mr-2" />
+          </div>
         </div>
       </header>
 

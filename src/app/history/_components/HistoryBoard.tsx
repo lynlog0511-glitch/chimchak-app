@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ScenarioType, SessionRecord } from "@/types";
 import { BigButton, Card } from "@/components";
-import { StatusMark } from "@/components/icons";
+import { IconArrowRight, IconClock, IconSprout, StatusMark } from "@/components/icons";
 import {
   clearReports,
   clearSessions,
@@ -14,6 +14,194 @@ import {
 import { CoverageGrid, type ScenarioTypeMap } from "./CoverageGrid";
 import { ReportList } from "./ReportList";
 import { SessionCard } from "./SessionCard";
+
+/* ── 다음 훈련 추천 (순수 함수) ────────────────────────────────
+   성장 기록과 훈련 엔딩 화면이 **같은 규칙**을 쓰도록 여기 한 곳에 둡니다.
+   (훈련 엔딩 화면 `train/_components/EndingPanel` 이 이 함수를 가져다 씁니다.)
+
+   규칙 — 1순위 아직 완주 이력이 없는 유형 → 2순위 최근 세션들에서 코칭이 가장 많이 남은 유형
+        → 3순위 마지막 훈련이 가장 오래된 유형.
+   대상은 지금 훈련할 수 있는 활성 시나리오뿐이고, 베타로 이연된 유형(위험 판단)은 후보에서 뺍니다.
+   점수·등급은 물론 “코칭 몇 개” 같은 개수도 화면으로 나가지 않습니다 — 유형 하나와 이유 한 줄까지입니다. */
+
+/** 추천 후보 — 훈련 화면으로 바로 넘어가는 데 필요한 최소 정보만 담습니다. */
+export interface NextTrainingCandidate {
+  /** 시나리오 id (대문자 표기) */
+  id: string;
+  title: string;
+  type: ScenarioType;
+  typeLabel: string;
+}
+
+/** 왜 추천했는지 — 화면에는 한 줄 문구로만 나갑니다. */
+export type NextTrainingReason = "untried" | "coaching" | "stale";
+
+export interface NextTrainingPick {
+  candidate: NextTrainingCandidate;
+  reason: NextTrainingReason;
+  /** 추천 이유 한 줄 (숫자 없음) */
+  reasonText: string;
+}
+
+/**
+ * 추천 후보 표 — 지금 훈련할 수 있는 활성 3종입니다.
+ *
+ * 시나리오 데이터 전체(대사·분기 그래프)를 브라우저 번들로 내려보내지 않기 위해
+ * 추천에 필요한 네 가지만 여기 적어 둡니다. 활성 시나리오가 늘면 이 표에 한 줄을 더합니다.
+ * 유형④(위험 판단)는 베타 이연이라 후보에 넣지 않습니다.
+ */
+export const NEXT_TRAINING_CANDIDATES: NextTrainingCandidate[] = [
+  {
+    id: "CHK-A01",
+    title: "현관 앞, 집에 가야 해요",
+    type: "BPSD",
+    typeLabel: "치매 행동심리증상(BPSD)",
+  },
+  { id: "CHK-B02", title: "점심 식사 중 사레", type: "EMERGENCY", typeLabel: "응급 초기 대응" },
+  { id: "CHK-C01", title: "온 김에 반찬 좀", type: "CONFLICT", typeLabel: "이용자·보호자 갈등 화법" },
+];
+
+/** 추천 이유 문구 — 새 문구는 여기 한 곳에만 둡니다. */
+export const NEXT_TRAINING_REASON_TEXT: Record<NextTrainingReason, string> = {
+  untried: "아직 해보지 않은 유형입니다",
+  coaching: "코칭이 남은 유형입니다",
+  stale: "가장 오래전에 연습한 유형입니다",
+};
+
+/** 2순위 판단에 쓰는 “최근 세션” 범위 — 오래전 회차까지 끌고 오지 않습니다. */
+const RECENT_SESSION_WINDOW = 5;
+
+function upperId(id: string): string {
+  return id.trim().toUpperCase();
+}
+
+function timeOf(iso: string | undefined): number {
+  if (!iso) return 0;
+  const ms = new Date(iso).getTime();
+  return Number.isNaN(ms) ? 0 : ms;
+}
+
+export interface PickNextTrainingOptions {
+  /** 후보에서 빼 둘 시나리오 (방금 마친 회차 등) */
+  excludeScenarioId?: string;
+  /** 지금 훈련할 수 있는 유형 — 주면 이 유형만 남깁니다 */
+  activeTypes?: ScenarioType[];
+  /** 시나리오 id(대문자) → 유형. 주면 기록 해석에 먼저 씁니다 */
+  typeByScenarioId?: ScenarioTypeMap;
+  /** 후보 표 교체 (확장·검증용) */
+  candidates?: NextTrainingCandidate[];
+}
+
+/**
+ * 다음에 해보시면 좋을 훈련을 하나만 고릅니다. 고를 것이 없으면 `undefined`.
+ *
+ * 같은 입력이면 같은 결과가 나오는 순수 함수이고, 무작위·가중치·점수는 쓰지 않습니다.
+ *
+ * @example
+ * pickNextTraining([]) // => 첫 후보 + "아직 해보지 않은 유형입니다"
+ * @example
+ * pickNextTraining(records, { excludeScenarioId: "CHK-A01" }) // 방금 마친 회차는 빼고 고릅니다
+ */
+export function pickNextTraining(
+  records: SessionRecord[],
+  options: PickNextTrainingOptions = {},
+): NextTrainingPick | undefined {
+  const candidates = options.candidates ?? NEXT_TRAINING_CANDIDATES;
+  const exclude = options.excludeScenarioId ? upperId(options.excludeScenarioId) : undefined;
+  const activeTypes = options.activeTypes;
+  const pool = candidates.filter(
+    (item) =>
+      upperId(item.id) !== exclude && (!activeTypes || activeTypes.includes(item.type)),
+  );
+  if (pool.length === 0) return undefined;
+
+  const typeOf = (record: SessionRecord): ScenarioType | undefined => {
+    const key = upperId(record.scenarioId ?? "");
+    const mapped = options.typeByScenarioId?.[key];
+    if (mapped) return mapped;
+    return candidates.find((item) => upperId(item.id) === key)?.type;
+  };
+
+  // 저장 순서를 믿지 않고 마친 시각으로 다시 세웁니다 (최신 → 과거).
+  const ordered = [...records].sort((a, b) => timeOf(b.endedAt) - timeOf(a.endedAt));
+
+  const trainedTypes = new Set<ScenarioType>();
+  const coachingLeft = new Map<ScenarioType, number>();
+  const lastTrainedAt = new Map<ScenarioType, number>();
+
+  ordered.forEach((record, index) => {
+    const type = typeOf(record);
+    if (!type) return;
+    trainedTypes.add(type);
+
+    const at = timeOf(record.endedAt) || timeOf(record.startedAt);
+    if (at > (lastTrainedAt.get(type) ?? 0)) lastTrainedAt.set(type, at);
+
+    if (index < RECENT_SESSION_WINDOW) {
+      const left = Array.isArray(record.coachingPoints) ? record.coachingPoints.length : 0;
+      coachingLeft.set(type, (coachingLeft.get(type) ?? 0) + left);
+    }
+  });
+
+  // 1순위 — 아직 완주 이력이 없는 유형
+  const untried = pool.find((item) => !trainedTypes.has(item.type));
+  if (untried) {
+    return {
+      candidate: untried,
+      reason: "untried",
+      reasonText: NEXT_TRAINING_REASON_TEXT.untried,
+    };
+  }
+
+  // 2순위 — 최근 세션들에서 코칭이 가장 많이 남은 유형 (동점이면 후보 표 순서)
+  let coachingPick: NextTrainingCandidate | undefined;
+  let coachingMax = 0;
+  for (const item of pool) {
+    const left = coachingLeft.get(item.type) ?? 0;
+    if (left > coachingMax) {
+      coachingMax = left;
+      coachingPick = item;
+    }
+  }
+  if (coachingPick) {
+    return {
+      candidate: coachingPick,
+      reason: "coaching",
+      reasonText: NEXT_TRAINING_REASON_TEXT.coaching,
+    };
+  }
+
+  // 3순위 — 마지막 훈련이 가장 오래된 유형
+  let stalePick = pool[0];
+  if (!stalePick) return undefined;
+  let staleAt = lastTrainedAt.get(stalePick.type) ?? 0;
+  for (const item of pool.slice(1)) {
+    const at = lastTrainedAt.get(item.type) ?? 0;
+    if (at < staleAt) {
+      stalePick = item;
+      staleAt = at;
+    }
+  }
+  return { candidate: stalePick, reason: "stale", reasonText: NEXT_TRAINING_REASON_TEXT.stale };
+}
+
+/** 훈련 상세 경로 — 라우트 파라미터는 소문자로 통일합니다. */
+function trainHref(scenarioId: string): string {
+  return `/train/${scenarioId.toLowerCase()}`;
+}
+
+/**
+ * 추천 이유 옆 마크 — 이모지 대신 아이콘 시스템을 씁니다(라벨은 항상 옆에 있습니다).
+ * 코칭 이유일 때만 판정 마크(빈 원)를 쓰고, 나머지는 뜻이 다른 아이콘으로 둡니다.
+ * 훈련 엔딩 화면도 같은 마크를 쓰도록 함께 내보냅니다.
+ */
+export function NextTrainingReasonMark({ reason }: { reason: NextTrainingReason }) {
+  if (reason === "coaching") return <StatusMark kind="coach" size="sm" />;
+  if (reason === "stale") {
+    return <IconClock className="h-[18px] w-[18px] shrink-0 text-ink-muted" />;
+  }
+  return <IconSprout className="h-[18px] w-[18px] shrink-0 text-brand-700" />;
+}
 
 export interface HistoryBoardProps {
   /** 시나리오 id(대문자) → 유형. 서버에서 만들어 넘겨받습니다. */
@@ -61,6 +249,15 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
     setReports([]);
     setConfirmClear(false);
   };
+
+  /**
+   * 다음 훈련 추천 — 성장 기록이 막다른 길로 끝나지 않도록, 여기서 바로 이어 갈 곳을 하나 답니다.
+   * 유형 판별은 서버에서 받은 실제 시나리오 표(typeByScenarioId)를 먼저 씁니다.
+   */
+  const suggestion = useMemo(
+    () => pickNextTraining(sessions, { activeTypes, typeByScenarioId }),
+    [activeTypes, sessions, typeByScenarioId],
+  );
 
   if (!loaded) {
     return (
@@ -128,6 +325,34 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
           activeTypes={activeTypes}
         />
       </section>
+
+      {suggestion && (
+        <section>
+          <SectionHead
+            title="다음 훈련 추천"
+            lead="쌓인 기록을 보고 이어서 해보시면 좋을 상황을 하나만 골라 드립니다. 잘하고 못하고를 가르는 것이 아니라, 아직 덜 만나 보신 장면을 찾아 드리는 것입니다."
+          />
+          {/* 지면 위 흰 면 하나 — 보더도 액센트도 없이 카드 자체로 구분됩니다(§1-2·§7). */}
+          <Card>
+            <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
+              <div className="min-w-0">
+                <p className="chim-caption font-semibold text-ink-muted">
+                  {suggestion.candidate.typeLabel}
+                </p>
+                <h3 className="chim-h3 mt-1 text-ink">{suggestion.candidate.title}</h3>
+                <p className="chim-meta mt-2.5 inline-flex items-center gap-2 font-semibold text-ink-soft">
+                  <NextTrainingReasonMark reason={suggestion.reason} />
+                  {suggestion.reasonText}
+                </p>
+              </div>
+              <BigButton href={trainHref(suggestion.candidate.id)} size="lg">
+                이어서 연습하기
+                <IconArrowRight className="h-5 w-5" />
+              </BigButton>
+            </div>
+          </Card>
+        </section>
+      )}
 
       <section>
         <SectionHead

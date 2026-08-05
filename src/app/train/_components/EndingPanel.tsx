@@ -1,9 +1,17 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { Badge, BigButton, Card, SourceChip } from "@/components";
-import { IconCheck, IconRefresh, StatusMark } from "@/components/icons";
+import { IconArrowRight, IconChat, IconCheck, IconRefresh, StatusMark } from "@/components/icons";
 import { cx } from "@/components/utils";
+import { loadSessions } from "@/lib/storage";
 import type { EndingDef, Scenario, SessionRecord, SessionState } from "@/types";
+import {
+  NextTrainingReasonMark,
+  pickNextTraining,
+  type NextTrainingPick,
+} from "@/app/history/_components/HistoryBoard";
+import { scenarioHref } from "./constants";
 
 export interface EndingPanelProps {
   scenario: Scenario;
@@ -36,6 +44,61 @@ const VERDICT_LEAD: Record<EndingDef["verdict"], string> = {
 };
 
 /**
+ * “다음에 이걸 해보세요” 조각.
+ *
+ * 추천 규칙은 성장 기록 화면과 **같은 순수 함수**를 씁니다(`pickNextTraining`).
+ * `compact`는 재시도 판정에서 씁니다 — 이 화면의 주인공은 다시 하기이므로,
+ * 추천은 옅은 면 위 한 줄로 내려앉아 보조 자리를 지킵니다(§2 — 화면마다 주인공 하나).
+ */
+function NextTrainingSuggestion({ pick, compact }: { pick: NextTrainingPick; compact?: boolean }) {
+  if (compact) {
+    return (
+      <Card tone="quiet" padded={false} className="p-4 md:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+          <div className="min-w-0">
+            <p className="chim-caption font-semibold text-ink-muted">
+              다음에 이걸 해보세요 · {pick.candidate.typeLabel}
+            </p>
+            <p className="chim-body mt-1 font-bold text-ink">{pick.candidate.title}</p>
+            <p className="chim-caption mt-1.5 inline-flex items-center gap-1.5 font-semibold text-ink-soft">
+              <NextTrainingReasonMark reason={pick.reason} />
+              {pick.reasonText}
+            </p>
+          </div>
+          <BigButton href={scenarioHref(pick.candidate.id)} variant="ghost">
+            이 상황 연습하기
+            <IconArrowRight className="h-5 w-5" />
+          </BigButton>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <h3 className="chim-label flex items-center gap-2 font-extrabold text-ink">
+        <IconChat className="h-5 w-5 shrink-0 text-brand-700" />
+        다음에 이걸 해보세요
+      </h3>
+      <div className="mt-4 flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
+        <div className="min-w-0">
+          <p className="chim-caption font-semibold text-ink-muted">{pick.candidate.typeLabel}</p>
+          <p className="chim-h3 mt-1 text-ink">{pick.candidate.title}</p>
+          <p className="chim-meta mt-2.5 inline-flex items-center gap-2 font-semibold text-ink-soft">
+            <NextTrainingReasonMark reason={pick.reason} />
+            {pick.reasonText}
+          </p>
+        </div>
+        <BigButton href={scenarioHref(pick.candidate.id)} variant="secondary" size="lg">
+          이 상황 연습하기
+          <IconArrowRight className="h-5 w-5" />
+        </BigButton>
+      </div>
+    </Card>
+  );
+}
+
+/**
  * 훈련 종료 화면.
  *
  * 표시는 충족 목록과 코칭 2개까지이며, 마크는 StatusMark가 그립니다(이모지 없음).
@@ -61,6 +124,26 @@ export function EndingPanel({
    */
   const recoveredAfterRetry =
     verdict === "재훈련" && session.cfCount > 0 && session.retriesUsed > 0;
+
+  /**
+   * 다음 훈련 추천 — 이 기기에 쌓인 이력에 방금 마친 회차를 얹어 고릅니다.
+   * (부모가 저장하는 시점과 어긋나지 않도록 `record`를 직접 합칩니다. 읽고 쓰는 것은
+   *  판정 문구와 시각뿐이고, 발화 원문은 저장하지도 읽지도 않습니다.)
+   */
+  const [storedSessions, setStoredSessions] = useState<SessionRecord[]>([]);
+
+  useEffect(() => {
+    setStoredSessions(loadSessions());
+  }, []);
+
+  const suggestion = useMemo(
+    () =>
+      pickNextTraining([record, ...storedSessions.filter((item) => item.id !== record.id)], {
+        // 방금 마친 상황은 재시도 버튼이 따로 있으므로 추천에서는 뺍니다.
+        excludeScenarioId: scenario.id,
+      }),
+    [record, scenario.id, storedSessions],
+  );
 
   return (
     <div className="space-y-6">
@@ -169,6 +252,9 @@ export function EndingPanel({
         </p>
       </Card>
 
+      {/* 다음 훈련 추천 — 재시도 판정이 아닐 때는 다음 행동 바로 앞에 조각으로 섭니다. */}
+      {suggestion && verdict !== "재시도" && <NextTrainingSuggestion pick={suggestion} />}
+
       {/* 다음 행동 — 다시 하기가 주인공이고, 나머지 셋은 같은 무게로 뒤에 섭니다(§2). */}
       <div className="space-y-3">
         <BigButton onClick={onRestart} size="lg" block>
@@ -186,6 +272,9 @@ export function EndingPanel({
           </BigButton>
         </div>
       </div>
+
+      {/* 재시도 판정에서는 다시 하기가 주인공이라, 추천을 뒤로 물려 한 줄로만 둡니다. */}
+      {suggestion && verdict === "재시도" && <NextTrainingSuggestion pick={suggestion} compact />}
     </div>
   );
 }

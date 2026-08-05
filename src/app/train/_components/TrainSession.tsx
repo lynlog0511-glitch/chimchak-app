@@ -6,7 +6,13 @@ import { IconVolume, IconVolumeOff } from "@/components/icons";
 import { cx } from "@/components/utils";
 import { buildRecord, currentCue, currentTurn, protocolIdOf, resolveEnding } from "@/engine";
 import { isRecognitionSupported, primeVoices, speak, stopSpeaking } from "@/lib/speech";
-import { saveSession } from "@/lib/storage";
+import {
+  clearProgress,
+  loadProgress,
+  saveProgress,
+  saveSession,
+  type SessionProgress,
+} from "@/lib/storage";
 import type { EmergencyProtocol, Scenario } from "@/types";
 import { BriefingPanel } from "./BriefingPanel";
 import { CriticalInterrupt } from "./CriticalInterrupt";
@@ -43,6 +49,8 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
 
   const [ttsOn, setTtsOn] = useState(true);
   const [micSupported, setMicSupported] = useState(false);
+  /** 이 기기에 남아 있는 진행 체크포인트 — 브리핑에서 「이어서 하기」로 안내합니다 */
+  const [checkpoint, setCheckpoint] = useState<SessionProgress | null>(null);
   const spokenKeyRef = useRef<string>("");
   const savedIdRef = useRef<string>("");
 
@@ -107,6 +115,21 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     saveSession(record);
   }, [record]);
 
+  /** 이 기기에 남아 있는 진행 체크포인트를 한 번만 읽어 옵니다. */
+  useEffect(() => {
+    setCheckpoint(loadProgress(scenario.id) ?? null);
+  }, [scenario.id]);
+
+  /**
+   * 턴 결정마다 체크포인트를 갱신합니다.
+   * 담기는 것은 판정된 분기 id·게이지·횟수뿐이고(발화 원문은 담지 않습니다),
+   * 엔딩에 도달하면 `saveProgress`가 체크포인트를 지우고 세션 기록만 남깁니다.
+   */
+  useEffect(() => {
+    if (state.phase === "briefing") return;
+    saveProgress(state.session);
+  }, [state.phase, state.session]);
+
   /* ── 조작 ─────────────────────────────────────────────── */
 
   const handleSubmit = useCallback(
@@ -123,23 +146,44 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     window.scrollTo({ top: 0, behavior: "auto" });
   }, []);
 
+  /** 처음부터 — 남아 있던 체크포인트는 지웁니다. */
   const handleStart = useCallback(() => {
+    clearProgress(scenario.id);
+    setCheckpoint(null);
     dispatch({ type: "start" });
     scrollToTop();
-  }, [scrollToTop]);
+  }, [scenario.id, scrollToTop]);
 
   const handleRestart = useCallback(() => {
     stopSpeaking();
     spokenKeyRef.current = "";
+    clearProgress(scenario.id);
+    setCheckpoint(null);
     dispatch({ type: "restart" });
     scrollToTop();
-  }, [scrollToTop]);
+  }, [scenario.id, scrollToTop]);
+
+  /** 이어서 하기 — 저장해 둔 결정 목록을 엔진에 순서대로 다시 넣습니다. */
+  const handleResume = useCallback(() => {
+    if (!checkpoint) return;
+    stopSpeaking();
+    spokenKeyRef.current = "";
+    dispatch({ type: "resume", progress: checkpoint });
+    setCheckpoint(null);
+    scrollToTop();
+  }, [checkpoint, scrollToTop]);
 
   /* ── 브리핑 ───────────────────────────────────────────── */
 
   if (state.phase === "briefing") {
     return (
-      <BriefingPanel scenario={scenario} micSupported={micSupported} onStart={handleStart} />
+      <BriefingPanel
+        scenario={scenario}
+        micSupported={micSupported}
+        onStart={handleStart}
+        checkpoint={checkpoint}
+        onResume={handleResume}
+      />
     );
   }
 

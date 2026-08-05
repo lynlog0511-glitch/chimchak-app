@@ -44,6 +44,14 @@ export default function RootLayout({
     // React가 불일치로 경고하지만, 사용자 설정을 첫 페인트부터 적용하기 위한 의도된 차이입니다.
     <html lang="ko" suppressHydrationWarning>
       <body className="min-h-screen antialiased">
+        {/* 동봉한 Pretendard를 첫 페인트 전에 받도록 프리로드 — React가 head로 끌어올립니다. */}
+        <link
+          rel="preload"
+          href="/fonts/PretendardVariable.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
         {children}
         <SwRegister />
       </body>

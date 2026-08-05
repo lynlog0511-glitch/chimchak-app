@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+/* Pretendard Variable — 앱에 동봉(셀프호스팅)해 오프라인에서도 항상 같은 글꼴을 보장합니다.
+   (없으면 Windows에서 맑은 고딕으로 떨어져 화면 전체가 공문서 인상이 됩니다.)
+   라이선스: SIL OFL 1.1 (재배포 자유) · 출처: orioncactus/pretendard */
+@font-face {
+  font-family: "Pretendard Variable";
+  src: url("/fonts/PretendardVariable.woff2") format("woff2-variations");
+  font-weight: 45 920;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* ─────────────────────────────────────────────────────────────
    침착(ChimChak) 디자인 토큰 — DESIGN_DIRECTION v3
    지면은 거의 흰색(#fafbfb), 그 위에 흰 카드가 "면"으로 얹힙니다.
@@ -34,13 +45,15 @@
   /* 잉크·지면 — v3 §7 표면 체계
      paper(지면) 위에 white(카드)가 얹히고, 카드 안 보조 면이 paper-2입니다.
      지면과 카드의 차이가 아주 작아야 "서식"이 아니라 "제품"처럼 보입니다. */
-  --color-ink: #1f3d3b;
-  --color-ink-soft: #3c5c59;
-  --color-ink-muted: #4f716e;
-  --color-paper: #fafbfb;
-  --color-paper-2: #f1f5f4;
-  --color-line: #e3ebe9;
-  --color-line-strong: #c7dcd8;
+  /* v3.1: 초록끼를 걷어낸 잉크·지면 — 텍스트는 거의 무채색이어야 화면이 맑아 보입니다.
+     틸은 브랜드 색으로만 남기고, 회색 계열에서 틸 기운을 뺐습니다. */
+  --color-ink: #1b2321;
+  --color-ink-soft: #454f4c;
+  --color-ink-muted: #5c6663;
+  --color-paper: #fafaf9;
+  --color-paper-2: #f1f2f0;
+  --color-line: #e4e7e5;
+  --color-line-strong: #cbd2cf;
 
   /* 상태색 — `*-ink`는 작은 글자용(AA 통과), 기본값은 채움·막대용 */
   --color-ok: #1e9e6a;
@@ -48,18 +61,19 @@
   --color-ok-soft: #eaf7f1;
   --color-ok-line: #b9e3cf;
 
-  --color-warn: #e8833a;
-  --color-warn-ink: #a8571c;
-  --color-warn-soft: #fdf2ea;
-  --color-warn-line: #f6d3b4;
+  /* v3.1: 흙탕 갈색(#a8571c)을 버리고 맑은 앰버로 — warn-ink는 흰 지면 4.5:1(AA)을 지킵니다. */
+  --color-warn: #f08c2e;
+  --color-warn-ink: #b45309;
+  --color-warn-soft: #fdf1e5;
+  --color-warn-line: #f5d4a8;
 
   --color-danger: #d64545;
   --color-danger-ink: #b03636;
   --color-danger-soft: #fdeeed;
   --color-danger-line: #f3c3c1;
 
-  --color-neutral-soft: #eef1f0;
-  --color-neutral-line: #dde4e3;
+  --color-neutral-soft: #eff1ef;
+  --color-neutral-line: #dee2e0;
 
   /* 타이포 — 외부 폰트 CDN 없이 시스템 스택만 사용(오프라인 데모 보장) */
   --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,

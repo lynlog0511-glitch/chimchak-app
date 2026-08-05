@@ -19,7 +19,7 @@
  */
 
 /* 캐시 이름의 버전을 올리면 이전 캐시는 activate 단계에서 전부 지워집니다. */
-const CACHE_NAME = "chimchak-v2";
+const CACHE_NAME = "chimchak-v3";
 
 /** 오프라인에서도 반드시 열려야 하는 화면·자산 목록입니다. */
 const PRECACHE_URLS = [
@@ -32,6 +32,7 @@ const PRECACHE_URLS = [
   "/emergency/p-05",
   "/manifest.webmanifest",
   "/icon.svg",
+  "/fonts/PretendardVariable.woff2",
 ];
 
 /** 저장된 화면이 하나도 없을 때 마지막으로 보여 줄 화면입니다. */

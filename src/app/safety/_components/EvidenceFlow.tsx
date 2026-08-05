@@ -1,26 +1,18 @@
-import { IconAlert, IconCheckCircle } from "@/components/icons";
-
 /**
  * 근거 확인 흐름도.
  *
- * 팀 시안(AI Safety Architecture)의 구도를 그대로 따르되, 표현은 1.5px 스트로크
- * 라인 다이어그램으로 옮겼습니다. 색은 잉크·틸·주황 3색만 씁니다.
+ * 구성 (v4 — 화면은 430px 앱 프레임입니다)
+ *  - 본체: 세로 스텝 목록. 실제 텍스트라 확대·낭독에 그대로 대응하고 가로 스크롤이 없습니다.
+ *  - 접이식: 같은 내용을 담은 SVG 라인 다이어그램(720×600 좌표계, 700px로 그립니다).
+ *    프레임 폭에 맞춰 줄이면 안의 글자가 10px 아래로 내려가므로 원래 크기로 두고
+ *    그 상자 안에서만 가로로 스크롤합니다.
  *
- * 구성
- *  - md 이상: SVG 다이어그램 한 장 (720×600 좌표계 = md 폭에서 1:1로 그려집니다).
- *    좌표계를 md 본문 폭(720px)에 맞춰 두었기 때문에, 가장 좁은 표시 폭에서도
- *    SVG 안 글자가 15px 아래로 내려가지 않습니다. 큰 화면에서는 880px까지만 키웁니다
- *    (그 이상 키우면 다이어그램 글자가 본문보다 커져 위계가 뒤집힙니다 — v3 §1-7).
- *  - md 미만: 같은 내용을 세로 스텝 목록으로 보여 줍니다(가로 스크롤 없음).
- *
- * v3 반영
- *  - 모바일 스텝의 왼쪽 세로줄·색 점, 분기 블록의 왼쪽 4px 바를 전부 걷어냈습니다(§1-2).
- *    구분은 번호·hairline 행·옅은 면과 [아이콘+라벨] 한 줄로만 만듭니다.
- *  - 다이어그램 안 인용 앞 세로 막대도 옅은 면으로 바꿨습니다.
+ * 표현
+ *  - 1.5px 스트로크 라인, 색은 잉크·틸·주황 3색. 색 면은 L3 밴드 하나뿐입니다.
+ *  - 아이콘·왼쪽 액센트 바를 쓰지 않고 번호·hairline 행·옅은 면으로만 구분합니다(v4 §2).
  *
  * 접근성
  *  - SVG는 role="img" + title/desc로 흐름 전체를 한 문장으로 읽어 줍니다.
- *  - 모바일 목록은 실제 텍스트라 확대·낭독에 그대로 대응합니다.
  *  - 애니메이션 없음.
  */
 
@@ -157,7 +149,7 @@ function FlowDiagram() {
       viewBox="0 0 720 600"
       role="img"
       aria-labelledby="sfy-flow-title sfy-flow-desc"
-      className="mx-auto h-auto w-full max-w-[880px]"
+      className="h-auto w-[700px] max-w-none"
     >
       <title id="sfy-flow-title">근거 확인 흐름도</title>
       <desc id="sfy-flow-desc">{FLOW_DESC}</desc>
@@ -349,14 +341,19 @@ function FlowDiagram() {
 
 /* ── 모바일 세로 스텝 ──────────────────────────────────────── */
 
-/** 번호 + 제목 + 한 문장. 왼쪽 세로줄·색 점 없이 hairline 행으로만 나눕니다. */
+/** 번호 + 제목 + 한 문장. 아이콘·세로줄 없이 hairline 행으로만 나눕니다(v4 §2). */
 function StepRow({ index, node }: { index: number; node: FlowNode }) {
   return (
-    <li className="flex gap-3 border-t border-line py-4">
-      <span className="chim-num chim-body shrink-0 font-extrabold text-brand-700">{index}</span>
-      <div>
-        <p className="chim-body font-extrabold text-ink">{node.title}</p>
-        <p className="mt-1 text-[0.9375rem] leading-relaxed text-ink-soft">{node.caption}</p>
+    <li className="flex gap-[10px] border-t border-line py-[13px]">
+      <span
+        aria-hidden
+        className="chim-num w-[13px] flex-none text-[13px] leading-[1.5] font-extrabold text-brand-700"
+      >
+        {index}
+      </span>
+      <div className="min-w-0">
+        <p className="text-[14px] leading-[1.45] font-bold text-ink">{node.title}</p>
+        <p className="mt-[2px] text-[12.5px] leading-[1.6] text-ink-muted">{node.caption}</p>
       </div>
     </li>
   );
@@ -366,8 +363,8 @@ function StepRow({ index, node }: { index: number; node: FlowNode }) {
 function BranchStep({ node }: { node: FlowNode }) {
   return (
     <li>
-      <p className="chim-body font-extrabold text-ink">{node.title}</p>
-      <p className="mt-1 text-[0.9375rem] leading-relaxed text-ink-soft">{node.caption}</p>
+      <p className="text-[13.5px] leading-[1.45] font-bold text-ink">{node.title}</p>
+      <p className="mt-[2px] text-[12.5px] leading-[1.6] text-ink-soft">{node.caption}</p>
     </li>
   );
 }
@@ -379,41 +376,42 @@ function FlowSteps() {
         {INPUT_NODES.map((n, i) => (
           <StepRow key={n.key} index={i + 1} node={n} />
         ))}
-        <li className="flex gap-3 border-t border-line py-4">
-          <span className="chim-num chim-body shrink-0 font-extrabold text-brand-700">
+        <li className="flex gap-[10px] border-t border-line py-[13px]">
+          <span
+            aria-hidden
+            className="chim-num w-[13px] flex-none text-[13px] leading-[1.5] font-extrabold text-brand-700"
+          >
             {INPUT_NODES.length + 1}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="chim-body font-extrabold text-brand-800">근거 확인</p>
-            <p className="mt-1 text-[0.9375rem] leading-relaxed text-ink-soft">
+            <p className="text-[14px] leading-[1.45] font-bold text-brand-800">근거 확인</p>
+            <p className="mt-[2px] text-[12.5px] leading-[1.6] text-ink-muted">
               여기서 길이 갈립니다. 근거를 찾았는지에 따라 다음이 달라집니다.
             </p>
 
-            {/* 분기 — 왼쪽 액센트 바 대신 옅은 면 + [아이콘 + 라벨] 한 줄로 구분합니다. */}
-            <div className="mt-4 space-y-3">
-              <div className="rounded-card bg-paper-2 p-4">
-                <p className="chim-body flex items-center gap-2 font-extrabold text-brand-800">
-                  <IconCheckCircle className="h-5 w-5 shrink-0" />
+            {/* 분기 — 라벨 한 줄 + 옅은 면. 아이콘은 쓰지 않습니다. */}
+            <div className="mt-[10px] space-y-[8px]">
+              <div className="rounded-[14px] bg-paper-2 px-[13px] py-[12px]">
+                <p className="text-[13.5px] leading-[1.45] font-extrabold text-brand-800">
                   예 · 근거를 찾았을 때
                 </p>
-                <ol className="mt-2.5 space-y-3">
+                <ol className="mt-[8px] space-y-[8px]">
                   {YES_NODES.map((n) => (
                     <BranchStep key={n.key} node={n} />
                   ))}
                 </ol>
               </div>
 
-              <div className="rounded-card bg-warn-soft p-4">
-                <p className="chim-body flex items-center gap-2 font-extrabold text-warn-ink">
-                  <IconAlert className="h-5 w-5 shrink-0" />
+              <div className="rounded-[14px] bg-warn-soft px-[13px] py-[12px]">
+                <p className="text-[13.5px] leading-[1.45] font-extrabold text-warn-ink">
                   아니오 · 근거를 찾지 못했을 때
                 </p>
-                <ol className="mt-2.5 space-y-3">
+                <ol className="mt-[8px] space-y-[8px]">
                   {NO_NODES.map((n) => (
                     <BranchStep key={n.key} node={n} />
                   ))}
                 </ol>
-                <p className="chim-body mt-3 font-bold text-ink">
+                <p className="mt-[10px] text-[13px] leading-[1.6] font-bold text-ink">
                   「공식 지침에서 근거를 찾지 못했습니다. 담당 간호사 또는 기관에 확인해 주세요.」
                 </p>
               </div>
@@ -422,9 +420,9 @@ function FlowSteps() {
         </li>
       </ol>
 
-      <div className="mt-6 rounded-card bg-brand-50 p-5">
-        <p className="chim-body font-extrabold text-brand-900">{L3_TITLE}</p>
-        <p className="mt-1.5 text-[0.9375rem] leading-relaxed text-ink-soft">{L3_SUB}</p>
+      <div className="mt-4 rounded-[14px] bg-tint px-[15px] py-[14px]">
+        <p className="text-[14px] leading-[1.45] font-extrabold text-brand-900">{L3_TITLE}</p>
+        <p className="mt-[4px] text-[12.5px] leading-[1.6] text-ink-soft">{L3_SUB}</p>
       </div>
     </div>
   );
@@ -433,20 +431,39 @@ function FlowSteps() {
 /* ── 본체 ──────────────────────────────────────────────────── */
 
 /**
- * 근거 확인 흐름도 — md 이상은 라인 다이어그램, 그 아래는 같은 내용의 세로 스텝 목록.
+ * 근거 확인 흐름도 — 세로 스텝 목록이 본체이고, 라인 다이어그램은 펼쳐서 봅니다.
+ *
+ * v4에서 화면 폭이 430px 앱 프레임으로 고정됐습니다. 720px 좌표계의 다이어그램을 그 폭에
+ * 맞춰 줄이면 안의 글자가 10px 아래로 내려가 읽히지 않으므로, **읽는 순서는 스텝 목록**이
+ * 맡고 다이어그램은 접이식 안에서 원래 크기(700px)로 가로 스크롤해 봅니다.
+ * 지면 자체는 옆으로 밀리지 않습니다(스크롤은 그 상자 안에서만 일어납니다).
  *
  * @example <EvidenceFlow />
  */
 export function EvidenceFlow() {
   return (
     <figure className="m-0">
-      <div className="hidden md:block">
-        <FlowDiagram />
-      </div>
-      <div className="md:hidden">
-        <FlowSteps />
-      </div>
-      <figcaption className="chim-caption mt-5 text-ink-muted md:mt-6 md:text-center">
+      <FlowSteps />
+
+      <details className="group mt-4 rounded-[14px] bg-paper-2">
+        <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-2 px-[15px] py-[12px] [&::-webkit-details-marker]:hidden">
+          <span className="min-w-0 flex-1 text-[13.5px] leading-[1.45] font-bold text-ink">
+            같은 내용을 흐름도 한 장으로 보기
+          </span>
+          <span
+            aria-hidden
+            className="flex-none text-[17px] leading-none text-faint transition-transform duration-150 ease-soft group-open:rotate-90"
+          >
+            ›
+          </span>
+        </summary>
+        {/* 가로 스크롤은 이 상자 안에서만 — 지면은 밀리지 않습니다. */}
+        <div className="overflow-x-auto px-[15px] pb-[14px]">
+          <FlowDiagram />
+        </div>
+      </details>
+
+      <figcaption className="mt-[10px] text-[11.5px] leading-[1.6] text-tertiary">
         그림 · 근거가 확인된 범위 안에서만 피드백이 나갑니다. 근거를 찾지 못하면 생성을 멈추고
         확인 안내로 넘어갑니다.
       </figcaption>

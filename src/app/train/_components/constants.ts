@@ -6,7 +6,8 @@
  */
 
 import type { BadgeTone } from "@/components";
-import type { EndingDef, PersonaDef, ScenarioType, Tier } from "@/types";
+import type { StatusMarkKind } from "@/components/icons";
+import type { EndingDef, GaugeDef, PersonaDef, Scenario, ScenarioType, Tier, TurnDef } from "@/types";
 
 /** 첫 화면·훈련 시작 전 고정 문구 */
 export const PRACTICE_LINE = "정답을 맞히는 시험이 아니라, 말이 나오게 만드는 연습입니다.";
@@ -78,4 +79,116 @@ export const ROLE_LABEL: Record<PersonaDef["role"], string> = {
 /** 시나리오 상세 경로 — 라우트 파라미터는 소문자로 통일합니다. */
 export function scenarioHref(id: string): string {
   return `/train/${id.toLowerCase()}`;
+}
+
+/* ── 세션 헤더 (시안 4a 컴팩트 헤더) ───────────────────────── */
+
+/** L3 구간 — 생성 호출이 0건임을 헤더에서 바로 밝힙니다. */
+export const SESSION_STATUS_PROTOCOL = "응급 안내 · 생성 0건";
+export const SESSION_STATUS_ENDED = "훈련을 마쳤습니다";
+
+/** 화자 → 사람이 부르는 역할 이름 (헤더 「AI는 … 역만 맡습니다」에 씁니다) */
+const SPEAKER_ROLE_WORD: Record<TurnDef["speaker"], string> = {
+  elder: "어르신",
+  guardian: "보호자",
+  dispatcher: "119 상황실",
+  system: "",
+  protocol: "",
+};
+
+/**
+ * 헤더 한 줄 — 「대화 단계 · AI는 어르신 역만 맡습니다」.
+ *
+ * 역할 이름은 시나리오가 실제로 재생하는 화자에서 가져옵니다.
+ * (119 상황실 대사가 있는 시나리오에서 「어르신 역만」이라고 적으면 사실과 달라집니다.)
+ *
+ * @example aiRoleNote(CHK_A01) // "대화 단계 · AI는 어르신·보호자 역만 맡습니다"
+ */
+export function aiRoleNote(scenario: Scenario): string {
+  const words: string[] = [];
+  for (const turn of scenario.turns) {
+    const word = SPEAKER_ROLE_WORD[turn.speaker];
+    if (word.length > 0 && !words.includes(word)) words.push(word);
+  }
+  const roles = words.length > 0 ? words.join("·") : "상대";
+  return `대화 단계 · AI는 ${roles} 역만 맡습니다`;
+}
+
+/* ── 감정 상태 (시안 4a③ — 게이지가 숫자 막대 대신 인물에 붙습니다) ── */
+
+export type EmotionLevel = "calm" | "uneasy" | "crisis";
+
+/**
+ * 게이지 값 → 감정 상태어.
+ * 숫자·점수는 화면에 내보내지 않고, 이름줄의 한 낱말과 아바타 링으로만 전합니다.
+ */
+export const EMOTION_WORD: Record<GaugeDef["label"], Record<EmotionLevel, string>> = {
+  초조도: { calm: "평온", uneasy: "조금 불안", crisis: "많이 불안" },
+  긴장도: { calm: "편안", uneasy: "조금 긴장", crisis: "많이 긴장" },
+};
+
+/** 이름줄 상태어 색 — 작은 글자라 대비 4.5:1을 넘는 `*-ink` 계열만 씁니다. */
+export const EMOTION_TEXT: Record<EmotionLevel, string> = {
+  calm: "text-ink-muted",
+  uneasy: "text-warn-ink",
+  crisis: "text-danger-ink",
+};
+
+/** 아바타 감정 링 — 평온은 링 없음(시안 4a③). 색만으로 뜻을 전하지 않도록 항상 상태어와 함께 둡니다. */
+export const EMOTION_RING: Record<EmotionLevel, string | undefined> = {
+  calm: undefined,
+  uneasy: "0 0 0 2px var(--color-warn-line)",
+  crisis: "0 0 0 2px var(--color-danger-line)",
+};
+
+/**
+ * 지금 게이지가 가리키는 감정 단계.
+ * 위기값 바로 아래부터 crisis로 보고, 시작값보다 낮게 가라앉으면 calm으로 봅니다.
+ *
+ * @example emotionLevel({ label: "초조도", start: 2, max: 5, crisisAt: 5, crisisEndingId: "E-위기" }, 4) // "crisis"
+ */
+export function emotionLevel(gauge: GaugeDef, value: number): EmotionLevel {
+  if (value >= gauge.crisisAt - 1) return "crisis";
+  if (value <= 1) return "calm";
+  return "uneasy";
+}
+
+/* ── 인라인 코칭 (시안 4a⑤ — 카드가 아니라 지문 옆 한 덩어리) ── */
+
+/**
+ * 판정 머리말.
+ * 판정어는 `STATUS_MARK_LABEL`(충족 / 코칭 / 즉시 중단)을 그대로 쓰고,
+ * 「침착의 코칭」은 이 말이 AI 인물이 아니라 앱의 판정이라는 표시입니다.
+ */
+export const COACH_HEAD: Record<StatusMarkKind, string> = {
+  met: "충족 · 침착의 코칭",
+  coach: "침착의 코칭",
+  stop: "즉시 중단 · 침착의 코칭",
+};
+
+export const COACH_HEAD_TEXT: Record<StatusMarkKind, string> = {
+  met: "text-ok-ink",
+  coach: "text-ink-soft",
+  stop: "text-danger-ink",
+};
+
+const COUNT_WORD = ["", "한", "두", "세", "네", "다섯"];
+
+/**
+ * 게이지 변동 칩 문구 — 「초조도 한 칸 ↓」. 변동이 없으면 칩을 붙이지 않습니다.
+ *
+ * @example gaugeDeltaChip("초조도", -1) // "초조도 한 칸 ↓"
+ */
+export function gaugeDeltaChip(label: string, delta: number): string | null {
+  if (!Number.isFinite(delta) || delta === 0) return null;
+  const steps = Math.min(Math.abs(Math.round(delta)), COUNT_WORD.length - 1);
+  const word = COUNT_WORD[steps] ?? "한";
+  return `${label} ${word} 칸 ${delta < 0 ? "↓" : "↑"}`;
+}
+
+/** 델타 칩 색 — 게이지가 내려가면 틸(좋아진 것), 올라가면 앰버(주의). */
+export function gaugeDeltaTone(delta: number): string {
+  return delta < 0
+    ? "bg-ok-soft text-brand-700"
+    : "bg-warn-soft text-warn-ink";
 }

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Badge, BigButton, Card, SourceChip } from "@/components";
-import { IconArrowRight, IconChat, IconCheck, IconRefresh, StatusMark } from "@/components/icons";
+import Link from "next/link";
+import { BigButton, EyebrowLabel, SourceChip } from "@/components";
+import { StatusMark } from "@/components/icons";
 import { cx } from "@/components/utils";
 import { loadSessions } from "@/lib/storage";
 import type { EndingDef, Scenario, SessionRecord, SessionState } from "@/types";
@@ -21,6 +22,7 @@ export interface EndingPanelProps {
   /** 존엄·관계 판정선에 걸렸을 때 함께 보여 줄 안내 (⚑CF와 다른 선입니다) */
   advisoryEnding?: EndingDef;
   onRestart: () => void;
+  className?: string;
 }
 
 /**
@@ -44,64 +46,32 @@ const VERDICT_LEAD: Record<EndingDef["verdict"], string> = {
 };
 
 /**
- * “다음에 이걸 해보세요” 조각.
- *
- * 추천 규칙은 성장 기록 화면과 **같은 순수 함수**를 씁니다(`pickNextTraining`).
- * `compact`는 재시도 판정에서 씁니다 — 이 화면의 주인공은 다시 하기이므로,
- * 추천은 옅은 면 위 한 줄로 내려앉아 보조 자리를 지킵니다(§2 — 화면마다 주인공 하나).
+ * “다음엔 이 장면” — 성장 기록 화면(시안 5c)의 추천 카드와 같은 언어로 둡니다.
+ * 추천 규칙은 성장 기록과 **같은 순수 함수**를 씁니다(`pickNextTraining`).
  */
-function NextTrainingSuggestion({ pick, compact }: { pick: NextTrainingPick; compact?: boolean }) {
-  if (compact) {
-    return (
-      <Card tone="quiet" padded={false} className="p-4 md:p-5">
-        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-          <div className="min-w-0">
-            <p className="chim-caption font-semibold text-ink-muted">
-              다음에 이걸 해보세요 · {pick.candidate.typeLabel}
-            </p>
-            <p className="chim-body mt-1 font-bold text-ink">{pick.candidate.title}</p>
-            <p className="chim-caption mt-1.5 inline-flex items-center gap-1.5 font-semibold text-ink-soft">
-              <NextTrainingReasonMark reason={pick.reason} />
-              {pick.reasonText}
-            </p>
-          </div>
-          <BigButton href={scenarioHref(pick.candidate.id)} variant="ghost">
-            이 상황 연습하기
-            <IconArrowRight className="h-5 w-5" />
-          </BigButton>
-        </div>
-      </Card>
-    );
-  }
-
+function NextTrainingSuggestion({ pick }: { pick: NextTrainingPick }) {
   return (
-    <Card>
-      <h3 className="chim-label flex items-center gap-2 font-extrabold text-ink">
-        <IconChat className="h-5 w-5 shrink-0 text-brand-700" />
-        다음에 이걸 해보세요
-      </h3>
-      <div className="mt-4 flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
-        <div className="min-w-0">
-          <p className="chim-caption font-semibold text-ink-muted">{pick.candidate.typeLabel}</p>
-          <p className="chim-h3 mt-1 text-ink">{pick.candidate.title}</p>
-          <p className="chim-meta mt-2.5 inline-flex items-center gap-2 font-semibold text-ink-soft">
-            <NextTrainingReasonMark reason={pick.reason} />
-            {pick.reasonText}
-          </p>
-        </div>
-        <BigButton href={scenarioHref(pick.candidate.id)} variant="secondary" size="lg">
-          이 상황 연습하기
-          <IconArrowRight className="h-5 w-5" />
-        </BigButton>
-      </div>
-    </Card>
+    <div className="rounded-card bg-tint p-4">
+      <EyebrowLabel>다음엔 이 장면</EyebrowLabel>
+      <p className="mt-1.5 text-[16px] leading-[1.5] font-bold text-deep">{pick.candidate.title}</p>
+      <p className="mt-1 flex items-center gap-1.5 text-[12.5px] leading-[1.6] text-brand-800">
+        <NextTrainingReasonMark reason={pick.reason} />
+        {pick.reasonText}
+      </p>
+      <Link
+        href={scenarioHref(pick.candidate.id)}
+        className="mt-2 inline-flex min-h-[48px] items-center gap-1 text-[14px] font-bold text-brand-800"
+      >
+        가기 <span aria-hidden>›</span>
+      </Link>
+    </div>
   );
 }
 
 /**
  * 훈련 종료 화면.
  *
- * 표시는 충족 목록과 코칭 2개까지이며, 마크는 StatusMark가 그립니다(이모지 없음).
+ * 표시는 판정 한 낱말 + 지키신 것 + 코칭 2개까지입니다.
  * 점수·등급·순위·백분위는 어떤 형태로도 보여 주지 않습니다(브리프 §3-1).
  */
 export function EndingPanel({
@@ -111,10 +81,11 @@ export function EndingPanel({
   record,
   advisoryEnding,
   onRestart,
+  className,
 }: EndingPanelProps) {
   const verdict = record.verdict;
   const greens = record.greenChecks;
-  // ⚑CF 문구는 아래 전용 카드에서 따로 다룹니다 — 필터 규칙은 엔진(collectCoaching)에 한 곳으로 모았습니다.
+  // ⚑CF 문구는 아래 전용 블록에서 따로 다룹니다 — 필터 규칙은 엔진(collectCoaching)에 한 곳으로 모았습니다.
   const coachings = record.coachingPoints.slice(0, 2);
 
   /**
@@ -127,8 +98,7 @@ export function EndingPanel({
 
   /**
    * 다음 훈련 추천 — 이 기기에 쌓인 이력에 방금 마친 회차를 얹어 고릅니다.
-   * (부모가 저장하는 시점과 어긋나지 않도록 `record`를 직접 합칩니다. 읽고 쓰는 것은
-   *  판정 문구와 시각뿐이고, 발화 원문은 저장하지도 읽지도 않습니다.)
+   * (읽고 쓰는 것은 판정 문구와 시각뿐이고, 발화 원문은 저장하지도 읽지도 않습니다.)
    */
   const [storedSessions, setStoredSessions] = useState<SessionRecord[]>([]);
 
@@ -146,135 +116,128 @@ export function EndingPanel({
   );
 
   return (
-    <div className="space-y-6">
+    <div className={cx("space-y-5", className)}>
       {recoveredAfterRetry && (
-        <Card>
-          <h2 className="chim-label flex items-center gap-2 font-extrabold text-ink">
-            <IconRefresh className="h-5 w-5 shrink-0 text-brand-700" />
+        <div className="rounded-card bg-paper-2 p-4">
+          <p className="text-[14px] leading-[1.5] font-bold text-ink">
             재시도로 회복해 완주하셨습니다
-          </h2>
-          <p className="chim-meta mt-2 leading-relaxed text-ink-soft">
+          </p>
+          <p className="mt-1 text-[12.5px] leading-[1.65] text-ink-soft">
             이 표시는 벌점이 아니라, 현장에서 되돌릴 수 없는 지점을 다시 볼 안내입니다.
           </p>
-        </Card>
+        </div>
       )}
 
-      {/* 이 화면의 색 배경은 판정 카드와 즉시 중단 카드 둘까지만 씁니다.
-          판정 문구가 이 화면의 주인공이라 필 대신 큰 타이포로 세웁니다(§2·§3). */}
-      <Card tone={verdict === "충족" ? "ok" : verdict === "부분 충족" ? "warn" : "quiet"}>
-        <p className="chim-caption font-bold text-ink-muted">{scenario.typeLabel}</p>
-        <p className={cx("chim-h1 mt-1", VERDICT_TEXT[verdict])}>{verdict}</p>
-        <h2 className="chim-h3 mt-2 text-ink">{ending?.title ?? record.endingTitle}</h2>
-        <p className="chim-body mt-2 text-ink-soft">{VERDICT_LEAD[verdict]}</p>
-        {ending?.message && <p className="chim-core-sm mt-3 text-ink">{ending.message}</p>}
-      </Card>
+      {/* 판정 — 이 화면의 주인공은 한 낱말입니다. 필도 카드도 쓰지 않고 타이포로만 세웁니다. */}
+      <div>
+        <EyebrowLabel>{scenario.typeLabel}</EyebrowLabel>
+        <p
+          className={cx(
+            "mt-1 text-[28px] leading-[1.2] font-extrabold tracking-[-0.02em]",
+            VERDICT_TEXT[verdict],
+          )}
+        >
+          {verdict}
+        </p>
+        <h2 className="mt-1.5 text-[17px] leading-[1.4] font-bold text-ink">
+          {ending?.title ?? record.endingTitle}
+        </h2>
+        <p className="mt-1.5 text-[14px] leading-[1.65] text-ink-soft">{VERDICT_LEAD[verdict]}</p>
+        {ending?.message && (
+          <p className="mt-2.5 text-[15px] leading-[1.65] text-ink">{ending.message}</p>
+        )}
+      </div>
 
       {advisoryEnding && (
-        <Card>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge tone="warn" variant="outline">
-              {advisoryEnding.verdict}
-            </Badge>
-            <h3 className="chim-label font-extrabold text-ink">{advisoryEnding.title}</h3>
-          </div>
-          <p className="chim-body mt-2 text-ink">{advisoryEnding.message}</p>
-        </Card>
+        <div className="rounded-card bg-paper-2 p-4">
+          <p className="text-[12.5px] leading-[1.5] font-bold text-warn-ink">
+            {advisoryEnding.verdict}
+          </p>
+          <p className="mt-1 text-[14px] leading-[1.5] font-bold text-ink">{advisoryEnding.title}</p>
+          <p className="mt-1.5 text-[13px] leading-[1.65] text-ink-soft">{advisoryEnding.message}</p>
+        </div>
       )}
 
       {session.cfCount > 0 && (
-        <Card tone="danger">
-          <h3 className="chim-label flex items-center gap-2 font-extrabold text-danger-ink">
+        <div className="rounded-card bg-danger-soft p-4">
+          <p className="flex items-center gap-2 text-[14px] leading-[1.5] font-bold text-danger-ink">
             <StatusMark kind="stop" size="sm" />
             즉시 중단이 있었던 지점이 있습니다
-          </h3>
-          <p className="chim-body mt-2 text-ink">
+          </p>
+          <p className="mt-1.5 text-[13px] leading-[1.65] text-ink">
             법과 지침이 금지한 행동, 또는 요양보호사 허용 범위 밖의 행동이 선택된 지점입니다. 대안
             행동을 다시 한번 확인하시고 같은 장면을 연습해 보시면 좋겠습니다.
           </p>
-        </Card>
+        </div>
       )}
 
-      {/* 목록은 정보 화면입니다 — 본문 16px, 제목은 카드 소제목(§3). */}
-      <div className="grid gap-5 lg:grid-cols-2">
-        <Card>
-          <h3 className="chim-label flex items-center gap-2 font-extrabold text-ink">
-            <StatusMark kind="met" size="sm" />
-            지키신 것
-          </h3>
-          {greens.length > 0 ? (
-            <ul className="mt-3 space-y-2.5">
-              {greens.map((green) => (
-                <li key={green} className="chim-body flex gap-2.5 text-ink">
-                  <IconCheck className="mt-1 h-4 w-4 shrink-0 text-ok-ink" />
-                  <span>{green}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="chim-body mt-3 text-ink-soft">
-              이번에는 충족으로 기록된 항목이 없습니다. 아래 코칭 한 가지만 들고 다시 해보시면
-              충분합니다.
-            </p>
-          )}
-        </Card>
+      <section>
+        <EyebrowLabel>지키신 것</EyebrowLabel>
+        {greens.length > 0 ? (
+          <ul className="chim-hairline mt-1.5">
+            {greens.map((green) => (
+              <li key={green} className="flex gap-2.5 py-2.5 text-[14px] leading-[1.6] text-ink">
+                <StatusMark kind="met" size="sm" />
+                <span className="min-w-0 flex-1">{green}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-1.5 text-[14px] leading-[1.65] text-ink-soft">
+            이번에는 충족으로 기록된 항목이 없습니다. 아래 코칭 한 가지만 들고 다시 해보시면
+            충분합니다.
+          </p>
+        )}
+      </section>
 
-        <Card>
-          <h3 className="chim-label flex items-center gap-2 font-extrabold text-ink">
-            <StatusMark kind="coach" size="sm" />
-            다음에 바꿔볼 것 (최대 두 가지)
-          </h3>
-          {coachings.length > 0 ? (
-            <ul className="chim-hairline mt-3 border-t border-line">
-              {coachings.map((coaching) => (
-                <li key={coaching} className="chim-body py-3 text-ink">
-                  {coaching}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="chim-body mt-3 text-ink-soft">
-              따로 짚어 드릴 코칭이 없습니다. 지금처럼 이어가 주세요.
-            </p>
-          )}
-        </Card>
-      </div>
+      <section>
+        <EyebrowLabel>다시 볼 것 (최대 두 가지)</EyebrowLabel>
+        {coachings.length > 0 ? (
+          <ul className="chim-hairline mt-1.5">
+            {coachings.map((coaching) => (
+              <li key={coaching} className="flex gap-2.5 py-2.5 text-[14px] leading-[1.6] text-ink">
+                <StatusMark kind="coach" size="sm" />
+                <span className="min-w-0 flex-1">{coaching}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-1.5 text-[14px] leading-[1.65] text-ink-soft">
+            따로 짚어 드릴 코칭이 없습니다. 지금처럼 이어가 주세요.
+          </p>
+        )}
+      </section>
 
-      <Card>
-        <h3 className="chim-label font-extrabold text-ink">이 판정의 근거 문서</h3>
-        <div className="mt-3 flex flex-wrap gap-2">
+      <section>
+        <EyebrowLabel>이 판정의 근거 문서</EyebrowLabel>
+        <div className="mt-1.5 flex flex-wrap gap-2">
           {scenario.sourceDocs.map((docId) => (
             <SourceChip key={docId} docId={docId} />
           ))}
         </div>
-        <p className="chim-caption mt-3 leading-relaxed text-ink-muted">
+        <p className="mt-2 text-[12px] leading-[1.65] text-ink-muted">
           이 세션은 기기 안(브라우저 저장소)에만 남습니다. 말씀하신 발화 원문은 저장하지 않고,
           충족·코칭 문구와 시각만 기록합니다.
         </p>
-      </Card>
+      </section>
 
-      {/* 다음 훈련 추천 — 재시도 판정이 아닐 때는 다음 행동 바로 앞에 조각으로 섭니다. */}
-      {suggestion && verdict !== "재시도" && <NextTrainingSuggestion pick={suggestion} />}
+      {suggestion && <NextTrainingSuggestion pick={suggestion} />}
 
-      {/* 다음 행동 — 다시 하기가 주인공이고, 나머지 셋은 같은 무게로 뒤에 섭니다(§2). */}
-      <div className="space-y-3">
+      {/* 다음 행동 — 다시 하기가 주인공이고, 나머지는 같은 무게로 뒤에 섭니다. */}
+      <div className="space-y-2">
         <BigButton onClick={onRestart} size="lg" block>
           재시도 · 벌점 없이 다시 하기
         </BigButton>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <BigButton href="/history" variant="secondary" block>
-            성장 기록에서 보기
-          </BigButton>
-          <BigButton href="/report" variant="secondary" block>
-            보고·기록으로 이어서 연습하기
-          </BigButton>
-          <BigButton href="/train" variant="secondary" block>
-            다른 상황 고르기
-          </BigButton>
-        </div>
+        <BigButton href="/history" variant="secondary" block>
+          성장 기록에서 보기
+        </BigButton>
+        <BigButton href="/report" variant="secondary" block>
+          보고·기록으로 이어서 연습하기
+        </BigButton>
+        <BigButton href="/train" variant="secondary" block>
+          다른 상황 고르기
+        </BigButton>
       </div>
-
-      {/* 재시도 판정에서는 다시 하기가 주인공이라, 추천을 뒤로 물려 한 줄로만 둡니다. */}
-      {suggestion && verdict === "재시도" && <NextTrainingSuggestion pick={suggestion} compact />}
     </div>
   );
 }

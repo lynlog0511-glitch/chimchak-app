@@ -1,13 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { BigButton, Card } from "@/components";
-import { IconChevronDown, IconMic, IconWave, StatusMark } from "@/components/icons";
+import { BigButton, InlineDisclaimer, MicButton, StatusDot, WaveBars } from "@/components";
 import { cx } from "@/components/utils";
 import { cueOptions } from "@/engine";
 import { createRecognizer, stopSpeaking, type Recognizer } from "@/lib/speech";
 import type { CueDef, Scenario, SessionState } from "@/types";
-import { isReportCue } from "./sessionMachine";
 import { RecordDraftPreview } from "./RecordDraftPreview";
 import {
   RULE_DEMO_HINT,
@@ -17,6 +15,7 @@ import {
   ruleDemoExamplesFor,
   type RuleDemoExample,
 } from "./ruleDemoExamples";
+import { isReportCue } from "./sessionMachine";
 
 export interface CueResponderProps {
   scenario: Scenario;
@@ -27,6 +26,8 @@ export interface CueResponderProps {
   /** 음성 인식 가능 여부 (마운트 후 판정된 값) */
   micSupported: boolean;
   onSubmit: (input: { utterance?: string; branchId?: string; viaButton: boolean }) => void;
+  /** 말하는 중(시안 4b)일 때 본문을 흐리게 하려고 부모에게 알립니다 */
+  onListeningChange?: (listening: boolean) => void;
 }
 
 /** 마이크 첫 사용 안내를 이미 보셨는지 기억하는 자리 (기기 안에만 남습니다) */
@@ -51,12 +52,14 @@ function useCountdown(seconds: number, resetKey: string): number {
 }
 
 /**
- * CUE 응답 입력부.
+ * 입력 도크 (시안 4a 하단 · 4b 말하는 중).
  *
  * 세 가지 길을 항상 동시에 열어 둡니다.
- *  ① 마이크를 누르고 있는 동안 말하기 → 인식된 문장을 확인한 뒤 전송
- *  ② 보기 버튼 (마이크가 없어도 끝까지 완주할 수 있게 하는 1급 시민)
- *  ③ 직접 입력
+ *  ① 마이크를 누르고 있는 동안 말하기 → 인식된 문장을 **보내기 전에 고친 뒤** 전송
+ *  ② 제안 버튼 (마이크가 없어도 끝까지 완주할 수 있게 하는 1급 시민)
+ *  ③ 직접 입력 pill → 누르면 확장되는 입력창
+ *
+ * 도크는 화면 아래에 붙어 있고, 대화 본문은 그 위에서 따로 스크롤합니다.
  */
 export function CueResponder({
   scenario,
@@ -65,9 +68,11 @@ export function CueResponder({
   attempt,
   micSupported,
   onSubmit,
+  onListeningChange,
 }: CueResponderProps) {
   const [text, setText] = useState("");
   const [listening, setListening] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [micIntroOpen, setMicIntroOpen] = useState(false);
   const [micPermission, setMicPermission] = useState<MicPermission>("unknown");
@@ -89,30 +94,12 @@ export function CueResponder({
   const resetKey = `${cue.id}-${attempt}`;
   const secondsLeft = useCountdown(cue.waitSec, resetKey);
   const timeUp = secondsLeft <= 0;
-
-  /* ── 진행 표시 — 점수가 아니라 '지금 몇 번째 상황인가'입니다 ── */
-
-  // 분모는 cue가 붙은 턴 수(대략치)입니다. 고르신 분기에 따라 실제로 지나는 상황 수는 달라집니다.
-  const cueTurnCount = useMemo(
-    () => scenario.turns.filter((turn) => Boolean(turn.cue)).length,
-    [scenario],
-  );
-  const answeredCueIds = useMemo(() => {
-    const seen = new Set<string>();
-    for (const event of session.events) {
-      if (event.cueId) seen.add(event.cueId);
-    }
-    return seen;
-  }, [session.events]);
-  // 같은 CUE를 다시 하고 계시면 번호가 되돌아가지 않도록 이미 센 것으로 봅니다.
-  const stepIndex = answeredCueIds.has(cue.id)
-    ? Math.max(1, answeredCueIds.size)
-    : answeredCueIds.size + 1;
-  const stepTotal = Math.max(cueTurnCount, stepIndex);
-  const stepRatio = stepTotal > 0 ? Math.min(1, stepIndex / stepTotal) : 0;
+  /** 입력창이 열려 있는 상태 — 인식 결과가 들어오면 저절로 열립니다(전송 전 확인). */
+  const composing = expanded || text.trim().length > 0;
 
   useEffect(() => {
     setText("");
+    setExpanded(false);
     setNotice(null);
     setFilledExampleId(null);
   }, [resetKey]);
@@ -122,6 +109,14 @@ export function CueResponder({
       recognizerRef.current?.stop();
     };
   }, []);
+
+  /** 말하는 중 상태를 부모(세션 화면)에게 알립니다 — 본문을 흐리게 하는 신호입니다. */
+  useEffect(() => {
+    onListeningChange?.(listening);
+    return () => {
+      if (listening) onListeningChange?.(false);
+    };
+  }, [listening, onListeningChange]);
 
   /** 세션 최초 1회 마이크 안내 — 기기에 본 적 있음이 남아 있으면 띄우지 않습니다. */
   useEffect(() => {
@@ -147,7 +142,7 @@ export function CueResponder({
 
   /**
    * 마이크 권한이 아직 정해지지 않았는지(prompt) 살펴 둡니다.
-   * permissions API가 없는 브라우저에서는 조용히 넘어가고, 안내 카드만으로 충분합니다.
+   * permissions API가 없는 브라우저에서는 조용히 넘어가고, 안내 문구만으로 충분합니다.
    */
   useEffect(() => {
     const permissions = typeof navigator === "undefined" ? undefined : navigator.permissions;
@@ -168,7 +163,7 @@ export function CueResponder({
         result.addEventListener("change", apply);
       })
       .catch(() => {
-        // 이 브라우저는 마이크 권한 조회를 지원하지 않습니다 — 안내 카드로 대신합니다.
+        // 이 브라우저는 마이크 권한 조회를 지원하지 않습니다 — 안내 문구로 대신합니다.
       });
 
     return () => {
@@ -182,7 +177,7 @@ export function CueResponder({
       recognizerRef.current = createRecognizer({
         onStart: () => {
           setListening(true);
-          setNotice("듣고 있습니다. 말씀이 끝나면 손을 떼 주세요.");
+          setNotice(null);
         },
         onResult: (result) => {
           setText(result);
@@ -204,7 +199,9 @@ export function CueResponder({
     stopSpeaking();
     const recognizer = ensureRecognizer();
     if (!recognizer.supported) {
-      setNotice("이 기기에서는 음성 인식을 쓸 수 없습니다. 아래 버튼이나 직접 입력으로 진행해 주세요.");
+      setNotice(
+        "이 기기에서는 음성 인식을 쓸 수 없습니다. 아래 버튼이나 직접 입력으로 진행해 주세요.",
+      );
       return;
     }
     setNotice(null);
@@ -226,18 +223,52 @@ export function CueResponder({
     if (micPermission === "prompt" && !micGraceUsedRef.current) {
       micGraceUsedRef.current = true;
       setNotice(
-        "브라우저가 마이크 사용을 허용할지 묻고 있습니다. ‘허용’을 누르신 뒤 버튼을 다시 눌러 말씀해 주세요. 마이크 없이 아래 보기 버튼만으로도 끝까지 진행하실 수 있습니다.",
+        "브라우저가 마이크 사용을 허용할지 묻고 있습니다. ‘허용’을 누르신 뒤 버튼을 다시 눌러 말씀해 주세요. 마이크 없이 아래 버튼만으로도 끝까지 진행하실 수 있습니다.",
       );
       return;
     }
     stopListening();
   }, [micPermission, stopListening]);
 
+  /** 누르고 있는 동안 — 버튼이 52px↔64px로 자리를 옮겨도 손을 뗀 것을 놓치지 않기 위한 표시 */
+  const pressingRef = useRef(false);
+
+  const beginPress = useCallback(() => {
+    pressingRef.current = true;
+    startListening();
+  }, [startListening]);
+
+  const endPress = useCallback(() => {
+    if (!pressingRef.current) return;
+    pressingRef.current = false;
+    releaseMic();
+  }, [releaseMic]);
+
+  /**
+   * 손을 떼는 순간 마이크 버튼은 64px에서 52px 자리로 되돌아갑니다.
+   * 그 사이 pointerup이 버튼 밖에서 일어나도 녹음이 끊기도록 창 전체에서 받습니다.
+   */
+  useEffect(() => {
+    const onUp = () => endPress();
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (event.key === " " || event.key === "Enter") endPress();
+    };
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+    window.addEventListener("keyup", onKeyUp);
+    return () => {
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      window.removeEventListener("keyup", onKeyUp);
+    };
+  }, [endPress]);
+
   const send = useCallback(() => {
     const utterance = text.trim();
     if (utterance.length === 0) return;
     stopListening();
     setText("");
+    setExpanded(false);
     setNotice(null);
     setFilledExampleId(null);
     onSubmit({ utterance, viaButton: false });
@@ -247,6 +278,7 @@ export function CueResponder({
     (branchId: string) => {
       stopListening();
       setText("");
+      setExpanded(false);
       setNotice(null);
       setFilledExampleId(null);
       onSubmit({ branchId, viaButton: true });
@@ -262,309 +294,348 @@ export function CueResponder({
     (example: RuleDemoExample) => {
       stopListening();
       setNotice(null);
+      setExpanded(true);
       setText(example.sentence);
       setFilledExampleId(example.id);
-      const node = textareaRef.current;
-      if (node) {
+      window.requestAnimationFrame(() => {
+        const node = textareaRef.current;
+        if (!node) return;
         node.focus();
         const caret = example.sentence.length;
         node.setSelectionRange(caret, caret);
-      }
+      });
     },
     [stopListening],
   );
 
-  const ratio = cue.waitSec > 0 ? Math.max(0, Math.min(1, secondsLeft / cue.waitSec)) : 0;
+  const openInput = useCallback(() => {
+    setExpanded(true);
+    window.requestAnimationFrame(() => textareaRef.current?.focus());
+  }, []);
+
+  /* ── 말하는 중 (시안 4b) ─────────────────────────────────── */
+
+  if (listening) {
+    return (
+      <div className="flex-none border-t border-line bg-paper">
+        <div className="px-[18px] pt-3.5 pb-7">
+          <p className="mb-3.5 text-[17px] leading-[1.5] font-bold text-ink">{cue.prompt}</p>
+
+          <div className="rounded-panel bg-paper-2 px-4 py-3.5">
+            <div className="mb-2 flex items-center gap-1.5">
+              <StatusDot tone="danger" size={8} />
+              <span className="text-[12.5px] leading-[1.4] font-bold text-ink-soft">
+                듣고 있어요
+              </span>
+              <WaveBars count={5} className="ml-auto" />
+            </div>
+            <p aria-live="polite" className="text-[16.5px] leading-[1.55] text-ink">
+              {text.trim().length > 0 ? (
+                <>
+                  <span aria-hidden>“</span>
+                  {text}
+                  <span className="text-tertiary" aria-hidden>
+                    …”
+                  </span>
+                </>
+              ) : (
+                <span className="text-tertiary">말씀을 기다리고 있어요</span>
+              )}
+              <span
+                aria-hidden
+                className="relative top-[3px] ml-0.5 inline-block h-[17px] w-[2px] bg-brand-600"
+              />
+            </p>
+          </div>
+
+          <div className="mt-3 mb-1.5 flex justify-center">
+            <MicButton
+              size="lg"
+              pressed
+              label="말하는 중 — 손을 떼면 전송 전 확인으로 넘어갑니다"
+              onPointerUp={endPress}
+              onPointerCancel={endPress}
+              onKeyUp={(event) => {
+                if (event.key === " " || event.key === "Enter") {
+                  event.preventDefault();
+                  endPress();
+                }
+              }}
+            />
+          </div>
+
+          <p className="text-center text-[13px] leading-[1.5] font-semibold text-ink-soft">
+            손을 떼면 전송돼요
+          </p>
+          <p className="mt-1 text-center text-[12px] leading-[1.5] text-tertiary">
+            잘못 들렸다면 보내기 전에 고칠 수 있어요
+          </p>
+
+          <InlineDisclaimer tone="readable" className="mt-3" />
+        </div>
+      </div>
+    );
+  }
+
+  /* ── 기본 (시안 4a) ──────────────────────────────────────── */
 
   return (
-    <Card className="space-y-5">
-      {/* 진행 표시 — 점수가 아니라 위치 안내입니다 (퍼센트·등급 표기 없음) */}
-      <div>
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          {/* 필 대신 그냥 작은 텍스트 — 진행 위치는 아래 막대가 이미 보여 줍니다(13~14px 크롬). */}
-          <span className="chim-meta font-bold text-brand-800">
-            {stepIndex}번째 상황 · 약 {stepTotal}개 중
-          </span>
-          <span className="chim-caption leading-relaxed text-ink-muted">
-            고르시는 길에 따라 상황 수는 달라질 수 있습니다
-          </span>
-        </div>
-        <div
-          className="mt-2 h-1.5 w-full overflow-hidden rounded-chip bg-line"
-          role="img"
-          aria-label={`약 ${stepTotal}개 상황 가운데 ${stepIndex}번째를 진행하고 있습니다`}
-        >
+    <div className="flex-none border-t border-line bg-paper">
+      <div className="max-h-[62dvh] overflow-y-auto px-[18px] pt-3.5 pb-7">
+        <div className="mb-3 flex items-baseline gap-2">
+          {/* 지시문은 코어 콘텐츠입니다 — 17px w700 (§3). */}
+          <h2 className="min-w-0 flex-1 text-[17px] leading-[1.5] font-bold text-ink">
+            {cue.prompt}
+          </h2>
+          {/* 재촉하지 않는 어휘의 카운트다운 — 시간이 지나도 자동으로 넘어가지 않습니다. */}
           <span
-            className="block h-full rounded-chip bg-brand-400 transition-[width] duration-300 ease-soft"
-            style={{ width: `${Math.round(stepRatio * 100)}%` }}
-          />
-        </div>
-      </div>
-
-      <div>
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          {/* 지시문은 코어 콘텐츠입니다 — 20px(모바일)/22px(md↑) bold (§3). */}
-          <h2 className="chim-cue min-w-0 flex-1 text-ink">{cue.prompt}</h2>
-          {/* 카운트다운은 크롬이라 조용하게 — 보더를 빼고 옅은 면 하나에 13px로 둡니다. */}
-          <span
-            className={cx(
-              "chim-caption chim-num shrink-0 rounded-chip px-2.5 py-1 font-bold",
-              timeUp ? "bg-warn-soft text-warn-ink" : "bg-paper-2 text-ink-muted",
-            )}
             aria-live="off"
+            className={cx(
+              "chim-num flex-none text-[12px] leading-[1.5] font-semibold",
+              timeUp ? "text-tertiary" : "text-extra-faint",
+            )}
           >
-            {timeUp ? "대기 시간이 지났습니다" : `남은 시간 ${secondsLeft}초`}
+            {timeUp ? "천천히 하셔도 됩니다" : `여유 ${secondsLeft}초`}
           </span>
         </div>
 
-        <div className="mt-2 h-2 w-full overflow-hidden rounded-chip bg-line" aria-hidden="true">
-          <span
-            className={cx(
-              "block h-full rounded-chip transition-[width] duration-1000 ease-linear",
-              timeUp ? "bg-warn" : "bg-brand-400",
-            )}
-            style={{ width: `${Math.round(ratio * 100)}%` }}
-          />
-        </div>
-
-        <p className="chim-caption mt-2 leading-relaxed text-ink-muted">
-          {timeUp
-            ? "시간이 지나도 자동으로 넘어가지 않습니다. 아래 보기 버튼 중 하나를 고르시거나 직접 답해 주세요."
-            : "천천히 하셔도 됩니다. 시간이 지나도 자동으로 넘어가지 않습니다."}
-        </p>
-      </div>
-
-      {/* 마이크 첫 사용 안내 — 세션에서 처음 한 번만 나옵니다 */}
-      {micSupported && micIntroOpen && (
-        <div className="rounded-card bg-brand-50 p-4">
-          <h3 className="chim-label flex items-center gap-2 font-extrabold text-ink">
-            <IconMic className="h-5 w-5 text-brand-700" />
-            마이크를 처음 쓰실 때
-          </h3>
-          <p className="chim-meta mt-2 leading-relaxed text-ink-soft">
-            마이크 버튼을 누르면 브라우저가 마이크 허용을 물어봅니다. ‘허용’을 누르신 뒤 버튼을 다시
-            눌러 말씀해 주세요. 마이크 없이 아래 보기 버튼만으로도 끝까지 진행됩니다.
-          </p>
-          <div className="mt-3">
-            <BigButton onClick={closeMicIntro} variant="secondary" className="w-full sm:w-auto">
+        {/* 마이크 첫 사용 안내 — 세션에서 처음 한 번만 나옵니다 */}
+        {micSupported && micIntroOpen && (
+          <div className="mb-2.5 rounded-panel bg-tint px-4 py-3.5">
+            <h3 className="text-[13px] leading-[1.5] font-bold text-brand-800">
+              마이크를 처음 쓰실 때
+            </h3>
+            <p className="mt-1 text-[12.5px] leading-[1.6] text-ink-soft">
+              마이크 버튼을 누르면 브라우저가 마이크 허용을 물어봅니다. ‘허용’을 누르신 뒤 버튼을
+              다시 눌러 말씀해 주세요. 마이크 없이 아래 버튼만으로도 끝까지 진행됩니다.
+            </p>
+            <button
+              type="button"
+              onClick={closeMicIntro}
+              className="mt-2 min-h-[48px] w-full rounded-[14px] bg-white text-[15px] font-semibold text-ink"
+            >
               알겠습니다
-            </BigButton>
+            </button>
           </div>
-        </div>
-      )}
-
-      {/* ① 말하기 — 카드 안 보조 면은 paper-2 하나로 끝냅니다(§7). */}
-      <div className="rounded-card bg-paper-2 p-4">
-        <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
-          <button
-            type="button"
-            aria-pressed={listening}
-            aria-label="누르고 있는 동안 말하기"
-            disabled={!micSupported}
-            onPointerDown={(event) => {
-              event.preventDefault();
-              startListening();
-            }}
-            onPointerUp={releaseMic}
-            onPointerCancel={stopListening}
-            onPointerLeave={() => {
-              if (listening) releaseMic();
-            }}
-            onKeyDown={(event) => {
-              if (event.repeat) return;
-              if (event.key === " " || event.key === "Enter") {
-                event.preventDefault();
-                startListening();
-              }
-            }}
-            onKeyUp={(event) => {
-              if (event.key === " " || event.key === "Enter") {
-                event.preventDefault();
-                releaseMic();
-              }
-            }}
-            className={cx(
-              // 라벨은 CTA(코어)라 17px 하한을 지킵니다. 채움 버튼이므로 보더는 쓰지 않습니다(§5).
-              "inline-flex min-h-[72px] w-full shrink-0 items-center justify-center gap-3 rounded-field px-6 text-[1.0625rem] font-extrabold transition-colors duration-150 sm:w-auto",
-              listening
-                ? "bg-danger-ink text-white"
-                : "bg-brand-700 text-white hover:bg-brand-800",
-              !micSupported && "cursor-not-allowed bg-neutral-soft text-ink-muted",
-            )}
-          >
-            {listening ? (
-              <IconWave className="h-7 w-7 shrink-0" />
-            ) : (
-              <IconMic className="h-7 w-7 shrink-0" />
-            )}
-            <span>{listening ? "듣고 있습니다 — 손을 떼면 끝납니다" : "누르고 말하기"}</span>
-          </button>
-
-          <p className="chim-caption leading-relaxed text-ink-soft">
-            {micSupported
-              ? "버튼을 누르고 있는 동안 인식합니다. 손을 떼면 인식이 끝나고, 아래 칸에서 내용을 확인한 뒤 보내실 수 있습니다."
-              : "이 기기에서는 음성 인식을 쓸 수 없습니다. 아래 보기 버튼과 직접 입력만으로 끝까지 진행하실 수 있습니다."}
-          </p>
-        </div>
+        )}
 
         {notice && (
           <p
             role="status"
-            className="chim-meta mt-3 rounded-field bg-warn-soft px-3 py-2 leading-relaxed font-semibold text-warn-ink"
+            className="mb-2.5 rounded-[14px] bg-warn-soft px-3.5 py-2.5 text-[12.5px] leading-[1.6] font-semibold text-warn-ink"
           >
             {notice}
           </p>
         )}
 
-        {/* ③ 직접 입력 겸 인식 결과 확인 */}
-        <div className="mt-4">
-          <label htmlFor="cue-utterance" className="chim-label font-bold text-ink">
-            인식된 내용 확인 · 직접 입력
-          </label>
-          <textarea
-            id="cue-utterance"
-            ref={textareaRef}
-            value={text}
-            onChange={(event) => {
-              setText(event.target.value);
-              // 직접 손대신 뒤에는 "예시를 채웠습니다" 안내를 걷어 냅니다.
-              setFilledExampleId(null);
-            }}
-            rows={3}
-            placeholder="여기에 하실 말씀을 적으시거나, 마이크로 말씀하신 내용을 확인해 주세요."
-            /* 입력 필드는 보더를 유지하는 유일한 자리입니다(§5). 내가 말한 문장은 코어라 18px입니다. */
-            className="chim-core mt-2 w-full rounded-field border border-line-strong bg-white p-3 text-ink placeholder:text-ink-muted focus:border-brand-400"
-          />
-
-          {reportMode && text.trim().length > 0 && (
-            <RecordDraftPreview source={text} variant="live" className="mt-3" />
-          )}
-
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-            <BigButton onClick={send} disabled={text.trim().length === 0} size="lg" block>
-              이 내용으로 답하기
-            </BigButton>
-            <BigButton
-              onClick={() => {
-                setText("");
-                setFilledExampleId(null);
-              }}
-              variant="ghost"
-              disabled={text.length === 0}
-              className="shrink-0 whitespace-nowrap sm:w-auto"
-            >
-              지우기
-            </BigButton>
-          </div>
-
-          {/* 규칙 엔진 시연 장치 — 채우기만 하고 전송은 사용자가 직접 하십니다 */}
-          {demoExamples.length > 0 && (
-            /* 규칙 시연은 보조 장치입니다 — 전부 14px 이하 크롬으로 두어 응답 경로를 가리지 않게 합니다. */
-            <details className="group mt-4 rounded-card bg-white">
-              <summary className="chim-meta flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 rounded-card px-4 py-3 font-bold text-ink-soft hover:bg-brand-50 [&::-webkit-details-marker]:hidden">
-                <span>{RULE_DEMO_TITLE}</span>
-                <IconChevronDown className="h-5 w-5 shrink-0 text-ink-muted transition-transform duration-150 group-open:rotate-180" />
-              </summary>
-
-              <div className="border-t border-line p-4">
-                <p className="chim-caption leading-relaxed font-semibold text-ink-soft">
-                  {RULE_DEMO_NOTE}
-                </p>
-                <p className="chim-caption mt-1 leading-relaxed text-ink-muted">{RULE_DEMO_HINT}</p>
-
-                <ul className="mt-3 space-y-3">
-                  {demoExamples.map((example) => (
-                    <li key={example.id}>
-                      <button
-                        type="button"
-                        onClick={() => fillExample(example)}
-                        className={cx(
-                          "w-full rounded-field px-4 py-3 text-left transition-colors duration-150",
-                          filledExampleId === example.id
-                            ? "bg-brand-50"
-                            : "bg-paper-2 hover:bg-brand-50",
-                        )}
-                      >
-                        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                          {/* 칩을 걷어내고 판정 마크로 대신합니다 — 표기 문구는 그대로입니다. */}
-                          {example.kind === "critical" ? (
-                            <StatusMark kind="stop" size="sm" label="⚑CF 전면 정지" />
-                          ) : (
-                            <StatusMark kind="coach" size="sm" label="코칭" />
-                          )}
-                          {/* 세로줄 액센트 없이 여백만으로 나눕니다(§1-2). */}
-                          <span className="chim-caption font-bold text-ink-muted">
-                            {example.ruleId} · {example.itemId} {example.ruleLabel}
-                          </span>
-                        </span>
-                        <span className="chim-meta mt-1.5 block leading-relaxed font-semibold text-ink">
-                          “{example.sentence}”
-                        </span>
-                      </button>
-                      <p className="chim-caption mt-1 px-1 leading-relaxed text-ink-muted">
-                        {example.expectation}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-
-                {!demoExamples.some((example) => example.kind === "critical") && (
-                  <p className="chim-caption mt-3 rounded-field bg-paper-2 px-3 py-2 leading-relaxed text-ink-muted">
-                    {RULE_DEMO_NO_CRITICAL_NOTE}
-                  </p>
-                )}
-
-                <p role="status" className="sr-only">
-                  {filledExample
-                    ? `${filledExample.ruleLabel} 예시 문장을 입력창에 채웠습니다. 보내시려면 이 내용으로 답하기 버튼을 눌러 주세요.`
-                    : ""}
-                </p>
-                {filledExample && (
-                  <p
-                    aria-hidden="true"
-                    className="chim-caption mt-3 rounded-field bg-brand-50 px-3 py-2 leading-relaxed font-semibold text-brand-800"
-                  >
-                    입력창에 채워 드렸습니다. 아직 보내지 않았습니다 — 위의 「이 내용으로 답하기」를
-                    누르시면 규칙 엔진이 판정합니다.
-                  </p>
-                )}
-              </div>
-            </details>
-          )}
-        </div>
-      </div>
-
-      {/* ② 버튼 폴백 — 항상 노출 */}
-      {options.length > 0 && (
-        <div
-          className={cx(
-            "rounded-card p-4 transition-colors duration-300",
-            timeUp ? "bg-warn-soft" : "bg-paper-2",
-          )}
-        >
-          <h3 className="chim-label font-extrabold text-ink">
-            말하기가 어려우시면, 이 중에서 골라 주세요
-          </h3>
-          <p className="chim-caption mt-1 leading-relaxed text-ink-muted">
-            버튼만으로도 끝까지 진행하실 수 있습니다.
-          </p>
-          {/* 보기 버튼 라벨은 CTA(코어)입니다 — 17px·터치 48px 이상을 지킵니다(§3·불변 규칙). */}
-          <ul className="mt-3 space-y-2.5">
+        {/* ② 제안 버튼 — 항상 노출되는 폴백입니다 */}
+        {options.length > 0 && (
+          <ul className="mb-2.5 flex flex-col gap-[7px]">
             {options.map((branch) => (
               <li key={branch.id}>
                 <button
                   type="button"
                   onClick={() => pick(branch.id)}
-                  className="min-h-[56px] w-full rounded-field bg-white px-4 py-3.5 text-left text-[1.0625rem] leading-relaxed font-semibold text-ink transition-colors duration-150 hover:bg-brand-50"
+                  className="min-h-[48px] w-full rounded-[14px] border border-line-strong bg-white px-[15px] py-2.5 text-left text-[15px] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2"
                 >
                   {branch.fallbackOption}
                 </button>
               </li>
             ))}
           </ul>
-        </div>
-      )}
-    </Card>
+        )}
+
+        {composing ? (
+          /* ③ 직접 입력 겸 인식 결과 확인 — 보내기 전에 고치실 수 있습니다 */
+          <div>
+            <label
+              htmlFor="cue-utterance"
+              className="block text-[12px] leading-[1.5] font-semibold text-ink-muted"
+            >
+              인식된 내용 확인 · 직접 입력
+            </label>
+            <textarea
+              id="cue-utterance"
+              ref={textareaRef}
+              value={text}
+              onChange={(event) => {
+                setText(event.target.value);
+                // 직접 손대신 뒤에는 "예시를 채웠습니다" 안내를 걷어 냅니다.
+                setFilledExampleId(null);
+              }}
+              rows={3}
+              placeholder="여기에 하실 말씀을 적으시거나, 말씀하신 내용을 확인해 주세요."
+              className="mt-1 w-full rounded-panel border border-line-strong bg-white px-3.5 py-3 text-[16.5px] leading-[1.55] text-ink placeholder:text-tertiary focus:border-brand-400"
+            />
+
+            {reportMode && text.trim().length > 0 && (
+              <RecordDraftPreview source={text} variant="live" className="mt-2.5" />
+            )}
+
+            <div className="mt-2.5 flex items-center gap-2">
+              <BigButton
+                onClick={send}
+                disabled={text.trim().length === 0}
+                block
+                className="min-w-0 flex-1"
+              >
+                이 내용으로 답하기
+              </BigButton>
+              <MicButton
+                label="누르고 있는 동안 말하기"
+                disabled={!micSupported}
+                onPointerDown={(event) => {
+                  event.preventDefault();
+                  beginPress();
+                }}
+                onKeyDown={(event) => {
+                  if (event.repeat) return;
+                  if (event.key === " " || event.key === "Enter") {
+                    event.preventDefault();
+                    beginPress();
+                  }
+                }}
+              />
+            </div>
+
+            <div className="mt-1.5 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => {
+                  setText("");
+                  setFilledExampleId(null);
+                }}
+                disabled={text.length === 0}
+                className="min-h-[48px] px-1 text-[13px] font-semibold text-ink-muted disabled:opacity-45"
+              >
+                지우기
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setText("");
+                  setExpanded(false);
+                  setFilledExampleId(null);
+                }}
+                className="min-h-[48px] px-1 text-[13px] font-semibold text-ink-muted"
+              >
+                입력창 접기
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* 대기 — 입력 pill + 마이크 (시안 4a) */
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={openInput}
+              className="h-12 min-w-0 flex-1 rounded-[24px] bg-paper-2 px-4 text-left text-[14.5px] text-tertiary"
+            >
+              직접 입력…
+            </button>
+            <MicButton
+              label="누르고 있는 동안 말하기"
+              disabled={!micSupported}
+              onPointerDown={(event) => {
+                event.preventDefault();
+                beginPress();
+              }}
+              onKeyDown={(event) => {
+                if (event.repeat) return;
+                if (event.key === " " || event.key === "Enter") {
+                  event.preventDefault();
+                  beginPress();
+                }
+              }}
+            />
+          </div>
+        )}
+
+        {!micSupported && (
+          <p className="mt-2 text-[12px] leading-[1.6] text-ink-muted">
+            이 기기에서는 음성 인식을 쓸 수 없습니다. 위 버튼과 직접 입력만으로 끝까지 진행하실 수
+            있습니다.
+          </p>
+        )}
+
+        {/* 규칙 엔진 시연 장치 — 채우기만 하고 전송은 사용자가 직접 하십니다 */}
+        {demoExamples.length > 0 && (
+          <details className="group mt-2.5">
+            <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 text-[12.5px] font-semibold text-ink-muted [&::-webkit-details-marker]:hidden">
+              <span>{RULE_DEMO_TITLE}</span>
+              <span
+                aria-hidden
+                className="text-[12px] text-faint transition-transform duration-150 group-open:rotate-180"
+              >
+                ⌄
+              </span>
+            </summary>
+
+            <div className="border-t border-line pt-3 pb-1">
+              <p className="text-[12px] leading-[1.6] font-semibold text-ink-soft">
+                {RULE_DEMO_NOTE}
+              </p>
+              <p className="mt-1 text-[12px] leading-[1.6] text-ink-muted">{RULE_DEMO_HINT}</p>
+
+              <ul className="mt-2.5 space-y-2.5">
+                {demoExamples.map((example) => (
+                  <li key={example.id}>
+                    <button
+                      type="button"
+                      onClick={() => fillExample(example)}
+                      className={cx(
+                        "w-full rounded-[14px] px-3.5 py-3 text-left transition-colors duration-150",
+                        filledExampleId === example.id ? "bg-tint" : "bg-paper-2 hover:bg-tint",
+                      )}
+                    >
+                      <span className="block text-[11.5px] leading-[1.5] font-bold text-ink-muted">
+                        {example.kind === "critical" ? "즉시 중단" : "코칭"} · {example.ruleId} ·{" "}
+                        {example.itemId} {example.ruleLabel}
+                      </span>
+                      <span className="mt-1 block text-[13.5px] leading-[1.55] font-semibold text-ink">
+                        “{example.sentence}”
+                      </span>
+                    </button>
+                    <p className="mt-1 px-1 text-[12px] leading-[1.6] text-ink-muted">
+                      {example.expectation}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+
+              {!demoExamples.some((example) => example.kind === "critical") && (
+                <p className="mt-2.5 rounded-[14px] bg-paper-2 px-3.5 py-2.5 text-[12px] leading-[1.6] text-ink-muted">
+                  {RULE_DEMO_NO_CRITICAL_NOTE}
+                </p>
+              )}
+
+              <p role="status" className="sr-only">
+                {filledExample
+                  ? `${filledExample.ruleLabel} 예시 문장을 입력창에 채웠습니다. 보내시려면 이 내용으로 답하기 버튼을 눌러 주세요.`
+                  : ""}
+              </p>
+              {filledExample && (
+                <p
+                  aria-hidden
+                  className="mt-2.5 rounded-[14px] bg-tint px-3.5 py-2.5 text-[12px] leading-[1.6] font-semibold text-brand-800"
+                >
+                  입력창에 채워 드렸습니다. 아직 보내지 않았습니다 — 위의 「이 내용으로 답하기」를
+                  누르시면 규칙 엔진이 판정합니다.
+                </p>
+              )}
+            </div>
+          </details>
+        )}
+
+        {timeUp && (
+          <p className="mt-2 text-[12px] leading-[1.6] text-ink-muted">
+            시간이 지나도 자동으로 넘어가지 않습니다. 천천히 고르시거나 직접 답해 주세요.
+          </p>
+        )}
+
+        <InlineDisclaimer tone="readable" className="mt-2.5" />
+      </div>
+    </div>
   );
 }
 

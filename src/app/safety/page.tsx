@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Badge, BigButton, Card, PageShell, cx } from "@/components";
-import { IconAlert, IconChevronDown, IconInfo, StatusMark } from "@/components/icons";
+import { BigButton, InlineDisclaimer, PageShell, ScreenHeader, cx } from "@/components";
+import { StatusMark } from "@/components/icons";
 import { DocWhitelist } from "./_components/DocWhitelist";
 import { EvidenceFlow } from "./_components/EvidenceFlow";
 import { LiveProofPanel } from "./_components/LiveProofPanel";
@@ -13,10 +13,15 @@ export const metadata: Metadata = {
     "3계층 생성통제, 기록 코칭 개인정보 경로, 폴백 매트릭스, 근거 문서 화이트리스트, 의료기기 경계, 접근권한 3등급",
 };
 
-/* ── 페이지 전용 조각 ──────────────────────────────────────────
-   이 페이지는 카드 대신 여백과 옅은 면으로 정리합니다(v3 §7).
-   크기 체계(v3 §3): 섹션 제목 24~28 · 본문 16 · 표 15 · 캡션 13.
-   왼쪽 액센트 바는 전면 금지라, 강조는 배경 면과 [아이콘+라벨] 한 줄로만 만듭니다(§1-2·§5). */
+/* ── 안전·개인정보 설계 ────────────────────────────────────────
+   시안에 없는 화면이라 v4 §2 공통 문법으로 전개했습니다 —
+   22px 제목 헤더 + 번호 아이브로 + 면 카드(r14) + hairline 행, 그림자 없음.
+
+   내용은 v3와 같습니다(라이브 계측 · 3계층 · 개인정보 경로 · 폴백 · 화이트리스트 ·
+   의료기기 경계 · 접근권한). 앱 프레임이 430px 고정이라 **표를 가로로 펼치지 않고**
+   행마다 [항목 제목 + 항목별 dt/dd]로 세워, 지면이 가로로 밀리지 않게 했습니다.
+   크기: 섹션 제목 17px w800 · 리드 13.5px · 본문 13.5px · 캡션 11.5px.
+   ─────────────────────────────────────────────────────────── */
 
 function Section({
   id,
@@ -32,26 +37,22 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section id={id} className="scroll-mt-24">
-      <div className="md:grid md:grid-cols-12 md:gap-x-10">
-        <div className="md:col-span-5">
-          <p className="chim-num chim-caption font-bold tracking-[0.2em] text-brand-700">{num}</p>
-          <h2 className="chim-h2 mt-1.5 text-ink">{title}</h2>
-        </div>
-        {lead && (
-          <p className="chim-body mt-4 text-ink-soft md:col-span-7 md:mt-0 md:pt-1 md:text-[1.0625rem]">
-            {lead}
-          </p>
-        )}
-      </div>
-      <div className="mt-8 md:mt-10">{children}</div>
+    <section id={id} className="scroll-mt-4">
+      <p className="chim-num text-[12px] leading-[1.5] font-bold tracking-[0.06em] text-ink-muted">
+        {num}
+      </p>
+      <h2 className="mt-[2px] text-[17px] leading-[1.4] font-extrabold tracking-[-0.01em] text-ink">
+        {title}
+      </h2>
+      {lead && <p className="mt-[6px] text-[13.5px] leading-[1.65] text-ink-soft">{lead}</p>}
+      <div className="mt-[14px]">{children}</div>
     </section>
   );
 }
 
 type NoteTone = "brand" | "warn" | "danger" | "quiet";
 
-/** 강조 블록의 바탕 — 색 면은 정말 위험한 것에만 쓰고 나머지는 회녹 보조 면으로 둡니다(§1-3). */
+/** 강조 블록의 바탕 — 색 면은 정말 위험한 것에만 쓰고 나머지는 surface(#f5f6f6)로 둡니다. */
 const NOTE_SURFACE: Record<NoteTone, string> = {
   brand: "bg-paper-2",
   warn: "bg-warn-soft",
@@ -59,7 +60,7 @@ const NOTE_SURFACE: Record<NoteTone, string> = {
   quiet: "bg-paper-2",
 };
 
-/** 제목·아이콘 색 — 작은 글자라 대비 4.5:1을 넘는 `*-ink` 계열만 씁니다. */
+/** 제목 색 — 작은 글자라 대비 4.5:1을 넘는 `*-ink` 계열만 씁니다. */
 const NOTE_HEAD: Record<NoteTone, string> = {
   brand: "text-brand-800",
   warn: "text-warn-ink",
@@ -68,11 +69,8 @@ const NOTE_HEAD: Record<NoteTone, string> = {
 };
 
 /**
- * 강조 블록 — **왼쪽 4px 바 없음**(v3 §1-2).
- * 형태 = 옅은 면 + (있으면) [아이콘 + 제목] 한 줄 + 본문.
- *
- * `collapsible`을 켜면 제목이 그대로 접이식 손잡이가 됩니다.
- * 문구를 새로 만들지 않고 긴 설명 문단만 기본 접힘으로 내리기 위한 장치입니다(§6).
+ * 강조 블록 — 면 하나 + (있으면) 제목 한 줄 + 본문. 보더·그림자·왼쪽 바 없음(v4 §2).
+ * `collapsible`을 켜면 제목이 그대로 접이식 손잡이가 되고, 손잡이 높이는 48px을 지킵니다.
  */
 function Note({
   tone = "brand",
@@ -87,101 +85,78 @@ function Note({
   children: ReactNode;
   className?: string;
 }) {
-  const Icon = tone === "warn" || tone === "danger" ? IconAlert : IconInfo;
   const headTone = NOTE_HEAD[tone];
 
   if (title && collapsible) {
     return (
-      <details className={cx("group rounded-card", NOTE_SURFACE[tone], className)}>
-        <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-2 px-5 py-3 md:px-6 [&::-webkit-details-marker]:hidden">
-          <Icon className={cx("h-5 w-5 shrink-0", headTone)} />
-          <span className={cx("text-[1.0625rem] font-extrabold", headTone)}>{title}</span>
-          <IconChevronDown className="ml-auto h-5 w-5 shrink-0 text-ink-muted transition-transform duration-150 ease-soft group-open:rotate-180" />
+      <details className={cx("group rounded-[14px]", NOTE_SURFACE[tone], className)}>
+        <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-2 px-[15px] py-[12px] [&::-webkit-details-marker]:hidden">
+          <span className={cx("min-w-0 flex-1 text-[14px] leading-[1.45] font-extrabold", headTone)}>
+            {title}
+          </span>
+          <span
+            aria-hidden
+            className="flex-none text-[17px] leading-none text-faint transition-transform duration-150 ease-soft group-open:rotate-90"
+          >
+            ›
+          </span>
         </summary>
-        <div className="px-5 pb-5 md:px-6 md:pb-6">{children}</div>
+        <div className="px-[15px] pb-[14px]">{children}</div>
       </details>
     );
   }
 
   return (
-    <div className={cx("rounded-card p-5 md:p-6", NOTE_SURFACE[tone], className)}>
+    <div className={cx("rounded-[14px] px-[15px] py-[14px]", NOTE_SURFACE[tone], className)}>
       {title && (
-        <p className={cx("flex items-center gap-2 text-[1.0625rem] font-extrabold", headTone)}>
-          <Icon className="h-5 w-5 shrink-0" />
-          {title}
-        </p>
+        <p className={cx("text-[14px] leading-[1.45] font-extrabold", headTone)}>{title}</p>
       )}
-      <div className={cx(title && "mt-2")}>{children}</div>
+      <div className={cx(title && "mt-[6px]")}>{children}</div>
     </div>
   );
 }
 
+interface DataRow {
+  /** 행의 이름 — 표의 첫 칸에 해당합니다(「L1 · 훈련」·「서버 전면 장애」). */
+  head: ReactNode;
+  /** `columns`와 같은 길이의 값들 */
+  cells: ReactNode[];
+}
+
 /**
- * 반응형 표.
- * 데스크톱은 상자 없이 hairline 행으로, 모바일에서는 항목별로 쌓아 읽게 합니다.
- * 표 글자는 15px입니다 — 본문(16)보다 한 단 낮춰 표가 지면을 덮지 않게 합니다(§3).
+ * 표 — 430px 앱 프레임에서는 열을 가로로 펼치지 않고 **행마다 세워** 읽습니다.
+ * 가로 스크롤이 생기지 않으므로 지면이 옆으로 밀리지 않습니다.
  */
-function DataTable({
+function DataRows({
   caption,
   columns,
   rows,
 }: {
   caption: string;
   columns: string[];
-  rows: ReactNode[][];
+  rows: DataRow[];
 }) {
   return (
-    <>
-      {/* 데스크톱 */}
-      <div className="hidden md:block">
-        <table className="w-full border-collapse text-left">
-          <caption className="sr-only">{caption}</caption>
-          <thead>
-            <tr>
-              {columns.map((c) => (
-                <th
-                  key={c}
-                  scope="col"
-                  className="border-b border-line-strong px-3 pb-3 text-[0.9375rem] font-extrabold text-ink first:pl-0 last:pr-0"
-                >
-                  {c}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, ri) => (
-              <tr key={ri} className="align-top">
-                {r.map((cell, ci) => (
-                  <td
-                    key={ci}
-                    className="border-b border-line px-3 py-4 text-[0.9375rem] leading-relaxed text-ink first:pl-0 last:pr-0"
-                  >
-                    {cell}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* 모바일 */}
-      <ul className="border-b border-line md:hidden">
-        {rows.map((r, ri) => (
-          <li key={ri} className="border-t border-line py-4">
-            <dl className="space-y-3">
-              {r.map((cell, ci) => (
-                <div key={ci}>
-                  <dt className="chim-caption font-bold text-ink-muted">{columns[ci]}</dt>
-                  <dd className="mt-1 text-[0.9375rem] leading-relaxed text-ink">{cell}</dd>
+    <div>
+      <p className="sr-only">{caption}</p>
+      <ul className="chim-hairline border-y border-line">
+        {rows.map((row, ri) => (
+          <li key={ri} className="py-[14px]">
+            <p className="text-[14.5px] leading-[1.45] font-extrabold text-ink">{row.head}</p>
+            <dl className="mt-[7px]">
+              {row.cells.map((cell, ci) => (
+                <div key={ci} className={ci > 0 ? "mt-[8px]" : undefined}>
+                  <dt className="text-[11.5px] leading-[1.4] font-bold tracking-[0.04em] text-ink-muted">
+                    {columns[ci]}
+                  </dt>
+                  <dd className="mt-[2px] text-[13.5px] leading-[1.6] text-ink">{cell}</dd>
                 </div>
               ))}
             </dl>
           </li>
         ))}
       </ul>
-    </>
+    </div>
   );
 }
 
@@ -238,13 +213,18 @@ const COACH = <StatusMark kind="coach" label="코칭" size="sm" quiet />;
 
 export default function SafetyPage() {
   return (
-    <PageShell
-      eyebrow="안전 설계"
-      title="잘 답하는 AI보다, 안전하게 멈추는 AI"
-      description="침착은 공식 근거가 확인된 범위에서만 피드백하고, 근거가 부족하거나 실제 응급 상황에서는 생성 대신 검수된 안내를 내보냅니다. 아래는 그 경계를 어디에 그었는지에 대한 기록입니다."
-      wide
-    >
-      <div className="space-y-16 md:space-y-24">
+    <PageShell>
+      <ScreenHeader
+        title="안전 설계"
+        subtitle="잘 답하는 AI보다, 안전하게 멈추는 AI — 근거가 없으면 만들지 않습니다"
+      />
+
+      <p className="mt-[10px] text-[13.5px] leading-[1.65] text-ink-soft">
+        침착은 공식 근거가 확인된 범위에서만 피드백하고, 근거가 부족하거나 실제 응급 상황에서는
+        생성 대신 검수된 안내를 내보냅니다. 아래는 그 경계를 어디에 그었는지에 대한 기록입니다.
+      </p>
+
+      <div className="mt-[22px] space-y-[30px]">
         {/* 0. 라이브 증명 — 주장보다 먼저 계측치를 보여 줍니다 */}
         <LiveProofPanel />
 
@@ -257,48 +237,48 @@ export default function SafetyPage() {
         >
           <EvidenceFlow />
 
-          <div className="mt-12 md:mt-16">
-            <DataTable
+          <div className="mt-6">
+            <DataRows
               caption="생성 통제 3계층"
-              columns={["계층", "적용 구간", "AI가 하는 일", "AI가 하지 않는 일", "근거가 없을 때"]}
+              columns={["적용 구간", "AI가 하는 일", "AI가 하지 않는 일", "근거가 없을 때"]}
               rows={[
-                [
-                  <Badge key="l1" tone="brand" variant="outline">
-                    L1 · 훈련
-                  </Badge>,
-                  "시나리오 대화",
-                  "어르신·보호자 역 대사를 대본 범위 안에서 재생·변주합니다.",
-                  "대본 밖 상황을 지어내지 않고, 실존 인물·기관을 언급하지 않습니다.",
-                  "이탈이 감지되면 검수된 고정 대사로 되돌립니다.",
-                ],
-                [
-                  <Badge key="l2" tone="warn" variant="outline">
-                    L2 · 채점
-                  </Badge>,
-                  "턴별 피드백",
-                  "검색된 근거 문서 안에서만 코칭 문장을 만듭니다.",
-                  "근거 없는 판정이나 추측을 내놓지 않습니다.",
-                  "생성을 중단하고 「공식 지침에서 근거를 찾지 못했습니다. 담당 간호사 또는 기관에 확인해 주세요.」로 넘깁니다.",
-                ],
-                [
-                  <Badge key="l3" tone="danger" variant="outline">
-                    L3 · 실전 응급
-                  </Badge>,
-                  "응급 프로토콜",
-                  "없습니다. 생성 호출이 0건입니다.",
-                  "생성·요약·변형을 전부 하지 않습니다.",
-                  "해당 없음 — 처음부터 사전 검수된 고정 스크립트만 재생하고 119 안내를 최우선으로 띄웁니다.",
-                ],
+                {
+                  head: "L1 · 훈련",
+                  cells: [
+                    "시나리오 대화",
+                    "어르신·보호자 역 대사를 대본 범위 안에서 재생·변주합니다.",
+                    "대본 밖 상황을 지어내지 않고, 실존 인물·기관을 언급하지 않습니다.",
+                    "이탈이 감지되면 검수된 고정 대사로 되돌립니다.",
+                  ],
+                },
+                {
+                  head: "L2 · 채점",
+                  cells: [
+                    "턴별 피드백",
+                    "검색된 근거 문서 안에서만 코칭 문장을 만듭니다.",
+                    "근거 없는 판정이나 추측을 내놓지 않습니다.",
+                    "생성을 중단하고 「공식 지침에서 근거를 찾지 못했습니다. 담당 간호사 또는 기관에 확인해 주세요.」로 넘깁니다.",
+                  ],
+                },
+                {
+                  head: "L3 · 실전 응급",
+                  cells: [
+                    "응급 프로토콜",
+                    "없습니다. 생성 호출이 0건입니다.",
+                    "생성·요약·변형을 전부 하지 않습니다.",
+                    "해당 없음 — 처음부터 사전 검수된 고정 스크립트만 재생하고 119 안내를 최우선으로 띄웁니다.",
+                  ],
+                },
               ]}
             />
           </div>
 
-          <Note tone="danger" className="mt-8">
-            <p className="chim-body font-bold text-danger-ink">
+          <Note tone="danger" className="mt-4">
+            <p className="text-[13.5px] leading-[1.65] font-bold text-danger-ink">
               응급 화면에는 「이 안내는 사전 검수된 고정 문구입니다 · AI 생성 아님」을 상시
               표시하고, 119 버튼을 항상 노출합니다.
             </p>
-            <p className="chim-body mt-2 text-ink">
+            <p className="mt-[6px] text-[13.5px] leading-[1.65] text-ink">
               몸에 손이 닿는 술기는 화면으로 지도하지 않습니다. 해당 구간에서는 「이 부분은 119
               상황실이 목소리로 직접 지도합니다」로 넘깁니다.
             </p>
@@ -312,35 +292,35 @@ export default function SafetyPage() {
           title="털릴 데이터를 처음부터 만들지 않았습니다"
           lead="훈련에서 대화하는 상대는 전부 가상 인물이라, 훈련 단계에서는 개인정보 수집 자체가 일어나지 않습니다. 실제 어르신의 정보가 지나가는 길은 기록 코칭 하나뿐이고, 그 길에는 가명처리 관문이 두 개 있습니다."
         >
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="rounded-card bg-paper-2 p-5">
-              <p className="chim-body font-extrabold text-brand-800">훈련 경로</p>
-              <p className="chim-body mt-1.5 text-ink">
+          <div className="space-y-[8px]">
+            <div className="rounded-[14px] bg-paper-2 px-[15px] py-[14px]">
+              <p className="text-[14px] leading-[1.45] font-extrabold text-brand-800">훈련 경로</p>
+              <p className="mt-[6px] text-[13.5px] leading-[1.65] text-ink">
                 상대는 전부 가상 인물이고 개인정보 입력란이 존재하지 않습니다. 외부 전송 0건.
               </p>
             </div>
-            <div className="rounded-card bg-paper-2 p-5">
-              <p className="chim-body font-extrabold text-ink">이 데모에서의 동작</p>
-              <p className="chim-body mt-1.5 text-ink">
+            <div className="rounded-[14px] bg-paper-2 px-[15px] py-[14px]">
+              <p className="text-[14px] leading-[1.45] font-extrabold text-ink">
+                이 데모에서의 동작
+              </p>
+              <p className="mt-[6px] text-[13.5px] leading-[1.65] text-ink">
                 세션 기록은 이 기기의 브라우저 저장소에만 남습니다. 발화 원문은 저장하지 않고,
                 화면을 벗어나는 순간 사라집니다.
               </p>
             </div>
           </div>
 
-          <p className="chim-h3 mt-10 text-ink">
+          <p className="mt-6 text-[14.5px] leading-[1.45] font-extrabold text-ink">
             기록 코칭 경로 — 개인정보는 이 한 줄로만 움직입니다
           </p>
 
-          <MaskingPipeline steps={PRIVACY_STEPS} className="mt-5" />
+          <MaskingPipeline steps={PRIVACY_STEPS} className="mt-[10px]" />
 
-          <Note tone="warn" className="mt-8">
-            <p className="chim-body font-bold text-warn-ink">
-              외부 경계 — 이 선을 넘어가는 것은 가명처리 2단을 통과한 텍스트뿐입니다.
-            </p>
-            <p className="chim-body mt-2 text-ink">
-              가명처리 대상은 성명·연락처·인정번호·주소·생년·기관명 6종이며, 처리 후에도
-              가명정보로 취급합니다. 확정 버튼을 누른 뒤에만 기관 시스템으로 보냅니다.
+          <Note tone="warn" title="외부 경계" className="mt-4">
+            <p className="text-[13.5px] leading-[1.65] text-ink">
+              이 선을 넘어가는 것은 가명처리 2단을 통과한 텍스트뿐입니다. 가명처리 대상은
+              성명·연락처·인정번호·주소·생년·기관명 6종이며, 처리 후에도 가명정보로 취급합니다.
+              확정 버튼을 누른 뒤에만 기관 시스템으로 보냅니다.
             </p>
           </Note>
         </Section>
@@ -352,38 +332,46 @@ export default function SafetyPage() {
           title="어느 구간이 죽어도 훈련은 멈추지 않습니다"
           lead="장애는 일어난다고 보고 설계했습니다. 각 구간이 멈췄을 때 세션을 유지하는 방법을 미리 정해 두었습니다."
         >
-          <DataTable
+          <DataRows
             caption="폴백 매트릭스 요약"
-            columns={["장애 상황", "즉시 폴백 (세션 유지)", "복구 · 검증"]}
+            columns={["즉시 폴백 (세션 유지)", "복구 · 검증"]}
             rows={[
-              [
-                "음성 인식 · 역할 대사 생성 장애",
-                <>
-                  버튼 UI로 전환합니다. 규칙 판정은 독립 경로라 {MET}·{COACH} 표시와 고정 대사가
-                  계속 나옵니다.
-                </>,
-                "음성 재시도, 교체형 어댑터로 즉시 우회합니다.",
-              ],
-              [
-                "근거 검색 실패",
-                "생성을 중단합니다. 근거 없는 답변은 내보내지 않습니다.",
-                "근거 커버리지를 재점검한 뒤 재개합니다.",
-              ],
-              [
-                "서버 전면 장애",
-                "훈련과 응급은 브라우저 캐시로 무중단 동작합니다. 119 버튼은 상시 노출됩니다.",
-                "서버 의존은 기록 업로드뿐이라 로컬 큐에 저장했다가 자동 재전송합니다.",
-              ],
-              [
-                "개인정보 유출 정황",
-                "해당 키를 즉시 폐기하고 기록 코칭만 차단합니다. 훈련 기능은 정상 유지됩니다.",
-                "24시간 내 정보주체·기관 통지, 요건 충족 시 관계기관 신고, 접속기록 1년 보관.",
-              ],
+              {
+                head: "음성 인식 · 역할 대사 생성 장애",
+                cells: [
+                  <>
+                    버튼 UI로 전환합니다. 규칙 판정은 독립 경로라 {MET}·{COACH} 표시와 고정 대사가
+                    계속 나옵니다.
+                  </>,
+                  "음성 재시도, 교체형 어댑터로 즉시 우회합니다.",
+                ],
+              },
+              {
+                head: "근거 검색 실패",
+                cells: [
+                  "생성을 중단합니다. 근거 없는 답변은 내보내지 않습니다.",
+                  "근거 커버리지를 재점검한 뒤 재개합니다.",
+                ],
+              },
+              {
+                head: "서버 전면 장애",
+                cells: [
+                  "훈련과 응급은 브라우저 캐시로 무중단 동작합니다. 119 버튼은 상시 노출됩니다.",
+                  "서버 의존은 기록 업로드뿐이라 로컬 큐에 저장했다가 자동 재전송합니다.",
+                ],
+              },
+              {
+                head: "개인정보 유출 정황",
+                cells: [
+                  "해당 키를 즉시 폐기하고 기록 코칭만 차단합니다. 훈련 기능은 정상 유지됩니다.",
+                  "24시간 내 정보주체·기관 통지, 요건 충족 시 관계기관 신고, 접속기록 1년 보관.",
+                ],
+              },
             ]}
           />
 
-          <Note tone="quiet" className="mt-8">
-            <p className="chim-body text-ink">
+          <Note tone="quiet" className="mt-4">
+            <p className="text-[13.5px] leading-[1.65] text-ink">
               마이크가 없거나 음성 인식이 되지 않는 환경에서도 모든 훈련을 버튼만으로 끝까지 진행할
               수 있습니다. 버튼 폴백은 예비 수단이 아니라 1급 경로입니다.
             </p>
@@ -399,16 +387,16 @@ export default function SafetyPage() {
         >
           <DocWhitelist />
 
-          <ol className="mt-10 border-b border-line">
+          <ol className="chim-hairline mt-6 border-y border-line">
             {DOC_RULES.map((r) => (
-              <li key={r.t} className="grid gap-x-8 border-t border-line py-4 md:grid-cols-12">
-                <p className="chim-body font-extrabold text-ink md:col-span-5">{r.t}</p>
-                <p className="chim-body mt-1 text-ink-soft md:col-span-7 md:mt-0">{r.d}</p>
+              <li key={r.t} className="py-[13px]">
+                <p className="text-[14px] leading-[1.45] font-extrabold text-ink">{r.t}</p>
+                <p className="mt-[3px] text-[13px] leading-[1.6] text-ink-soft">{r.d}</p>
               </li>
             ))}
           </ol>
 
-          <p className="chim-meta mt-5 text-ink-muted">
+          <p className="mt-[10px] text-[11.5px] leading-[1.6] text-tertiary">
             화면에서는 피드백마다 근거 출처 칩이 붙습니다. 칩을 누르면 어떤 문서인지 확인할 수
             있습니다.
           </p>
@@ -421,42 +409,40 @@ export default function SafetyPage() {
           title="의료기기 경계는 표현이 아니라 기능으로 지킵니다"
           lead="문구로 피해 가는 대신, 구조적으로 그 판단이 생기지 않게 만들었습니다."
         >
-          <dl className="grid border-b border-line sm:grid-cols-2 sm:gap-x-10">
+          <dl className="chim-hairline border-y border-line">
             {NOT_MEDICAL.map((n) => (
-              <div key={n.k} className="border-t border-line py-4">
-                <dt className="chim-body font-extrabold text-brand-800">{n.k}</dt>
-                <dd className="chim-body mt-1 text-ink">{n.v}</dd>
+              <div key={n.k} className="py-[13px]">
+                <dt className="text-[14px] leading-[1.45] font-extrabold text-brand-800">{n.k}</dt>
+                <dd className="mt-[3px] text-[13.5px] leading-[1.6] text-ink">{n.v}</dd>
               </div>
             ))}
           </dl>
 
-          {/* 접힌 블록이 옆 블록 높이에 끌려 늘어나지 않도록 items-start로 둡니다. */}
-          <div className="mt-8 grid items-start gap-3 md:grid-cols-2">
+          <div className="mt-4 space-y-[8px]">
             <Note tone="warn" title="전 화면 고정 고지" collapsible>
-              <p className="chim-body text-ink">
+              <p className="text-[13.5px] leading-[1.65] text-ink">
                 「본 서비스는 훈련·교육 목적이며 119 신고 및 의료인의 진단·처방을 대체하지
-                않습니다.」를 모든 화면 하단에 상시 표시합니다. 효과를 단정하는 표현, 임상 판정을
-                흉내 내는 표현, 처치를 지시하는 표현 등 8종은 금지 표현 목록으로 정해 두고 화면
-                문구에서 배제했습니다(알파는 작성 규율과 QA 점검으로 지키며, 노출 0건을
-                확인했습니다. 생성 문구 후검증 필터는 베타에서 붙입니다).
+                않습니다.」를 모든 화면에 표시합니다. 효과를 단정하는 표현, 임상 판정을 흉내 내는
+                표현, 처치를 지시하는 표현 등 8종은 금지 표현 목록으로 정해 두고 화면 문구에서
+                배제했습니다(알파는 작성 규율과 QA 점검으로 지키며, 노출 0건을 확인했습니다. 생성
+                문구 후검증 필터는 베타에서 붙입니다).
               </p>
             </Note>
             <Note tone="quiet" title="오채점은 비대칭으로 다룹니다" collapsible>
-              <p className="chim-body text-ink">
+              <p className="text-[13.5px] leading-[1.65] text-ink">
                 맞는 대응에 {COACH}을 주는 것보다, 틀린 대응에 {MET}을 주는 쪽이 훨씬 위험합니다.
                 후자는 0건을 목표로 합니다. 확신이 낮을 때 판정을 「보류」로 표시하는 단계는 설계에
                 넣어 두었고, 알파에서는 아직 구현하지 않았습니다. 대신 알파는 근거를 찾지 못하면
                 판정 대신 「공식 지침에서 근거를 찾지 못했습니다」를 띄웁니다.
               </p>
             </Note>
+            <Note tone="brand">
+              <p className="text-[13.5px] leading-[1.65] text-ink">
+                화면에는 점수·등급·순위·백분위를 표시하지 않습니다. {MET}과 {COACH} 두 가지, 코칭 한
+                문장, 근거 출처까지가 전부입니다.
+              </p>
+            </Note>
           </div>
-
-          <Note tone="brand" className="mt-3">
-            <p className="chim-body text-ink">
-              화면에는 점수·등급·순위·백분위를 표시하지 않습니다. {MET}과 {COACH} 두 가지, 코칭 한
-              문장, 근거 출처까지가 전부입니다.
-            </p>
-          </Note>
         </Section>
 
         {/* 6. 접근권한 3등급 */}
@@ -466,46 +452,46 @@ export default function SafetyPage() {
           title="접근권한 3등급"
           lead="내부 판정 결과가 인사평가로 흘러가면 아무도 솔직하게 실패하지 않습니다. 실패 없는 훈련은 효과가 0이 되기 때문에, 권한을 처음부터 나눠 두었습니다."
         >
-          <DataTable
+          <DataRows
             caption="접근권한 3등급"
-            columns={["등급", "볼 수 있는 것", "볼 수 없는 것", "추가 통제"]}
+            columns={["볼 수 있는 것", "볼 수 없는 것", "추가 통제"]}
             rows={[
-              [
-                <Badge key="u" tone="brand" variant="outline">
-                  사용자
-                </Badge>,
-                <>
-                  본인의 훈련 이력, {MET}·{COACH} 요약, 본인이 확정한 기록
-                </>,
-                "다른 사용자의 어떤 정보도 볼 수 없습니다.",
-                "발화 원문은 세션 안에서만 존재하고 저장되지 않습니다.",
-              ],
-              [
-                <Badge key="m" tone="neutral" variant="outline">
-                  기관 관리자
-                </Badge>,
-                "소속 인원의 이수 여부와 이수 일시",
-                "내부 판정 결과, 대화 전문, 발화 원문",
-                "인사평가 연동 금지를 계약으로 명시합니다.",
-              ],
-              [
-                <Badge key="o" tone="warn" variant="outline">
-                  운영자
-                </Badge>,
-                "장애 대응에 필요한 최소 범위",
-                "개인을 식별할 수 있는 원문",
-                "전건 접근 기록 + 2단계 인증. 접속기록 1년 보관.",
-              ],
+              {
+                head: "사용자",
+                cells: [
+                  <>
+                    본인의 훈련 이력, {MET}·{COACH} 요약, 본인이 확정한 기록
+                  </>,
+                  "다른 사용자의 어떤 정보도 볼 수 없습니다.",
+                  "발화 원문은 세션 안에서만 존재하고 저장되지 않습니다.",
+                ],
+              },
+              {
+                head: "기관 관리자",
+                cells: [
+                  "소속 인원의 이수 여부와 이수 일시",
+                  "내부 판정 결과, 대화 전문, 발화 원문",
+                  "인사평가 연동 금지를 계약으로 명시합니다.",
+                ],
+              },
+              {
+                head: "운영자",
+                cells: [
+                  "장애 대응에 필요한 최소 범위",
+                  "개인을 식별할 수 있는 원문",
+                  "전건 접근 기록 + 2단계 인증. 접속기록 1년 보관.",
+                ],
+              },
             ]}
           />
 
-          <Note tone="quiet" className="mt-8">
-            <p className="chim-body text-ink">
+          <Note tone="quiet" className="mt-4">
+            <p className="text-[13.5px] leading-[1.65] text-ink">
               비밀번호는 Argon2id로 해시해 저장합니다. 국내 리전 처리가 기본값이며, 국외 사업자를
               쓰게 되면 「개인정보 보호법」 제28조의8에 따라 이전 국가·항목·목적·보유기간을 명시해
               공개합니다.
             </p>
-            <p className="chim-caption mt-3 text-ink-muted">
+            <p className="mt-[8px] text-[11.5px] leading-[1.6] text-tertiary">
               대응 조항 · 「개인정보 보호법」 제16·21·26·28조의8·34조 · 「개인정보의 안전성 확보조치
               기준」 제5·6·8조 · AI 기본법상 고영향 AI 비해당.
             </p>
@@ -513,20 +499,22 @@ export default function SafetyPage() {
         </Section>
       </div>
 
-      {/* 하단 CTA */}
-      <Card tone="brand" className="mt-16 md:mt-24">
-        <p className="chim-h3 text-brand-900">
+      {/* 하단 — 고정 문구를 다시 한 번 놓고 훈련·응급으로 내보냅니다. */}
+      <div className="mt-7 rounded-[14px] bg-tint px-[15px] py-[16px]">
+        <p className="text-[15px] leading-[1.5] font-extrabold text-brand-900">
           정답을 맞히는 시험이 아니라, 말이 나오게 만드는 연습입니다.
         </p>
-        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-          <BigButton href="/train" size="lg">
+        <div className="mt-[14px] flex flex-col gap-2">
+          <BigButton href="/train" size="lg" block>
             훈련 시작하기
           </BigButton>
-          <BigButton href="/emergency" size="lg" variant="secondary">
-            응급 음성 가이드 보기
+          <BigButton href="/emergency" variant="secondary" block>
+            응급 안내 열기
           </BigButton>
         </div>
-      </Card>
+      </div>
+
+      <InlineDisclaimer size="md" tone="readable" className="mt-5 mb-6" />
     </PageShell>
   );
 }

@@ -34,6 +34,19 @@ export function formatDate(iso: string): string {
   return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
 }
 
+/**
+ * 아주 짧은 날짜 표기 — 시안 5c 최근 훈련 행의 「8월 5일 · 치매 행동」에 씁니다.
+ * 해가 바뀐 기록은 연도를 붙여 「2025년 12월 3일」로 둡니다(같은 해면 생략).
+ *
+ * @example formatShortDate("2026-08-05T07:40:00.000Z") // "8월 5일"
+ */
+export function formatShortDate(iso: string, now: Date = new Date()): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "시각 정보 없음";
+  const head = date.getFullYear() === now.getFullYear() ? "" : `${date.getFullYear()}년 `;
+  return `${head}${date.getMonth() + 1}월 ${date.getDate()}일`;
+}
+
 /** 엔딩 판정별 배지 톤 — 색만 다르고 점수는 붙지 않습니다. */
 export function verdictTone(verdict: EndingDef["verdict"]): BadgeTone {
   switch (verdict) {
@@ -93,6 +106,17 @@ export const TYPE_LABELS: Record<ScenarioType, string> = {
   BPSD: "치매 행동심리증상",
   EMERGENCY: "응급 초기 대응",
   CONFLICT: "이용자·보호자 갈등",
+  RISK: "위험 판단",
+};
+
+/**
+ * 4유형 짧은 라벨 — 시안 5c의 카피입니다(유형별 4칸 · 최근 훈련 행 · 추천 문장).
+ * 좁은 칸에서 두 줄로 접히지 않게 네 글자로 맞춘 표기이며, 뜻은 위 `TYPE_LABELS`와 같습니다.
+ */
+export const TYPE_SHORT_LABELS: Record<ScenarioType, string> = {
+  BPSD: "치매 행동",
+  EMERGENCY: "응급 판단",
+  CONFLICT: "갈등 대응",
   RISK: "위험 판단",
 };
 

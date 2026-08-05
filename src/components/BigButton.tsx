@@ -65,7 +65,8 @@ export function BigButton({
   title,
 }: BigButtonProps) {
   const base = cx(
-    "inline-flex items-center justify-center gap-2 rounded-[12px] font-semibold",
+    // v4 §2: 버튼 라운드는 14px 하나로 통일했습니다(카드와 같은 값).
+    "inline-flex items-center justify-center gap-2 rounded-[14px] font-semibold",
     "transition-colors duration-150 ease-soft",
     "disabled:cursor-not-allowed disabled:opacity-45",
     SIZE[size],

@@ -12,92 +12,96 @@
 }
 
 /* ─────────────────────────────────────────────────────────────
-   침착(ChimChak) 디자인 토큰 — DESIGN_DIRECTION v3
-   지면은 거의 흰색(#fafbfb), 그 위에 흰 카드가 "면"으로 얹힙니다.
-   정리는 보더가 아니라 면 차이와 여백으로 합니다(§7).
+   침착(ChimChak) 디자인 토큰 — DESIGN_DIRECTION v4 (클로드 디자인 시안)
+   스펙 원본은 시안 HTML의 인라인 px·hex입니다. 이 파일은 그 값을 이름에 담아 둔 것뿐이며,
+   충돌하면 시안이 이깁니다.
 
-   타이포는 2단 체계입니다(§3).
-     · UI 크롬  — html 16px 기준. 캡션 13 / 메타 14 / 라벨·네비 15 / 본문 16.
-     · 코어 콘텐츠 — 대사·CUE·응급 자막·CTA·기록 본문은 명시 클래스로 18px 이상 유지.
-   즉 "다 크게"가 아니라 "실행 경로만 크게"입니다.
+   v4에서 바뀐 골격:
+     · 화면은 "반응형 웹페이지"가 아니라 **앱 프레임**입니다 —
+       모바일 전폭, md↑ 중앙 컬럼 430px, 컬럼 밖 지면 #f1f2f0, 화면 안은 흰색.
+     · 전역 헤더·전역 고정 고지 바가 없습니다. 각 화면이 자기 상단 바와 인라인 고지를 가집니다.
+     · 하단 탭바는 **텍스트 온리 5칸**(아이콘 없음)이고 문서 흐름 안에 sticky로 놓입니다.
+     · 그림자는 쓰지 않습니다. 구분은 hairline #eef0ef 1px과 면(#f5f6f6) 차이로만.
 
-   ※ 이 파일은 design 에이전트가 소유합니다.
-   ※ 토큰 "이름"은 절대 바꾸지 않습니다(다른 팀 코드가 참조 중) — 값만 조정합니다.
+   ※ 이 파일은 셸(app shell) 에이전트가 소유합니다.
+   ※ 토큰 "이름"은 바꾸지 않습니다(다른 팀 코드가 참조 중) — 값만 갱신하고, 모자란 것만 더합니다.
    ───────────────────────────────────────────────────────────── */
 @theme {
-  /* 브랜드 틸 — 채움(fill)은 600, 본문 텍스트는 700 이상을 씁니다(AA). */
-  --color-brand-50: #f0faf8;
-  --color-brand-100: #d6f0ec;
+  /* 브랜드 틸 — 채움 600(#17948a) · 링크·강조 700(#157f75) · 활성 딥 800(#14665f) */
+  --color-brand-50: #f3faf8; /* 마이크 바깥 링 */
+  --color-brand-100: #e7f4f2; /* = tint */
   --color-brand-200: #ade1da;
-  --color-brand-300: #7bccc2;
-  --color-brand-400: #4bb2a6;
+  --color-brand-300: #7bccc2; /* L2 막대 */
+  --color-brand-400: #4bb2a6; /* 파형 보조 막대 */
   --color-brand-500: #2aa79b;
-  --color-brand-600: #17948a;
-  --color-brand-700: #157f75;
-  --color-brand-800: #14665f;
-  --color-brand-900: #123f3c;
+  --color-brand-600: #17948a; /* CTA 채움·마이크·상태 점 */
+  --color-brand-700: #157f75; /* 링크·「이어서 ›」·흰 글자 얹는 채움(AA 4.9:1) */
+  --color-brand-800: #14665f; /* 활성 딥 — 로고·탭 활성·숫자 */
+  --color-brand-900: #0f3f3a; /* 딥 텍스트 — 학습자 말풍선 글자 */
 
   /* 민트 — 배경 강조용 저채도 */
   --color-mint-50: #f4fbf9;
-  --color-mint-100: #e7f6f2;
+  --color-mint-100: #e7f4f2;
   --color-mint-200: #d2ede7;
 
-  /* 잉크·지면 — v3 §7 표면 체계
-     paper(지면) 위에 white(카드)가 얹히고, 카드 안 보조 면이 paper-2입니다.
-     지면과 카드의 차이가 아주 작아야 "서식"이 아니라 "제품"처럼 보입니다. */
-  /* v3.1: 초록끼를 걷어낸 잉크·지면 — 텍스트는 거의 무채색이어야 화면이 맑아 보입니다.
-     틸은 브랜드 색으로만 남기고, 회색 계열에서 틸 기운을 뺐습니다. */
-  --color-ink: #1b2321;
-  --color-ink-soft: #454f4c;
-  --color-ink-muted: #5c6663;
-  --color-paper: #fafaf9;
-  --color-paper-2: #f1f2f0;
-  --color-line: #e4e7e5;
-  --color-line-strong: #cbd2cf;
+  /* 틸 보조 — 시안이 이름으로 부르는 값들(같은 값이라도 의도가 다르면 이름을 따로 둡니다) */
+  --color-tint: #e7f4f2; /* 학습자 말풍선·추천 카드·마이크 링 */
+  --color-mic-deep: #0f6b63; /* 마이크 눌림(녹음 중) */
+  --color-deep: #0f3f3a; /* 딥 텍스트 (= brand-900) */
 
-  /* 상태색 — `*-ink`는 작은 글자용(AA 통과), 기본값은 채움·막대용 */
-  --color-ok: #1e9e6a;
-  --color-ok-ink: #14764f;
-  --color-ok-soft: #eaf7f1;
+  /* 잉크 — v4 §1
+     ink 본문 · ink-soft 보조 본문 · ink-muted 부제 · tertiary 캡션 · faint ›·미실시 · extra-faint 고지 */
+  --color-ink: #191f1e;
+  --color-ink-soft: #454f4c;
+  --color-ink-muted: #8a918e;
+  --color-tertiary: #9aa5a2;
+  --color-faint: #c2c8c5;
+  --color-extra-faint: #b6bcb9;
+
+  /* 지면 — 화면 안은 흰색, 면 카드는 #f5f6f6, 컬럼 밖 지면은 #f1f2f0 */
+  --color-paper: #ffffff; /* 화면 배경 */
+  --color-paper-2: #f5f6f6; /* surface — 면 카드·AI 말풍선·입력 pill·보조 버튼 */
+  --color-paper-out: #f1f2f0; /* 데스크톱 컬럼 밖 지면·아바타 바탕 */
+  --color-line: #eef0ef; /* hairline — 행 구분·탭바 상단선 */
+  --color-line-strong: #e4e7e5; /* 보더 — 흰 배경 버튼·유형별 4칸 테두리 */
+
+  /* 상태색 — `*-ink`는 작은 글자용, 기본값은 채움·점·막대용 */
+  --color-ok: #1e9e6a; /* 저장됨 점·✓ 원 */
+  --color-ok-ink: #14764f; /* 「충족」·「잘한 것 N」 */
+  --color-ok-soft: #eaf7f1; /* 델타 칩 바탕 */
   --color-ok-line: #b9e3cf;
 
-  /* v3.1: 흙탕 갈색(#a8571c)을 버리고 맑은 앰버로 — warn-ink는 흰 지면 4.5:1(AA)을 지킵니다. */
   --color-warn: #f08c2e;
-  --color-warn-ink: #b45309;
+  --color-warn-ink: #b45309; /* 「조금 불안」 */
   --color-warn-soft: #fdf1e5;
-  --color-warn-line: #f5d4a8;
+  --color-warn-line: #f0c987; /* 감정 링(불안) */
 
-  --color-danger: #d64545;
-  --color-danger-ink: #b03636;
-  --color-danger-soft: #fdeeed;
-  --color-danger-line: #f3c3c1;
+  --color-danger: #d64545; /* 119 버튼·녹음 점 */
+  --color-danger-ink: #b03636; /* 한 글자 마커 글자·응급 탭 활성 */
+  --color-danger-soft: #fdeeed; /* 한 글자 마커 바탕 */
+  --color-danger-line: #f3c3c1; /* 감정 링(위기) */
 
-  --color-neutral-soft: #eff1ef;
-  --color-neutral-line: #dee2e0;
+  --color-neutral-soft: #f5f6f6; /* 보조 버튼 면 (= paper-2) */
+  --color-neutral-line: #e4e7e5;
 
-  /* 타이포 — 외부 폰트 CDN 없이 시스템 스택만 사용(오프라인 데모 보장) */
+  /* 타이포 — 외부 폰트 CDN 없이 동봉 폰트 + 시스템 스택만 사용(오프라인 데모 보장) */
   --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
     "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif;
 
-  /* 모서리 — 카드 16 / 필드 10 / 칩 999 (§5) */
-  --radius-card: 16px;
-  --radius-panel: 18px;
-  --radius-field: 10px;
+  /* 모서리 — v4 §2: 버튼·카드 14 · 말풍선 18(발화 방향만 4) · 한 글자 마커 12 · 입력 pill 반원 */
+  --radius-card: 14px;
+  --radius-panel: 16px; /* 녹음 패널·팝오버 */
+  --radius-bubble: 18px;
+  --radius-field: 12px;
   --radius-chip: 999px;
 
-  /* 그림자 — v3에서 사실상 제거했습니다.
-     지면(#fafbfb)과 카드(#ffffff)의 면 차이가 이미 카드를 세우기 때문에,
-     그림자를 얹으면 곧바로 "템플릿" 인상이 됩니다.
-     남기는 것은 진짜로 떠 있는 것뿐입니다 — 모달·팝오버(panel), 고정 바(lift). */
+  /* 그림자 — 시안에는 없습니다. 구분은 hairline과 면으로만 합니다.
+     남기는 것은 진짜로 떠 있는 것 하나뿐입니다(모달·팝오버 = panel). */
   --shadow-soft: 0 0 #0000;
-  /* card: §7이 허용한 "필요시 한 단계". 스티키 바처럼 본문 위를 지나가는 면에만 쓰세요.
-     일반 카드에는 쓰지 않습니다(Card 컴포넌트도 쓰지 않습니다). */
-  --shadow-card: 0 1px 2px rgb(31 61 59 / 0.04);
-  --shadow-card-hover: 0 1px 2px rgb(31 61 59 / 0.06);
-  /* panel: 오버레이 전용 — 모달·팝오버에서만 쓰세요. */
-  --shadow-panel: 0 1px 2px rgb(31 61 59 / 0.05), 0 18px 40px -24px rgb(31 61 59 / 0.28);
-  /* lift: 화면 아래에 고정된 바가 본문 위에 있음을 알리는 최소 단서. */
-  --shadow-lift: 0 -1px 10px -8px rgb(31 61 59 / 0.16);
+  --shadow-card: 0 0 #0000;
+  --shadow-card-hover: 0 0 #0000;
+  --shadow-lift: 0 0 #0000;
+  --shadow-panel: 0 1px 2px rgb(25 31 30 / 0.06), 0 18px 40px -24px rgb(25 31 30 / 0.28);
 
   /* 모션 */
   --ease-soft: cubic-bezier(0.22, 0.61, 0.36, 1);
@@ -127,39 +131,43 @@
   }
 }
 
-/* ── 고정 하단 크롬 높이 (고지 바 + 모바일 탭바) ─────────────
-   v3에서 고지 바를 "주황 마크 + 굵은 글자"에서 "옅은 면 + 13px 뮤트 한 줄"로 낮췄고,
-   루트도 18px → 16px로 내렸으므로 실측을 다시 했습니다.
-   측정 기준(루트 16px): 고지 문구 13px·leading-snug(1.375) = 17.9px/줄,
-   상하 padding py-2 = 8px×2 = 16px, 상단 보더 1px.
-     · 모바일 3줄 최악값(320px 폭) = 17.9×3 + 16 + 1 = 70.7px ≒ 4.5rem
-     · md↑ 1줄(문구 전체가 720px 안에 들어옴) = 17.9 + 16 + 1 = 34.9px ≒ 2.4rem
-   이 값은 본문 아래 여백(.chim-main)에만 쓰이므로, 모자란 것보다 넉넉한 편이 안전합니다. */
-:root {
-  --chim-disclaimer-h: 4.5rem;
-  /* 탭바 실측(내용 4rem + 상단 보더 1px)보다 살짝 크게 잡아 문구가 가리지 않게 함 */
-  --chim-tabbar-h: 4.25rem;
-  --chim-safe-b: env(safe-area-inset-bottom, 0px);
+/* TTS·녹음 파형 — 막대 하나가 아래를 축으로 늘었다 줄었다 합니다.
+   reduced-motion에서는 아래 base 레이어의 전역 규칙이 즉시 정지시킵니다. */
+@keyframes chim-wave {
+  0%,
+  100% {
+    transform: scaleY(0.55);
+  }
+  50% {
+    transform: scaleY(1);
+  }
 }
 
-@media (min-width: 768px) {
-  :root {
-    --chim-disclaimer-h: 2.4rem;
-    --chim-tabbar-h: 0rem;
-  }
+:root {
+  /* 앱 프레임 — md↑ 중앙 컬럼 폭과 좌우 여백(시안 20px, 세션만 18px) */
+  --chim-frame-w: 430px;
+  --chim-pad-x: 20px;
+  --chim-safe-b: env(safe-area-inset-bottom, 0px);
+  --chim-safe-t: env(safe-area-inset-top, 0px);
+
+  /* v3 잔재 — 전역 고지 바·고정 탭바가 사라져 더는 쓰지 않습니다.
+     남은 화면이 참조하더라도 0이 되도록 두었습니다. */
+  --chim-disclaimer-h: 0rem;
+  --chim-tabbar-h: 0rem;
 }
 
 @layer base {
   html {
-    /* v3 §3: 루트는 표준 16px. 고령 접근성은 "전부 크게"가 아니라
-       코어 콘텐츠(대사·CUE·응급 자막·CTA)를 명시 클래스로 18px 이상 유지해 확보합니다. */
+    /* 루트는 표준 16px. 고령 접근성은 "전부 크게"가 아니라 코어 콘텐츠(대사·CUE·응급 자막·CTA)를
+       18px 이상으로 유지해 확보합니다. 설정 메뉴의 글자 크기는 이 값을 16/18/20으로 바꿉니다. */
     font-size: 16px;
     -webkit-text-size-adjust: 100%;
     scroll-behavior: smooth;
   }
 
   body {
-    background-color: var(--color-paper);
+    /* 컬럼 밖 지면 — 모바일에서는 전폭 흰 화면이 덮으므로 오버스크롤에서만 보입니다. */
+    background-color: var(--color-paper-out);
     color: var(--color-ink);
     font-family: var(--font-sans);
     line-height: 1.6;
@@ -167,7 +175,6 @@
     overflow-wrap: anywhere;
   }
 
-  /* 타이포그래피가 주인공 — 제목은 조금 더 조이고, 본문은 넉넉히 둡니다. */
   h1,
   h2,
   h3,
@@ -177,20 +184,19 @@
     text-wrap: balance;
   }
 
-  /* 숫자는 자리폭을 고정해 표·통계에서 흔들리지 않게 합니다. */
   th,
   td {
     font-variant-numeric: tabular-nums;
   }
 
   :focus-visible {
-    outline: 3px solid var(--color-brand-500);
+    outline: 3px solid var(--color-brand-600);
     outline-offset: 2px;
     border-radius: 4px;
   }
 
   ::selection {
-    background: var(--color-brand-200);
+    background: var(--color-tint);
     color: var(--color-brand-900);
   }
 
@@ -209,42 +215,69 @@
 }
 
 @layer components {
-  /* 본문 컨테이너 */
+  /* ── 앱 프레임 (v4 §0) ───────────────────────────────────────
+     .chim-frame  : 컬럼 밖 지면
+     .chim-screen : 화면 그 자체(흰 면). 모바일 전폭 · md↑ 430px 중앙 컬럼.
+     .chim-screen--fill : 뷰포트에 고정하고 본문만 스크롤(세션처럼 하단 도크가 있는 화면). */
+  .chim-frame {
+    min-height: 100dvh;
+    background: var(--color-paper-out);
+  }
+
+  .chim-screen {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-height: 100dvh;
+    margin-inline: auto;
+    background: var(--color-paper);
+    padding-top: var(--chim-safe-t);
+  }
+
+  @media (min-width: 768px) {
+    .chim-screen {
+      max-width: var(--chim-frame-w);
+      border-inline: 1px solid var(--color-line);
+    }
+  }
+
+  .chim-screen--fill {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* 화면 좌우 여백 — 시안 20px */
+  .chim-pad {
+    padding-inline: var(--chim-pad-x);
+  }
+
+  /* 하단 탭바 — 문서 흐름 안 sticky. 짧은 화면에서는 바닥에, 긴 화면에서는 뷰포트 하단에 붙습니다. */
+  .chim-tabbar {
+    position: sticky;
+    bottom: 0;
+    z-index: 30;
+    border-top: 1px solid var(--color-line);
+    background: var(--color-paper);
+    padding-bottom: var(--chim-safe-b);
+  }
+
+  /* 정보 위계가 낮은 목록·표를 카드 대신 선으로 나눌 때 */
+  .chim-hairline > * + * {
+    border-top: 1px solid var(--color-line);
+  }
+
+  /* 본문 컨테이너 — v3 화면(안전·점검 등)이 아직 씁니다. 앱 프레임 안에서는 폭을 넘지 않습니다. */
   .chim-container {
     width: 100%;
     max-width: 68rem;
     margin-inline: auto;
-    padding-inline: 1rem;
+    padding-inline: var(--chim-pad-x);
   }
 
-  @media (min-width: 768px) {
-    .chim-container {
-      padding-inline: 1.5rem;
-    }
-  }
-
-  /* 고정 하단 크롬만큼 본문 아래 여백 확보 */
-  .chim-main {
-    padding-bottom: calc(
-      var(--chim-disclaimer-h) + var(--chim-tabbar-h) + var(--chim-safe-b) + 1.25rem
-    );
-  }
-
-  /* 상단 고정 헤더 — 노치 대응 */
+  /* 상단 고정 헤더 — 노치 대응 (프레임이 이미 safe-area를 먹으므로 보조용) */
   .chim-topbar {
     padding-top: env(safe-area-inset-top, 0px);
-  }
-
-  /* 하단 고지 바 — 모바일에서는 탭바 위에 얹힘.
-     bottom:0 + 탭바 높이만큼의 아래 패딩으로 두어, 탭바와의 사이에 빈 틈이 생기지 않게 합니다
-     (탭바가 z-50으로 그 패딩 영역을 정확히 덮습니다). */
-  .chim-disclaimer {
-    bottom: 0;
-    padding-bottom: calc(var(--chim-tabbar-h) + var(--chim-safe-b));
-  }
-
-  .chim-tabbar {
-    padding-bottom: var(--chim-safe-b);
   }
 
   /* 얇은 점선 연결선 (흐름도용) */
@@ -258,15 +291,20 @@
     background-repeat: repeat-x;
   }
 
-  /* ── 타입 스케일 (v3 §3) ─────────────────────────────────────
+  /* 파형 막대 — 지연 시간은 인라인 style로 막대마다 다르게 줍니다. */
+  .chim-wave-bar {
+    transform-origin: bottom;
+    animation: chim-wave 900ms var(--ease-soft) infinite;
+  }
+
+  /* ── 타입 스케일 ─────────────────────────────────────────────
      루트 16px 기준. Tailwind 유틸(text-*)이 더 뒤 레이어라 언제든 덮어쓸 수 있습니다.
+     시안은 대부분 px를 직접 지정합니다 — 이 스케일은 아직 전환하지 않은 화면의 기준선입니다.
 
      [UI 크롬]  chim-caption 13 · chim-meta 14 · chim-label 15 · chim-body 16
-                chim-h3 20 · chim-h2 24~28 · chim-h1 32~40 · chim-display 44~56
      [코어]     chim-core-sm 17 · chim-core 18 · chim-cue 20~22 · chim-subtitle 28~40
-     한 화면에서 큰 글자는 하나뿐이어야 합니다 — 전부 크면 전부 안 중요합니다(§1-7). */
+     한 화면에서 큰 글자는 하나뿐이어야 합니다 — 전부 크면 전부 안 중요합니다. */
 
-  /* 히어로 — 랜딩 최상단 한 곳에만 */
   .chim-display {
     font-size: 2.75rem; /* 44px */
     line-height: 1.15;
@@ -274,7 +312,6 @@
     font-weight: 800;
   }
 
-  /* 페이지 제목 */
   .chim-h1 {
     font-size: 2rem; /* 32px */
     line-height: 1.18;
@@ -282,7 +319,6 @@
     font-weight: 800;
   }
 
-  /* 섹션 제목 */
   .chim-h2 {
     font-size: 1.5rem; /* 24px */
     line-height: 1.25;
@@ -290,7 +326,6 @@
     font-weight: 700;
   }
 
-  /* 카드 제목·소제목 */
   .chim-h3 {
     font-size: 1.25rem; /* 20px */
     line-height: 1.35;
@@ -298,53 +333,45 @@
     font-weight: 700;
   }
 
-  /* 제목 아래 리드 문장 */
   .chim-lead {
     font-size: 1.125rem; /* 18px */
     line-height: 1.6;
   }
 
-  /* 일반 본문 */
   .chim-body {
     font-size: 1rem; /* 16px */
     line-height: 1.65;
   }
 
-  /* 라벨·네비·버튼 밖 작은 제목 */
   .chim-label {
     font-size: 0.9375rem; /* 15px */
     line-height: 1.4;
     font-weight: 600;
   }
 
-  /* 보조 설명·메타 */
   .chim-meta {
     font-size: 0.875rem; /* 14px */
     line-height: 1.5;
   }
 
-  /* 캡션·각주 */
   .chim-caption {
     font-size: 0.8125rem; /* 13px */
     line-height: 1.5;
   }
 
-  /* ── 코어 콘텐츠 (§3) ────────────────────────────────────────
+  /* ── 코어 콘텐츠 ────────────────────────────────────────────
      사용자의 "실행 경로"에 놓인 글자입니다. 어떤 축소 작업에서도 줄이지 않습니다. */
 
-  /* 훈련 대화 대사·기록 초안 본문·확정 문구 */
   .chim-core {
     font-size: 1.125rem; /* 18px */
     line-height: 1.6;
   }
 
-  /* 피드백 코칭 문장·주요 CTA 라벨 */
   .chim-core-sm {
     font-size: 1.0625rem; /* 17px */
     line-height: 1.6;
   }
 
-  /* CUE 질문·지시문 */
   .chim-cue {
     font-size: 1.25rem; /* 20px */
     line-height: 1.45;
@@ -360,43 +387,42 @@
     font-weight: 800;
   }
 
+  /* 앱 프레임(430px) 안에서는 데스크톱이라고 글자를 키우지 않습니다.
+     예외는 컬럼 밖까지 쓰는 v3 잔여 화면뿐이라, 확대 폭을 크게 줄였습니다. */
   @media (min-width: 768px) {
     .chim-display {
-      font-size: 3.5rem; /* 56px */
+      font-size: 3rem; /* 48px */
     }
     .chim-h1 {
-      font-size: 2.5rem; /* 40px */
+      font-size: 2.25rem; /* 36px */
     }
     .chim-h2 {
-      font-size: 1.75rem; /* 28px */
+      font-size: 1.625rem; /* 26px */
     }
     .chim-h3 {
       font-size: 1.375rem; /* 22px */
     }
     .chim-lead {
-      font-size: 1.25rem; /* 20px */
+      font-size: 1.1875rem; /* 19px */
     }
     .chim-cue {
       font-size: 1.375rem; /* 22px */
     }
     .chim-subtitle {
-      font-size: 2.5rem; /* 40px */
+      font-size: 2.25rem; /* 36px */
     }
   }
 
-  /* 제목용 자간만 필요할 때(h1~h4가 아닌 요소에 제목 느낌을 줄 때) */
   .chim-title {
     letter-spacing: -0.02em;
     text-wrap: balance;
   }
 
-  /* 숫자 자리폭 고정 — 통계·타이머·표에서 값이 바뀌어도 흔들리지 않습니다. */
+  /* 숫자 자리폭 고정 — 타이머·통계·「여유 8초」가 값이 바뀌어도 흔들리지 않습니다. */
   .chim-num {
     font-variant-numeric: tabular-nums;
   }
 
-  /* 통계 숫자 — 크게, 굵게, 자신 있게. 단위는 옆에 작게 붙입니다.
-     크기를 직접 정하고 싶으면 text-* 유틸로 덮어쓰면 됩니다(유틸 레이어가 뒤에 옵니다). */
   .chim-stat {
     font-size: 2.5rem; /* 40px */
     font-variant-numeric: tabular-nums;
@@ -407,24 +433,27 @@
 
   @media (min-width: 768px) {
     .chim-stat {
-      font-size: 3.25rem; /* 52px */
+      font-size: 2.75rem; /* 44px */
     }
   }
 
-  /* ── 여백·선 ────────────────────────────────────────────────
-     정보 위계가 낮은 목록·표는 카드 대신 이 hairline으로 나눕니다(§7). */
-  .chim-hairline > * + * {
-    border-top: 1px solid var(--color-line);
-  }
-
-  /* 섹션 사이 간격 — 모바일 64px↑ / 데스크톱 96px↑ (§6) */
+  /* 섹션 사이 간격 — v3 잔여 화면용 */
   .chim-section {
-    padding-block: 64px;
+    padding-block: 48px;
   }
 
   @media (min-width: 768px) {
     .chim-section {
-      padding-block: 96px;
+      padding-block: 64px;
     }
   }
+}
+
+/* ── 리스트 묶음 ──────────────────────────────────────────────
+   행마다 hairline을 두되 **마지막 행의 선은 지웁니다**(시안 5a·5b·5c 공통).
+   행은 `border-b`(utilities 레이어)로 선을 그리는데, Tailwind v4에서 utilities는
+   components보다 뒤 레이어라 레이어 안에 두면 이 규칙이 집니다 —
+   그래서 일부러 **레이어 밖**에 둡니다(레이어 없는 CSS가 모든 레이어를 이깁니다). */
+.chim-rows > *:last-child {
+  border-bottom-width: 0;
 }

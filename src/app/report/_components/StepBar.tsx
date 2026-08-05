@@ -1,5 +1,4 @@
 import { cx } from "@/components";
-import { IconCheck } from "@/components/icons";
 
 export interface StepBarProps {
   /** 현재 단계 (1 입력 · 2 가명처리 · 3 초안) */
@@ -15,56 +14,39 @@ const STEPS: { n: 1 | 2 | 3; title: string; desc: string }[] = [
 ];
 
 /**
- * 기록 코칭 3단계 위저드의 진행 표시줄입니다.
+ * 기록 코칭 3단계 진행 표시 — **세그먼트 3칸**입니다 (v4 §3 세션 진행바와 같은 문법).
  *
- * 크기 체계(§3): 이 줄은 화면의 주인공이 아니라 UI 크롬이라 제목 14px · 설명 13px입니다.
- * 형태(§1-4·§7): 칸마다 상자를 두르지 않고, 얇은 상단 레일 하나로 진행 상태만 알립니다.
+ * 칸마다 상자를 두르지 않고 3px 막대 세 개로만 위치를 알리고,
+ * 지금 무엇을 하는 단계인지는 아래 한 줄로 말합니다.
  */
 export function StepBar({ current, finished = false }: StepBarProps) {
+  const active = STEPS.find((step) => step.n === current) ?? STEPS[0];
+
   return (
     <nav aria-label="기록 코칭 진행 단계">
-      <ol className="grid gap-x-5 gap-y-3 sm:grid-cols-3">
-        {STEPS.map((step) => {
-          const done = finished || step.n < current;
-          const active = !finished && step.n === current;
-          return (
-            <li key={step.n}>
-              <div
-                aria-current={active ? "step" : undefined}
-                className={cx(
-                  "flex h-full items-start gap-2.5 border-t-2 pt-3 transition-colors duration-150",
-                  active ? "border-brand-600" : done ? "border-ok" : "border-line",
-                )}
-              >
-                <span
-                  aria-hidden="true"
-                  className={cx(
-                    "chim-num chim-caption flex h-6 w-6 shrink-0 items-center justify-center rounded-chip font-extrabold",
-                    active
-                      ? "bg-brand-700 text-white"
-                      : done
-                        ? "bg-ok-soft text-ok-ink"
-                        : "bg-neutral-soft text-ink-muted",
-                  )}
-                >
-                  {done ? <IconCheck className="h-4 w-4" /> : step.n}
-                </span>
-                <span className="min-w-0">
-                  <span
-                    className={cx("chim-meta block font-bold", active ? "text-ink" : "text-ink-soft")}
-                  >
-                    <span className="sr-only">
-                      {done ? "완료된 단계 " : active ? "현재 단계 " : "다음 단계 "}
-                    </span>
-                    {step.n}. {step.title}
-                  </span>
-                  <span className="chim-caption mt-0.5 block text-ink-muted">{step.desc}</span>
-                </span>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
+      <div aria-hidden className="flex gap-[5px]">
+        {STEPS.map((step) => (
+          <span
+            key={step.n}
+            className={cx(
+              "h-[3px] flex-1 rounded-full",
+              finished || step.n <= current ? "bg-brand-600" : "bg-line",
+            )}
+          />
+        ))}
+      </div>
+
+      <p className="mt-[8px] text-[12px] leading-[1.5] text-ink-muted">
+        {finished ? (
+          <span className="font-bold text-brand-800">3단계 모두 마쳤습니다</span>
+        ) : (
+          <>
+            <span className="chim-num font-bold text-brand-800">{active.n}</span>
+            <span className="chim-num"> / {STEPS.length}</span>{" "}
+            <span className="font-bold text-ink">· {active.title}</span> — {active.desc}
+          </>
+        )}
+      </p>
     </nav>
   );
 }

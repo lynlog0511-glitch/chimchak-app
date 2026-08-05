@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { BigButton, DISCLAIMER_TEXT, SourceChip } from "@/components";
-import { IconStop } from "@/components/icons";
+import { BigButton, InlineDisclaimer, SourceChip } from "@/components";
+import { StatusMark } from "@/components/icons";
 import type { TurnFeedback } from "@/types";
 
 export interface CriticalInterruptProps {
@@ -66,48 +66,52 @@ export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalI
       aria-labelledby="cf-title"
       ref={panelRef}
     >
-      {/* 빨간 의미는 그대로 두되 헤더의 과장은 걷어냅니다 — 꽉 찬 빨강 대신 옅은 면과 붉은 잉크로(§1-3).
-          모달은 진짜로 떠 있는 것이라 그림자만 쓰고 테두리는 두르지 않습니다(§7). */}
-      <div className="animate-fade-up max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-panel bg-white shadow-panel">
-        <div className="flex items-center gap-2.5 bg-danger-soft px-5 py-3.5 text-danger-ink md:px-6">
-          <IconStop className="h-6 w-6 shrink-0" />
-          <h2 id="cf-title" className="chim-h3">
+      {/* 빨간 의미는 그대로 두되 과장은 걷어냅니다 — 꽉 찬 빨강 대신 옅은 면과 붉은 잉크로.
+          모달은 진짜로 떠 있는 것이라 그림자만 쓰고 테두리는 두르지 않습니다(v4 §2). */}
+      <div className="animate-fade-up max-h-[88vh] w-full max-w-[390px] overflow-y-auto rounded-panel bg-white shadow-panel">
+        <div className="flex items-center gap-2 bg-danger-soft px-5 py-3.5">
+          <StatusMark kind="stop" size="md" />
+          <h2 id="cf-title" className="text-[17px] leading-[1.4] font-bold text-danger-ink">
             여기서 멈추겠습니다
           </h2>
         </div>
 
-        <div className="space-y-5 p-5 md:p-6">
+        <div className="space-y-4 p-5">
           {/* 왜 멈췄는지는 코어 콘텐츠입니다 — 17px 하한(§3). */}
-          <p className="chim-core-sm font-semibold text-ink">{feedback.message}</p>
+          <p className="text-[17px] leading-[1.6] font-semibold text-ink">{feedback.message}</p>
 
           {feedback.docId && (
             <div>
-              <p className="chim-caption mb-2 font-bold text-ink-muted">이 판정의 근거</p>
+              <p className="mb-1.5 text-[12px] leading-[1.5] font-bold tracking-[0.06em] text-ink-muted">
+                이 판정의 근거
+              </p>
               <SourceChip docId={feedback.docId} />
             </div>
           )}
 
           {alternatives.length > 0 && (
             <div>
-              <h3 className="chim-label font-extrabold text-ink">지금 하실 수 있었던 것</h3>
-              {/* 색 배경 카드 대신 hairline 목록 — 이 화면의 색은 헤더 하나로 충분합니다. */}
-              <ol className="chim-hairline mt-3 border-t border-line">
+              <h3 className="text-[14px] leading-[1.5] font-bold text-ink">
+                지금 하실 수 있었던 것
+              </h3>
+              {/* 색 배경 대신 hairline 목록 — 이 화면의 색은 머리말 하나로 충분합니다. */}
+              <ol className="chim-hairline mt-2 border-t border-line">
                 {alternatives.map((alternative, index) => (
-                  <li key={alternative} className="flex gap-3 py-3">
+                  <li key={alternative} className="flex gap-2.5 py-2.5">
                     <span
                       aria-hidden="true"
-                      className="chim-num chim-meta w-5 shrink-0 pt-0.5 font-extrabold text-brand-700"
+                      className="chim-num w-4 shrink-0 pt-0.5 text-[13px] font-bold text-brand-700"
                     >
                       {index + 1}
                     </span>
-                    <span className="chim-body text-ink">{alternative}</span>
+                    <span className="text-[14px] leading-[1.6] text-ink">{alternative}</span>
                   </li>
                 ))}
               </ol>
             </div>
           )}
 
-          <p className="chim-caption leading-relaxed text-ink-muted">
+          <p className="text-[12.5px] leading-[1.65] text-ink-muted">
             이 화면은 훈련을 멈추기 위한 것이 아니라, 현장에서 되돌릴 수 없는 선택을 미리 한 번
             막아 보기 위한 것입니다. 같은 지점부터 다시 하실 수 있고 벌점은 없습니다.
           </p>
@@ -118,14 +122,8 @@ export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalI
             </BigButton>
           </div>
 
-          {/* 이 모달이 하단 고정 고지 바를 덮으므로, 고지 문구를 여기에도 그대로 둡니다 (안전 규칙 §3-2).
-              고지는 존재하되 조용히 — 옅은 지면에 13px 뮤트 한 줄입니다(§5). */}
-          <p
-            role="note"
-            className="chim-caption rounded-field bg-paper-2 px-3 py-2 text-center leading-snug text-ink-muted"
-          >
-            {DISCLAIMER_TEXT}
-          </p>
+          {/* 이 모달이 입력 도크의 고지를 덮으므로, 고지 문구를 여기에도 그대로 둡니다 (안전 규칙 §3-2). */}
+          <InlineDisclaimer tone="readable" />
         </div>
       </div>
     </div>

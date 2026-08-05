@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { SettingsBoot } from "@/components/SettingsBoot";
 import { SwRegister } from "@/components/SwRegister";
 import "./globals.css";
 
@@ -43,7 +44,8 @@ export default function RootLayout({
     // <html>에 font-size·data-chim-font-scale을 심습니다. 서버 HTML에는 없는 속성이라
     // React가 불일치로 경고하지만, 사용자 설정을 첫 페인트부터 적용하기 위한 의도된 차이입니다.
     <html lang="ko" suppressHydrationWarning>
-      <body className="min-h-screen antialiased">
+      {/* 지면은 앱 프레임 밖 배경(#f1f2f0)입니다 — 화면(흰 면)은 PageShell이 그립니다. */}
+      <body className="min-h-dvh bg-paper-out antialiased">
         {/* 동봉한 Pretendard를 첫 페인트 전에 받도록 프리로드 — React가 head로 끌어올립니다. */}
         <link
           rel="preload"
@@ -53,6 +55,8 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
         {children}
+        {/* 전역 헤더가 사라졌으므로 글자 크기 설정은 여기서 부팅합니다(v3에서는 AppHeader가 했습니다). */}
+        <SettingsBoot />
         <SwRegister />
       </body>
     </html>

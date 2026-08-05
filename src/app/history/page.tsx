@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
 import type { ScenarioType } from "@/types";
-import { PageShell } from "@/components";
+import { PageShell, ScreenHeader } from "@/components";
 import { SOURCE_DOCS } from "@/data/docs";
 import { SCENARIOS } from "@/data/scenarios";
 import { HistoryBoard } from "./_components/HistoryBoard";
-import type { ScenarioTypeMap } from "./_components/CoverageGrid";
+import type { ScenarioTypeMap } from "./_components/nextTraining";
 
 export const metadata: Metadata = {
   title: "성장 기록",
   description:
-    "훈련 이력과 확정한 기록을 이 기기에 쌓아 둡니다. 충족한 것과 다음에 살려 볼 것만 문장으로 남기고, 점수·등급은 만들지 않습니다.",
+    "점수와 등급은 없습니다 — 해 본 것과 다시 볼 것만 남깁니다. 훈련 이력과 확정한 기록은 이 기기 안에만 쌓입니다.",
 };
 
 /**
@@ -33,20 +33,19 @@ function buildActiveTypes(): ScenarioType[] {
 }
 
 /**
- * `/history` — 성장 기록.
+ * `/history` — 성장 기록 (시안 5c).
  *
- * 세션 이력·유형 커버리지·확정한 기록을 한 화면에 모읍니다.
+ * 상단 바(22px 제목 + 부제) → 추천 카드 → 유형별 4칸 → 최근 훈련 행 →
+ * 이수 확인서 → 확정한 기록 순서입니다.
  * 안전 규칙: 점수·등급·순위·백분위를 어떤 형태로도 표시하지 않습니다.
  */
 export default function HistoryPage() {
   return (
-    <PageShell
-      eyebrow="성장 기록"
-      title="잘한 것과 다음에 살려 볼 것만 남깁니다"
-      description="등수를 매기지 않습니다. 어떤 상황을 몇 번 연습했는지, 그때 무엇을 지켰고 무엇을 다음에 살려 볼지만 문장으로 쌓입니다. 기록은 이 기기 안에만 있습니다."
-      sourceDocs={SOURCE_DOCS}
-      wide
-    >
+    <PageShell sourceDocs={SOURCE_DOCS}>
+      <ScreenHeader
+        title="성장 기록"
+        subtitle="점수와 등급은 없습니다 — 해 본 것과 다시 볼 것만 남깁니다"
+      />
       <HistoryBoard typeByScenarioId={buildTypeMap()} activeTypes={buildActiveTypes()} />
     </PageShell>
   );

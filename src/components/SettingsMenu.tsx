@@ -14,33 +14,10 @@ import {
   type SpeechRate,
 } from "@/lib/settings";
 import { isSpeechSynthesisSupported, speak, stopSpeaking } from "@/lib/speech";
-import { IconBase, type IconProps } from "./icons";
 import { cx } from "./utils";
 
 /** 「음성 빠르기」를 고르면 곧바로 이 한 문장을 읽어 줍니다 — 귀로 확인하고 고르시라고요. */
 const SAMPLE_TEXT = "지금 이 빠르기로 안내해 드립니다.";
-
-/**
- * 설정 아이콘(톱니).
- * 아이콘 세트에 톱니가 없어 이 파일 안에서만 쓰는 지역 아이콘으로 둡니다.
- * 규격은 시스템과 동일합니다(§4): IconBase 사용 · 24×24 · stroke 1.75 · currentColor.
- */
-function IconGear({ className, strokeWidth }: IconProps) {
-  return (
-    <IconBase className={className} strokeWidth={strokeWidth}>
-      <circle cx="12" cy="12" r="3.2" />
-      <circle cx="12" cy="12" r="6" />
-      <path d="M18 12h1.8" />
-      <path d="m16.2 7.8 1.3-1.3" />
-      <path d="M12 6V4.2" />
-      <path d="M7.8 7.8 6.5 6.5" />
-      <path d="M6 12H4.2" />
-      <path d="m7.8 16.2-1.3 1.3" />
-      <path d="M12 18v1.8" />
-      <path d="m16.2 16.2 1.3 1.3" />
-    </IconBase>
-  );
-}
 
 interface OptionButtonProps {
   label: string;
@@ -61,7 +38,7 @@ function OptionButton({ label, selected, onSelect }: OptionButtonProps) {
       onClick={onSelect}
       aria-pressed={selected}
       className={cx(
-        "chim-label min-h-[48px] flex-1 rounded-[12px] px-2",
+        "chim-label min-h-[48px] flex-1 rounded-[14px] px-2",
         "transition-colors duration-150 ease-soft",
         selected
           ? "bg-brand-700 font-bold text-white"
@@ -80,8 +57,9 @@ export interface SettingsMenuProps {
 /**
  * 표시·음성 설정 팝오버.
  *
- * 헤더 우측에 놓여 데스크톱·모바일 어디서나 같은 자리에서 열립니다(탭바에는 두지 않습니다 —
- * 탭바 5칸은 이동용이고, 설정은 이동이 아니기 때문입니다).
+ * v4에서는 **홈 상단 바의 「설정」 텍스트 버튼**이 유일한 트리거입니다(시안 5a) —
+ * 톱니 아이콘은 쓰지 않고, 13.5px w600 `ink-muted` 한 단어로만 둡니다.
+ * 탭바에는 두지 않습니다 — 탭바 5칸은 이동용이고, 설정은 이동이 아니기 때문입니다.
  *
  * 담는 것은 두 가지뿐입니다.
  * - **글자 크기**: 루트 font-size를 16/18/20px로 바꿉니다. 토큰이 전부 rem이라 화면이 통째로 비례합니다.
@@ -168,12 +146,11 @@ export function SettingsMenu({ className }: SettingsMenuProps) {
         aria-controls={open ? panelId : undefined}
         onClick={() => (open ? close(true) : setOpen(true))}
         className={cx(
-          "chim-meta inline-flex min-h-[48px] items-center gap-1.5 px-2 font-semibold",
+          "inline-flex min-h-[48px] items-center px-2 text-[13.5px] font-semibold",
           "transition-colors duration-150",
-          open ? "text-brand-800" : "text-ink-soft hover:text-brand-800",
+          open ? "text-brand-800" : "text-ink-muted hover:text-brand-800",
         )}
       >
-        <IconGear className="h-5 w-5" />
         설정
       </button>
 

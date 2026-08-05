@@ -31,7 +31,9 @@ export default async function TrainSessionPage({ params }: PageProps) {
   if (!scenario) notFound();
 
   return (
-    <PageShell sourceDocs={SOURCE_DOCS} wide>
+    /* 세션은 뷰포트에 고정된 화면입니다 — 본문(대화)만 스크롤하고 입력 도크는 아래에 붙어 있습니다.
+       좌우 여백 18px과 상단 바는 화면이 직접 그리므로 셸의 여백·탭바는 끕니다(v4 §0·§3). */
+    <PageShell sourceDocs={SOURCE_DOCS} fill pad={false} tabBar={false}>
       <TrainSession scenario={scenario} protocols={PROTOCOLS} />
     </PageShell>
   );

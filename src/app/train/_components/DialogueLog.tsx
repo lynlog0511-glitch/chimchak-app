@@ -1,23 +1,44 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { AiBadge, FeedbackCard } from "@/components";
-import { IconAlert, IconShield } from "@/components/icons";
+import { WaveBars } from "@/components";
 import { cx } from "@/components/utils";
-import type { LogItem } from "./sessionMachine";
+import { EMOTION_RING, EMOTION_TEXT, type EmotionLevel } from "./constants";
+import { InlineCoaching } from "./InlineCoaching";
 import { RecordDraftPreview } from "./RecordDraftPreview";
+import type { LogItem } from "./sessionMachine";
 
 type LineItem = Extract<LogItem, { kind: "line" }>;
 type Speaker = LineItem["speaker"];
 
+export interface DialogueEmotion {
+  level: EmotionLevel;
+  /** 이름줄에 붙는 상태어 — 「조금 불안」 */
+  word: string;
+}
+
 export interface DialogueLogProps {
   items: LogItem[];
+  /** 게이지 이름 — 인라인 코칭의 델타 칩 문구에 씁니다 */
+  gaugeLabel: string;
+  /**
+   * 지금 인물의 감정 상태.
+   * **마지막 대사에만** 붙습니다 — 지나간 대사에 지금 감정을 덧칠하지 않습니다.
+   */
+  emotion?: DialogueEmotion;
+  /** 마지막 대사를 지금 읽어 주고 있는지 (TTS) */
+  speaking?: boolean;
   className?: string;
 }
 
-/** 화자별 표시 규칙 — 등장인물 대사에는 항상 AI 배지와 가상 인물 고지가 붙습니다. */
+/** 화자별 표시 규칙 — 등장인물 대사에는 항상 AI 생성·가상 인물 표기가 붙습니다. */
 function isCharacter(speaker: Speaker): boolean {
   return speaker === "elder" || speaker === "guardian" || speaker === "dispatcher";
+}
+
+/** 게이지가 설명하는 인물 — 119 상황실에는 감정 상태어를 붙이지 않습니다. */
+function hasEmotion(speaker: Speaker): boolean {
+  return speaker === "elder" || speaker === "guardian";
 }
 
 /**
@@ -47,36 +68,35 @@ function initialOf(name: string): string {
 }
 
 /**
- * 화자 아바타 — 42px 원형.
- * 색은 아껴 씁니다: 어르신만 틸 톤, 보호자·상황실은 잉크 톤.
- * 사전 검수 안내(protocol)는 이니셜 대신 방패 스트로크, 상황 안내(system)는 아바타가 없습니다.
- * 의미는 옆의 화자 이름이 전달하므로 아바타 자체는 장식(aria-hidden)입니다.
- *
- * v3 §1-4: 테두리 대신 면으로만 구분합니다 — 원이 이미 형태를 만들고 있어 선이 필요 없습니다.
+ * 화자 아바타 — 38px 원 하나 (시안 4a).
+ * 사진도 아이콘도 쓰지 않고 한 글자만 새깁니다. 사전 검수 안내는 붉은 면에 「안」.
+ * 감정 링은 지금 말하고 있는 인물에게만 붙고, 뜻은 옆의 상태어가 전합니다.
  */
-function SpeakerAvatar({ speaker, name }: { speaker: Speaker; name: string }) {
-  if (speaker === "system") return null;
-
+function SpeakerAvatar({
+  speaker,
+  name,
+  ring,
+}: {
+  speaker: Speaker;
+  name: string;
+  ring?: string;
+}) {
   if (speaker === "protocol") {
     return (
       <span
-        aria-hidden="true"
-        className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-danger-soft text-danger-ink"
+        aria-hidden
+        className="flex h-[38px] w-[38px] flex-none items-center justify-center rounded-full bg-danger-soft text-[14px] font-bold text-danger-ink"
       >
-        <IconShield className="h-[22px] w-[22px]" />
+        안
       </span>
     );
   }
 
-  const elder = speaker === "elder";
-
   return (
     <span
-      aria-hidden="true"
-      className={cx(
-        "flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full text-[1.0625rem] font-extrabold",
-        elder ? "bg-brand-100 text-brand-800" : "bg-neutral-soft text-ink-soft",
-      )}
+      aria-hidden
+      style={ring ? { boxShadow: ring } : undefined}
+      className="flex h-[38px] w-[38px] flex-none items-center justify-center rounded-full bg-paper-out text-[14px] font-bold text-ink-soft"
     >
       {initialOf(name)}
     </span>
@@ -84,93 +104,106 @@ function SpeakerAvatar({ speaker, name }: { speaker: Speaker; name: string }) {
 }
 
 /**
- * 로그 한 줄.
+ * 대사 한 줄.
  *
- * 세 가지 표기 체계를 일부러 다르게 씁니다.
- *  · 인물 대사 — 아바타 + 왼쪽 위 꼬리 말풍선 (사전 검수 안내도 같은 문법, 바탕 면만 다름)
- *  · 상황 안내 — 말풍선도 카드도 아닌 지문(들여쓰기 + 이탤릭, 세로줄 없음)
- *  · 판정(FeedbackCard) — 마크·판정어 한 줄 + 한 톤 내린 바탕
- *
- * 크기(§3): 대사는 코어 콘텐츠라 18px(모바일)/20px(md↑)이 하한이고,
- * 화자 이름·부가 표기 같은 UI 크롬은 13~15px로 내려 대사가 혼자 크게 보이도록 둡니다.
+ *  · 인물 대사 — 아바타 + 이름줄 + 왼쪽 위 꼬리 말풍선(면 `#f5f6f6`) + 「AI 생성 · 가상 인물」
+ *  · 사전 검수 안내 — 같은 문법, 붉은 면 + 「검수된 고정 안내 · AI 생성 아님」
+ *  · 상황 안내 — 말풍선이 아니라 무대 지문(가운데 12.5px)
  */
-function LineBubble({ item }: { item: LineItem }) {
+function LineBubble({
+  item,
+  live,
+  emotion,
+  speaking,
+}: {
+  item: LineItem;
+  live: boolean;
+  emotion?: DialogueEmotion;
+  speaking?: boolean;
+}) {
   const character = isCharacter(item.speaker);
   const protocol = item.speaker === "protocol";
   const system = item.speaker === "system";
 
-  const speakerRow = (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-      <span className="chim-label font-extrabold text-ink">{item.speakerName}</span>
-      {character ? (
-        <AiBadge />
-      ) : (
-        // 메타 정보는 칩으로 감싸지 않고 작은 텍스트로 둡니다(한 화면의 필 형태 수를 줄입니다).
-        <span
-          className={cx("chim-caption font-semibold", protocol ? "text-danger-ink" : "text-ink-muted")}
-        >
-          {protocol ? "검수된 고정 안내 · AI 생성 아님" : "상황 안내"}
-        </span>
-      )}
-    </div>
-  );
-
-  /* 대사 — 이 화면의 주인공입니다(코어 18→20px). */
-  const body = (
-    <>
-      <p className="chim-core font-semibold text-ink md:text-[1.25rem]">{item.text}</p>
-      {item.note && (
-        <p className="mt-2 text-[0.9375rem] leading-relaxed text-ink-muted italic">{item.note}</p>
-      )}
-    </>
-  );
-
   const trigger = item.triggerName ? (
-    <p className="chim-caption mb-2 flex items-center gap-2 font-extrabold text-warn-ink">
-      <IconAlert className="h-[18px] w-[18px] shrink-0" />
+    <p className="mb-2 text-center text-[12px] leading-[1.5] font-bold text-warn-ink">
       돌발 변수 · {item.triggerName}
     </p>
   ) : null;
 
-  /* 상황 안내는 말하는 사람이 없습니다 — 세로줄 액센트 대신 들여쓰기와 이탤릭만 둡니다(§1-2). */
+  /* 상황 안내는 말하는 사람이 없습니다 — 지문으로 가운데에 조용히 둡니다. */
   if (system) {
     return (
       <div className="animate-fade-up">
         {trigger}
-        <div className="max-w-[46rem] pl-4">
-          {speakerRow}
-          <div className="mt-1.5">
-            <p className="text-[0.9375rem] leading-relaxed text-ink-soft italic">{item.text}</p>
-            {item.note && (
-              <p className="mt-1.5 text-[0.9375rem] leading-relaxed text-ink-muted italic">
-                {item.note}
-              </p>
-            )}
-          </div>
-        </div>
+        <p className="text-center text-[12.5px] leading-[1.6] text-tertiary">{item.text}</p>
+        {item.note && (
+          <p className="mt-1 text-center text-[12px] leading-[1.6] text-faint">{item.note}</p>
+        )}
       </div>
     );
   }
+
+  const showEmotion = live && emotion && hasEmotion(item.speaker);
 
   return (
     <div className="animate-fade-up">
       {trigger}
 
-      <div className="flex items-start gap-3">
-        <SpeakerAvatar speaker={item.speaker} name={item.speakerName} />
+      <div className="flex gap-2.5">
+        <SpeakerAvatar
+          speaker={item.speaker}
+          name={item.speakerName}
+          ring={showEmotion ? EMOTION_RING[emotion.level] : undefined}
+        />
 
-        <div className="min-w-0 flex-1">
-          {speakerRow}
+        <div className="min-w-0 max-w-[85%]">
+          <div className="mb-[5px] flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-[12.5px] leading-[1.4] text-ink-muted">
+            <span>{item.speakerName}</span>
+            {showEmotion && (
+              <>
+                <span aria-hidden>·</span>
+                <span className={cx("font-semibold", EMOTION_TEXT[emotion.level])}>
+                  {emotion.word}
+                </span>
+              </>
+            )}
+            {protocol && (
+              <>
+                <span aria-hidden>·</span>
+                <span className="font-semibold text-danger-ink">검수된 고정 안내</span>
+              </>
+            )}
+            {live && speaking && (
+              <span className="ml-0.5 inline-flex items-baseline gap-1.5">
+                <WaveBars count={3} className="relative top-[1px]" />
+                <span className="text-[11px] font-semibold text-brand-600">읽어 주는 중</span>
+              </span>
+            )}
+          </div>
 
+          {/* 대사는 이 화면의 주인공입니다 — 17px/1.6, 꼬리는 왼쪽 위 한 모서리만. */}
           <div
             className={cx(
-              // 꼬리는 왼쪽 위 모서리 하나만 접습니다. 보더도 그림자도 없이 면으로만 세웁니다(§5).
-              "mt-1.5 max-w-[46rem] rounded-card rounded-tl-sm p-4 md:p-5",
-              protocol ? "bg-danger-soft" : "bg-white",
+              "rounded-[4px_18px_18px_18px] px-[15px] py-[13px] text-[17px] leading-[1.6]",
+              protocol ? "bg-danger-soft text-ink" : "bg-paper-2 text-ink",
             )}
           >
-            {body}
+            {item.text}
+            {item.note && (
+              <span className="mt-1.5 block text-[13.5px] leading-[1.55] text-ink-muted italic">
+                {item.note}
+              </span>
+            )}
           </div>
+
+          <p className="mt-1 text-[11px] leading-[1.5] text-faint">
+            {protocol
+              ? "검수된 고정 안내 · AI 생성 아님"
+              : character
+                ? `AI 생성 · 가상 인물${live ? " · 방금" : ""}`
+                : ""}
+          </p>
         </div>
       </div>
     </div>
@@ -180,18 +213,15 @@ function LineBubble({ item }: { item: LineItem }) {
 function LearnerBubble({ item }: { item: Extract<LogItem, { kind: "learner" }> }) {
   return (
     <div className="animate-fade-up flex justify-end">
-      <div className="min-w-0 max-w-[42rem]">
-        <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
-          <span className="chim-label font-extrabold text-ink">내 응답</span>
-          <span className="chim-caption font-semibold text-ink-muted">
-            {item.viaButton ? "버튼 선택" : "말하기·직접 입력"}
-          </span>
+      <div className="min-w-0 max-w-[85%]">
+        <div
+          className="rounded-[18px_4px_18px_18px] bg-tint px-[15px] py-[13px] text-[17px] leading-[1.6] text-deep"
+        >
+          {item.text}
         </div>
-
-        {/* 학습자 발화는 꼬리가 오른쪽 위 — 인물 말풍선과 방향·면으로 구분됩니다. */}
-        <div className="mt-1.5 rounded-card rounded-tr-sm bg-brand-50 p-4 md:p-5">
-          <p className="chim-core font-semibold text-ink md:text-[1.25rem]">{item.text}</p>
-        </div>
+        <p className="mt-1 text-right text-[11px] leading-[1.5] text-faint">
+          내 응답 · {item.viaButton ? "버튼 선택" : "말하기·직접 입력"}
+        </p>
       </div>
     </div>
   );
@@ -212,72 +242,83 @@ function latestFeedbackKey(items: LogItem[]): string {
   return "";
 }
 
+/** 마지막 대사 항목의 키 — 감정 링·TTS 표시가 붙는 자리입니다. */
+function latestLineKey(items: LogItem[]): string {
+  for (let i = items.length - 1; i >= 0; i -= 1) {
+    const item = items[i];
+    if (item && item.kind === "line") return item.key;
+  }
+  return "";
+}
+
 /**
- * 대화 로그.
- * AI 대사 · 학습자 발화 · 턴 피드백 · 기록 초안 · 전환 안내를 시간 순으로 쌓습니다.
+ * 대화 — 메신저 문법으로 쌓입니다 (시안 3a·4a).
+ * 지문 → AI 말풍선 → 내 말풍선 → 인라인 코칭 순서로 흐르고, 카드는 쓰지 않습니다.
  *
- * 응답을 보내신 직후에는 **방금 생긴 피드백 카드**를 화면 한가운데로 끌어옵니다.
- * (모바일에서 피드백과 새 대사가 화면 위쪽 밖에 남는 문제를 막기 위한 처리입니다.)
- * 그 밖의 경우에는 마지막 줄이 보이도록 로그 안쪽만 내립니다.
+ * 스크롤은 바깥(세션 본문)이 담당합니다. 응답을 보내신 직후에는 **방금 생긴 코칭**을
+ * 화면 한가운데로 끌어오고, 그 밖에는 마지막 줄이 보이도록 내려 드립니다.
  */
-export function DialogueLog({ items, className }: DialogueLogProps) {
-  const boxRef = useRef<HTMLDivElement | null>(null);
+export function DialogueLog({
+  items,
+  gaugeLabel,
+  emotion,
+  speaking = false,
+  className,
+}: DialogueLogProps) {
+  const endRef = useRef<HTMLDivElement | null>(null);
   const feedbackRef = useRef<HTMLDivElement | null>(null);
   const shownFeedbackKeyRef = useRef<string>("");
 
   const feedbackKey = latestFeedbackKey(items);
+  const lineKey = latestLineKey(items);
 
   useEffect(() => {
-    const box = boxRef.current;
-    if (!box) return;
-
     // 다시 하기로 로그가 비워지면 기억을 지웁니다 (키가 같은 값으로 되돌아와도 다시 옮겨 드리도록).
     if (feedbackKey.length === 0) shownFeedbackKeyRef.current = "";
 
+    const behavior = scrollBehavior();
     const target = feedbackRef.current;
-    if (feedbackKey.length > 0 && target && shownFeedbackKeyRef.current !== feedbackKey) {
-      shownFeedbackKeyRef.current = feedbackKey;
-      // 새로 붙은 카드가 자리를 잡은 뒤에 옮겨야 위치가 어긋나지 않습니다.
-      const frame = window.requestAnimationFrame(() => {
-        target.scrollIntoView({ block: "center", behavior: scrollBehavior() });
-      });
-      return () => window.cancelAnimationFrame(frame);
-    }
+    const isNewFeedback =
+      feedbackKey.length > 0 && Boolean(target) && shownFeedbackKeyRef.current !== feedbackKey;
+    if (isNewFeedback) shownFeedbackKeyRef.current = feedbackKey;
 
-    box.scrollTop = box.scrollHeight;
-    return undefined;
+    const frame = window.requestAnimationFrame(() => {
+      if (isNewFeedback && target) {
+        target.scrollIntoView({ block: "center", behavior });
+        return;
+      }
+      endRef.current?.scrollIntoView({ block: "end", behavior });
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [items, feedbackKey]);
 
   return (
     <div
-      ref={boxRef}
       role="log"
       aria-live="polite"
       aria-label="대화 기록"
-      className={cx(
-        // 모바일에서는 뷰포트에 맞춰 낮춥니다 — 로그가 화면을 다 먹고 응답부가 밀리는 것을 막습니다.
-        // 로그는 지면 위에 그대로 놓입니다. 상자를 두르면 말풍선 상자와 겹쳐 서식처럼 보입니다(§1-4).
-        "max-h-[min(22rem,38vh)] space-y-5 overflow-y-auto p-1 md:max-h-[36rem]",
-        className,
-      )}
+      className={cx("space-y-[18px]", className)}
     >
       {items.map((item) => {
         switch (item.kind) {
           case "line":
-            return <LineBubble key={item.key} item={item} />;
+            return (
+              <LineBubble
+                key={item.key}
+                item={item}
+                live={item.key === lineKey}
+                emotion={emotion}
+                speaking={speaking}
+              />
+            );
           case "learner":
             return <LearnerBubble key={item.key} item={item} />;
           case "feedback":
             return (
               <div key={item.key} ref={item.key === feedbackKey ? feedbackRef : undefined}>
-                <FeedbackCard
-                  ok={item.feedback.ok}
-                  critical={item.feedback.criticalFail}
-                  message={item.feedback.message}
-                  docId={item.feedback.docId}
-                  label={item.feedback.branchLabel}
-                  // 「이 판정이 나온 이유」 — 판정 경로와 걸린 루브릭 항목을 접이식으로 밝힙니다.
-                  trace={item.feedback.trace}
+                <InlineCoaching
+                  feedback={item.feedback}
+                  gaugeLabel={gaugeLabel}
                   className="animate-fade-up"
                 />
               </div>
@@ -287,29 +328,25 @@ export function DialogueLog({ items, className }: DialogueLogProps) {
               <RecordDraftPreview key={item.key} source={item.source} className="animate-fade-up" />
             );
           case "notice":
-            // 전환 안내는 액센트 바 없이 아주 옅은 면 하나로만 둡니다(§1-2).
+            /* 전환 안내 — 면 하나에 한 줄. L3 전환만 붉은 면을 씁니다. */
             return (
               <div
                 key={item.key}
                 className={cx(
-                  "animate-fade-up rounded-card px-4 py-3",
-                  item.tone === "danger" ? "bg-danger-soft" : "bg-brand-50",
+                  "animate-fade-up rounded-card px-4 py-3 text-[13px] leading-[1.6] font-bold",
+                  item.tone === "danger"
+                    ? "bg-danger-soft text-danger-ink"
+                    : "bg-tint text-brand-800",
                 )}
               >
-                <p
-                  className={cx(
-                    "chim-body font-bold",
-                    item.tone === "danger" ? "text-danger-ink" : "text-brand-800",
-                  )}
-                >
-                  {item.text}
-                </p>
+                {item.text}
               </div>
             );
           default:
             return null;
         }
       })}
+      <div ref={endRef} aria-hidden className="h-px" />
     </div>
   );
 }

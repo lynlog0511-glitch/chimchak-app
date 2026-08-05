@@ -2,8 +2,7 @@
 
 import { useRef, useState } from "react";
 import type { RecordDraft } from "@/types";
-import { BigButton, Card } from "@/components";
-import { StatusMark } from "@/components/icons";
+import { BigButton, EyebrowLabel } from "@/components";
 import { maskText } from "@/engine/masking";
 import { RECORD_SLOT_LABELS, extractDraft, recomputeMissing, type RecordSlot } from "@/engine/record";
 import { saveReport, type StoredReport } from "@/lib/storage";
@@ -38,7 +37,7 @@ const EMPTY_DRAFT: RecordDraft = recomputeMissing({
   missing: [],
 });
 
-/** 가명처리 토큰([대상자] 등)만 강조해서 보여 줍니다. 채움만 쓰고 보더는 두지 않습니다(§1-4). */
+/** 가명처리 토큰([대상자] 등)만 강조해서 보여 줍니다. 채움만 쓰고 보더는 두지 않습니다. */
 function TokenText({ text }: { text: string }) {
   const parts = text.split(/(\[(?:대상자|번호|기관|주소|생년)\])/g);
   return (
@@ -47,7 +46,7 @@ function TokenText({ text }: { text: string }) {
         /^\[(?:대상자|번호|기관|주소|생년)\]$/.test(part) ? (
           <strong
             key={index}
-            className="mx-0.5 rounded-chip bg-brand-100 px-1.5 py-0.5 font-extrabold text-brand-900"
+            className="mx-[2px] rounded-[6px] bg-tint px-[5px] py-[1px] font-extrabold text-brand-900"
           >
             {part}
           </strong>
@@ -60,13 +59,14 @@ function TokenText({ text }: { text: string }) {
 }
 
 /**
- * 음성 보고 → 기록 코칭 3단계 위저드.
+ * 음성 보고 → 기록 코칭 3단계 위저드 (v4 언어).
  *
  * 1) 입력   : 마이크(누르는 동안 인식) 또는 타이핑
  * 2) 가명처리: 무엇을 왜 가렸는지 원문 위에 표시
  * 3) 초안   : 급여제공기록지 5요소를 고치고 확정(이 기기에만 저장)
  *
  * 모든 처리는 브라우저 안에서 끝나며 외부 호출이 0건입니다.
+ * 재구현에서 바뀐 것은 면·글자 크기뿐이고, 단계·검사·저장 규칙은 그대로입니다.
  */
 export function ReportWizard() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -153,98 +153,88 @@ export function ReportWizard() {
       saved.elapsedSec <= MAX_DISPLAYABLE_ELAPSED_SEC;
 
     return (
-      <div className="space-y-6">
+      <div className="mt-4">
         <StepBar current={3} finished />
 
-        {/* 확정 직후의 주인공은 이 한 줄입니다 — 마크와 판정어를 가로로 나란히 둡니다(§4). */}
-        <Card tone="ok">
-          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-            <StatusMark kind="met" size="lg" />
-            <h2 className="chim-h2 text-ok-ink">확정했습니다</h2>
-          </div>
-          <p className="chim-caption mt-1 font-bold text-ok-ink">이 기기에만 저장</p>
-
-          <p className="chim-core-sm mt-3 max-w-3xl text-ink">
+        {/* 확정 직후의 주인공은 이 한 줄입니다. */}
+        <div className="mt-5">
+          <h2 className="text-[19px] leading-[1.4] font-extrabold text-ok-ink">확정했습니다</h2>
+          <p className="mt-[3px] text-[12px] leading-[1.5] font-bold text-ok-ink">
+            이 기기에만 저장
+          </p>
+          <p className="mt-[10px] text-[14px] leading-[1.75] text-ink">
             사용자가 확정한 뒤에만 기관 시스템으로 전달됩니다. 지금 남은 것은 가명처리 2단을 통과한
             텍스트뿐이며, 말씀하신 음성과 원문은 저장하지 않았습니다.
           </p>
-          <p className="chim-meta mt-2 leading-relaxed text-ink-soft">
+          <p className="mt-[8px] text-[12.5px] leading-[1.7] text-ink-soft">
             {secondPassCount > 0
               ? `저장 직전 2차 검사에서 ${secondPassCount}곳을 더 가렸습니다.`
               : "저장 직전 2차 검사에서 추가로 가릴 항목은 나오지 않았습니다."}
           </p>
           {showElapsed && (
-            <p className="chim-meta mt-1 leading-relaxed text-ink-soft">
+            <p className="mt-[4px] text-[12.5px] leading-[1.7] text-ink-soft">
               이번 기록 {formatElapsed(saved.elapsedSec as number)} · 손으로 쓰면 20~30분(현직
               인터뷰 실측)
             </p>
           )}
-        </Card>
+        </div>
 
-        <Card>
-          <h3 className="chim-h3 text-ink">확정한 기록 초안</h3>
-          {/* 표 같은 목록이라 상자 대신 hairline으로만 행을 나눕니다(§7). 값은 코어 17px. */}
-          <dl className="chim-hairline mt-4">
-            {SLOT_ORDER.map((slot) => {
-              const value = saved.draft[slot];
-              return (
-                <div key={slot} className="py-3 first:pt-0 last:pb-0">
-                  <dt className="chim-meta font-bold text-ink-muted">
-                    {RECORD_SLOT_LABELS[slot]}
-                  </dt>
-                  <dd className="chim-core-sm mt-1 text-ink">
-                    {value.trim().length > 0 ? (
-                      <TokenText text={value} />
-                    ) : (
-                      <span className="chim-meta font-semibold text-warn-ink">
-                        비어 있는 채로 확정하셨습니다
-                      </span>
-                    )}
-                  </dd>
-                </div>
-              );
-            })}
-          </dl>
-        </Card>
+        <EyebrowLabel className="mt-6 mb-[8px]">확정한 기록 초안</EyebrowLabel>
+        <dl className="chim-hairline border-t border-line">
+          {SLOT_ORDER.map((slot) => {
+            const value = saved.draft[slot];
+            return (
+              <div key={slot} className="py-[11px]">
+                <dt className="text-[11.5px] leading-[1.4] font-bold text-ink-muted">
+                  {RECORD_SLOT_LABELS[slot]}
+                </dt>
+                <dd className="mt-[2px] text-[14.5px] leading-[1.7] text-ink">
+                  {value.trim().length > 0 ? (
+                    <TokenText text={value} />
+                  ) : (
+                    <span className="text-[12.5px] font-semibold text-warn-ink">
+                      비어 있는 채로 확정하셨습니다
+                    </span>
+                  )}
+                </dd>
+              </div>
+            );
+          })}
+        </dl>
 
         {/* 저장까지 끝났으므로 5단계 전부 완료 표시 */}
-        <PrivacyPath reached={6} />
+        <PrivacyPath reached={6} className="mt-6" />
 
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <BigButton href="/history" size="lg">
-            성장 기록에서 확인하기
-          </BigButton>
-          <BigButton onClick={reset} variant="secondary" size="lg">
-            새 보고 작성하기
-          </BigButton>
-        </div>
+        <BigButton href="/history" size="lg" block className="mt-5">
+          성장 기록에서 확인하기
+        </BigButton>
+        <BigButton onClick={reset} variant="secondary" block className="mt-2">
+          새 보고 작성하기
+        </BigButton>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="mt-4">
       <StepBar current={step} />
 
-      {step === 1 && (
-        <VoiceInput
-          value={text}
-          onChange={setText}
-          onNext={() => setStep(2)}
-          onInputStart={markInputStart}
-        />
-      )}
+      <div className="mt-5">
+        {step === 1 && (
+          <VoiceInput
+            value={text}
+            onChange={setText}
+            onNext={() => setStep(2)}
+            onInputStart={markInputStart}
+          />
+        )}
 
-      {step === 2 && <MaskReview text={text} onBack={() => setStep(1)} onNext={goDraft} />}
+        {step === 2 && <MaskReview text={text} onBack={() => setStep(1)} onNext={goDraft} />}
 
-      {step === 3 && (
-        <DraftForm
-          draft={draft}
-          onChange={setDraft}
-          onBack={() => setStep(2)}
-          onConfirm={confirm}
-        />
-      )}
+        {step === 3 && (
+          <DraftForm draft={draft} onChange={setDraft} onBack={() => setStep(2)} onConfirm={confirm} />
+        )}
+      </div>
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import type { MaskSpan } from "@/types";
-import { BigButton, Card, cx } from "@/components";
+import { BigButton, cx } from "@/components";
 import {
   MASK_KIND_LABELS,
   MASK_KIND_REASONS,
@@ -23,14 +23,14 @@ export interface MaskReviewProps {
 
 /**
  * 종류별 하이라이트 — 아이콘 없이 옅은 면과 텍스트 라벨을 함께 씁니다.
- * 채움 위에 다시 선을 두르면 서식처럼 보이므로 보더는 두지 않습니다(§1-4).
+ * 채움 위에 다시 선을 두르면 서식처럼 보이므로 보더는 두지 않습니다.
  */
 const KIND_STYLE: Record<MaskKind, string> = {
-  성명: "bg-brand-100 text-brand-900",
+  성명: "bg-tint text-brand-900",
   번호: "bg-warn-soft text-warn-ink",
   기관명: "bg-mint-200 text-brand-900",
   주소: "bg-danger-soft text-danger-ink",
-  생년: "bg-neutral-soft text-ink",
+  생년: "bg-neutral-line text-ink",
 };
 
 const KIND_ORDER: MaskKind[] = ["성명", "번호", "기관명", "주소", "생년"];
@@ -55,10 +55,10 @@ function splitOriginal(text: string, spans: MaskSpan[]): OriginalPart[] {
 }
 
 /**
- * 2단계 가명처리 확인 화면.
- * 원문 위에 무엇을 가렸는지 색으로 표시하고, 기기 밖으로 나가는 텍스트를 나란히 보여 줍니다.
+ * 2단계 가명처리 확인 화면 (v4 언어).
  *
- * 크기 체계(§3): 읽어야 할 문장(원문·가명처리 결과)은 코어 17px, 종류 설명·주의는 13~14px 크롬입니다.
+ * 원문 위에 무엇을 가렸는지 색으로 표시하고, 기기 밖으로 나가는 텍스트를 나란히 보여 줍니다.
+ * **가명처리 시각화는 한 곳도 줄이지 않았습니다** — 면과 글자 크기만 시안 문법으로 바꿨습니다.
  */
 export function MaskReview({ text, onBack, onNext }: MaskReviewProps) {
   const originalSpans = useMemo(() => maskSpansOnOriginal(text), [text]);
@@ -70,29 +70,28 @@ export function MaskReview({ text, onBack, onNext }: MaskReviewProps) {
   const total = result.spans.length;
 
   return (
-    <div className="space-y-5">
-      <Card>
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <h2 className="chim-h2 text-ink">2. 무엇을 가렸는지 먼저 확인해 주세요</h2>
-          <span className="chim-caption font-semibold text-ink-muted">
-            이 원문은 이 기기 안에만 있습니다
-          </span>
-        </div>
+    <div>
+      <h2 className="text-[17px] leading-[1.45] font-bold text-ink">
+        무엇을 가렸는지 먼저 확인해 주세요
+      </h2>
+      <p className="mt-[6px] text-[12.5px] leading-[1.7] text-ink-muted">
+        {total > 0
+          ? `말씀하신 내용에서 ${total}곳을 가렸습니다. 색이 칠해진 부분이 가려지는 곳이고, 옆에 적힌 것이 대신 들어갈 표기입니다.`
+          : "가릴 항목을 찾지 못했습니다. 이름·연락처·기관명·주소·생년이 들어 있다면 앞 단계로 돌아가 다시 확인해 주세요."}
+      </p>
 
-        <p className="chim-meta mt-2 max-w-3xl leading-relaxed text-ink-muted">
-          {total > 0
-            ? `말씀하신 내용에서 ${total}곳을 가렸습니다. 색이 칠해진 부분이 가려지는 곳이고, 옆에 적힌 것이 대신 들어갈 표기입니다.`
-            : "가릴 항목을 찾지 못했습니다. 이름·연락처·기관명·주소·생년이 들어 있다면 앞 단계로 돌아가 다시 확인해 주세요."}
+      {/* 원문 — 이 화면 안에만 있고 저장되지 않습니다. */}
+      <div className="mt-4 rounded-[14px] bg-paper-2 px-4 py-[14px]">
+        <p className="text-[12px] leading-[1.5] font-bold tracking-[0.06em] text-ink-muted">
+          말씀하신 원문 · 이 기기 안에만 있습니다
         </p>
-
-        {/* 읽어야 할 문장 — 보더 없이 옅은 면 위에 놓고 글자는 코어 크기로 둡니다. */}
-        <p className="chim-core-sm mt-4 rounded-card bg-paper-2 p-4 leading-loose text-ink">
+        <p className="mt-[8px] text-[14.5px] leading-[1.9] text-ink">
           {parts.map((part, index) =>
             part.kind ? (
               <mark
                 key={index}
                 className={cx(
-                  "mx-0.5 inline-flex flex-wrap items-baseline gap-1 rounded-chip px-2 py-0.5 align-baseline",
+                  "mx-[2px] inline-flex flex-wrap items-baseline gap-1 rounded-[8px] px-[6px] py-[1px] align-baseline",
                   KIND_STYLE[part.kind],
                 )}
               >
@@ -106,37 +105,39 @@ export function MaskReview({ text, onBack, onNext }: MaskReviewProps) {
             ),
           )}
         </p>
+      </div>
 
-        {/* 종류별 이유는 위계가 낮은 목록이라 상자 대신 hairline으로만 나눕니다(§7). */}
-        {foundKinds.length > 0 && (
-          <ul className="chim-hairline mt-4">
-            {foundKinds.map((kind) => (
-              <li key={kind} className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 py-2.5">
-                <span
-                  className={cx(
-                    "chim-caption shrink-0 rounded-chip px-2.5 py-0.5 font-extrabold",
-                    KIND_STYLE[kind],
-                  )}
-                >
-                  {MASK_KIND_LABELS[kind]} {counts[kind]}곳
-                </span>
-                <span className="chim-meta min-w-[12rem] flex-1 leading-relaxed text-ink-soft">
-                  {MASK_KIND_REASONS[kind]}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
+      {/* 종류별 이유 — 상자 대신 hairline 행으로 나눕니다. */}
+      {foundKinds.length > 0 && (
+        <ul className="chim-hairline mt-4 border-t border-line">
+          {foundKinds.map((kind) => (
+            <li key={kind} className="flex flex-wrap items-baseline gap-x-[10px] gap-y-1 py-[10px]">
+              <span
+                className={cx(
+                  "shrink-0 rounded-[8px] px-[8px] py-[2px] text-[12px] font-extrabold",
+                  KIND_STYLE[kind],
+                )}
+              >
+                {MASK_KIND_LABELS[kind]} {counts[kind]}곳
+              </span>
+              <span className="min-w-[11rem] flex-1 text-[12.5px] leading-[1.6] text-ink-soft">
+                {MASK_KIND_REASONS[kind]}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
 
-      <Card>
-        <h3 className="chim-h3 text-ink">기기 밖으로 나가는 텍스트는 여기까지입니다</h3>
-        <p className="chim-core-sm mt-3 rounded-card bg-paper-2 p-4 leading-loose text-ink">
+      <div className="mt-5">
+        <h3 className="text-[15px] leading-[1.45] font-bold text-ink">
+          기기 밖으로 나가는 텍스트는 여기까지입니다
+        </h3>
+        <p className="mt-[8px] rounded-[14px] bg-paper-2 px-4 py-[14px] text-[14.5px] leading-[1.9] text-ink">
           {maskedParts.map((part, index) =>
             part.masked ? (
               <strong
                 key={index}
-                className="mx-0.5 rounded-chip bg-brand-100 px-1.5 py-0.5 font-extrabold text-brand-900"
+                className="mx-[2px] rounded-[6px] bg-tint px-[5px] py-[1px] font-extrabold text-brand-900"
               >
                 {part.text}
               </strong>
@@ -145,22 +146,20 @@ export function MaskReview({ text, onBack, onNext }: MaskReviewProps) {
             ),
           )}
         </p>
-        <p className="chim-meta mt-3 leading-relaxed text-ink-muted">
+        <p className="mt-[8px] text-[12.5px] leading-[1.7] text-ink-soft">
           이 문장은 아직 저장되지 않았습니다. 다음 화면에서 초안을 확인하고 확정하실 때 한 번 더
           검사한 뒤에 저장합니다.
         </p>
-      </Card>
-
-      <PrivacyPath reached={3} />
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
-        <BigButton variant="secondary" onClick={onBack}>
-          앞으로 돌아가 고치기
-        </BigButton>
-        <BigButton size="lg" onClick={onNext}>
-          기록 초안 만들기
-        </BigButton>
       </div>
+
+      <PrivacyPath reached={3} className="mt-6" />
+
+      <BigButton size="lg" block className="mt-5" onClick={onNext}>
+        기록 초안 만들기
+      </BigButton>
+      <BigButton variant="secondary" block className="mt-2" onClick={onBack}>
+        앞으로 돌아가 고치기
+      </BigButton>
     </div>
   );
 }

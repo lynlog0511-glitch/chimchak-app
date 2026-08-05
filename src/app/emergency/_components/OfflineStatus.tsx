@@ -1,12 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { IconClock, IconOffline, IconSave } from "@/components/icons";
+import { StatusDot, cx, type StatusTone } from "@/components";
 import { SW_READY_EVENT } from "@/components/SwRegister";
-import {
-  PROTOCOL_OFFLINE_PENDING_NOTICE,
-  PROTOCOL_OFFLINE_READY_NOTICE,
-} from "@/data/protocols";
+import { PROTOCOL_OFFLINE_PENDING_NOTICE } from "@/data/protocols";
 
 type NetState = "unknown" | "online" | "offline";
 
@@ -19,6 +16,15 @@ const OFFLINE_ROUTES = [
   "/emergency/p-04",
   "/emergency/p-05",
 ];
+
+/** 시안 5b의 부제 문구 — 저장이 **실측으로 확인된 뒤에만** 이 문장을 씁니다. */
+const READY_LINE = "기기에 저장됨 — 연결이 끊겨도 열립니다";
+
+/** 저장은 끝났는데 지금 연결이 끊긴 경우 — 사실을 그대로 적습니다. */
+const READY_OFFLINE_LINE = "지금 연결이 끊겼습니다 — 기기에 저장된 안내로 그대로 열립니다";
+
+/** 확인 중 — 서버 렌더 시점에는 알 수 없어 자리만 잡아 둡니다(레이아웃이 튀지 않게). */
+const CHECKING_LINE = "기기 저장 상태를 확인하고 있습니다";
 
 /**
  * 기기 저장(서비스워커 등록 + 응급 5종 캐시)이 **실제로** 끝났는지 확인합니다.
@@ -47,16 +53,13 @@ async function measureOfflineReady(): Promise<boolean> {
 }
 
 /**
- * 응급 화면의 오프라인 안내 — **이 화면에 하나만 뜨는 배지**입니다.
+ * 응급 화면 제목 아래 한 줄 — 시안 5b의 「● 기기에 저장됨 — 연결이 끊겨도 열립니다」입니다.
  *
- * 예전에는 "서버가 죽어도 열립니다"라는 정적 초록 배지와 "기기 저장은 아직 준비되지
- * 않았습니다"라는 주황 경고가 같이 떠서 화면이 서로 반대말을 했습니다. 그래서 지금은
- * 서비스워커 등록과 응급 5종 캐시를 **실측한 뒤** 둘 중 하나만 표시합니다.
+ * 문구를 미리 단정하지 않습니다. 서비스워커 등록과 응급 5종 캐시를 **실측한 뒤**
+ * 저장 완료(초록)·저장 전(주황)·확인 중(회색) 중 하나만 표시합니다.
+ * 색은 옆 문장을 거들 뿐이고, 뜻은 언제나 글자가 전합니다.
  *
- * - 저장 완료 → 초록 확인 문구 (이때만 "연결이 끊겨도 열립니다"라고 말합니다)
- * - 미등록·저장 전 → 주황 안내 하나만 (초록 배지는 아예 뜨지 않습니다)
- *
- * 서버 렌더링 시점에는 알 수 없으므로 마운트 이후에만 그립니다(수화 불일치 방지).
+ * `ScreenHeader`의 `subtitle`로 넘겨 쓰도록 인라인 요소(span)만 그립니다.
  */
 export function OfflineStatus() {
   const [state, setState] = useState<NetState>("unknown");
@@ -99,46 +102,30 @@ export function OfflineStatus() {
     };
   }, [measure]);
 
-  if (state === "unknown" || ready === null) return null;
-
+  const checking = state === "unknown" || ready === null;
   const offline = state === "offline";
 
-  if (ready) {
-    return (
-      <p
-        role="status"
-        className="chim-body flex items-start gap-2.5 rounded-card bg-ok-soft px-4 py-3 font-semibold text-ok-ink"
-      >
-        {offline ? (
-          <IconOffline className="mt-0.5 h-5 w-5 shrink-0" />
-        ) : (
-          <IconSave className="mt-0.5 h-5 w-5 shrink-0" />
-        )}
-        <span>
-          {offline
-            ? "지금 네트워크가 끊겨 있습니다. 응급 안내 5종은 이 기기에 저장되어 있어 그대로 사용하실 수 있습니다."
-            : PROTOCOL_OFFLINE_READY_NOTICE}
-        </span>
-      </p>
-    );
+  let tone: StatusTone = "neutral";
+  let text = CHECKING_LINE;
+  let color = "text-ink-muted";
+
+  if (!checking) {
+    if (ready) {
+      tone = "ok";
+      color = "text-ok-ink";
+      text = offline ? READY_OFFLINE_LINE : READY_LINE;
+    } else {
+      tone = "warn";
+      color = "text-warn-ink";
+      text = PROTOCOL_OFFLINE_PENDING_NOTICE;
+    }
   }
 
   return (
-    <p
-      role="status"
-      className="chim-body flex items-start gap-2.5 rounded-card bg-warn-soft px-4 py-3 font-semibold text-warn-ink"
-    >
-      {offline ? (
-        <IconOffline className="mt-0.5 h-5 w-5 shrink-0" />
-      ) : (
-        <IconClock className="mt-0.5 h-5 w-5 shrink-0" />
-      )}
-      <span>
-        {offline
-          ? "지금 네트워크가 끊겨 있습니다. 이 화면은 이미 열려 있어 그대로 보실 수 있지만, 기기 저장은 아직 준비되지 않았습니다."
-          : PROTOCOL_OFFLINE_PENDING_NOTICE}
-      </span>
-    </p>
+    <span role="status" className={cx("flex items-start gap-[5px] text-[12.5px] leading-[1.5]", color)}>
+      <StatusDot tone={tone} className="mt-[6px]" />
+      <span>{text}</span>
+    </span>
   );
 }
 

@@ -1,48 +1,33 @@
-import type { ComponentType } from "react";
 import type { ScenarioType, SessionRecord } from "@/types";
-import { Card, cx } from "@/components";
-import {
-  IconAlert,
-  IconHeartHand,
-  IconLock,
-  IconSiren,
-  IconUsers,
-  type IconProps,
-} from "@/components/icons";
-import { TYPE_LABELS } from "./format";
+import { cx } from "@/components";
+import { TYPE_SHORT_LABELS } from "./format";
+import type { ScenarioTypeMap } from "./nextTraining";
 
-/**
- * 시나리오 id → 유형 표. 시나리오 데이터 전체를 브라우저로 내려보내지 않기 위해
- * 서버 컴포넌트(page.tsx)에서 필요한 만큼만 만들어 넘겨받습니다. 키는 대문자 id 입니다.
- */
-export type ScenarioTypeMap = Record<string, ScenarioType>;
+export type { ScenarioTypeMap };
 
 export interface CoverageGridProps {
   records: SessionRecord[];
   typeByScenarioId: ScenarioTypeMap;
   /** 지금 훈련할 수 있는 유형 목록 */
   activeTypes: ScenarioType[];
+  className?: string;
 }
 
 const ORDER: ScenarioType[] = ["BPSD", "EMERGENCY", "CONFLICT", "RISK"];
 
-/** 유형 아이콘 — 이모지 대신 공용 스트로크 아이콘을 씁니다(라벨은 항상 옆에 있습니다). */
-const ICONS: Record<ScenarioType, ComponentType<IconProps>> = {
-  BPSD: IconHeartHand,
-  EMERGENCY: IconSiren,
-  CONFLICT: IconUsers,
-  RISK: IconAlert,
-};
-
 /**
- * 유형 커버리지 4칸.
- * 어떤 유형을 얼마나 연습했는지 완료 횟수만 보여 주고, 점수·등급은 표시하지 않습니다.
+ * 유형별로 해 본 것 — 4칸 (시안 5c).
  *
- * 형태(§1-4·§1-5·§7): 네 칸은 보더 없이 지면(#fafbfb) 위 흰 면으로만 구분하고,
- * 상태 표기는 필(배지)이 아니라 13px 캡션 한 줄로 둡니다 — 네 칸에 필이 네 개면 화면이 시끄럽습니다.
- * 크기 체계(§3): 유형 이름 15px · 상태 캡션 13px · 완료 횟수 숫자만 24px로 세웁니다.
+ * 어떤 유형을 얼마나 연습했는지 **완료 횟수만** 보여 주고, 점수·등급·순위는 만들지 않습니다.
+ * 형태는 시안 그대로입니다 — 보더 1px `line`(#eef0ef) r14 한 덩어리, 칸 사이는 세로 hairline,
+ * 숫자 19px w800 tabular `brand-800`(#14665f), 라벨 11.5px `ink-muted`, 미실시는 「—」 `faint`.
  */
-export function CoverageGrid({ records, typeByScenarioId, activeTypes }: CoverageGridProps) {
+export function CoverageGrid({
+  records,
+  typeByScenarioId,
+  activeTypes,
+  className,
+}: CoverageGridProps) {
   const counts: Record<ScenarioType, number> = {
     BPSD: 0,
     EMERGENCY: 0,
@@ -54,55 +39,59 @@ export function CoverageGrid({ records, typeByScenarioId, activeTypes }: Coverag
     if (type) counts[type] += 1;
   }
 
+  const pending = ORDER.filter((type) => !activeTypes.includes(type));
+
   return (
-    <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {ORDER.map((type) => {
-        const available = activeTypes.includes(type);
-        const done = counts[type];
-        const Icon = ICONS[type];
-        return (
-          <li key={type}>
-            <Card padded={false} className="h-full p-4 md:p-5">
-              <div className="flex items-center gap-2">
-                <Icon
-                  className={cx("h-5 w-5 shrink-0", done > 0 ? "text-ok" : "text-ink-muted")}
-                />
-                <p className="chim-label text-ink">{TYPE_LABELS[type]}</p>
-              </div>
-
-              <p className="mt-3">
-                {done > 0 ? (
-                  <span className="text-ok-ink">
-                    <span className="chim-meta font-semibold">완료</span>{" "}
-                    <span className="chim-num text-[1.5rem] font-extrabold">{done}</span>
-                    <span className="chim-meta font-semibold">회</span>
-                  </span>
-                ) : available ? (
-                  <span className="chim-meta text-ink-soft">아직 연습하지 않으셨습니다</span>
-                ) : (
-                  <span className="chim-meta text-ink-soft">준비 중인 유형입니다</span>
+    <div className={className}>
+      <ul className="flex overflow-hidden rounded-[14px] border border-line">
+        {ORDER.map((type, index) => {
+          const done = counts[type];
+          return (
+            <li
+              key={type}
+              className={cx(
+                "flex-1 py-3 text-center",
+                index > 0 && "border-l border-line",
+              )}
+            >
+              <p
+                className={cx(
+                  "chim-num text-[19px] leading-[1.2] font-extrabold",
+                  done > 0 ? "text-brand-800" : "text-faint",
                 )}
-              </p>
-
-              <p className="chim-caption mt-2 inline-flex items-center gap-1 font-semibold text-ink-muted">
-                {available ? (
-                  done > 0 ? (
-                    "훈련 이력 있음"
-                  ) : (
-                    "훈련 가능"
-                  )
+              >
+                {done > 0 ? (
+                  <>
+                    {done}
+                    <span className="sr-only">회</span>
+                  </>
                 ) : (
                   <>
-                    <IconLock className="h-4 w-4 shrink-0" />
-                    베타 편성 예정
+                    <span aria-hidden>—</span>
+                    <span className="sr-only">아직 해보지 않으셨습니다</span>
                   </>
                 )}
               </p>
-            </Card>
-          </li>
-        );
-      })}
-    </ul>
+              <p
+                className={cx(
+                  "mt-[1px] text-[11.5px] leading-[1.4]",
+                  done > 0 ? "text-ink-muted" : "text-faint",
+                )}
+              >
+                {TYPE_SHORT_LABELS[type]}
+              </p>
+            </li>
+          );
+        })}
+      </ul>
+
+      {/* 베타 이연 유형은 「—」로만 두면 이유를 알 수 없어, 아래 한 줄로 조용히 적어 둡니다. */}
+      {pending.length > 0 && (
+        <p className="mt-[6px] text-[11.5px] leading-[1.5] text-tertiary">
+          {pending.map((type) => TYPE_SHORT_LABELS[type]).join(" · ")}은 베타 편성 예정입니다
+        </p>
+      )}
+    </div>
   );
 }
 

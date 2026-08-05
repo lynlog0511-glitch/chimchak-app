@@ -1,90 +1,125 @@
 import type { ReactNode } from "react";
 import type { SourceDoc } from "@/types";
-import { AppHeader } from "./AppHeader";
-import { DisclaimerBar } from "./DisclaimerBar";
 import { SourceDocsProvider } from "./SourceDocsContext";
+import { TabBar, type TabKey } from "./TabBar";
 import { DEFAULT_SOURCE_DOCS } from "./sourceDocsDefault";
 import { cx } from "./utils";
 
 export interface PageShellProps {
-  /** 페이지 제목 — 주면 본문 상단에 h1으로 렌더링합니다. */
-  title?: string;
-  /** 제목 위 작은 라벨 */
-  eyebrow?: string;
-  /** 제목 아래 한 줄 설명 */
-  description?: string;
   children: ReactNode;
-  /** 본문 폭 확장 (표가 넓은 페이지용) */
-  wide?: boolean;
-  /** 컨테이너 없이 전체 폭을 직접 다루고 싶을 때 (랜딩처럼 섹션마다 배경이 다른 경우) */
-  bleed?: boolean;
+
+  /* ── v4 앱 프레임 ─────────────────────────────────────────── */
+  /** 하단 탭바 노출 (기본 true). 세션·전체화면 재생기처럼 이동을 막는 화면에서 false. */
+  tabBar?: boolean;
+  /** 활성 탭 강제 지정 — 경로로 판정되지 않는 화면에서만 씁니다. */
+  activeTab?: TabKey;
+  /** 좌우 20px 여백 (기본 true). 세션처럼 18px을 쓰거나 전폭 요소가 있으면 false. */
+  pad?: boolean;
+  /** 뷰포트에 고정하고 본문만 스크롤 — 하단 입력 도크가 있는 세션 화면용. */
+  fill?: boolean;
   /** 근거 문서 목록 주입 — 주지 않으면 기본 목록을 사용합니다. */
   sourceDocs?: readonly SourceDoc[];
+  /** main에 붙는 클래스 */
   className?: string;
-  /** 본문 상단 우측 등에 놓을 요소 (예: 119 버튼) */
+
+  /* ── 하위 호환 (v3 화면이 아직 넘기는 props) ─────────────────
+     새 화면에서는 쓰지 마세요. 상단 바는 화면이 직접 `ScreenHeader`·`SessionTopBar`로 그립니다. */
+  /** @deprecated `ScreenHeader`를 화면에서 직접 쓰세요. 주면 최소한의 제목만 그립니다. */
+  title?: string;
+  /** @deprecated `EyebrowLabel`을 쓰세요. */
+  eyebrow?: string;
+  /** @deprecated `ScreenHeader`의 subtitle을 쓰세요. */
+  description?: string;
+  /** @deprecated 앱 프레임은 폭이 고정입니다(430px). 무시됩니다. */
+  wide?: boolean;
+  /** @deprecated `pad={false}`와 같습니다. */
+  bleed?: boolean;
+  /** @deprecated 제목 옆 액션은 `ScreenHeader`의 action으로. */
   headerSlot?: ReactNode;
 }
 
 /**
- * 모든 페이지의 공통 껍데기.
- * 상단 네비 + 본문 컨테이너 + 하단 고정 고지 바(+모바일 하단 탭바)를 포함합니다.
+ * 앱 셸 — 화면 하나의 껍데기입니다 (v4 §0).
  *
- * 크기 체계(§3): eyebrow 14px · title `.chim-h1`(32→40px) · description `.chim-lead`(18→20px).
- * 접근성 코어 예외: 본문에 놓이는 코어 콘텐츠(대사·CUE·응급 자막·CTA)는 18px+를 유지합니다 —
- * `.chim-core`(18px) · `.chim-core-sm`(17px) · `.chim-cue`(20~22px) · `.chim-subtitle`(28~40px)를 쓰세요.
+ * v3의 "반응형 웹페이지"(전역 헤더 + 본문 + 전역 고정 고지 바)를 버리고 **모바일 앱 프레임**이 됐습니다.
+ * - 모바일 전폭 · md↑ 중앙 컬럼 430px, 컬럼 밖 지면 `#f1f2f0`, 화면 안은 흰색.
+ * - 전역 헤더 없음 — 각 화면이 `ScreenHeader`(목록) 또는 `SessionTopBar`(세션)를 직접 그립니다.
+ * - 전역 고지 바 없음 — 각 화면이 `InlineDisclaimer`를 **반드시 한 번** 넣습니다.
+ * - 하단 탭바는 텍스트 온리 5칸이고 문서 흐름 안 sticky입니다(본문을 가리지 않습니다).
  *
  * @example
- * <PageShell title="응급 프로토콜" description="검수된 고정 안내입니다.">
+ * <PageShell>
+ *   <ScreenHeader title="응급 안내" subtitle={...} />
  *   ...
+ *   <InlineDisclaimer size="md" className="mt-3" />
  * </PageShell>
+ *
+ * @example 세션(하단 도크 고정)
+ * <PageShell fill pad={false} tabBar={false}>...</PageShell>
  */
 export function PageShell({
+  children,
+  tabBar = true,
+  activeTab,
+  pad,
+  fill = false,
+  sourceDocs,
+  className,
   title,
   eyebrow,
   description,
-  children,
-  wide = false,
   bleed = false,
-  sourceDocs,
-  className,
   headerSlot,
 }: PageShellProps) {
-  const hasHead = Boolean(title || eyebrow || description || headerSlot);
+  const padded = pad ?? !bleed;
+  const hasLegacyHead = Boolean(title || eyebrow || description || headerSlot);
 
   return (
     <SourceDocsProvider docs={sourceDocs ?? DEFAULT_SOURCE_DOCS}>
-      <a
-        href="#chim-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-field focus:bg-brand-700 focus:px-4 focus:py-2 focus:font-bold focus:text-white"
-      >
-        본문으로 건너뛰기
-      </a>
+      <div className="chim-frame">
+        <div className={cx("chim-screen", fill && "chim-screen--fill")}>
+          <a
+            href="#chim-content"
+            className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-field focus:bg-brand-700 focus:px-4 focus:py-2 focus:font-bold focus:text-white"
+          >
+            본문으로 건너뛰기
+          </a>
 
-      <AppHeader />
-
-      <main id="chim-content" className={cx("chim-main min-h-[60vh]", className)}>
-        {bleed ? (
-          children
-        ) : (
-          <div className={cx("chim-container pt-8 pb-14 md:pt-12 md:pb-20", wide && "max-w-[80rem]")}>
-            {hasHead && (
-              <header className="mb-8 md:mb-12">
+          <main
+            id="chim-content"
+            className={cx(
+              "flex-1",
+              fill && "flex min-h-0 flex-col overflow-y-auto",
+              padded && "chim-pad",
+              className,
+            )}
+          >
+            {hasLegacyHead && (
+              <header className="pt-2 pb-4">
                 {eyebrow && (
-                  <p className="chim-meta mb-2 font-bold tracking-wide text-brand-700">{eyebrow}</p>
+                  <p className="mb-1 text-[12px] font-bold tracking-[0.06em] text-ink-muted">
+                    {eyebrow}
+                  </p>
                 )}
-                {title && <h1 className="chim-h1 text-ink">{title}</h1>}
+                {title && (
+                  <h1 className="text-[22px] leading-[1.3] font-extrabold tracking-[-0.01em] text-ink">
+                    {title}
+                  </h1>
+                )}
                 {description && (
-                  <p className="chim-lead mt-3 max-w-3xl text-ink-soft">{description}</p>
+                  <p className="mt-[3px] text-[12.5px] leading-[1.5] text-ink-muted">
+                    {description}
+                  </p>
                 )}
-                {headerSlot && <div className="mt-6">{headerSlot}</div>}
+                {headerSlot && <div className="mt-4">{headerSlot}</div>}
               </header>
             )}
             {children}
-          </div>
-        )}
-      </main>
+          </main>
 
-      <DisclaimerBar />
+          {tabBar && <TabBar active={activeTab} />}
+        </div>
+      </div>
     </SourceDocsProvider>
   );
 }

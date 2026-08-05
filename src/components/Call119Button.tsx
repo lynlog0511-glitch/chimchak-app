@@ -47,7 +47,8 @@ export function Call119Button({
       <a
         href="tel:119"
         className={cx(
-          "inline-flex items-center justify-center rounded-[12px] bg-danger font-extrabold text-white transition-colors duration-150 hover:bg-danger-ink active:bg-danger-ink",
+          // v4 §2: 버튼 라운드 14px (채움 #d64545는 시안 5b의 119 버튼 색과 같은 값입니다).
+          "inline-flex items-center justify-center rounded-[14px] bg-danger font-extrabold text-white transition-colors duration-150 hover:bg-danger-ink active:bg-danger-ink",
           SIZE[size],
           block && "w-full",
         )}

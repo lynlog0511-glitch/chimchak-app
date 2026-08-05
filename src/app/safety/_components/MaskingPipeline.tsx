@@ -1,4 +1,3 @@
-import { IconArrowRight } from "@/components/icons";
 import { cx } from "@/components/utils";
 
 export interface MaskingStep {
@@ -14,54 +13,34 @@ export interface MaskingPipelineProps {
 }
 
 /**
- * 가명처리 경로 — 개인정보가 지나가는 길을 화살표 파이프라인 한 줄로 보여 줍니다.
+ * 가명처리 경로 — 개인정보가 지나가는 길을 번호 붙은 세로 목록으로 보여 줍니다.
  *
- * md 이상: 단계 이름만 한 줄로 이어 붙인 파이프라인 + 아래에 단계별 설명 목록.
- * md 미만: 파이프라인을 접고 세로 목록만 남깁니다(가로 스크롤 없음).
+ * v4에서 화면 폭이 430px 앱 프레임으로 고정되면서, 6단계를 가로로 늘어놓던 장식 파이프라인
+ * 줄은 걷어냈습니다(칸 하나가 65px이라 단계 이름이 두 줄로 접혔고, 그 줄은 아래 목록과
+ * 같은 내용을 aria-hidden으로 되풀이할 뿐이었습니다). 내용은 그대로입니다.
  *
- * 파이프라인 줄은 목록과 같은 내용이라 보조기기에서는 한 번만 읽히게 했습니다.
- *
- * v3 반영: 단계 칩은 보더 대신 옅은 면(`paper-2`)으로 세웁니다(§7).
- * 크기는 단계 이름 15px·설명 15px·번호 13px — 표와 같은 단으로 두어 본문(16)보다 조용하게(§3).
+ * 형태는 v4 §2 리스트 문법 — 아이콘 없이 [번호 + 단계 이름 + 한 문장], 행 사이 hairline.
  *
  * @example <MaskingPipeline steps={PRIVACY_STEPS} />
  */
 export function MaskingPipeline({ steps, className }: MaskingPipelineProps) {
   return (
-    <div className={cx(className)}>
-      {/* 한 줄 파이프라인 — 아래 목록과 같은 내용이므로 보조기기에서는 건너뜁니다. */}
-      <div className="hidden items-stretch gap-1.5 md:flex" aria-hidden="true">
-        {steps.map((s, i) => (
-          <div key={s.step} className="flex flex-1 items-stretch gap-1.5">
-            {i > 0 && (
-              <span className="flex shrink-0 items-center">
-                <IconArrowRight className="h-5 w-5 text-ink-muted" />
-              </span>
-            )}
-            <span className="flex flex-1 flex-col items-center justify-center rounded-field bg-paper-2 px-2 py-3 text-center">
-              <span className="chim-num chim-caption font-bold text-brand-700">{i + 1}</span>
-              <span className="mt-0.5 text-[0.9375rem] leading-snug font-bold text-ink">
-                {s.step}
-              </span>
-            </span>
+    <ol className={cx("chim-hairline border-y border-line", className)}>
+      {steps.map((s, i) => (
+        <li key={s.step} className="flex gap-[10px] py-[13px]">
+          <span
+            aria-hidden
+            className="chim-num w-[13px] flex-none text-[13px] leading-[1.5] font-extrabold text-brand-700"
+          >
+            {i + 1}
+          </span>
+          <div className="min-w-0">
+            <p className="text-[14px] leading-[1.45] font-bold text-ink">{s.step}</p>
+            <p className="mt-[2px] text-[12.5px] leading-[1.6] text-ink-muted">{s.desc}</p>
           </div>
-        ))}
-      </div>
-
-      <ol className="border-b border-line md:mt-6">
-        {steps.map((s, i) => (
-          <li key={s.step} className="grid gap-x-8 border-t border-line py-4 md:grid-cols-12">
-            <p className="flex items-baseline gap-2 md:col-span-4">
-              <span className="chim-num chim-caption font-extrabold text-brand-700">{i + 1}</span>
-              <span className="chim-body font-extrabold text-ink">{s.step}</span>
-            </p>
-            <p className="mt-1 text-[0.9375rem] leading-relaxed text-ink-soft md:col-span-8 md:mt-0">
-              {s.desc}
-            </p>
-          </li>
-        ))}
-      </ol>
-    </div>
+        </li>
+      ))}
+    </ol>
   );
 }
 

@@ -15,7 +15,11 @@ import { cx } from "../utils";
    · 막대 색은 흰 지면 대비 3:1을 넘는 값만 씁니다 — brand-600 3.7:1 · warn-ink 4.9:1.
      (warn #E8833A는 2.6:1로 도형 기준에 못 미쳐 막대에는 쓰지 않습니다.)
    · 눈금 글자는 SVG가 아니라 HTML로 둡니다. SVG 안에 넣으면 좁은 화면에서 함께
-     축소되어 15px 아래로 내려갑니다.
+     축소되어 캡션 하한(13px) 아래로 내려갑니다.
+
+   크기 체계(§3)
+   · 차트는 정보 화면이라 UI 크롬 크기를 씁니다 — 눈금·기준 한 줄 13px, 항목 라벨 15px, 값 17~20px.
+   · 접근성 코어 예외(코어 콘텐츠 = 대사·CUE·응급 자막·CTA는 18px+)는 차트에 적용되지 않습니다.
    ───────────────────────────────────────────────────────────── */
 
 /** 천 단위 구분 — 서버·브라우저가 같은 결과를 내도록 로케일 API를 쓰지 않습니다. */
@@ -112,7 +116,7 @@ export function ShareBarChart({
   return (
     <div className={cx("w-full", className)}>
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-        <p className="chim-num text-lg font-extrabold text-brand-800">{fillLabel}</p>
+        <p className="chim-num text-[1.25rem] font-extrabold text-brand-800">{fillLabel}</p>
         {markLabel && (
           <p className="chim-num chim-caption font-bold text-warn-ink">{markLabel}</p>
         )}
@@ -185,10 +189,10 @@ export function ScaleBarChart({
         return (
           <div key={bar.label} className="mt-5 first:mt-0">
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-              <p className="text-base font-bold text-ink">{bar.label}</p>
+              <p className="chim-label font-bold text-ink">{bar.label}</p>
               <p
                 className={cx(
-                  "chim-num text-base font-extrabold",
+                  "chim-num text-[1.0625rem] font-extrabold",
                   bar.tone === "brand" ? "text-brand-800" : "text-warn-ink",
                 )}
               >

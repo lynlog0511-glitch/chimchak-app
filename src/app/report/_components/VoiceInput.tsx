@@ -33,6 +33,9 @@ function appendUtterance(base: string, added: string): string {
  * 1단계 입력 화면.
  * 마이크는 **누르고 있는 동안에만** 인식하고, 타이핑 입력은 항상 열려 있습니다.
  * 음성 인식이 되지 않는 환경에서도 타이핑만으로 끝까지 진행할 수 있습니다.
+ *
+ * 위계(§2): 이 화면의 주인공은 마이크 버튼 하나입니다 — 틸 채움은 여기와 다음 단계 CTA뿐입니다.
+ * 크기 체계(§3): 마이크 라벨·입력 본문은 코어 콘텐츠(17~18px), 안내·주의는 13~14px 크롬입니다.
  */
 export function VoiceInput({ value, onChange, onNext, onInputStart }: VoiceInputProps) {
   const recognizerRef = useRef<Recognizer | null>(null);
@@ -134,15 +137,14 @@ export function VoiceInput({ value, onChange, onNext, onInputStart }: VoiceInput
   return (
     <div className="space-y-5">
       <Card>
-        <h2 className="text-lg font-extrabold text-ink md:text-xl">
-          1. 오늘 있었던 일을 그대로 말씀해 주세요
-        </h2>
-        <p className="mt-2 text-base leading-relaxed text-ink-soft">
+        <h2 className="chim-h2 text-ink">1. 오늘 있었던 일을 그대로 말씀해 주세요</h2>
+        <p className="chim-meta mt-2 max-w-2xl leading-relaxed text-ink-muted">
           정리해서 말하지 않으셔도 됩니다. 기억나는 대로 말씀하시면 기기 안에서 개인정보를 가리고,
           급여제공기록지 5요소로 나눠 드립니다.
         </p>
 
-        <div className="mt-5 flex flex-col items-center gap-3">
+        <div className="mt-6 flex flex-col items-center gap-3">
+          {/* 이 화면의 주인공 — 채움 하나로 버튼임을 알립니다. 보더·그림자는 쓰지 않습니다(§5). */}
           <button
             type="button"
             onPointerDown={handlePointerDown}
@@ -161,10 +163,8 @@ export function VoiceInput({ value, onChange, onNext, onInputStart }: VoiceInput
             }
             style={{ touchAction: "none" }}
             className={cx(
-              "flex w-full max-w-md min-h-[104px] flex-col items-center justify-center gap-1 rounded-card border px-6 py-4 font-extrabold transition-colors duration-150",
-              listening
-                ? "border-danger bg-danger-soft text-danger-ink"
-                : "border-brand-300 bg-white text-brand-800 hover:bg-brand-50",
+              "flex min-h-[112px] w-full max-w-md flex-col items-center justify-center gap-1.5 rounded-card px-6 py-5 text-white transition-colors duration-150",
+              listening ? "bg-danger-ink" : "bg-brand-700 hover:bg-brand-800",
             )}
           >
             {listening ? (
@@ -172,10 +172,10 @@ export function VoiceInput({ value, onChange, onNext, onInputStart }: VoiceInput
             ) : (
               <IconMic className="h-7 w-7 shrink-0" />
             )}
-            <span className="text-lg">
+            <span className="chim-core font-extrabold">
               {listening ? "듣고 있습니다 — 손을 떼면 멈춥니다" : "누르고 있는 동안 듣습니다"}
             </span>
-            <span className="text-sm font-semibold text-ink-muted">
+            <span className="chim-meta font-semibold text-white">
               {supported
                 ? "버튼을 누른 채로 말씀하신 뒤 손을 떼 주세요."
                 : "이 기기에서는 마이크를 쓸 수 없습니다. 아래 칸에 적어 주세요."}
@@ -185,7 +185,7 @@ export function VoiceInput({ value, onChange, onNext, onInputStart }: VoiceInput
           {listening && (
             <p
               aria-live="polite"
-              className="w-full max-w-md rounded-field border border-line bg-white px-4 py-3 text-base leading-relaxed text-ink-soft"
+              className="chim-core-sm w-full max-w-md rounded-field bg-paper-2 px-4 py-3 text-ink-soft"
             >
               {interim.length > 0 ? `인식 중 · ${interim}` : "말씀을 기다리고 있습니다."}
             </p>
@@ -194,7 +194,7 @@ export function VoiceInput({ value, onChange, onNext, onInputStart }: VoiceInput
           {notice && (
             <p
               role="status"
-              className="w-full max-w-md rounded-field border border-warn-line bg-warn-soft px-4 py-3 text-base leading-relaxed text-warn-ink"
+              className="chim-meta w-full max-w-md rounded-field bg-warn-soft px-4 py-3 leading-relaxed font-semibold text-warn-ink"
             >
               {notice}
             </p>
@@ -203,15 +203,16 @@ export function VoiceInput({ value, onChange, onNext, onInputStart }: VoiceInput
       </Card>
 
       <Card>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <label htmlFor="report-utterance" className="text-base font-extrabold text-ink">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <label htmlFor="report-utterance" className="chim-label text-ink">
             보고 내용 (직접 적으셔도 됩니다)
           </label>
-          <span className="text-sm font-semibold text-ink-muted">
+          <span className="chim-caption text-ink-muted">
             마이크가 없어도 여기까지만 적으면 그대로 진행됩니다.
           </span>
         </div>
 
+        {/* 입력 필드는 보더를 유지하는 유일한 자리입니다(§5). 본문은 코어 콘텐츠라 17px. */}
         <textarea
           id="report-utterance"
           value={value}
@@ -221,14 +222,15 @@ export function VoiceInput({ value, onChange, onNext, onInputStart }: VoiceInput
           }}
           rows={8}
           placeholder="예) 오후 4시 40분쯤 어르신이 현관 앞에서 집에 가야 한다며 나가려 하셨습니다."
-          className="mt-3 w-full rounded-field border border-line-strong bg-white p-4 text-base leading-relaxed text-ink placeholder:text-ink-muted/70 focus:border-brand-400 focus:outline-none"
+          className="chim-core-sm mt-3 w-full rounded-field border border-line-strong bg-white p-4 text-ink placeholder:text-ink-muted/70 focus:border-brand-400 focus:outline-none"
         />
 
-        <div className="mt-4 flex flex-wrap gap-3">
+        {/* 예시 채우기는 보조 동작이라 조용한 면·투명 버튼으로 둡니다(§1-5). */}
+        <div className="mt-4 flex flex-wrap gap-2">
           <BigButton variant="secondary" onClick={() => onChange(EXAMPLE_WANDERING)}>
             예시 문장 넣기 (배회 대응 보고)
           </BigButton>
-          <BigButton variant="secondary" onClick={() => onChange(EXAMPLE_PARTIAL)}>
+          <BigButton variant="ghost" onClick={() => onChange(EXAMPLE_PARTIAL)}>
             빈 칸이 있는 예시 넣기
           </BigButton>
           <BigButton variant="ghost" onClick={() => onChange("")} disabled={empty}>
@@ -236,26 +238,25 @@ export function VoiceInput({ value, onChange, onNext, onInputStart }: VoiceInput
           </BigButton>
         </div>
 
-        <p className="mt-3 text-sm leading-relaxed text-ink-muted">{EXAMPLE_NOTICE}</p>
+        <p className="chim-caption mt-3 leading-relaxed text-ink-muted">{EXAMPLE_NOTICE}</p>
       </Card>
 
-      <Card tone="quiet">
-        <p className="text-base leading-relaxed text-ink">
-          음성과 원문은 이 기기 안에서만 다루고 저장하지 않습니다. 다음 화면에서 무엇을 왜 가리는지
-          먼저 확인하신 뒤에 진행됩니다.
-        </p>
-      </Card>
+      {/* 고지는 카드 대신 한 줄로 — 존재하되 조용히(§5). */}
+      <p className="chim-caption max-w-3xl leading-relaxed text-ink-muted">
+        음성과 원문은 이 기기 안에서만 다루고 저장하지 않습니다. 다음 화면에서 무엇을 왜 가리는지
+        먼저 확인하신 뒤에 진행됩니다.
+      </p>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+        {empty && (
+          <p className="chim-caption font-semibold text-ink-muted sm:text-right">
+            말씀하시거나 적어 주시면 다음 단계로 넘어갈 수 있습니다.
+          </p>
+        )}
         <BigButton size="lg" onClick={onNext} disabled={empty}>
           가명처리 확인하기
         </BigButton>
       </div>
-      {empty && (
-        <p className="text-right text-sm font-semibold text-ink-muted">
-          말씀하시거나 적어 주시면 다음 단계로 넘어갈 수 있습니다.
-        </p>
-      )}
     </div>
   );
 }

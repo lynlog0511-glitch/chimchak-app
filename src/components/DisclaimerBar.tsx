@@ -13,8 +13,10 @@ export interface DisclaimerBarProps {
 /**
  * 하단 고정 고지 바.
  *
- * 주황 배경으로 화면 아래를 통째로 물들이던 것을 옅은 지면 + 잉크 텍스트로 바꾸고,
- * 경고의 무게는 왼쪽 4px 주황 마크 하나에 담습니다. 문구는 그대로입니다.
+ * v3 §5: 주황 마크도, 주황 배경도 없습니다. 옅은 면(`paper-2`) 위 13px 잉크 뮤트 한 줄 —
+ * **존재하되 조용히**입니다. 색으로 경고하는 자리는 응급 화면의 119 버튼 하나뿐입니다.
+ * 문구는 한 글자도 바꾸지 않았습니다.
+ *
  * 모바일에서는 하단 탭바 위에 얹히도록 `.chim-disclaimer`가 위치를 잡습니다.
  * (높이는 globals.css의 `--chim-disclaimer-h` 주석에 실측 근거가 있습니다.)
  */
@@ -31,13 +33,9 @@ export function DisclaimerBar({ className, fixed = true }: DisclaimerBarProps) {
         className,
       )}
     >
-      <div className="chim-container flex items-stretch justify-center gap-2 py-2">
-        {/* 경고를 알리는 유일한 색 — 4px 주황 마크 */}
-        <span aria-hidden="true" className="w-[4px] shrink-0 rounded-full bg-warn" />
-        {/* 안전상 가장 중요한 문구이므로 고령 사용자 기준(본문 18px)에 맞춰 키웁니다. */}
-        <p className="text-center text-sm leading-snug font-semibold text-ink md:text-base">
-          {DISCLAIMER_TEXT}
-        </p>
+      <div className="chim-container py-2">
+        {/* UI 크롬 최하단 위계 — 13px. ink-muted(#4F716E)는 paper-2 위에서 4.9:1로 AA를 넘습니다. */}
+        <p className="chim-caption text-center leading-snug text-ink-muted">{DISCLAIMER_TEXT}</p>
       </div>
     </div>
   );

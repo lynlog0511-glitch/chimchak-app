@@ -281,11 +281,11 @@ export function CueResponder({
       {/* 진행 표시 — 점수가 아니라 위치 안내입니다 (퍼센트·등급 표기 없음) */}
       <div>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          {/* 필 대신 그냥 작은 텍스트 — 진행 위치는 아래 막대가 이미 보여 줍니다. */}
-          <span className="text-sm font-bold text-brand-800">
+          {/* 필 대신 그냥 작은 텍스트 — 진행 위치는 아래 막대가 이미 보여 줍니다(13~14px 크롬). */}
+          <span className="chim-meta font-bold text-brand-800">
             {stepIndex}번째 상황 · 약 {stepTotal}개 중
           </span>
-          <span className="text-sm leading-relaxed text-ink-muted">
+          <span className="chim-caption leading-relaxed text-ink-muted">
             고르시는 길에 따라 상황 수는 달라질 수 있습니다
           </span>
         </div>
@@ -303,13 +303,13 @@ export function CueResponder({
 
       <div>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-lg font-extrabold text-ink md:text-xl">{cue.prompt}</h2>
+          {/* 지시문은 코어 콘텐츠입니다 — 20px(모바일)/22px(md↑) bold (§3). */}
+          <h2 className="chim-cue min-w-0 flex-1 text-ink">{cue.prompt}</h2>
+          {/* 카운트다운은 크롬이라 조용하게 — 보더를 빼고 옅은 면 하나에 13px로 둡니다. */}
           <span
             className={cx(
-              "rounded-chip border px-3 py-1 text-sm font-bold",
-              timeUp
-                ? "border-warn-line bg-warn-soft text-warn-ink"
-                : "border-line bg-paper-2 text-ink-muted",
+              "chim-caption chim-num shrink-0 rounded-chip px-2.5 py-1 font-bold",
+              timeUp ? "bg-warn-soft text-warn-ink" : "bg-paper-2 text-ink-muted",
             )}
             aria-live="off"
           >
@@ -327,7 +327,7 @@ export function CueResponder({
           />
         </div>
 
-        <p className="mt-2 text-sm leading-relaxed text-ink-muted">
+        <p className="chim-caption mt-2 leading-relaxed text-ink-muted">
           {timeUp
             ? "시간이 지나도 자동으로 넘어가지 않습니다. 아래 보기 버튼 중 하나를 고르시거나 직접 답해 주세요."
             : "천천히 하셔도 됩니다. 시간이 지나도 자동으로 넘어가지 않습니다."}
@@ -336,12 +336,12 @@ export function CueResponder({
 
       {/* 마이크 첫 사용 안내 — 세션에서 처음 한 번만 나옵니다 */}
       {micSupported && micIntroOpen && (
-        <div className="rounded-card border border-brand-200 bg-white p-4">
-          <h3 className="flex items-center gap-2 text-base font-extrabold text-ink">
+        <div className="rounded-card bg-brand-50 p-4">
+          <h3 className="chim-label flex items-center gap-2 font-extrabold text-ink">
             <IconMic className="h-5 w-5 text-brand-700" />
             마이크를 처음 쓰실 때
           </h3>
-          <p className="mt-2 text-base leading-relaxed font-semibold text-ink-soft">
+          <p className="chim-meta mt-2 leading-relaxed text-ink-soft">
             마이크 버튼을 누르면 브라우저가 마이크 허용을 물어봅니다. ‘허용’을 누르신 뒤 버튼을 다시
             눌러 말씀해 주세요. 마이크 없이 아래 보기 버튼만으로도 끝까지 진행됩니다.
           </p>
@@ -353,8 +353,8 @@ export function CueResponder({
         </div>
       )}
 
-      {/* ① 말하기 */}
-      <div className="rounded-card border border-line bg-paper-2 p-4">
+      {/* ① 말하기 — 카드 안 보조 면은 paper-2 하나로 끝냅니다(§7). */}
+      <div className="rounded-card bg-paper-2 p-4">
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
           <button
             type="button"
@@ -384,11 +384,12 @@ export function CueResponder({
               }
             }}
             className={cx(
-              "inline-flex min-h-[72px] w-full shrink-0 items-center justify-center gap-3 rounded-field border px-6 text-lg font-extrabold transition-colors duration-150 sm:w-auto",
+              // 라벨은 CTA(코어)라 17px 하한을 지킵니다. 채움 버튼이므로 보더는 쓰지 않습니다(§5).
+              "inline-flex min-h-[72px] w-full shrink-0 items-center justify-center gap-3 rounded-field px-6 text-[1.0625rem] font-extrabold transition-colors duration-150 sm:w-auto",
               listening
-                ? "border-danger bg-danger text-white"
-                : "border-brand-700 bg-brand-700 text-white hover:bg-brand-800",
-              !micSupported && "cursor-not-allowed border-line bg-neutral-soft text-ink-muted",
+                ? "bg-danger-ink text-white"
+                : "bg-brand-700 text-white hover:bg-brand-800",
+              !micSupported && "cursor-not-allowed bg-neutral-soft text-ink-muted",
             )}
           >
             {listening ? (
@@ -399,7 +400,7 @@ export function CueResponder({
             <span>{listening ? "듣고 있습니다 — 손을 떼면 끝납니다" : "누르고 말하기"}</span>
           </button>
 
-          <p className="text-sm leading-relaxed text-ink-soft">
+          <p className="chim-caption leading-relaxed text-ink-soft">
             {micSupported
               ? "버튼을 누르고 있는 동안 인식합니다. 손을 떼면 인식이 끝나고, 아래 칸에서 내용을 확인한 뒤 보내실 수 있습니다."
               : "이 기기에서는 음성 인식을 쓸 수 없습니다. 아래 보기 버튼과 직접 입력만으로 끝까지 진행하실 수 있습니다."}
@@ -409,7 +410,7 @@ export function CueResponder({
         {notice && (
           <p
             role="status"
-            className="mt-3 rounded-field border border-warn-line bg-warn-soft px-3 py-2 text-sm leading-relaxed font-semibold text-warn-ink"
+            className="chim-meta mt-3 rounded-field bg-warn-soft px-3 py-2 leading-relaxed font-semibold text-warn-ink"
           >
             {notice}
           </p>
@@ -417,7 +418,7 @@ export function CueResponder({
 
         {/* ③ 직접 입력 겸 인식 결과 확인 */}
         <div className="mt-4">
-          <label htmlFor="cue-utterance" className="text-base font-bold text-ink">
+          <label htmlFor="cue-utterance" className="chim-label font-bold text-ink">
             인식된 내용 확인 · 직접 입력
           </label>
           <textarea
@@ -431,7 +432,8 @@ export function CueResponder({
             }}
             rows={3}
             placeholder="여기에 하실 말씀을 적으시거나, 마이크로 말씀하신 내용을 확인해 주세요."
-            className="mt-2 w-full rounded-field border border-line-strong bg-white p-3 text-lg leading-relaxed text-ink placeholder:text-ink-muted focus:border-brand-400"
+            /* 입력 필드는 보더를 유지하는 유일한 자리입니다(§5). 내가 말한 문장은 코어라 18px입니다. */
+            className="chim-core mt-2 w-full rounded-field border border-line-strong bg-white p-3 text-ink placeholder:text-ink-muted focus:border-brand-400"
           />
 
           {reportMode && text.trim().length > 0 && (
@@ -457,17 +459,18 @@ export function CueResponder({
 
           {/* 규칙 엔진 시연 장치 — 채우기만 하고 전송은 사용자가 직접 하십니다 */}
           {demoExamples.length > 0 && (
-            <details className="group mt-4 rounded-card border border-line bg-white">
-              <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 rounded-card px-4 py-3 text-base font-extrabold text-ink hover:bg-brand-50 [&::-webkit-details-marker]:hidden">
+            /* 규칙 시연은 보조 장치입니다 — 전부 14px 이하 크롬으로 두어 응답 경로를 가리지 않게 합니다. */
+            <details className="group mt-4 rounded-card bg-white">
+              <summary className="chim-meta flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 rounded-card px-4 py-3 font-bold text-ink-soft hover:bg-brand-50 [&::-webkit-details-marker]:hidden">
                 <span>{RULE_DEMO_TITLE}</span>
                 <IconChevronDown className="h-5 w-5 shrink-0 text-ink-muted transition-transform duration-150 group-open:rotate-180" />
               </summary>
 
               <div className="border-t border-line p-4">
-                <p className="text-sm leading-relaxed font-semibold text-ink-soft">
+                <p className="chim-caption leading-relaxed font-semibold text-ink-soft">
                   {RULE_DEMO_NOTE}
                 </p>
-                <p className="mt-1 text-sm leading-relaxed text-ink-muted">{RULE_DEMO_HINT}</p>
+                <p className="chim-caption mt-1 leading-relaxed text-ink-muted">{RULE_DEMO_HINT}</p>
 
                 <ul className="mt-3 space-y-3">
                   {demoExamples.map((example) => (
@@ -476,28 +479,29 @@ export function CueResponder({
                         type="button"
                         onClick={() => fillExample(example)}
                         className={cx(
-                          "w-full rounded-field border px-4 py-3 text-left transition-colors duration-150",
+                          "w-full rounded-field px-4 py-3 text-left transition-colors duration-150",
                           filledExampleId === example.id
-                            ? "border-brand-400 bg-brand-50"
-                            : "border-line bg-white hover:border-brand-400 hover:bg-brand-50",
+                            ? "bg-brand-50"
+                            : "bg-paper-2 hover:bg-brand-50",
                         )}
                       >
-                        <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
                           {/* 칩을 걷어내고 판정 마크로 대신합니다 — 표기 문구는 그대로입니다. */}
                           {example.kind === "critical" ? (
                             <StatusMark kind="stop" size="sm" label="⚑CF 전면 정지" />
                           ) : (
                             <StatusMark kind="coach" size="sm" label="코칭" />
                           )}
-                          <span className="border-l border-line pl-2.5 text-sm font-bold text-ink-muted">
+                          {/* 세로줄 액센트 없이 여백만으로 나눕니다(§1-2). */}
+                          <span className="chim-caption font-bold text-ink-muted">
                             {example.ruleId} · {example.itemId} {example.ruleLabel}
                           </span>
                         </span>
-                        <span className="mt-1.5 block text-base leading-relaxed font-semibold text-ink">
+                        <span className="chim-meta mt-1.5 block leading-relaxed font-semibold text-ink">
                           “{example.sentence}”
                         </span>
                       </button>
-                      <p className="mt-1 px-1 text-sm leading-relaxed text-ink-muted">
+                      <p className="chim-caption mt-1 px-1 leading-relaxed text-ink-muted">
                         {example.expectation}
                       </p>
                     </li>
@@ -505,7 +509,7 @@ export function CueResponder({
                 </ul>
 
                 {!demoExamples.some((example) => example.kind === "critical") && (
-                  <p className="mt-3 rounded-field border border-line bg-paper-2 px-3 py-2 text-sm leading-relaxed text-ink-muted">
+                  <p className="chim-caption mt-3 rounded-field bg-paper-2 px-3 py-2 leading-relaxed text-ink-muted">
                     {RULE_DEMO_NO_CRITICAL_NOTE}
                   </p>
                 )}
@@ -518,7 +522,7 @@ export function CueResponder({
                 {filledExample && (
                   <p
                     aria-hidden="true"
-                    className="mt-3 rounded-field border border-brand-200 bg-brand-50 px-3 py-2 text-sm leading-relaxed font-semibold text-brand-800"
+                    className="chim-caption mt-3 rounded-field bg-brand-50 px-3 py-2 leading-relaxed font-semibold text-brand-800"
                   >
                     입력창에 채워 드렸습니다. 아직 보내지 않았습니다 — 위의 「이 내용으로 답하기」를
                     누르시면 규칙 엔진이 판정합니다.
@@ -534,23 +538,24 @@ export function CueResponder({
       {options.length > 0 && (
         <div
           className={cx(
-            "rounded-card border p-4 transition-colors duration-300",
-            timeUp ? "border-warn bg-warn-soft" : "border-line bg-white",
+            "rounded-card p-4 transition-colors duration-300",
+            timeUp ? "bg-warn-soft" : "bg-paper-2",
           )}
         >
-          <h3 className="text-base font-extrabold text-ink">
+          <h3 className="chim-label font-extrabold text-ink">
             말하기가 어려우시면, 이 중에서 골라 주세요
           </h3>
-          <p className="mt-1 text-sm leading-relaxed text-ink-muted">
+          <p className="chim-caption mt-1 leading-relaxed text-ink-muted">
             버튼만으로도 끝까지 진행하실 수 있습니다.
           </p>
+          {/* 보기 버튼 라벨은 CTA(코어)입니다 — 17px·터치 48px 이상을 지킵니다(§3·불변 규칙). */}
           <ul className="mt-3 space-y-2.5">
             {options.map((branch) => (
               <li key={branch.id}>
                 <button
                   type="button"
                   onClick={() => pick(branch.id)}
-                  className="w-full rounded-field border border-brand-300 bg-white px-4 py-3.5 text-left text-base leading-relaxed font-semibold text-ink transition-colors duration-150 hover:border-brand-500 hover:bg-brand-50"
+                  className="min-h-[56px] w-full rounded-field bg-white px-4 py-3.5 text-left text-[1.0625rem] leading-relaxed font-semibold text-ink transition-colors duration-150 hover:bg-brand-50"
                 >
                   {branch.fallbackOption}
                 </button>

@@ -6,6 +6,7 @@
  */
 
 import type { BadgeTone } from "@/components";
+import type { StatusMarkKind } from "@/components/icons";
 import type { EndingDef, ScenarioType } from "@/types";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -47,6 +48,27 @@ export function verdictTone(verdict: EndingDef["verdict"]): BadgeTone {
       return "warn";
     default:
       return "danger";
+  }
+}
+
+/**
+ * 엔딩 판정별 표준 마크(v3 §4).
+ * 판정을 필(배지)로 두르지 않고 StatusMark + 판정어 텍스트로 나란히 씁니다.
+ * 점수·등급은 어떤 경우에도 만들지 않으며, 마크는 2단계 의미 체계를 그대로 따릅니다.
+ *
+ * @example verdictMark("충족") // "met"
+ */
+export function verdictMark(verdict: EndingDef["verdict"]): StatusMarkKind {
+  switch (verdict) {
+    case "충족":
+      return "met";
+    case "부분 충족":
+    case "재시도":
+    case "재훈련 권고":
+      return "coach";
+    default:
+      // 안전 직결 판정선 — 즉시 중단과 같은 마크를 씁니다.
+      return "stop";
   }
 }
 

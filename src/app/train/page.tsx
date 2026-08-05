@@ -33,25 +33,25 @@ function ScenarioCard({ scenario }: { scenario: Scenario }) {
       {/* 필은 유형 하나만 — 난이도·소요는 그냥 작은 텍스트로 둡니다. */}
       <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
         <Badge tone={TYPE_TONE[scenario.type]}>{scenario.typeLabel}</Badge>
-        <span className="text-sm font-semibold text-ink-muted">
+        <span className="chim-caption font-semibold text-ink-muted">
           {scenario.levelLabel} · 약 {scenario.durationMin}분
         </span>
       </div>
 
-      <h3 className="mt-4 text-xl font-extrabold text-ink md:text-2xl">{scenario.title}</h3>
-      <p className="mt-2.5 text-base leading-relaxed text-ink-soft">{scenario.summary}</p>
+      <h3 className="chim-h3 mt-4 text-ink">{scenario.title}</h3>
+      <p className="chim-body mt-2.5 text-ink-soft">{scenario.summary}</p>
 
-      {/* 계층 표기도 배지 대신 hairline으로 나눈 텍스트로 둡니다. */}
-      <div className="mt-4 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm">
+      {/* 계층 표기도 배지·세로줄 없이 여백으로만 나눈 텍스트로 둡니다(§1-2). */}
+      <div className="chim-caption mt-4 flex flex-wrap items-center gap-x-4 gap-y-1">
         <span className="font-semibold text-ink-muted">생성 통제</span>
         {scenario.tiers.map((tier) => (
-          <span key={tier} className="border-l border-line pl-2.5 font-bold text-ink-soft">
+          <span key={tier} className="font-bold text-ink-muted">
             {TIER_LABEL[tier]}
           </span>
         ))}
       </div>
 
-      <ul className="mt-4 space-y-1.5 text-sm leading-relaxed text-ink-muted">
+      <ul className="chim-caption mt-4 space-y-1.5 leading-relaxed text-ink-muted">
         {scenario.objectives.slice(0, 2).map((objective) => (
           <li key={objective} className="flex gap-2">
             <span aria-hidden="true" className="text-brand-500">
@@ -80,10 +80,10 @@ function MatrixCellBox({ cell }: { cell: MatrixCell }) {
     return (
       <Link
         href={scenarioHref(cell.scenarioId)}
-        className="flex min-h-[92px] flex-col justify-between gap-2 rounded-card border border-brand-300 bg-white p-3.5 transition-colors duration-150 hover:bg-brand-50"
+        className="flex min-h-[92px] flex-col justify-between gap-2 rounded-card bg-brand-50 p-3.5 transition-colors duration-150 hover:bg-brand-100"
       >
-        <span className="text-base leading-snug font-bold text-ink">{cell.title}</span>
-        <span className="flex items-center gap-1.5 text-sm font-bold text-brand-800">
+        <span className="chim-body leading-snug font-bold text-ink">{cell.title}</span>
+        <span className="chim-caption flex items-center gap-1.5 font-bold text-brand-800">
           지금 연습할 수 있습니다
           <IconArrowRight className="h-4 w-4" />
         </span>
@@ -92,9 +92,9 @@ function MatrixCellBox({ cell }: { cell: MatrixCell }) {
   }
 
   return (
-    <div className="flex min-h-[92px] flex-col justify-between gap-2 rounded-card border border-dashed border-line-strong bg-paper-2 p-3.5">
-      <span className="text-base leading-snug font-semibold text-ink-muted">{cell.title}</span>
-      <span className="flex items-center gap-1.5 text-sm font-semibold text-ink-muted">
+    <div className="flex min-h-[92px] flex-col justify-between gap-2 rounded-card bg-paper-2 p-3.5">
+      <span className="chim-body leading-snug font-semibold text-ink-muted">{cell.title}</span>
+      <span className="chim-caption flex items-center gap-1.5 font-semibold text-ink-muted">
         <IconLock className="h-4 w-4" />
         준비 중입니다
       </span>
@@ -113,9 +113,9 @@ function MatrixTable() {
 
         return (
           <Card key={typeLabel} padded={false} className="overflow-hidden">
-            <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-line bg-paper-2 px-4 py-3 md:px-5">
-              <h3 className="text-lg font-extrabold text-ink">{typeLabel}</h3>
-              {note && <p className="text-sm leading-snug text-ink-muted">{note}</p>}
+            <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 pt-4 pb-1 md:px-5">
+              <h3 className="chim-label font-extrabold text-ink">{typeLabel}</h3>
+              {note && <p className="chim-caption leading-snug text-ink-muted">{note}</p>}
             </div>
             <div className="grid gap-3 p-4 md:grid-cols-3 md:px-5">
               {row.map((cell) => {
@@ -123,7 +123,7 @@ function MatrixTable() {
                   MATRIX_LEVEL_LABELS.find((l) => l.level === cell.level)?.label ?? "";
                 return (
                   <div key={`${cell.typeLabel}-${cell.level}`}>
-                    <p className="mb-1.5 text-sm font-bold text-ink-muted">{levelLabel}</p>
+                    <p className="chim-caption mb-1.5 font-bold text-ink-muted">{levelLabel}</p>
                     <MatrixCellBox cell={cell} />
                   </div>
                 );
@@ -150,24 +150,22 @@ export default function TrainIndexPage() {
       wide
     >
       <Card tone="brand" className="mb-8">
-        <p className="text-lg leading-relaxed font-extrabold text-brand-900 md:text-xl">
-          “{PRACTICE_LINE}”
-        </p>
-        <p className="mt-2.5 text-base leading-relaxed text-brand-800">
+        <p className="chim-core font-extrabold text-brand-900">“{PRACTICE_LINE}”</p>
+        <p className="chim-body mt-2.5 text-brand-800">
           정해진 정답 문장은 없습니다. 마이크가 없거나 소리를 낼 수 없는 곳이라면 버튼과 직접
           입력만으로도 끝까지 진행하실 수 있습니다.
         </p>
-        <p className="mt-3 flex items-start gap-2 text-sm leading-relaxed font-semibold text-brand-800">
+        <p className="chim-caption mt-3 flex items-start gap-2 leading-relaxed font-semibold text-brand-800">
           <IconInfo className="mt-0.5 h-4 w-4 shrink-0" />
           <span>{FICTION_NOTICE}</span>
         </p>
       </Card>
 
       <section aria-labelledby="active-scenarios">
-        <h2 id="active-scenarios" className="text-xl font-extrabold text-ink md:text-2xl">
+        <h2 id="active-scenarios" className="chim-h2 text-ink">
           지금 연습할 수 있는 상황 3종
         </h2>
-        <p className="mt-2 text-base leading-relaxed text-ink-soft">
+        <p className="chim-body mt-2 text-ink-soft">
           이 3종만으로 루브릭 30항목이 한 번씩 실행되고, 생성 통제 3계층(L1·L2·L3)이 모두
           지나갑니다.
         </p>
@@ -180,10 +178,10 @@ export default function TrainIndexPage() {
       </section>
 
       <section aria-labelledby="scenario-matrix" className="mt-12">
-        <h2 id="scenario-matrix" className="text-xl font-extrabold text-ink md:text-2xl">
+        <h2 id="scenario-matrix" className="chim-h2 text-ink">
           전체 12종 편성표
         </h2>
-        <p className="mt-2 max-w-3xl text-base leading-relaxed text-ink-soft">
+        <p className="chim-body mt-2 max-w-3xl text-ink-soft">
           유형 4종 × 난이도 3단계로 설계했고, 알파에서는 3종을 열어 두었습니다. 잠긴 칸은 같은
           루브릭 30항목을 그대로 재사용하므로 시나리오만 추가하면 열립니다.
         </p>
@@ -194,7 +192,7 @@ export default function TrainIndexPage() {
       </section>
 
       <section aria-labelledby="train-guide" className="mt-12">
-        <h2 id="train-guide" className="text-xl font-extrabold text-ink md:text-2xl">
+        <h2 id="train-guide" className="chim-h2 text-ink">
           훈련은 이렇게 진행됩니다
         </h2>
         {/* 카드 그리드 대신 hairline으로 나눈 에디토리얼 목록 — 앞 두 섹션과 리듬을 다르게 둡니다. */}
@@ -232,10 +230,8 @@ export default function TrainIndexPage() {
                 {item.step}
               </span>
               <div>
-                <h3 className="text-lg font-extrabold text-ink">{item.title}</h3>
-                <p className="mt-1.5 max-w-2xl text-base leading-relaxed text-ink-soft">
-                  {item.body}
-                </p>
+                <h3 className="chim-label font-extrabold text-ink">{item.title}</h3>
+                <p className="chim-body mt-1.5 max-w-2xl text-ink-soft">{item.body}</p>
               </div>
             </li>
           ))}

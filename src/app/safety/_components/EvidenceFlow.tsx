@@ -1,3 +1,5 @@
+import { IconAlert, IconCheckCircle } from "@/components/icons";
+
 /**
  * 근거 확인 흐름도.
  *
@@ -7,8 +9,14 @@
  * 구성
  *  - md 이상: SVG 다이어그램 한 장 (720×600 좌표계 = md 폭에서 1:1로 그려집니다).
  *    좌표계를 md 본문 폭(720px)에 맞춰 두었기 때문에, 가장 좁은 표시 폭에서도
- *    SVG 안 글자가 16px 아래로 내려가지 않습니다. 큰 화면에서는 1000px까지만 키웁니다.
+ *    SVG 안 글자가 15px 아래로 내려가지 않습니다. 큰 화면에서는 880px까지만 키웁니다
+ *    (그 이상 키우면 다이어그램 글자가 본문보다 커져 위계가 뒤집힙니다 — v3 §1-7).
  *  - md 미만: 같은 내용을 세로 스텝 목록으로 보여 줍니다(가로 스크롤 없음).
+ *
+ * v3 반영
+ *  - 모바일 스텝의 왼쪽 세로줄·색 점, 분기 블록의 왼쪽 4px 바를 전부 걷어냈습니다(§1-2).
+ *    구분은 번호·hairline 행·옅은 면과 [아이콘+라벨] 한 줄로만 만듭니다.
+ *  - 다이어그램 안 인용 앞 세로 막대도 옅은 면으로 바꿨습니다.
  *
  * 접근성
  *  - SVG는 role="img" + title/desc로 흐름 전체를 한 문장으로 읽어 줍니다.
@@ -127,16 +135,16 @@ function FlowBox({ x, y, node, tone = "ink" }: { x: number; y: number; node: Flo
         x={cx}
         y={y + 34}
         textAnchor="middle"
-        fontSize={19}
+        fontSize={17}
         fontWeight={700}
         className={tone === "warn" ? "fill-warn-ink" : "fill-ink"}
       >
         {node.title}
       </text>
-      <text x={cx} y={y + 60} textAnchor="middle" fontSize={16} className="fill-ink-soft">
+      <text x={cx} y={y + 59} textAnchor="middle" fontSize={15} className="fill-ink-soft">
         {node.lines[0]}
       </text>
-      <text x={cx} y={y + 82} textAnchor="middle" fontSize={16} className="fill-ink-soft">
+      <text x={cx} y={y + 80} textAnchor="middle" fontSize={15} className="fill-ink-soft">
         {node.lines[1]}
       </text>
     </g>
@@ -149,7 +157,7 @@ function FlowDiagram() {
       viewBox="0 0 720 600"
       role="img"
       aria-labelledby="sfy-flow-title sfy-flow-desc"
-      className="mx-auto h-auto w-full max-w-[1000px]"
+      className="mx-auto h-auto w-full max-w-[880px]"
     >
       <title id="sfy-flow-title">근거 확인 흐름도</title>
       <desc id="sfy-flow-desc">{FLOW_DESC}</desc>
@@ -253,7 +261,7 @@ function FlowDiagram() {
         x={DIA_CX}
         y={DIA_CY + 7}
         textAnchor="middle"
-        fontSize={20}
+        fontSize={19}
         fontWeight={800}
         className="fill-brand-800"
       >
@@ -269,7 +277,7 @@ function FlowDiagram() {
         className="stroke-brand-600"
         markerEnd="url(#sfy-arrow-teal)"
       />
-      <text x={372} y={262} fontSize={17} fontWeight={700} className="fill-brand-700">
+      <text x={372} y={262} fontSize={16} fontWeight={700} className="fill-brand-700">
         예
       </text>
 
@@ -293,7 +301,7 @@ function FlowDiagram() {
         className="stroke-warn-ink"
         markerEnd="url(#sfy-arrow-warn)"
       />
-      <text x={244} y={178} textAnchor="end" fontSize={17} fontWeight={700} className="fill-warn-ink">
+      <text x={244} y={178} textAnchor="end" fontSize={16} fontWeight={700} className="fill-warn-ink">
         아니오
       </text>
 
@@ -308,39 +316,31 @@ function FlowDiagram() {
       />
       <FlowBox x={COL_L} y={ROW_4} node={NO_NODES[1]!} tone="warn" />
 
-      {/* 확인 안내로 나가는 고정 문구 */}
-      <text x={COL_M} y={418} fontSize={16} className="fill-ink-muted">
+      {/* 확인 안내로 나가는 고정 문구 — 앞 세로 막대 대신 옅은 면으로 묶습니다(§1-2). */}
+      <text x={COL_M} y={416} fontSize={15} className="fill-ink-muted">
         근거를 찾지 못하면 이렇게 답합니다
       </text>
-      <rect x={COL_M} y={430} width={3} height={62} className="fill-warn-ink" />
-      <text x={COL_M + 16} y={456} fontSize={17} className="fill-ink">
+      <rect x={COL_M} y={428} width={462} height={72} rx={12} className="fill-paper-2" />
+      <text x={COL_M + 18} y={458} fontSize={16} className="fill-ink">
         {NO_SOURCE_LINES[0]}
       </text>
-      <text x={COL_M + 16} y={480} fontSize={17} className="fill-ink">
+      <text x={COL_M + 18} y={482} fontSize={16} className="fill-ink">
         {NO_SOURCE_LINES[1]}
       </text>
 
-      {/* L3 밴드 */}
-      <rect
-        x={6}
-        y={524}
-        width={708}
-        height={68}
-        rx={12}
-        strokeWidth={1.5}
-        className="fill-brand-50 stroke-brand-200"
-      />
+      {/* L3 밴드 — 이 다이어그램에서 색 면은 여기 하나뿐입니다(§1-3). */}
+      <rect x={6} y={524} width={708} height={68} rx={12} className="fill-brand-50" />
       <text
         x={DIA_CX}
         y={556}
         textAnchor="middle"
-        fontSize={20}
+        fontSize={19}
         fontWeight={800}
         className="fill-brand-900"
       >
         {L3_TITLE}
       </text>
-      <text x={DIA_CX} y={580} textAnchor="middle" fontSize={16} className="fill-ink-soft">
+      <text x={DIA_CX} y={580} textAnchor="middle" fontSize={15} className="fill-ink-soft">
         {L3_SUB}
       </text>
     </svg>
@@ -349,24 +349,25 @@ function FlowDiagram() {
 
 /* ── 모바일 세로 스텝 ──────────────────────────────────────── */
 
-function StepItem({ node }: { node: FlowNode }) {
+/** 번호 + 제목 + 한 문장. 왼쪽 세로줄·색 점 없이 hairline 행으로만 나눕니다. */
+function StepRow({ index, node }: { index: number; node: FlowNode }) {
   return (
-    <li className="relative border-l border-line pb-6 pl-5">
-      <span
-        aria-hidden="true"
-        className="absolute top-1.5 -left-[8px] block h-[15px] w-[15px] rounded-chip border-2 border-brand-500 bg-white"
-      />
-      <p className="text-lg font-extrabold text-ink">{node.title}</p>
-      <p className="mt-1 text-base leading-relaxed text-ink-soft">{node.caption}</p>
+    <li className="flex gap-3 border-t border-line py-4">
+      <span className="chim-num chim-body shrink-0 font-extrabold text-brand-700">{index}</span>
+      <div>
+        <p className="chim-body font-extrabold text-ink">{node.title}</p>
+        <p className="mt-1 text-[0.9375rem] leading-relaxed text-ink-soft">{node.caption}</p>
+      </div>
     </li>
   );
 }
 
+/** 분기 안의 항목 — 번호를 다시 매기지 않고 제목·설명만 둡니다. */
 function BranchStep({ node }: { node: FlowNode }) {
   return (
     <li>
-      <p className="text-base font-extrabold text-ink">{node.title}</p>
-      <p className="mt-1 text-base leading-relaxed text-ink-soft">{node.caption}</p>
+      <p className="chim-body font-extrabold text-ink">{node.title}</p>
+      <p className="mt-1 text-[0.9375rem] leading-relaxed text-ink-soft">{node.caption}</p>
     </li>
   );
 }
@@ -374,50 +375,56 @@ function BranchStep({ node }: { node: FlowNode }) {
 function FlowSteps() {
   return (
     <div>
-      <ol>
-        {INPUT_NODES.map((n) => (
-          <StepItem key={n.key} node={n} />
+      <ol className="border-b border-line">
+        {INPUT_NODES.map((n, i) => (
+          <StepRow key={n.key} index={i + 1} node={n} />
         ))}
-        <li className="relative border-l border-line pl-5">
-          <span
-            aria-hidden="true"
-            className="absolute top-1.5 -left-[8px] block h-[15px] w-[15px] rotate-45 border-2 border-brand-600 bg-white"
-          />
-          <p className="text-lg font-extrabold text-brand-800">근거 확인</p>
-          <p className="mt-1 text-base leading-relaxed text-ink-soft">
-            여기서 길이 갈립니다. 근거를 찾았는지에 따라 다음이 달라집니다.
-          </p>
+        <li className="flex gap-3 border-t border-line py-4">
+          <span className="chim-num chim-body shrink-0 font-extrabold text-brand-700">
+            {INPUT_NODES.length + 1}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="chim-body font-extrabold text-brand-800">근거 확인</p>
+            <p className="mt-1 text-[0.9375rem] leading-relaxed text-ink-soft">
+              여기서 길이 갈립니다. 근거를 찾았는지에 따라 다음이 달라집니다.
+            </p>
 
-          <div className="mt-4 space-y-4">
-            <div className="border-l-4 border-brand-600 pl-4">
-              <p className="text-base font-extrabold text-brand-800">예 · 근거를 찾았을 때</p>
-              <ol className="mt-2.5 space-y-3">
-                {YES_NODES.map((n) => (
-                  <BranchStep key={n.key} node={n} />
-                ))}
-              </ol>
-            </div>
+            {/* 분기 — 왼쪽 액센트 바 대신 옅은 면 + [아이콘 + 라벨] 한 줄로 구분합니다. */}
+            <div className="mt-4 space-y-3">
+              <div className="rounded-card bg-paper-2 p-4">
+                <p className="chim-body flex items-center gap-2 font-extrabold text-brand-800">
+                  <IconCheckCircle className="h-5 w-5 shrink-0" />
+                  예 · 근거를 찾았을 때
+                </p>
+                <ol className="mt-2.5 space-y-3">
+                  {YES_NODES.map((n) => (
+                    <BranchStep key={n.key} node={n} />
+                  ))}
+                </ol>
+              </div>
 
-            <div className="border-l-4 border-warn pl-4">
-              <p className="text-base font-extrabold text-warn-ink">
-                아니오 · 근거를 찾지 못했을 때
-              </p>
-              <ol className="mt-2.5 space-y-3">
-                {NO_NODES.map((n) => (
-                  <BranchStep key={n.key} node={n} />
-                ))}
-              </ol>
-              <p className="mt-3 text-base leading-relaxed font-bold text-ink">
-                「공식 지침에서 근거를 찾지 못했습니다. 담당 간호사 또는 기관에 확인해 주세요.」
-              </p>
+              <div className="rounded-card bg-warn-soft p-4">
+                <p className="chim-body flex items-center gap-2 font-extrabold text-warn-ink">
+                  <IconAlert className="h-5 w-5 shrink-0" />
+                  아니오 · 근거를 찾지 못했을 때
+                </p>
+                <ol className="mt-2.5 space-y-3">
+                  {NO_NODES.map((n) => (
+                    <BranchStep key={n.key} node={n} />
+                  ))}
+                </ol>
+                <p className="chim-body mt-3 font-bold text-ink">
+                  「공식 지침에서 근거를 찾지 못했습니다. 담당 간호사 또는 기관에 확인해 주세요.」
+                </p>
+              </div>
             </div>
           </div>
         </li>
       </ol>
 
-      <div className="mt-6 rounded-card border border-brand-200 bg-brand-50 p-5">
-        <p className="text-lg font-extrabold text-brand-900">{L3_TITLE}</p>
-        <p className="mt-1.5 text-base leading-relaxed text-ink-soft">{L3_SUB}</p>
+      <div className="mt-6 rounded-card bg-brand-50 p-5">
+        <p className="chim-body font-extrabold text-brand-900">{L3_TITLE}</p>
+        <p className="mt-1.5 text-[0.9375rem] leading-relaxed text-ink-soft">{L3_SUB}</p>
       </div>
     </div>
   );
@@ -439,7 +446,7 @@ export function EvidenceFlow() {
       <div className="md:hidden">
         <FlowSteps />
       </div>
-      <figcaption className="mt-5 text-sm leading-relaxed text-ink-muted md:mt-6 md:text-center">
+      <figcaption className="chim-caption mt-5 text-ink-muted md:mt-6 md:text-center">
         그림 · 근거가 확인된 범위 안에서만 피드백이 나갑니다. 근거를 찾지 못하면 생성을 멈추고
         확인 안내로 넘어갑니다.
       </figcaption>

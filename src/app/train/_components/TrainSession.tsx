@@ -151,31 +151,27 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     <div className="space-y-6">
       {/* 상단 — 시나리오·게이지·상황 지문 */}
       <header className="space-y-4">
-        {/* 필은 유형 하나만 — 난이도·계층은 hairline으로 나눈 텍스트로 둡니다. */}
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+        {/* 필은 유형 하나만 — 난이도·계층은 세로줄 없이 여백으로만 나눈 작은 텍스트입니다(§1-2). */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <Badge tone={TYPE_TONE[scenario.type]}>{scenario.typeLabel}</Badge>
-          <span className="text-sm font-semibold text-ink-muted">{scenario.levelLabel}</span>
+          <span className="chim-caption font-semibold text-ink-muted">{scenario.levelLabel}</span>
           {scenario.tiers.map((tier) => (
-            <span
-              key={tier}
-              className="border-l border-line pl-2.5 text-sm font-bold text-ink-soft"
-            >
+            <span key={tier} className="chim-caption font-bold text-ink-muted">
               {TIER_LABEL[tier]}
             </span>
           ))}
         </div>
 
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <h1 className="text-2xl font-extrabold text-ink md:text-3xl">{scenario.title}</h1>
+          {/* 세션 화면의 주인공은 대사와 CUE입니다 — 제목은 섹션 제목 크기로 둡니다. */}
+          <h1 className="chim-h2 text-ink">{scenario.title}</h1>
           <button
             type="button"
             onClick={toggleTts}
             aria-pressed={ttsOn}
             className={cx(
-              "inline-flex min-h-[48px] items-center gap-2 rounded-field border px-4 text-base font-bold transition-colors duration-150",
-              ttsOn
-                ? "border-brand-300 bg-white text-brand-800"
-                : "border-line bg-white text-ink-muted",
+              "chim-label inline-flex min-h-[48px] items-center gap-2 rounded-field px-4 font-bold transition-colors duration-150",
+              ttsOn ? "bg-brand-50 text-brand-800" : "bg-neutral-soft text-ink-muted",
             )}
           >
             {ttsOn ? (
@@ -207,16 +203,16 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
           {notice && (
             <p
               key={`notice-${state.gaugeTick}`}
-              className="animate-fade-up mt-2.5 text-base font-bold text-ink-soft"
+              className="chim-meta animate-fade-up mt-2.5 font-bold text-ink-soft"
               role="status"
             >
               {notice}
             </p>
           )}
-          <p className="mt-3 border-t border-line pt-3 text-base leading-relaxed text-ink-soft">
+          <p className="chim-body mt-3 border-t border-line pt-3 text-ink-soft">
             {scenario.context}
           </p>
-          <p className="mt-2 text-sm leading-relaxed font-semibold text-ink-muted">
+          <p className="chim-caption mt-2 leading-relaxed text-ink-muted">
             {FICTION_NOTICE} · 화면의 소리는 모두 자막과 함께 나옵니다.
           </p>
         </Card>
@@ -244,7 +240,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
           />
         ) : (
           <Card tone="danger">
-            <p className="text-base leading-relaxed font-bold text-danger-ink">
+            <p className="chim-core-sm font-bold text-danger-ink">
               응급 안내를 불러오지 못했습니다. 아래 버튼으로 이어서 진행해 주세요.
             </p>
             <div className="mt-4">

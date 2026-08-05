@@ -47,8 +47,12 @@ export interface AppHeaderProps {
 /**
  * 상단 네비게이션(데스크톱) + 하단 탭바(모바일).
  *
- * 활성 표시는 배경 필이 아니라 **색 + 굵기 + 밑줄**로 합니다(조용한 크롬).
- * 헤더는 1px 보더 하나로만 지면과 구분하고, 그림자·반투명 유리 효과는 쓰지 않습니다.
+ * v3 §5: 활성 표시는 **색 + 굵기만** 입니다.
+ * 배경 필도, 밑줄도, 탭 위 색 바도 쓰지 않습니다 — 색 바는 액센트 금지 대상입니다(§1-2).
+ * 지면과의 구분은 hairline 1px 하나로 끝냅니다(그림자·유리 효과 없음).
+ *
+ * 네비 라벨은 UI 크롬이라 15px입니다. 코어 콘텐츠(대사·CUE·응급 자막·CTA)의 18px+ 규칙은
+ * 이 컴포넌트에 적용되지 않습니다 — 다만 터치 타겟 48px은 여기서도 불변입니다.
  */
 export function AppHeader({ className }: AppHeaderProps) {
   const pathname = usePathname() ?? "/";
@@ -66,15 +70,17 @@ export function AppHeader({ className }: AppHeaderProps) {
             className="flex shrink-0 items-baseline gap-2 py-1"
             aria-label="침착 홈으로"
           >
-            <span className="chim-title text-xl font-extrabold text-brand-800 md:text-2xl">
+            <span className="chim-title text-[1.25rem] font-extrabold text-brand-800 md:text-[1.375rem]">
               침착
             </span>
-            <span className="text-sm font-semibold tracking-wide text-ink-muted">ChimChak</span>
+            <span className="chim-caption font-semibold tracking-wide text-ink-muted">
+              ChimChak
+            </span>
           </Link>
 
-          {/* 데스크톱 네비 — 아이콘 없이 텍스트만. 활성은 밑줄과 굵기로 알립니다. */}
+          {/* 데스크톱 네비 — 아이콘 없이 텍스트만. 활성은 색과 굵기로만 알립니다. */}
           <nav aria-label="주요 메뉴" className="hidden md:block">
-            <ul className="-mr-2 flex items-center">
+            <ul className="-mr-3 flex items-center">
               {desktopNav.map((item) => {
                 const active = isActive(pathname, item);
                 return (
@@ -83,23 +89,17 @@ export function AppHeader({ className }: AppHeaderProps) {
                       href={item.href}
                       aria-current={active ? "page" : undefined}
                       className={cx(
-                        "group inline-flex min-h-[48px] items-center px-3 text-base transition-colors duration-150",
-                        item.danger ? "text-danger-ink" : active ? "text-brand-800" : "text-ink-soft",
+                        "chim-label inline-flex min-h-[48px] items-center px-3 transition-colors duration-150",
+                        item.danger
+                          ? "text-danger-ink"
+                          : active
+                            ? "text-brand-800"
+                            : "text-ink-soft",
                         !active && !item.danger && "hover:text-brand-800",
                         active ? "font-extrabold" : "font-semibold",
                       )}
                     >
-                      {/* 활성·호버 모두 밑줄로만 알립니다 — 배경 필은 쓰지 않습니다. */}
-                      <span
-                        className={cx(
-                          "border-b-2 py-0.5 transition-colors duration-150",
-                          active
-                            ? "border-current"
-                            : "border-transparent group-hover:border-current",
-                        )}
-                      >
-                        {item.label}
-                      </span>
+                      {item.label}
                     </Link>
                   </li>
                 );
@@ -107,29 +107,23 @@ export function AppHeader({ className }: AppHeaderProps) {
             </ul>
           </nav>
 
-          {/* 모바일: 안전 설계 바로가기 — 필 대신 조용한 텍스트 링크 */}
+          {/* 모바일: 안전 설계 바로가기 — 필도 밑줄도 없는 조용한 텍스트 링크 */}
           <Link
             href="/safety"
             aria-current={safetyActive ? "page" : undefined}
             className={cx(
-              "inline-flex min-h-[48px] items-center gap-1.5 pl-2 text-sm md:hidden",
+              "chim-meta inline-flex min-h-[48px] items-center gap-1.5 pl-2 md:hidden",
               safetyActive ? "font-extrabold text-brand-800" : "font-semibold text-ink-soft",
             )}
           >
             <IconShield className="h-5 w-5" />
-            <span
-              className={cx(
-                "border-b-2 py-0.5",
-                safetyActive ? "border-current" : "border-transparent",
-              )}
-            >
-              안전 설계
-            </span>
+            안전 설계
           </Link>
         </div>
       </header>
 
-      {/* 모바일 하단 탭바 — 스트로크 아이콘 + 라벨, 활성은 틸 잉크 + 상단 4px 마크 */}
+      {/* 모바일 하단 탭바 — 스트로크 아이콘 + 라벨.
+          활성은 색과 굵기(아이콘 스트로크 포함)로만 알립니다. 탭 위 색 바는 두지 않습니다. */}
       <nav
         aria-label="주요 메뉴"
         className="chim-tabbar fixed inset-x-0 bottom-0 z-50 border-t border-line bg-white shadow-lift md:hidden"
@@ -144,7 +138,7 @@ export function AppHeader({ className }: AppHeaderProps) {
                   href={item.href}
                   aria-current={active ? "page" : undefined}
                   className={cx(
-                    "relative flex min-h-[4.2rem] flex-col items-center justify-center gap-1 px-1 py-2 text-center transition-colors duration-150",
+                    "flex min-h-[4rem] flex-col items-center justify-center gap-1 px-1 py-2 text-center transition-colors duration-150",
                     active
                       ? item.danger
                         ? "text-danger-ink"
@@ -152,17 +146,10 @@ export function AppHeader({ className }: AppHeaderProps) {
                       : "text-ink-muted",
                   )}
                 >
-                  {active && (
-                    <span
-                      aria-hidden="true"
-                      className={cx(
-                        "absolute inset-x-4 top-0 h-[3px] rounded-b-full",
-                        item.danger ? "bg-danger" : "bg-brand-600",
-                      )}
-                    />
-                  )}
                   <Icon className="h-6 w-6" strokeWidth={active ? 2 : 1.75} />
-                  <span className={cx("text-[0.78rem]", active ? "font-extrabold" : "font-semibold")}>
+                  <span
+                    className={cx("chim-caption", active ? "font-extrabold" : "font-semibold")}
+                  >
                     {item.label}
                   </span>
                 </Link>

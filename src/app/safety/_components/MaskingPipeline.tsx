@@ -21,6 +21,9 @@ export interface MaskingPipelineProps {
  *
  * 파이프라인 줄은 목록과 같은 내용이라 보조기기에서는 한 번만 읽히게 했습니다.
  *
+ * v3 반영: 단계 칩은 보더 대신 옅은 면(`paper-2`)으로 세웁니다(§7).
+ * 크기는 단계 이름 15px·설명 15px·번호 13px — 표와 같은 단으로 두어 본문(16)보다 조용하게(§3).
+ *
  * @example <MaskingPipeline steps={PRIVACY_STEPS} />
  */
 export function MaskingPipeline({ steps, className }: MaskingPipelineProps) {
@@ -35,9 +38,11 @@ export function MaskingPipeline({ steps, className }: MaskingPipelineProps) {
                 <IconArrowRight className="h-5 w-5 text-ink-muted" />
               </span>
             )}
-            <span className="flex flex-1 flex-col items-center justify-center rounded-field border border-line bg-white px-2 py-3 text-center">
-              <span className="chim-num text-sm font-bold text-brand-700">{i + 1}</span>
-              <span className="mt-0.5 text-base leading-snug font-bold text-ink">{s.step}</span>
+            <span className="flex flex-1 flex-col items-center justify-center rounded-field bg-paper-2 px-2 py-3 text-center">
+              <span className="chim-num chim-caption font-bold text-brand-700">{i + 1}</span>
+              <span className="mt-0.5 text-[0.9375rem] leading-snug font-bold text-ink">
+                {s.step}
+              </span>
             </span>
           </div>
         ))}
@@ -47,10 +52,10 @@ export function MaskingPipeline({ steps, className }: MaskingPipelineProps) {
         {steps.map((s, i) => (
           <li key={s.step} className="grid gap-x-8 border-t border-line py-4 md:grid-cols-12">
             <p className="flex items-baseline gap-2 md:col-span-4">
-              <span className="chim-num text-base font-extrabold text-brand-700">{i + 1}</span>
-              <span className="text-base font-extrabold text-ink">{s.step}</span>
+              <span className="chim-num chim-caption font-extrabold text-brand-700">{i + 1}</span>
+              <span className="chim-body font-extrabold text-ink">{s.step}</span>
             </p>
-            <p className="mt-1.5 text-base leading-relaxed text-ink-soft md:col-span-8 md:mt-0">
+            <p className="mt-1 text-[0.9375rem] leading-relaxed text-ink-soft md:col-span-8 md:mt-0">
               {s.desc}
             </p>
           </li>

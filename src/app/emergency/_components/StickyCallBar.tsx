@@ -11,13 +11,16 @@ export interface StickyCallBarProps {
  *
  * 스크롤을 아무리 내려도 화면에서 사라지지 않습니다(안전 규칙 §3-5 — 119 버튼 상시 노출).
  * 생성 통제 고지("사전 검수된 고정 문구 · AI 생성 아님")도 같이 붙여 상시 표시합니다.
+ *
+ * 형태(v3): 보더를 두르지 않습니다(§1-4). 흰 면 + 최소 그림자 한 단계로만
+ * "본문 위를 지나간다"는 사실을 알립니다(§7). 눈에 띄어야 하는 것은 빨간 버튼 하나뿐입니다.
+ * 라벨은 코어 콘텐츠(§3)라 20px extrabold를 유지하고, 고지는 13px로 조용히 둡니다.
  */
 export function StickyCallBar({ spaced = true }: StickyCallBarProps) {
   return (
     <div
       className={[
-        // 떠 있는 바이므로 그림자는 최소 한 단계만 남깁니다(카드에는 쓰지 않는 값).
-        "sticky top-[4.5rem] z-30 rounded-card border border-danger-line bg-white/95 p-3 shadow-card backdrop-blur md:top-[5rem]",
+        "sticky top-[4.5rem] z-30 rounded-card bg-white/95 p-3 shadow-card backdrop-blur md:top-[5rem]",
         spaced ? "mb-6" : "",
       ]
         .filter(Boolean)
@@ -25,7 +28,7 @@ export function StickyCallBar({ spaced = true }: StickyCallBarProps) {
     >
       <Call119Button size="md" caption={false} />
       {/* 고정 고지는 상시 노출하고, 전화 앱 안내는 화면이 넓을 때만 덧붙입니다(모바일 높이 절약). */}
-      <p className="mt-2 text-center text-sm leading-snug font-semibold text-ink-muted">
+      <p className="chim-caption mt-2 text-center leading-snug text-ink-muted">
         {PROTOCOL_NOTICE}
         <span className="hidden md:inline">
           {" "}

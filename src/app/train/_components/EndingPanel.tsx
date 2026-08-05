@@ -2,8 +2,8 @@
 
 import { Badge, BigButton, Card, SourceChip } from "@/components";
 import { IconCheck, IconRefresh, StatusMark } from "@/components/icons";
+import { cx } from "@/components/utils";
 import type { EndingDef, Scenario, SessionRecord, SessionState } from "@/types";
-import { VERDICT_TONE } from "./constants";
 
 export interface EndingPanelProps {
   scenario: Scenario;
@@ -14,6 +14,18 @@ export interface EndingPanelProps {
   advisoryEnding?: EndingDef;
   onRestart: () => void;
 }
+
+/**
+ * 판정 문구의 색 — 상태 의미만 담습니다(점수·등급·순위는 어떤 형태로도 만들지 않습니다).
+ * 큰 글자라 3:1 기준이지만, 실제로는 전부 4.5:1을 넘는 `*-ink` 계열만 씁니다.
+ */
+const VERDICT_TEXT: Record<EndingDef["verdict"], string> = {
+  충족: "text-ok-ink",
+  "부분 충족": "text-warn-ink",
+  재시도: "text-warn-ink",
+  재훈련: "text-danger-ink",
+  "재훈련 권고": "text-danger-ink",
+};
 
 const VERDICT_LEAD: Record<EndingDef["verdict"], string> = {
   충족: "오늘 연습에서 지키신 것을 그대로 남겨 두었습니다.",
@@ -54,33 +66,24 @@ export function EndingPanel({
     <div className="space-y-6">
       {recoveredAfterRetry && (
         <Card>
-          <h2 className="flex items-center gap-2 text-lg font-extrabold text-ink">
+          <h2 className="chim-label flex items-center gap-2 font-extrabold text-ink">
             <IconRefresh className="h-5 w-5 shrink-0 text-brand-700" />
             재시도로 회복해 완주하셨습니다
           </h2>
-          <p className="mt-2 text-base leading-relaxed font-semibold text-ink-soft">
+          <p className="chim-meta mt-2 leading-relaxed text-ink-soft">
             이 표시는 벌점이 아니라, 현장에서 되돌릴 수 없는 지점을 다시 볼 안내입니다.
           </p>
         </Card>
       )}
 
-      {/* 이 화면의 색 배경은 판정 카드와 즉시 중단 카드 둘까지만 씁니다. */}
+      {/* 이 화면의 색 배경은 판정 카드와 즉시 중단 카드 둘까지만 씁니다.
+          판정 문구가 이 화면의 주인공이라 필 대신 큰 타이포로 세웁니다(§2·§3). */}
       <Card tone={verdict === "충족" ? "ok" : verdict === "부분 충족" ? "warn" : "quiet"}>
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-          <Badge tone={VERDICT_TONE[verdict]}>{verdict}</Badge>
-          <span className="border-l border-line pl-2.5 text-sm font-bold text-ink-soft">
-            {scenario.typeLabel}
-          </span>
-        </div>
-        <h2 className="mt-3 text-2xl font-extrabold text-ink md:text-3xl">
-          {ending?.title ?? record.endingTitle}
-        </h2>
-        <p className="mt-2 text-base leading-relaxed font-semibold text-ink-soft">
-          {VERDICT_LEAD[verdict]}
-        </p>
-        {ending?.message && (
-          <p className="mt-3 text-lg leading-relaxed text-ink">{ending.message}</p>
-        )}
+        <p className="chim-caption font-bold text-ink-muted">{scenario.typeLabel}</p>
+        <p className={cx("chim-h1 mt-1", VERDICT_TEXT[verdict])}>{verdict}</p>
+        <h2 className="chim-h3 mt-2 text-ink">{ending?.title ?? record.endingTitle}</h2>
+        <p className="chim-body mt-2 text-ink-soft">{VERDICT_LEAD[verdict]}</p>
+        {ending?.message && <p className="chim-core-sm mt-3 text-ink">{ending.message}</p>}
       </Card>
 
       {advisoryEnding && (
@@ -89,42 +92,43 @@ export function EndingPanel({
             <Badge tone="warn" variant="outline">
               {advisoryEnding.verdict}
             </Badge>
-            <h3 className="text-lg font-extrabold text-ink">{advisoryEnding.title}</h3>
+            <h3 className="chim-label font-extrabold text-ink">{advisoryEnding.title}</h3>
           </div>
-          <p className="mt-2 text-base leading-relaxed text-ink">{advisoryEnding.message}</p>
+          <p className="chim-body mt-2 text-ink">{advisoryEnding.message}</p>
         </Card>
       )}
 
       {session.cfCount > 0 && (
         <Card tone="danger">
-          <h3 className="flex items-center gap-2 text-lg font-extrabold text-danger-ink">
+          <h3 className="chim-label flex items-center gap-2 font-extrabold text-danger-ink">
             <StatusMark kind="stop" size="sm" />
             즉시 중단이 있었던 지점이 있습니다
           </h3>
-          <p className="mt-2 text-base leading-relaxed text-ink">
+          <p className="chim-body mt-2 text-ink">
             법과 지침이 금지한 행동, 또는 요양보호사 허용 범위 밖의 행동이 선택된 지점입니다. 대안
             행동을 다시 한번 확인하시고 같은 장면을 연습해 보시면 좋겠습니다.
           </p>
         </Card>
       )}
 
+      {/* 목록은 정보 화면입니다 — 본문 16px, 제목은 카드 소제목(§3). */}
       <div className="grid gap-5 lg:grid-cols-2">
         <Card>
-          <h3 className="flex items-center gap-2 text-lg font-extrabold text-ink">
+          <h3 className="chim-label flex items-center gap-2 font-extrabold text-ink">
             <StatusMark kind="met" size="sm" />
             지키신 것
           </h3>
           {greens.length > 0 ? (
             <ul className="mt-3 space-y-2.5">
               {greens.map((green) => (
-                <li key={green} className="flex gap-2.5 text-base leading-relaxed text-ink">
+                <li key={green} className="chim-body flex gap-2.5 text-ink">
                   <IconCheck className="mt-1 h-4 w-4 shrink-0 text-ok-ink" />
                   <span>{green}</span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="mt-3 text-base leading-relaxed text-ink-soft">
+            <p className="chim-body mt-3 text-ink-soft">
               이번에는 충족으로 기록된 항목이 없습니다. 아래 코칭 한 가지만 들고 다시 해보시면
               충분합니다.
             </p>
@@ -132,20 +136,20 @@ export function EndingPanel({
         </Card>
 
         <Card>
-          <h3 className="flex items-center gap-2 text-lg font-extrabold text-ink">
+          <h3 className="chim-label flex items-center gap-2 font-extrabold text-ink">
             <StatusMark kind="coach" size="sm" />
             다음에 바꿔볼 것 (최대 두 가지)
           </h3>
           {coachings.length > 0 ? (
             <ul className="chim-hairline mt-3 border-t border-line">
               {coachings.map((coaching) => (
-                <li key={coaching} className="py-3 text-base leading-relaxed text-ink">
+                <li key={coaching} className="chim-body py-3 text-ink">
                   {coaching}
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="mt-3 text-base leading-relaxed text-ink-soft">
+            <p className="chim-body mt-3 text-ink-soft">
               따로 짚어 드릴 코칭이 없습니다. 지금처럼 이어가 주세요.
             </p>
           )}
@@ -153,31 +157,34 @@ export function EndingPanel({
       </div>
 
       <Card>
-        <h3 className="text-lg font-extrabold text-ink">이 판정의 근거 문서</h3>
+        <h3 className="chim-label font-extrabold text-ink">이 판정의 근거 문서</h3>
         <div className="mt-3 flex flex-wrap gap-2">
           {scenario.sourceDocs.map((docId) => (
             <SourceChip key={docId} docId={docId} />
           ))}
         </div>
-        <p className="mt-3 text-sm leading-relaxed text-ink-muted">
+        <p className="chim-caption mt-3 leading-relaxed text-ink-muted">
           이 세션은 기기 안(브라우저 저장소)에만 남습니다. 말씀하신 발화 원문은 저장하지 않고,
           충족·코칭 문구와 시각만 기록합니다.
         </p>
       </Card>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      {/* 다음 행동 — 다시 하기가 주인공이고, 나머지 셋은 같은 무게로 뒤에 섭니다(§2). */}
+      <div className="space-y-3">
         <BigButton onClick={onRestart} size="lg" block>
           재시도 · 벌점 없이 다시 하기
         </BigButton>
-        <BigButton href="/history" variant="secondary" size="lg" block>
-          성장 기록에서 보기
-        </BigButton>
-        <BigButton href="/report" variant="secondary" size="lg" block>
-          보고·기록으로 이어서 연습하기
-        </BigButton>
-        <BigButton href="/train" variant="secondary" size="lg" block>
-          다른 상황 고르기
-        </BigButton>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <BigButton href="/history" variant="secondary" block>
+            성장 기록에서 보기
+          </BigButton>
+          <BigButton href="/report" variant="secondary" block>
+            보고·기록으로 이어서 연습하기
+          </BigButton>
+          <BigButton href="/train" variant="secondary" block>
+            다른 상황 고르기
+          </BigButton>
+        </div>
       </div>
     </div>
   );

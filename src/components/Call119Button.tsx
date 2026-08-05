@@ -11,10 +11,12 @@ export interface Call119ButtonProps {
   block?: boolean;
 }
 
+/* 라벨은 코어 콘텐츠(§3) 중에서도 가장 위에 있습니다 — 루트를 16px로 내려도 여기는 줄이지 않습니다.
+   20px↑ extrabold라 WCAG 큰 글자(3:1) 기준이 적용되고, 흰 글자/danger 채움은 4.4:1로 이를 넘습니다. */
 const SIZE = {
-  md: "min-h-[56px] px-6 text-lg gap-2.5",
-  lg: "min-h-[68px] px-8 text-xl gap-3",
-  xl: "min-h-[96px] px-10 text-3xl gap-4",
+  md: "min-h-[56px] px-6 text-[1.25rem] gap-2.5", // 20px
+  lg: "min-h-[68px] px-8 text-[1.5rem] gap-3", // 24px
+  xl: "min-h-[96px] px-10 text-[2rem] md:text-[2.25rem] gap-4", // 32~36px
 } as const;
 
 const ICON_SIZE = {
@@ -28,8 +30,11 @@ const ICON_SIZE = {
  * 응급 화면에서는 상시 노출하고, 프로토콜 1단계에서는 size="xl"로 확대합니다.
  * 링크는 전화 앱을 여는 tel: 링크이며, 자동으로 발신되지는 않습니다.
  *
- * 그라데이션·그림자·이모지 없이 danger 단색 하나로만 세웁니다 —
+ * 그라데이션·그림자·보더·이모지 없이 danger 단색 하나로만 세웁니다 —
  * 이 화면에서 눈에 띄어야 하는 것은 이 버튼 하나뿐이기 때문입니다.
+ *
+ * 접근성 코어 예외(§3): **코어 콘텐츠(대사·CUE·응급 자막·CTA)는 18px+ 유지.**
+ * 이 버튼은 그중에서도 최상위라 20px(md)/24px(lg)/32px(xl)이 하한입니다.
  */
 export function Call119Button({
   className,
@@ -42,7 +47,7 @@ export function Call119Button({
       <a
         href="tel:119"
         className={cx(
-          "inline-flex items-center justify-center rounded-field border border-danger bg-danger font-extrabold text-white transition-colors duration-150 hover:bg-danger-ink active:bg-danger-ink",
+          "inline-flex items-center justify-center rounded-[12px] bg-danger font-extrabold text-white transition-colors duration-150 hover:bg-danger-ink active:bg-danger-ink",
           SIZE[size],
           block && "w-full",
         )}
@@ -51,7 +56,7 @@ export function Call119Button({
         <span>119 신고</span>
       </a>
       {caption && (
-        <p className="mt-1.5 text-center text-sm leading-snug text-ink-muted">
+        <p className="chim-caption mt-2 text-center leading-snug text-ink-muted">
           누르면 전화 앱이 열립니다 · 시연 모드에서는 실제 발신되지 않습니다.
         </p>
       )}

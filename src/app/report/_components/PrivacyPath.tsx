@@ -1,4 +1,4 @@
-import { Card, cx } from "@/components";
+import { cx } from "@/components";
 import { IconCheck } from "@/components/icons";
 
 export interface PrivacyPathProps {
@@ -25,15 +25,19 @@ const PATH: { n: number; title: string; desc: string }[] = [
 /**
  * 보고 내용이 지나가는 경로를 단계로 보여 줍니다.
  * 「기기 밖으로 나가는 것은 가명처리 2단을 통과한 텍스트뿐」이라는 경계를 화면에 고정 표시합니다.
+ *
+ * 크기 체계(§3): 다섯 칸은 참고 정보라 제목 14px · 설명 13px로 조용히 둡니다.
+ * 대신 마지막 경계 안내 한 문장만 17px로 세워, 이 화면에서 읽어야 할 것을 하나로 좁힙니다.
+ * 형태(§1-2·§1-4): 칸마다 상자를 두르지 않고 얇은 상단 레일로만 진행 상태를 알립니다.
  */
 export function PrivacyPath({ reached, className }: PrivacyPathProps) {
   return (
     <section aria-label="보고 내용이 지나가는 경로" className={className}>
-      <p className="text-base font-extrabold text-ink">
+      <p className="chim-label text-ink">
         이 보고가 지나가는 길 — 개인정보는 이 한 줄로만 움직입니다
       </p>
 
-      <ol className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+      <ol className="mt-3 grid gap-x-5 gap-y-3 sm:grid-cols-2 lg:grid-cols-5">
         {PATH.map((step) => {
           const done = step.n < reached;
           const active = step.n === reached;
@@ -42,48 +46,49 @@ export function PrivacyPath({ reached, className }: PrivacyPathProps) {
               <div
                 aria-current={active ? "step" : undefined}
                 className={cx(
-                  // 색 배경은 '지금 단계' 하나에만 둡니다 — 지나온 단계는 선으로만 표시합니다.
-                  "flex h-full flex-col rounded-card border p-3.5",
-                  active
-                    ? "border-brand-300 bg-brand-50"
-                    : done
-                      ? "border-ok-line bg-white"
-                      : "border-line bg-white",
+                  "flex h-full flex-col border-t-2 pt-2.5",
+                  active ? "border-brand-600" : done ? "border-ok" : "border-line",
                 )}
               >
                 <span className="flex items-center gap-2">
                   <span
                     aria-hidden="true"
                     className={cx(
-                      "flex h-7 w-7 shrink-0 items-center justify-center rounded-chip text-sm font-extrabold",
+                      "chim-num chim-caption flex h-6 w-6 shrink-0 items-center justify-center rounded-chip font-extrabold",
                       active
                         ? "bg-brand-700 text-white"
                         : done
-                          ? "bg-ok text-white"
+                          ? "bg-ok-soft text-ok-ink"
                           : "bg-neutral-soft text-ink-muted",
                     )}
                   >
                     {done ? <IconCheck className="h-4 w-4" /> : step.n}
                   </span>
-                  <span className="text-base font-bold text-ink">{step.title}</span>
+                  <span
+                    className={cx("chim-meta font-bold", active ? "text-ink" : "text-ink-soft")}
+                  >
+                    {step.title}
+                  </span>
                 </span>
-                <span className="mt-2 text-sm leading-relaxed text-ink-soft">{step.desc}</span>
+                <span className="chim-caption mt-1.5 block leading-relaxed text-ink-muted">
+                  {step.desc}
+                </span>
               </div>
             </li>
           );
         })}
       </ol>
 
-      {/* 이 화면에서 색 배경으로 남기는 블록은 이 경계 안내 하나입니다. */}
-      <Card tone="warn" className="mt-3">
-        <p className="text-base leading-relaxed font-bold text-warn-ink">
+      {/* 이 화면에서 색 면으로 남기는 블록은 이 경계 안내 하나입니다(§1-3). 보더는 쓰지 않습니다. */}
+      <div className="mt-4 rounded-card bg-warn-soft p-4 md:p-5">
+        <p className="chim-core-sm font-bold text-warn-ink">
           기기 밖으로 나가는 것은 가명처리 2단을 통과한 텍스트뿐입니다.
         </p>
-        <p className="mt-2 text-base leading-relaxed text-ink">
+        <p className="chim-meta mt-2 leading-relaxed text-ink-soft">
           말한 음성과 원문은 이 기기 안에만 있고 저장하지 않습니다. 가명처리 대상은
           성명·번호·기관명·주소·생년이며, 처리 후에도 가명정보로 다룹니다.
         </p>
-      </Card>
+      </div>
     </section>
   );
 }

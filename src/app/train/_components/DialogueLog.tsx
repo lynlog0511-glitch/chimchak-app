@@ -51,6 +51,8 @@ function initialOf(name: string): string {
  * 색은 아껴 씁니다: 어르신만 틸 톤, 보호자·상황실은 잉크 톤.
  * 사전 검수 안내(protocol)는 이니셜 대신 방패 스트로크, 상황 안내(system)는 아바타가 없습니다.
  * 의미는 옆의 화자 이름이 전달하므로 아바타 자체는 장식(aria-hidden)입니다.
+ *
+ * v3 §1-4: 테두리 대신 면으로만 구분합니다 — 원이 이미 형태를 만들고 있어 선이 필요 없습니다.
  */
 function SpeakerAvatar({ speaker, name }: { speaker: Speaker; name: string }) {
   if (speaker === "system") return null;
@@ -59,7 +61,7 @@ function SpeakerAvatar({ speaker, name }: { speaker: Speaker; name: string }) {
     return (
       <span
         aria-hidden="true"
-        className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full border border-danger-line bg-white text-danger-ink"
+        className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-danger-soft text-danger-ink"
       >
         <IconShield className="h-[22px] w-[22px]" />
       </span>
@@ -72,10 +74,8 @@ function SpeakerAvatar({ speaker, name }: { speaker: Speaker; name: string }) {
     <span
       aria-hidden="true"
       className={cx(
-        "flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full border text-lg font-extrabold",
-        elder
-          ? "border-brand-200 bg-brand-50 text-brand-800"
-          : "border-line bg-paper-2 text-ink-soft",
+        "flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full text-[1.0625rem] font-extrabold",
+        elder ? "bg-brand-100 text-brand-800" : "bg-neutral-soft text-ink-soft",
       )}
     >
       {initialOf(name)}
@@ -87,9 +87,12 @@ function SpeakerAvatar({ speaker, name }: { speaker: Speaker; name: string }) {
  * 로그 한 줄.
  *
  * 세 가지 표기 체계를 일부러 다르게 씁니다.
- *  · 인물 대사 — 아바타 + 왼쪽 위 꼬리 말풍선 (사전 검수 안내도 같은 문법, 테두리 색만 다름)
- *  · 상황 안내 — 말풍선도 카드도 아닌 지문(왼쪽 세로줄 + 여백)
- *  · 판정(FeedbackCard) — 왼쪽 마크 + 한 톤 내린 바탕
+ *  · 인물 대사 — 아바타 + 왼쪽 위 꼬리 말풍선 (사전 검수 안내도 같은 문법, 바탕 면만 다름)
+ *  · 상황 안내 — 말풍선도 카드도 아닌 지문(들여쓰기 + 이탤릭, 세로줄 없음)
+ *  · 판정(FeedbackCard) — 마크·판정어 한 줄 + 한 톤 내린 바탕
+ *
+ * 크기(§3): 대사는 코어 콘텐츠라 18px(모바일)/20px(md↑)이 하한이고,
+ * 화자 이름·부가 표기 같은 UI 크롬은 13~15px로 내려 대사가 혼자 크게 보이도록 둡니다.
  */
 function LineBubble({ item }: { item: LineItem }) {
   const character = isCharacter(item.speaker);
@@ -98,13 +101,13 @@ function LineBubble({ item }: { item: LineItem }) {
 
   const speakerRow = (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-      <span className="text-base font-extrabold text-ink">{item.speakerName}</span>
+      <span className="chim-label font-extrabold text-ink">{item.speakerName}</span>
       {character ? (
         <AiBadge />
       ) : (
         // 메타 정보는 칩으로 감싸지 않고 작은 텍스트로 둡니다(한 화면의 필 형태 수를 줄입니다).
         <span
-          className={cx("text-sm font-semibold", protocol ? "text-danger-ink" : "text-ink-muted")}
+          className={cx("chim-caption font-semibold", protocol ? "text-danger-ink" : "text-ink-muted")}
         >
           {protocol ? "검수된 고정 안내 · AI 생성 아님" : "상황 안내"}
         </span>
@@ -112,30 +115,38 @@ function LineBubble({ item }: { item: LineItem }) {
     </div>
   );
 
+  /* 대사 — 이 화면의 주인공입니다(코어 18→20px). */
   const body = (
     <>
-      <p className="text-lg leading-relaxed font-semibold text-ink">{item.text}</p>
+      <p className="chim-core font-semibold text-ink md:text-[1.25rem]">{item.text}</p>
       {item.note && (
-        <p className="mt-2 text-base leading-relaxed text-ink-muted italic">{item.note}</p>
+        <p className="mt-2 text-[0.9375rem] leading-relaxed text-ink-muted italic">{item.note}</p>
       )}
     </>
   );
 
   const trigger = item.triggerName ? (
-    <p className="mb-2 flex items-center gap-2 text-sm font-extrabold text-warn-ink">
+    <p className="chim-caption mb-2 flex items-center gap-2 font-extrabold text-warn-ink">
       <IconAlert className="h-[18px] w-[18px] shrink-0" />
       돌발 변수 · {item.triggerName}
     </p>
   ) : null;
 
-  /* 상황 안내는 말하는 사람이 없습니다 — 상자 대신 지문처럼 세로줄 하나만 둡니다. */
+  /* 상황 안내는 말하는 사람이 없습니다 — 세로줄 액센트 대신 들여쓰기와 이탤릭만 둡니다(§1-2). */
   if (system) {
     return (
       <div className="animate-fade-up">
         {trigger}
-        <div className="max-w-[46rem] border-l-[3px] border-line-strong pl-4">
+        <div className="max-w-[46rem] pl-4">
           {speakerRow}
-          <div className="mt-1.5">{body}</div>
+          <div className="mt-1.5">
+            <p className="text-[0.9375rem] leading-relaxed text-ink-soft italic">{item.text}</p>
+            {item.note && (
+              <p className="mt-1.5 text-[0.9375rem] leading-relaxed text-ink-muted italic">
+                {item.note}
+              </p>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -153,9 +164,9 @@ function LineBubble({ item }: { item: LineItem }) {
 
           <div
             className={cx(
-              // 말풍선 꼬리는 왼쪽 위 모서리 하나만 접습니다 — 그림자 없이 1px 보더로 정리합니다.
-              "mt-1.5 max-w-[46rem] rounded-card rounded-tl-sm border bg-white p-4 md:p-5",
-              protocol ? "border-danger-line" : "border-line",
+              // 꼬리는 왼쪽 위 모서리 하나만 접습니다. 보더도 그림자도 없이 면으로만 세웁니다(§5).
+              "mt-1.5 max-w-[46rem] rounded-card rounded-tl-sm p-4 md:p-5",
+              protocol ? "bg-danger-soft" : "bg-white",
             )}
           >
             {body}
@@ -171,15 +182,15 @@ function LearnerBubble({ item }: { item: Extract<LogItem, { kind: "learner" }> }
     <div className="animate-fade-up flex justify-end">
       <div className="min-w-0 max-w-[42rem]">
         <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
-          <span className="text-base font-extrabold text-ink">내 응답</span>
-          <span className="text-sm font-semibold text-ink-muted">
+          <span className="chim-label font-extrabold text-ink">내 응답</span>
+          <span className="chim-caption font-semibold text-ink-muted">
             {item.viaButton ? "버튼 선택" : "말하기·직접 입력"}
           </span>
         </div>
 
-        {/* 학습자 발화는 꼬리가 오른쪽 위 — 인물 말풍선과 방향으로 구분됩니다. */}
-        <div className="mt-1.5 rounded-card rounded-tr-sm border border-brand-200 bg-brand-50 p-4 md:p-5">
-          <p className="text-lg leading-relaxed font-semibold text-ink">{item.text}</p>
+        {/* 학습자 발화는 꼬리가 오른쪽 위 — 인물 말풍선과 방향·면으로 구분됩니다. */}
+        <div className="mt-1.5 rounded-card rounded-tr-sm bg-brand-50 p-4 md:p-5">
+          <p className="chim-core font-semibold text-ink md:text-[1.25rem]">{item.text}</p>
         </div>
       </div>
     </div>
@@ -245,7 +256,8 @@ export function DialogueLog({ items, className }: DialogueLogProps) {
       aria-label="대화 기록"
       className={cx(
         // 모바일에서는 뷰포트에 맞춰 낮춥니다 — 로그가 화면을 다 먹고 응답부가 밀리는 것을 막습니다.
-        "max-h-[min(22rem,38vh)] space-y-5 overflow-y-auto rounded-card border border-line bg-paper p-4 md:max-h-[36rem] md:p-5",
+        // 로그는 지면 위에 그대로 놓입니다. 상자를 두르면 말풍선 상자와 겹쳐 서식처럼 보입니다(§1-4).
+        "max-h-[min(22rem,38vh)] space-y-5 overflow-y-auto p-1 md:max-h-[36rem]",
         className,
       )}
     >
@@ -275,18 +287,18 @@ export function DialogueLog({ items, className }: DialogueLogProps) {
               <RecordDraftPreview key={item.key} source={item.source} className="animate-fade-up" />
             );
           case "notice":
-            // 전환 안내는 색 배경 대신 왼쪽 4px 마크 + 잉크 텍스트로 둡니다(색 면적 절제).
+            // 전환 안내는 액센트 바 없이 아주 옅은 면 하나로만 둡니다(§1-2).
             return (
               <div
                 key={item.key}
                 className={cx(
-                  "animate-fade-up rounded-card border border-l-4 border-line bg-white px-4 py-3",
-                  item.tone === "danger" ? "border-l-danger" : "border-l-brand-500",
+                  "animate-fade-up rounded-card px-4 py-3",
+                  item.tone === "danger" ? "bg-danger-soft" : "bg-brand-50",
                 )}
               >
                 <p
                   className={cx(
-                    "text-base leading-relaxed font-bold",
+                    "chim-body font-bold",
                     item.tone === "danger" ? "text-danger-ink" : "text-brand-800",
                   )}
                 >

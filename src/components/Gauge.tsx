@@ -86,6 +86,9 @@ function StateMark({ shape, className }: { shape: StateShape; className?: string
  * 막대는 얇게, 색은 틸·주황·빨강 세 톤으로만 갑니다 — 값이 아니라 방향을 읽는 장치입니다.
  * max가 8 이하면 칸 단위 막대(읽기 쉬움), 그보다 크면 연속 막대로 그립니다.
  *
+ * 크기 체계(§3): 게이지는 UI 크롬이므로 라벨·상태어 15px입니다.
+ * 접근성 코어 예외는 코어 콘텐츠(대사·CUE·응급 자막·CTA)에만 적용되며 여기에는 해당하지 않습니다.
+ *
  * @example <Gauge value={3} max={5} label="초조도" crisisAt={5} />
  * @example <Gauge value={3} max={5} label="초조도" crisisAt={5} showStateMark />
  */
@@ -117,12 +120,13 @@ export function Gauge({
       aria-valuetext={`${label} ${level.name}`}
     >
       <div className="mb-2 flex items-center justify-between gap-3">
-        <span className="text-base font-bold text-ink">{label}</span>
-        <span className={cx("inline-flex items-center gap-1.5 text-base font-bold", level.text)}>
-          {showStateMark && <StateMark shape={level.shape} className="h-[20px] w-[20px]" />}
+        {/* 게이지는 UI 크롬입니다 — 라벨·상태어 모두 15px로 두고, 주인공 자리를 비웁니다(§3). */}
+        <span className="chim-label font-bold text-ink">{label}</span>
+        <span className={cx("chim-label inline-flex items-center gap-1.5 font-bold", level.text)}>
+          {showStateMark && <StateMark shape={level.shape} className="h-[18px] w-[18px]" />}
           {level.name}
           {showValue && (
-            <span className="chim-num ml-0.5 text-sm font-semibold text-ink-muted">
+            <span className="chim-num chim-caption ml-0.5 font-semibold text-ink-muted">
               {clamped} / {safeMax}
             </span>
           )}
@@ -135,14 +139,14 @@ export function Gauge({
             <span
               key={i}
               className={cx(
-                "h-[8px] flex-1 rounded-chip transition-colors duration-200 ease-soft",
-                i < filled ? level.fill : "bg-line",
+                "h-[7px] flex-1 rounded-chip transition-colors duration-200 ease-soft",
+                i < filled ? level.fill : "bg-neutral-line",
               )}
             />
           ))}
         </div>
       ) : (
-        <div className="h-[8px] w-full overflow-hidden rounded-chip bg-line">
+        <div className="h-[7px] w-full overflow-hidden rounded-chip bg-neutral-line">
           <span
             aria-hidden="true"
             className={cx(

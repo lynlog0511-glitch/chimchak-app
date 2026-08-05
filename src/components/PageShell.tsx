@@ -29,6 +29,10 @@ export interface PageShellProps {
  * 모든 페이지의 공통 껍데기.
  * 상단 네비 + 본문 컨테이너 + 하단 고정 고지 바(+모바일 하단 탭바)를 포함합니다.
  *
+ * 크기 체계(§3): eyebrow 14px · title `.chim-h1`(32→40px) · description `.chim-lead`(18→20px).
+ * 접근성 코어 예외: 본문에 놓이는 코어 콘텐츠(대사·CUE·응급 자막·CTA)는 18px+를 유지합니다 —
+ * `.chim-core`(18px) · `.chim-core-sm`(17px) · `.chim-cue`(20~22px) · `.chim-subtitle`(28~40px)를 쓰세요.
+ *
  * @example
  * <PageShell title="응급 프로토콜" description="검수된 고정 안내입니다.">
  *   ...
@@ -66,13 +70,11 @@ export function PageShell({
             {hasHead && (
               <header className="mb-8 md:mb-12">
                 {eyebrow && (
-                  <p className="mb-2 text-sm font-bold tracking-wide text-brand-700">{eyebrow}</p>
+                  <p className="chim-meta mb-2 font-bold tracking-wide text-brand-700">{eyebrow}</p>
                 )}
                 {title && <h1 className="chim-h1 text-ink">{title}</h1>}
                 {description && (
-                  <p className="mt-3 max-w-3xl text-base leading-relaxed text-ink-soft md:text-lg">
-                    {description}
-                  </p>
+                  <p className="chim-lead mt-3 max-w-3xl text-ink-soft">{description}</p>
                 )}
                 {headerSlot && <div className="mt-6">{headerSlot}</div>}
               </header>

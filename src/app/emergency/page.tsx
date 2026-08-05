@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Badge, BigButton, Card, IconArrowRight, PageShell, cx } from "@/components";
+import { Badge, BigButton, Card, IconArrowRight, PageShell } from "@/components";
+import { IconCheckCircle, IconClock } from "@/components/icons";
 import { PROTOCOLS } from "@/data/protocols";
 import { OfflineStatus } from "./_components/OfflineStatus";
 import { getProtocolIcon } from "./_components/ProtocolIcons";
@@ -34,14 +35,10 @@ export default function EmergencyPage() {
     <PageShell>
       <StickyCallBar />
 
-      <header className="mb-7">
-        <p className="mb-2 text-sm font-bold tracking-wide text-danger-ink uppercase">
-          응급 음성 가이드
-        </p>
-        <h1 className="text-2xl font-extrabold text-ink md:text-4xl">
-          손이 바쁠 때, 화면 대신 목소리가 안내합니다
-        </h1>
-        <p className="mt-3 max-w-3xl text-base leading-relaxed text-ink-soft md:text-lg">
+      <header className="mb-8">
+        <p className="chim-meta mb-2 font-bold tracking-wide text-danger-ink">응급 음성 가이드</p>
+        <h1 className="chim-h1 text-ink">손이 바쁠 때, 화면 대신 목소리가 안내합니다</h1>
+        <p className="chim-body mt-3 max-w-3xl text-ink-soft">
           이 구간에서는 AI가 문장을 만들지 않습니다. 사전에 검수된 고정 문구를 순서대로 읽어
           주고, 판단과 지도는 119 상황실로 넘깁니다. 몸에 손이 닿는 술기는 어떤 경우에도
           화면으로 지도하지 않습니다.
@@ -51,26 +48,29 @@ export default function EmergencyPage() {
       {/* 오프라인 안내 — 배지는 하나뿐입니다.
           기기 저장 여부를 실측해 OfflineStatus 가 초록(저장 완료) 또는 주황(아직 준비 전) 중
           하나만 표시합니다. 확인 전에 "서버가 죽어도 열립니다"라고 미리 단정하지 않습니다. */}
-      <div className="mb-6">
+      <div className="mb-8">
         <OfflineStatus />
       </div>
 
       {/* 프로토콜 5종 */}
       <section aria-labelledby="protocol-list-heading">
-        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
-          <h2 id="protocol-list-heading" className="text-xl font-extrabold text-ink md:text-2xl">
+        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h2 id="protocol-list-heading" className="chim-h2 text-ink">
             응급 프로토콜 5종
           </h2>
-          <p className="text-sm font-semibold text-ink-muted">
+          <p className="chim-caption text-ink-muted">
             카드의 배지는 검수 상태입니다 · 안내 문구는 변형되지 않습니다
           </p>
         </div>
 
-        <ul className="grid gap-4 md:grid-cols-2">
+        {/* 카드는 무보더 흰 면입니다 — 지면(#fafbfb)과의 면 차이로만 세웁니다(§7).
+            검수 상태는 왼쪽 색 바가 아니라 아이콘 + 상태 텍스트로 말합니다(§1-2). */}
+        <ul className="grid gap-3 md:grid-cols-2 md:gap-4">
           {PROTOCOLS.map((protocol) => {
             const href = `/emergency/${protocol.id.toLowerCase()}`;
             const complete = isReviewComplete(protocol.reviewed);
             const ProtocolIcon = getProtocolIcon(protocol.id);
+            const ReviewIcon = complete ? IconCheckCircle : IconClock;
             return (
               <li key={protocol.id}>
                 <Link
@@ -78,44 +78,36 @@ export default function EmergencyPage() {
                   className="block h-full rounded-card focus-visible:outline-3"
                   aria-label={`${protocol.title} 안내 열기`}
                 >
-                  {/* 검수 상태는 채운 배지 대신 hairline 색 코드(왼쪽 선 + 테두리형 배지)로만
-                      구분합니다 — 감수 완료는 ok, 초안은 warn. */}
-                  <Card
-                    hoverable
-                    className={cx(
-                      "flex h-full flex-col border-l-4",
-                      complete ? "border-l-ok-line" : "border-l-warn-line",
-                    )}
-                  >
+                  <Card hoverable className="flex h-full flex-col">
                     <div className="flex items-start gap-3">
-                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-field border border-line bg-paper-2 text-ink">
+                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-field bg-paper-2 text-ink-soft">
                         <ProtocolIcon className="h-6 w-6" />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold tracking-wide text-ink-muted">
-                          {protocol.id} · {protocol.steps.length}단계
-                        </p>
-                        <h3 className="mt-1 text-2xl font-extrabold tracking-[-0.02em] text-ink">
-                          {protocol.title}
-                        </h3>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <p className="chim-caption font-bold tracking-wide text-ink-muted">
+                            <span className="chim-num">{protocol.id}</span> ·{" "}
+                            {protocol.steps.length}단계
+                          </p>
+                          <Badge tone={complete ? "ok" : "warn"}>
+                            <ReviewIcon className="h-[15px] w-[15px]" />
+                            {reviewedLabel(protocol.reviewed)}
+                          </Badge>
+                        </div>
+                        <h3 className="chim-h3 mt-1 text-ink">{protocol.title}</h3>
                       </div>
                     </div>
 
-                    <p className="mt-3 flex-1 text-base leading-relaxed text-ink-soft">
+                    <p className="chim-label mt-3 flex-1 leading-relaxed font-normal text-ink-soft">
                       {firstSentence(protocol.situation)}
                     </p>
 
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <Badge tone={complete ? "ok" : "warn"} variant="outline">
-                        {reviewedLabel(protocol.reviewed)}
-                      </Badge>
-                      <p className="text-sm leading-relaxed text-ink-muted">
-                        검수 상태 · {protocol.reviewed}
-                      </p>
-                    </div>
+                    <p className="chim-caption mt-3 text-ink-muted">
+                      검수 상태 · {protocol.reviewed}
+                    </p>
 
-                    <p className="mt-4 flex items-center gap-1 text-base font-extrabold text-brand-800">
-                      음성 안내 열기 <IconArrowRight className="h-5 w-5" />
+                    <p className="chim-label mt-3 flex items-center gap-1 font-bold text-brand-800">
+                      음성 안내 열기 <IconArrowRight className="h-[18px] w-[18px]" />
                     </p>
                   </Card>
                 </Link>
@@ -125,16 +117,16 @@ export default function EmergencyPage() {
         </ul>
       </section>
 
-      {/* 이 화면의 경계 */}
-      <section aria-labelledby="boundary-heading" className="mt-10">
-        <h2 id="boundary-heading" className="text-xl font-extrabold text-ink md:text-2xl">
+      {/* 이 화면의 경계 — 색 면을 늘리지 않고 옅은 보조 면 두 장으로만 나눕니다(§1-3). */}
+      <section aria-labelledby="boundary-heading" className="mt-12">
+        <h2 id="boundary-heading" className="chim-h2 text-ink">
           이 화면이 하는 일과 하지 않는 일
         </h2>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <Card tone="brand" className="h-full">
-            <p className="text-base font-extrabold text-brand-800">하는 일</p>
-            <ul className="mt-3 space-y-2 text-base leading-relaxed text-ink">
+        <div className="mt-4 grid gap-3 md:grid-cols-2 md:gap-4">
+          <Card tone="quiet" className="h-full">
+            <p className="chim-label font-extrabold text-brand-800">하는 일</p>
+            <ul className="chim-meta mt-3 space-y-2 leading-relaxed text-ink">
               <li>· 「지금 119를 누르세요」를 가장 먼저 안내합니다.</li>
               <li>· 검수된 고정 문구를 음성과 큰 자막으로 순서대로 재생합니다.</li>
               <li>· 무엇을 보고 무엇을 119에 말씀드릴지 관찰 항목만 여쭙습니다.</li>
@@ -142,9 +134,9 @@ export default function EmergencyPage() {
             </ul>
           </Card>
 
-          <Card tone="danger" className="h-full">
-            <p className="text-base font-extrabold text-danger-ink">하지 않는 일</p>
-            <ul className="mt-3 space-y-2 text-base leading-relaxed text-ink">
+          <Card tone="quiet" className="h-full">
+            <p className="chim-label font-extrabold text-danger-ink">하지 않는 일</p>
+            <ul className="chim-meta mt-3 space-y-2 leading-relaxed text-ink">
               <li>· 몸에 손이 닿는 술기의 동작을 지도하지 않습니다.</li>
               <li>· 상태나 중증도를 판정하는 문장을 만들지 않습니다.</li>
               <li>· 약을 드리라는 안내를 하지 않습니다.</li>
@@ -157,8 +149,8 @@ export default function EmergencyPage() {
       </section>
 
       {/* 하단 이동 */}
-      <Card tone="quiet" className="mt-10">
-        <p className="text-base leading-relaxed text-ink">
+      <div className="mt-12">
+        <p className="chim-body max-w-3xl text-ink-soft">
           실제 상황이 아니라 연습이 필요하시다면, 응급 상황을 다루는 훈련 시나리오에서 같은
           프로토콜을 미리 겪어 보실 수 있습니다.
         </p>
@@ -170,7 +162,7 @@ export default function EmergencyPage() {
             안전 설계 확인하기
           </BigButton>
         </div>
-      </Card>
+      </div>
     </PageShell>
   );
 }

@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
 import type { ScenarioType, SessionRecord } from "@/types";
-import { Badge, Card, cx } from "@/components";
+import { Card, cx } from "@/components";
 import {
   IconAlert,
   IconHeartHand,
@@ -37,6 +37,10 @@ const ICONS: Record<ScenarioType, ComponentType<IconProps>> = {
 /**
  * 유형 커버리지 4칸.
  * 어떤 유형을 얼마나 연습했는지 완료 횟수만 보여 주고, 점수·등급은 표시하지 않습니다.
+ *
+ * 형태(§1-4·§1-5·§7): 네 칸은 보더 없이 지면(#fafbfb) 위 흰 면으로만 구분하고,
+ * 상태 표기는 필(배지)이 아니라 13px 캡션 한 줄로 둡니다 — 네 칸에 필이 네 개면 화면이 시끄럽습니다.
+ * 크기 체계(§3): 유형 이름 15px · 상태 캡션 13px · 완료 횟수 숫자만 24px로 세웁니다.
  */
 export function CoverageGrid({ records, typeByScenarioId, activeTypes }: CoverageGridProps) {
   const counts: Record<ScenarioType, number> = {
@@ -58,42 +62,42 @@ export function CoverageGrid({ records, typeByScenarioId, activeTypes }: Coverag
         const Icon = ICONS[type];
         return (
           <li key={type}>
-            {/* 네 칸이 모두 색 배경이 되지 않도록, 연습한 유형은 잉크 색과 라벨로만 구분합니다. */}
-            <Card className="h-full">
+            <Card padded={false} className="h-full p-4 md:p-5">
               <div className="flex items-center gap-2">
                 <Icon
-                  className={cx(
-                    "h-5 w-5 shrink-0",
-                    done > 0 ? "text-ok-ink" : "text-ink-muted",
-                  )}
+                  className={cx("h-5 w-5 shrink-0", done > 0 ? "text-ok" : "text-ink-muted")}
                 />
-                <p className="text-base font-extrabold text-ink">{TYPE_LABELS[type]}</p>
+                <p className="chim-label text-ink">{TYPE_LABELS[type]}</p>
               </div>
 
-              <p className="mt-3 text-base font-bold text-ink">
+              <p className="mt-3">
                 {done > 0 ? (
                   <span className="text-ok-ink">
-                    완료 <span className="chim-num">{done}</span>회
+                    <span className="chim-meta font-semibold">완료</span>{" "}
+                    <span className="chim-num text-[1.5rem] font-extrabold">{done}</span>
+                    <span className="chim-meta font-semibold">회</span>
                   </span>
                 ) : available ? (
-                  <span className="text-ink-soft">아직 연습하지 않으셨습니다</span>
+                  <span className="chim-meta text-ink-soft">아직 연습하지 않으셨습니다</span>
                 ) : (
-                  <span className="text-ink-soft">준비 중인 유형입니다</span>
+                  <span className="chim-meta text-ink-soft">준비 중인 유형입니다</span>
                 )}
               </p>
 
-              <div className="mt-3">
+              <p className="chim-caption mt-2 inline-flex items-center gap-1 font-semibold text-ink-muted">
                 {available ? (
-                  <Badge tone={done > 0 ? "ok" : "neutral"} variant="outline">
-                    {done > 0 ? "훈련 이력 있음" : "훈련 가능"}
-                  </Badge>
+                  done > 0 ? (
+                    "훈련 이력 있음"
+                  ) : (
+                    "훈련 가능"
+                  )
                 ) : (
-                  <Badge tone="neutral" variant="outline">
-                    <IconLock className="h-4 w-4" />
+                  <>
+                    <IconLock className="h-4 w-4 shrink-0" />
                     베타 편성 예정
-                  </Badge>
+                  </>
                 )}
-              </div>
+              </p>
             </Card>
           </li>
         );

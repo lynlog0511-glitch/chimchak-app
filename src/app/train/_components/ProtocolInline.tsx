@@ -37,12 +37,10 @@ export function ProtocolInline({ protocol, ttsOn, onDone }: ProtocolInlineProps)
   if (!started) {
     return (
       <Card tone="danger" className="animate-fade-up text-center">
-        <p className="text-sm font-extrabold tracking-wide text-danger-ink uppercase">전환</p>
-        <h2 className="mt-2 text-2xl leading-snug font-extrabold text-danger-ink md:text-3xl">
-          {PROTOCOL_HANDOFF_TITLE}
-        </h2>
-        <p className="mt-3 text-lg leading-relaxed font-bold text-ink">{PROTOCOL_HANDOFF_BODY}</p>
-        <p className="mx-auto mt-3 max-w-2xl text-base leading-relaxed text-ink-soft">
+        <p className="chim-caption font-extrabold tracking-wide text-danger-ink uppercase">전환</p>
+        <h2 className="chim-h2 mt-2 text-danger-ink">{PROTOCOL_HANDOFF_TITLE}</h2>
+        <p className="chim-core mt-3 font-bold text-ink">{PROTOCOL_HANDOFF_BODY}</p>
+        <p className="chim-body mx-auto mt-3 max-w-2xl text-ink-soft">
           지금부터는 대화가 아니라 안내입니다. 사전에 검수된 문구를 순서대로 읽어 드리고, 몸으로
           하는 동작은 안내하지 않습니다. 그 부분은 119 상황실이 목소리로 직접 지도합니다.
         </p>
@@ -65,11 +63,11 @@ export function ProtocolInline({ protocol, ttsOn, onDone }: ProtocolInlineProps)
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
           <Badge tone="danger">L3 · 실전 응급</Badge>
-          <span className="text-sm font-bold text-ink-soft">
+          <span className="chim-caption font-bold text-ink-soft">
             {protocol.id} · {protocol.title}
           </span>
         </div>
-        <span className="chim-num text-sm font-bold text-danger-ink">
+        <span className="chim-num chim-caption font-bold text-danger-ink">
           {index + 1} / {total} 단계
         </span>
       </div>
@@ -77,28 +75,25 @@ export function ProtocolInline({ protocol, ttsOn, onDone }: ProtocolInlineProps)
       {/* 응급 구간에서는 119 버튼이 스크롤과 무관하게 상시 노출됩니다 (안전 규칙 §3-5).
           /emergency 의 StickyCallBar와 같은 규칙을 씁니다. */}
       <div className="sticky top-[4.5rem] z-30 -mx-1 space-y-3 rounded-card bg-white/95 p-1 backdrop-blur">
-        <p className="rounded-field border border-danger-line bg-white px-3 py-2 text-sm font-bold text-danger-ink">
+        <p className="chim-caption rounded-field bg-danger-soft px-3 py-2 font-bold text-danger-ink">
           {PROTOCOL_NOTICE}
         </p>
         <Call119Button size={step?.emphasize119 ? "xl" : "md"} />
       </div>
 
+      {/* 응급 자막은 팔 길이에서 읽혀야 합니다 — 28px(모바일)/40px(md↑) 하한(§3). */}
       <div
         aria-live="polite"
-        className="min-h-[9rem] rounded-card border border-danger-line bg-white p-5 text-center md:p-7"
+        className="min-h-[9rem] rounded-card bg-white p-5 text-center md:p-7"
       >
         {silent ? (
-          <p className="text-lg leading-relaxed font-bold text-ink-soft">
+          <p className="chim-core font-bold text-ink-soft">
             안내를 마쳤습니다. 지금은 말을 걸지 않겠습니다.
           </p>
         ) : (
-          <p className="text-2xl leading-snug font-extrabold text-ink md:text-3xl">
-            {step?.voice}
-          </p>
+          <p className="chim-subtitle text-ink">{step?.voice}</p>
         )}
-        {step?.screen && (
-          <p className="mt-3 text-base leading-relaxed text-ink-muted">{step.screen}</p>
-        )}
+        {step?.screen && <p className="chim-body mt-3 text-ink-muted">{step.screen}</p>}
         {step?.address && <ProtocolAddressCard address={step.address} />}
       </div>
 
@@ -121,17 +116,17 @@ export function ProtocolInline({ protocol, ttsOn, onDone }: ProtocolInlineProps)
         </BigButton>
       </div>
 
-      <details className="group rounded-card border border-line bg-white p-4">
-        <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 text-base font-extrabold text-ink [&::-webkit-details-marker]:hidden">
+      <details className="group rounded-card bg-white p-4">
+        <summary className="chim-label flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 font-bold text-ink-soft [&::-webkit-details-marker]:hidden">
           <span>이 앱이 하지 않는 것</span>
           <IconChevronDown className="h-5 w-5 shrink-0 text-ink-muted transition-transform duration-150 group-open:rotate-180" />
         </summary>
         <ul className="chim-hairline mt-3 border-t border-line">
           {protocol.notDoing.map((item) => (
             <li key={item.what} className="py-3">
-              <p className="text-base font-bold text-ink">{item.what}</p>
-              <p className="mt-1 text-sm leading-relaxed text-ink-soft">왜 — {item.why}</p>
-              <p className="mt-0.5 text-sm leading-relaxed text-brand-800">
+              <p className="chim-body font-bold text-ink">{item.what}</p>
+              <p className="chim-caption mt-1 leading-relaxed text-ink-soft">왜 — {item.why}</p>
+              <p className="chim-caption mt-0.5 leading-relaxed text-brand-800">
                 대신 — {item.instead}
               </p>
             </li>

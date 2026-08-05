@@ -22,12 +22,15 @@ export interface HistoryBoardProps {
   activeTypes: ScenarioType[];
 }
 
-/** 섹션 제목 + 설명 */
+/**
+ * 섹션 제목 + 설명.
+ * 크기 체계(§3): 제목은 섹션 제목(24~28px), 설명은 보조라 14px로 조용히 둡니다.
+ */
 function SectionHead({ title, lead }: { title: string; lead: string }) {
   return (
     <div className="mb-4">
-      <h2 className="text-xl font-extrabold text-ink md:text-2xl">{title}</h2>
-      <p className="mt-2 max-w-3xl text-base leading-relaxed text-ink-soft">{lead}</p>
+      <h2 className="chim-h2 text-ink">{title}</h2>
+      <p className="chim-meta mt-2 max-w-3xl leading-relaxed text-ink-muted">{lead}</p>
     </div>
   );
 }
@@ -61,11 +64,7 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
 
   if (!loaded) {
     return (
-      <Card tone="quiet">
-        <p className="text-base leading-relaxed text-ink-soft">
-          이 기기에 저장된 기록을 불러오는 중입니다.
-        </p>
-      </Card>
+      <p className="chim-meta text-ink-muted">이 기기에 저장된 기록을 불러오는 중입니다.</p>
     );
   }
 
@@ -75,16 +74,16 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
     return (
       <div className="space-y-6">
         <Card tone="brand">
-          <p className="text-lg leading-relaxed font-extrabold text-brand-900">
+          <p className="chim-h3 max-w-2xl text-brand-900">
             아직 쌓인 기록이 없습니다. 첫 훈련부터 시작해 보시겠어요?
           </p>
-          <p className="mt-3 text-base leading-relaxed text-ink">
+          <p className="chim-core-sm mt-3 max-w-3xl text-ink">
             정답을 맞히는 시험이 아니라, 말이 나오게 만드는 연습입니다. 한 번 해 보시면 이 자리에{" "}
             <StatusMark kind="met" size="sm" quiet label="충족" />한 것과{" "}
             <StatusMark kind="coach" size="sm" quiet label="다음에 살려 볼 것" />이 문장으로
             남습니다.
           </p>
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <BigButton href="/train" size="lg">
               첫 훈련 시작하기
             </BigButton>
@@ -106,13 +105,12 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
           />
         </section>
 
-        <Card tone="quiet">
-          <p className="text-base leading-relaxed text-ink">
-            훈련 이력은 이 기기에만 쌓입니다. 기관에서 요구하는 보수교육·직무평가 증빙으로 쓰실 수
-            있도록 이수 여부와 이수 일시를 중심으로 남기며, 내부 판정 결과와 대화 원문은 기관
-            관리자에게 공개되지 않습니다.
-          </p>
-        </Card>
+        {/* 제도 설명은 카드 대신 캡션으로 낮춥니다 — 존재하되 조용히(§5·§6). */}
+        <p className="chim-caption max-w-3xl leading-relaxed text-ink-muted">
+          훈련 이력은 이 기기에만 쌓입니다. 기관에서 요구하는 보수교육·직무평가 증빙으로 쓰실 수
+          있도록 이수 여부와 이수 일시를 중심으로 남기며, 내부 판정 결과와 대화 원문은 기관
+          관리자에게 공개되지 않습니다.
+        </p>
       </div>
     );
   }
@@ -146,7 +144,7 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
           </ul>
         ) : (
           <Card tone="quiet">
-            <p className="text-base leading-relaxed text-ink">
+            <p className="chim-core-sm max-w-2xl text-ink">
               아직 완주한 훈련이 없습니다. 시나리오를 하나 마치시면 이 자리에 회차가 쌓입니다.
             </p>
             <div className="mt-4">
@@ -165,7 +163,7 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
           <ReportList reports={reports} />
         ) : (
           <Card tone="quiet">
-            <p className="text-base leading-relaxed text-ink">
+            <p className="chim-core-sm max-w-2xl text-ink">
               아직 확정한 기록이 없습니다. 오늘 있었던 일을 말로 보고해 보시면 5요소 초안이
               만들어집니다.
             </p>
@@ -179,8 +177,8 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
       </section>
 
       <Card tone="quiet">
-        <h2 className="text-base font-extrabold text-ink">이 기록이 무엇에 쓰이는지</h2>
-        <p className="mt-2 text-base leading-relaxed text-ink">
+        <h2 className="chim-label text-ink">이 기록이 무엇에 쓰이는지</h2>
+        <p className="chim-caption mt-2 max-w-3xl leading-relaxed text-ink-muted">
           훈련 이력은 이 기기에만 쌓입니다. 기관에서 요구하는 보수교육·직무평가 증빙으로 쓰실 수
           있도록 이수 여부와 이수 일시를 중심으로 남깁니다. 내부 판정 결과와 대화 원문, 발화 원문은
           기관 관리자에게 공개되지 않으며, 인사평가에 연동하지 않습니다.
@@ -189,7 +187,7 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
         <div className="mt-5 border-t border-line pt-4">
           {confirmClear ? (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <p className="text-base font-bold text-danger-ink">
+              <p className="chim-core-sm font-bold text-danger-ink">
                 이 기기에 저장된 훈련 이력과 확정 기록을 모두 지울까요? 되돌릴 수 없습니다.
               </p>
               <div className="flex flex-wrap gap-3">

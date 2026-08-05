@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/Badge";
+import { BigButton } from "@/components/BigButton";
 import { Card } from "@/components/Card";
 import { IconSave } from "@/components/icons";
+import { cx } from "@/components/utils";
 
 /**
  * 보안 라이브 증명 패널 — "외부로 나간 요청 0건"을 문장이 아니라 계측치로 보여 줍니다.
@@ -168,6 +170,11 @@ async function readCacheState(): Promise<CacheState> {
 
 /* ── 화면 조각 ─────────────────────────────────────────────── */
 
+/**
+ * 계측 타일 — 이 패널의 주인공은 숫자입니다.
+ * 숫자는 32px(모바일)/40px(md↑) tabular, 라벨·설명은 14px로 낮춰 위계를 만듭니다(v3 §3).
+ * 카드 보더는 쓰지 않고 옅은 면으로만 세웁니다(§7).
+ */
 function MetricTile({
   label,
   value,
@@ -180,19 +187,22 @@ function MetricTile({
   tone: "ok" | "danger" | "neutral";
 }) {
   const box =
-    tone === "ok"
-      ? "border-ok-line bg-ok-soft"
-      : tone === "danger"
-        ? "border-danger-line bg-danger-soft"
-        : "border-line bg-paper";
+    tone === "ok" ? "bg-ok-soft" : tone === "danger" ? "bg-danger-soft" : "bg-paper-2";
   const numberTone =
     tone === "ok" ? "text-ok-ink" : tone === "danger" ? "text-danger-ink" : "text-brand-800";
 
   return (
-    <div className={`rounded-card border p-4 md:p-5 ${box}`}>
-      <p className="text-base font-bold text-ink-soft">{label}</p>
-      <p className={`chim-stat mt-1.5 text-4xl ${numberTone}`}>{value}</p>
-      <p className="mt-2 text-sm leading-relaxed text-ink-muted">{caption}</p>
+    <div className={cx("rounded-card p-5", box)}>
+      <p className="chim-meta font-bold text-ink-soft">{label}</p>
+      <p
+        className={cx(
+          "chim-num mt-1 text-[2rem] leading-none font-extrabold tracking-[-0.03em] md:text-[2.5rem]",
+          numberTone,
+        )}
+      >
+        {value}
+      </p>
+      <p className="chim-meta mt-2.5 text-ink-muted">{caption}</p>
     </div>
   );
 }
@@ -347,11 +357,9 @@ export function LiveProofPanel() {
         <Badge tone="brand" variant="outline">
           라이브 계측
         </Badge>
-        <h2 className="text-xl font-extrabold tracking-[-0.02em] text-ink md:text-2xl">
-          말이 아니라 계측치로 — 이 페이지가 열려 있는 동안
-        </h2>
+        <h2 className="chim-h2 text-ink">말이 아니라 계측치로 — 이 페이지가 열려 있는 동안</h2>
       </div>
-      <p className="mt-3 max-w-3xl text-base leading-relaxed text-ink-soft">
+      <p className="chim-body mt-3 max-w-3xl text-ink-soft">
         아래 숫자는 저희가 적어 둔 값이 아니라, 지금 이 브라우저가 실제로 주고받은 요청을 세어
         보여 드리는 실측치입니다. 화면을 열어 두시는 동안 계속 갱신됩니다.
       </p>
@@ -378,26 +386,26 @@ export function LiveProofPanel() {
             />
           </div>
 
-          <p className="mt-2.5 text-sm text-ink-muted tabular-nums">
+          <p className="chim-num chim-meta mt-2.5 text-ink-muted">
             관측 시작 후 {formatElapsed(elapsed)} 경과
             {counts.device > 0 && ` · 기기 안에서만 만든 자원 ${counts.device}건`}
           </p>
 
           {clean ? (
-            <p className="mt-3 text-base leading-relaxed font-bold text-ok-ink">
+            <p className="chim-body mt-3 font-bold text-ok-ink">
               지금까지 이 화면에서 외부로 나간 요청은 없습니다. 판정·가명처리·기록은 전부 이
               기기에서 끝납니다.
             </p>
           ) : (
-            <div className="mt-3 rounded-card border border-danger-line bg-danger-soft p-4">
-              <p className="text-base leading-relaxed font-bold text-danger-ink">
+            <div className="mt-3 rounded-card bg-danger-soft p-4">
+              <p className="chim-body font-bold text-danger-ink">
                 외부 출처 요청이 잡혔습니다. 감추지 않고 그대로 보여 드립니다.
               </p>
               <ul className="mt-2.5 space-y-1.5">
                 {crossRows.map((row) => (
-                  <li key={row.key} className="text-base leading-relaxed break-all text-ink">
+                  <li key={row.key} className="text-[0.9375rem] leading-relaxed break-all text-ink">
                     {row.host}
-                    <span className="ml-2 text-sm text-ink-muted">({row.initiatorType})</span>
+                    <span className="chim-caption ml-2 text-ink-muted">({row.initiatorType})</span>
                   </li>
                 ))}
               </ul>
@@ -409,17 +417,19 @@ export function LiveProofPanel() {
       {/* 2. 기기 저장 목록 */}
       {mounted && cacheVisible && (
         <div className="mt-6 border-t border-line pt-5">
-          <p className="flex items-center gap-2 text-base font-extrabold text-ink">
+          <p className="chim-body flex items-center gap-2 font-extrabold text-ink">
             <IconSave className="h-5 w-5 shrink-0 text-brand-700" />
             이 기기에 저장된 화면 — 서버가 죽어도 열리는 목록
           </p>
 
           {cacheState.status === "measuring" && (
-            <p className="mt-2 text-base leading-relaxed text-ink-muted">확인하고 있습니다…</p>
+            <p className="mt-2 text-[0.9375rem] leading-relaxed text-ink-muted">
+              확인하고 있습니다…
+            </p>
           )}
 
           {cacheState.status === "empty" && (
-            <p className="mt-2 text-base leading-relaxed text-ink">
+            <p className="mt-2 text-[0.9375rem] leading-relaxed text-ink-soft">
               지금 이 실행에서는 기기에 저장된 항목이 없습니다. 응급 화면 저장은 프로덕션
               실행에서 이뤄집니다. 개발 서버에서는 화면이 낡은 채로 남는 것을 막으려고 일부러
               등록하지 않습니다.
@@ -435,16 +445,16 @@ export function LiveProofPanel() {
                     <ul className="mt-2.5 space-y-1.5">
                       {group.entries.map((path) => (
                         <li key={path} className="flex flex-wrap items-baseline gap-x-2">
-                          <span className="text-base leading-relaxed font-bold text-ink">
+                          <span className="text-[0.9375rem] leading-relaxed font-bold text-ink">
                             {ROUTE_LABEL[path] ?? path}
                           </span>
-                          <span className="text-sm break-all text-ink-muted">{path}</span>
+                          <span className="chim-caption break-all text-ink-muted">{path}</span>
                         </li>
                       ))}
                     </ul>
                   )}
                   {group.assetCount > 0 && (
-                    <p className="mt-2 text-sm leading-relaxed text-ink-muted tabular-nums">
+                    <p className="chim-num chim-meta mt-2 text-ink-muted">
                       그리고 이 화면들을 실제로 움직이는 데 필요한 자산 {group.assetCount}건이 함께
                       저장되어 있습니다.
                     </p>
@@ -452,7 +462,7 @@ export function LiveProofPanel() {
                 </div>
               ))}
               {cacheState.swSupported && !cacheState.swActive && (
-                <p className="text-sm leading-relaxed text-ink-muted">
+                <p className="chim-meta text-ink-muted">
                   다만 지금 이 실행에서는 저장을 관리하는 서비스워커가 활성 상태가 아닙니다. 위
                   목록은 이전에 저장된 내용입니다.
                 </p>
@@ -462,26 +472,24 @@ export function LiveProofPanel() {
         </div>
       )}
 
-      {/* 3. 직접 확인 안내 */}
-      <p className="mt-6 border-l-4 border-brand-600 pl-5 text-base leading-relaxed font-bold text-brand-800">
-        직접 확인하실 수 있습니다 — 브라우저 개발자도구(F12) → 네트워크 탭을 열어 두고 이 앱을
-        사용해 보세요. 같은 목록이 그대로 보입니다.
-      </p>
+      {/* 3. 직접 확인 안내 — 왼쪽 액센트 바 대신 옅은 면으로 묶습니다(v3 §1-2·§7). */}
+      <div className="mt-6 rounded-card bg-paper-2 p-4 md:p-5">
+        <p className="chim-body font-bold text-brand-800">
+          직접 확인하실 수 있습니다 — 브라우저 개발자도구(F12) → 네트워크 탭을 열어 두고 이 앱을
+          사용해 보세요. 같은 목록이 그대로 보입니다.
+        </p>
+      </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={handleRefresh}
-          className="inline-flex min-h-12 items-center justify-center rounded-field border border-line-strong bg-white px-5 text-base font-bold text-ink transition-colors duration-200 ease-soft hover:bg-paper focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
-        >
+      <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <BigButton onClick={handleRefresh} variant="secondary">
           지금 다시 측정하기
-        </button>
-        <span className="text-sm leading-relaxed text-ink-muted">
+        </BigButton>
+        <span className="chim-meta max-w-md text-ink-muted">
           이 버튼도 네트워크를 쓰지 않습니다. 브라우저가 이미 기록해 둔 값을 다시 읽을 뿐입니다.
         </span>
       </div>
 
-      <p className="mt-4 text-sm leading-relaxed text-ink-muted">
+      <p className="chim-caption mt-4 text-ink-muted">
         ※ 세는 범위는 브라우저 표준 계측(리소스 타이밍)이 잡는 것 — 이 화면이 불러온
         문서·스크립트·스타일·이미지·글꼴과 fetch·XHR 요청입니다. 브라우저 내장 음성 인식처럼
         페이지 리소스가 아닌 경로는 여기에 잡히지 않아, 아래 개인정보 경로 항목에 따로 적어

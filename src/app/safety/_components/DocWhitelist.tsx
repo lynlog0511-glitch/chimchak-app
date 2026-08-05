@@ -31,6 +31,7 @@ const FALLBACK_GROUPS = [
  * `PageShell`이 내려 준 문서 목록이 있으면 문서 단위로, 없으면 문서군 요약으로 보여 줍니다.
  *
  * 위계가 낮은 목록이라 카드로 감싸지 않고 hairline으로만 나눕니다(문서 종류 → 제목 → 설명).
+ * 크기(§3): 종류 13px · 제목 16px bold · 설명 15px. 색 마커 대신 무채색 불릿을 씁니다(§1-2).
  */
 export function DocWhitelist() {
   const docs = useSourceDocs();
@@ -40,9 +41,11 @@ export function DocWhitelist() {
       <ul className="grid border-b border-line md:grid-cols-2 md:gap-x-10">
         {docs.map((d) => (
           <li key={d.id} className="border-t border-line py-4">
-            <p className="text-sm font-bold tracking-wide text-brand-700">{d.kind}</p>
-            <p className="mt-1 text-base font-extrabold text-ink">{d.title}</p>
-            {d.note && <p className="mt-1.5 text-base leading-relaxed text-ink-soft">{d.note}</p>}
+            <p className="chim-caption font-bold tracking-wide text-brand-700">{d.kind}</p>
+            <p className="chim-body mt-1 font-extrabold text-ink">{d.title}</p>
+            {d.note && (
+              <p className="mt-1 text-[0.9375rem] leading-relaxed text-ink-soft">{d.note}</p>
+            )}
           </li>
         ))}
       </ul>
@@ -53,13 +56,13 @@ export function DocWhitelist() {
     <ul className="grid border-b border-line md:grid-cols-2 md:gap-x-10">
       {FALLBACK_GROUPS.map((g) => (
         <li key={g.kind} className="border-t border-line py-4">
-          <p className="text-sm font-bold tracking-wide text-brand-700">{g.kind}</p>
+          <p className="chim-caption font-bold tracking-wide text-brand-700">{g.kind}</p>
           <ul className="mt-2 space-y-1.5">
             {g.items.map((it) => (
-              <li key={it} className="flex gap-2 text-base leading-relaxed text-ink">
+              <li key={it} className="flex gap-2 text-[0.9375rem] leading-relaxed text-ink">
                 <span
                   aria-hidden="true"
-                  className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-chip bg-brand-400"
+                  className="mt-2.5 h-1 w-1 shrink-0 rounded-chip bg-line-strong"
                 />
                 <span>{it}</span>
               </li>

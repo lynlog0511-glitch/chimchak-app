@@ -15,13 +15,23 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+/**
+ * 머리말은 PageShell 기본 크기(32~40px 페이지 제목) 대신 직접 그립니다.
+ * 발표자 도구는 심사 화면이 아니라 도구이므로, 제목까지 UI 크롬 크기로 낮춰
+ * 화면 전체가 한눈에 훑히게 두는 편이 맞습니다(v3 §3 — 큰 글자는 위계가 높은 곳에만).
+ * 문구는 그대로이고 위치·크기만 바뀝니다.
+ */
 export default function CheckPage() {
   return (
-    <PageShell
-      eyebrow="발표자 전용"
-      title="무대 직전 30초 점검"
-      description="오프라인 시연에 필요한 조건을 한 번에 확인합니다. 심사 화면이 아닙니다."
-    >
+    <PageShell>
+      <header className="mb-6">
+        <p className="chim-caption mb-1 font-bold tracking-wide text-brand-700">발표자 전용</p>
+        <h1 className="chim-h2 text-ink">무대 직전 30초 점검</h1>
+        <p className="chim-meta mt-2 max-w-2xl text-ink-soft">
+          오프라인 시연에 필요한 조건을 한 번에 확인합니다. 심사 화면이 아닙니다.
+        </p>
+      </header>
+
       <CheckClient />
     </PageShell>
   );

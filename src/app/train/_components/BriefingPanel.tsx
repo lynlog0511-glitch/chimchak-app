@@ -25,14 +25,17 @@ export interface BriefingPanelProps {
   onStart: () => void;
 }
 
-/** 시작 버튼 묶음 — 상단·하단 두 곳에 같은 모양으로 놓습니다. */
+/**
+ * 시작 버튼 묶음 — 상단·하단 두 곳에 같은 모양으로 놓습니다.
+ * 주인공은 「훈련 시작하기」 하나입니다. 나란한 두 버튼이 같은 무게를 가지면 위계가 사라집니다(§2).
+ */
 function StartButtons({ onStart }: { onStart: () => void }) {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row">
-      <BigButton onClick={onStart} size="lg" block>
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <BigButton onClick={onStart} size="lg" className="w-full sm:w-auto sm:min-w-[17rem]">
         훈련 시작하기
       </BigButton>
-      <BigButton href="/train" variant="secondary" size="lg" block>
+      <BigButton href="/train" variant="ghost" className="w-full sm:w-auto">
         다른 상황 고르기
       </BigButton>
     </div>
@@ -50,56 +53,48 @@ export function BriefingPanel({ scenario, micSupported, onStart }: BriefingPanel
   return (
     <div className="space-y-5">
       <header>
-        {/* 필은 유형 하나만 두고, 난이도·소요·계층은 hairline으로 나눈 텍스트로 둡니다. */}
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+        {/* 필은 유형 하나만 두고, 난이도·소요·계층은 세로줄 없이 여백으로만 나눕니다(§1-2). */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <Badge tone={TYPE_TONE[scenario.type]}>{scenario.typeLabel}</Badge>
-          <span className="text-sm font-semibold text-ink-muted">
+          <span className="chim-caption font-semibold text-ink-muted">
             {scenario.levelLabel} · 약 {scenario.durationMin}분
           </span>
           {scenario.tiers.map((tier) => (
-            <span
-              key={tier}
-              className="border-l border-line pl-2.5 text-sm font-bold text-ink-soft"
-            >
+            <span key={tier} className="chim-caption font-bold text-ink-muted">
               {TIER_LABEL[tier]}
             </span>
           ))}
         </div>
-        <h1 className="mt-3 text-2xl font-extrabold text-ink md:text-4xl">{scenario.title}</h1>
+        {/* 브리핑의 주인공은 제목과 시작 버튼입니다 — 제목만 페이지 제목 크기로 올립니다(§2). */}
+        <h1 className="chim-h1 mt-3 text-ink">{scenario.title}</h1>
       </header>
 
-      {/* ① 상황 지문 */}
+      {/* ① 상황 지문 + ② 등장인물 한 줄 요약 — 카드 두 장을 하나로 합쳐 첫 화면 밀도를 낮춥니다(§6) */}
       <Card>
-        <h2 className="text-lg font-extrabold text-ink">상황</h2>
-        <p className="mt-2 text-base leading-relaxed text-ink">{scenario.context}</p>
+        <h2 className="chim-h3 text-ink">상황</h2>
+        <p className="chim-body mt-2 text-ink">{scenario.context}</p>
+
+        <div className="mt-5 border-t border-line pt-4">
+          <h2 className="chim-caption font-bold text-ink-muted">등장인물</h2>
+          {/* 정보 위계가 낮은 목록이라 필도 세로줄도 쓰지 않고 여백으로만 나눕니다. */}
+          <ul className="mt-2 flex flex-wrap items-baseline gap-x-5 gap-y-1">
+            {scenario.personas.map((persona) => (
+              <li key={persona.name} className="flex items-baseline gap-2">
+                <span className="chim-label font-bold text-ink">{persona.name}</span>
+                <span className="chim-caption font-semibold text-ink-muted">
+                  {ROLE_LABEL[persona.role]}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </Card>
 
-      {/* ② 등장인물 한 줄 요약 — 이름과 역할만 (상세는 아래 접이식에 있습니다) */}
-      <Card padded={false} className="p-4 md:p-5">
-        <h2 className="text-base font-extrabold text-ink">등장인물</h2>
-        {/* 칩 대신 hairline으로 나눈 한 줄 — 정보 위계가 낮은 목록에는 필을 쓰지 않습니다. */}
-        <ul className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          {scenario.personas.map((persona) => (
-            <li
-              key={persona.name}
-              className="flex items-baseline gap-2 border-l border-line pl-3 text-base font-semibold text-ink first:border-l-0 first:pl-0"
-            >
-              <span>{persona.name}</span>
-              <span className="text-sm font-bold text-ink-muted">
-                {ROLE_LABEL[persona.role]}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </Card>
-
-      {/* ③ 고정 문구 · 가상 인물 고지 */}
+      {/* ③ 고정 문구 · 가상 인물 고지 — 이 화면에서 색 면은 이 블록 하나입니다(§1-3) */}
       <Card tone="brand" padded={false} className="p-4 md:p-5">
-        <p className="text-base leading-relaxed font-extrabold text-brand-900 md:text-lg">
-          “{PRACTICE_LINE}”
-        </p>
-        <p className="mt-2 flex items-start gap-2 text-base leading-relaxed font-semibold text-brand-800">
-          <IconInfo className="mt-1 h-4 w-4 shrink-0" />
+        <p className="chim-core-sm font-extrabold text-brand-900">“{PRACTICE_LINE}”</p>
+        <p className="chim-caption mt-2 flex items-start gap-2 leading-relaxed font-semibold text-brand-800">
+          <IconInfo className="mt-0.5 h-4 w-4 shrink-0" />
           <span>{FICTION_NOTICE}</span>
         </p>
       </Card>
@@ -107,17 +102,17 @@ export function BriefingPanel({ scenario, micSupported, onStart }: BriefingPanel
       {/* ④ 시작 버튼 (상단) */}
       <StartButtons onStart={onStart} />
 
-      {/* 나머지는 접어 둡니다 — 필요하실 때만 펼쳐 보시면 됩니다. */}
-      <details className="group rounded-card border border-line bg-white">
-        <summary className="flex min-h-[56px] cursor-pointer list-none items-center justify-between gap-3 rounded-card px-5 py-4 text-base font-extrabold text-ink hover:bg-brand-50 [&::-webkit-details-marker]:hidden">
+      {/* 나머지는 접어 둡니다 — 필요하실 때만 펼쳐 보시면 됩니다(§6). 접힌 정보는 전부 조용한 크기로. */}
+      <details className="group rounded-card bg-white">
+        <summary className="chim-label flex min-h-[56px] cursor-pointer list-none items-center justify-between gap-3 rounded-card px-5 py-4 font-bold text-ink-soft hover:bg-brand-50 [&::-webkit-details-marker]:hidden">
           <span>자세히 보기 — 인물 소개 · 제약 조건 · 오늘 연습할 것 · 판정 근거 · 응답 방법</span>
           <IconChevronDown className="h-5 w-5 shrink-0 text-ink-muted transition-transform duration-150 group-open:rotate-180" />
         </summary>
 
         <div className="space-y-5 border-t border-line p-5 md:p-6">
           <section>
-            <h2 className="text-lg font-extrabold text-ink">인물 소개</h2>
-            <p className="mt-1 text-sm font-semibold text-ink-muted">{FICTION_NOTICE}</p>
+            <h2 className="chim-body font-extrabold text-ink">인물 소개</h2>
+            <p className="chim-caption mt-1 font-semibold text-ink-muted">{FICTION_NOTICE}</p>
             <ul className="mt-3 space-y-4">
               {scenario.personas.map((persona) => (
                 <li
@@ -125,21 +120,21 @@ export function BriefingPanel({ scenario, micSupported, onStart }: BriefingPanel
                   className="border-t border-line pt-4 first:border-t-0 first:pt-0"
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-base font-extrabold text-ink">{persona.name}</span>
+                    <span className="chim-label font-extrabold text-ink">{persona.name}</span>
                     <Badge tone="neutral">{ROLE_LABEL[persona.role]}</Badge>
                   </div>
-                  <p className="mt-1.5 text-base leading-relaxed text-ink-soft">{persona.profile}</p>
+                  <p className="chim-meta mt-1.5 leading-relaxed text-ink-soft">{persona.profile}</p>
                 </li>
               ))}
             </ul>
           </section>
 
-          <section className="rounded-card border border-warn-line bg-white p-4">
-            <h2 className="text-lg font-extrabold text-ink">제약 조건</h2>
+          <section className="rounded-card bg-paper-2 p-4">
+            <h2 className="chim-body font-extrabold text-ink">제약 조건</h2>
             <ul className="mt-3 space-y-2">
               {scenario.constraints.map((constraint) => (
-                <li key={constraint} className="flex gap-2 text-base leading-relaxed text-ink">
-                  <span aria-hidden="true" className="text-warn-ink">
+                <li key={constraint} className="chim-meta flex gap-2 leading-relaxed text-ink">
+                  <span aria-hidden="true" className="text-ink-muted">
                     ·
                   </span>
                   <span>{constraint}</span>
@@ -149,10 +144,10 @@ export function BriefingPanel({ scenario, micSupported, onStart }: BriefingPanel
           </section>
 
           <section>
-            <h2 className="text-lg font-extrabold text-ink">오늘 연습할 것</h2>
+            <h2 className="chim-body font-extrabold text-ink">오늘 연습할 것</h2>
             <ul className="mt-3 space-y-2">
               {scenario.objectives.map((objective) => (
-                <li key={objective} className="flex gap-2 text-base leading-relaxed text-ink-soft">
+                <li key={objective} className="chim-meta flex gap-2 leading-relaxed text-ink-soft">
                   <span aria-hidden="true" className="text-brand-500">
                     ·
                   </span>
@@ -163,8 +158,8 @@ export function BriefingPanel({ scenario, micSupported, onStart }: BriefingPanel
           </section>
 
           <section className="border-t border-line pt-4">
-            <h2 className="text-lg font-extrabold text-ink">이 훈련의 판정 근거</h2>
-            <p className="mt-2 text-base leading-relaxed text-ink-soft">
+            <h2 className="chim-body font-extrabold text-ink">이 훈련의 판정 근거</h2>
+            <p className="chim-meta mt-2 leading-relaxed text-ink-soft">
               피드백에는 아래 문서에서 확인한 내용만 붙습니다. 근거를 찾지 못하면 “공식 지침에서
               근거를 찾지 못했습니다. 담당 간호사 또는 기관에 확인해 주세요.”라고 그대로
               말씀드립니다.
@@ -177,8 +172,8 @@ export function BriefingPanel({ scenario, micSupported, onStart }: BriefingPanel
           </section>
 
           <section className="border-t border-line pt-4">
-            <h2 className="text-lg font-extrabold text-ink">응답 방법</h2>
-            <ul className="mt-3 space-y-2.5 text-base leading-relaxed text-ink-soft">
+            <h2 className="chim-body font-extrabold text-ink">응답 방법</h2>
+            <ul className="chim-meta mt-3 space-y-2.5 leading-relaxed text-ink-soft">
               <li className="flex gap-2.5">
                 <IconMic className="mt-1 h-5 w-5 shrink-0 text-brand-700" />
                 <span>
@@ -209,8 +204,10 @@ export function BriefingPanel({ scenario, micSupported, onStart }: BriefingPanel
         </div>
       </details>
 
-      {/* 시작 버튼 (하단 유지) */}
-      <StartButtons onStart={onStart} />
+      {/* 시작 버튼 (하단) — 데스크톱은 한 화면에 다 들어와 상단 버튼과 중복되므로 모바일에서만 보입니다. */}
+      <div className="md:hidden">
+        <StartButtons onStart={onStart} />
+      </div>
     </div>
   );
 }

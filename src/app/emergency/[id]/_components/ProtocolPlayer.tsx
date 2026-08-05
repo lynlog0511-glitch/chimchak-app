@@ -44,18 +44,18 @@ export function ProtocolPlayer({ protocolId, title, steps }: ProtocolPlayerProps
 
   return (
     <div className="space-y-6">
-      {/* 진행바 */}
+      {/* 진행바 — 이 화면의 주인공은 자막이므로 진행 표시는 조용한 크롬 크기로 둡니다(§3). */}
       <div>
-        <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-          <p className="text-base font-extrabold text-ink">
+        <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <p className="chim-label chim-num text-ink">
             전체 {total}단계 중 <span className="text-brand-800">{index + 1}단계</span>
           </p>
-          <p className="text-sm font-semibold text-ink-muted">
+          <p className="chim-caption text-ink-muted">
             {playing ? "자동으로 다음 단계로 넘어갑니다" : "일시정지 상태입니다"}
           </p>
         </div>
         <div
-          className="h-3.5 w-full overflow-hidden rounded-chip bg-line"
+          className="h-2 w-full overflow-hidden rounded-chip bg-line"
           role="progressbar"
           aria-valuemin={1}
           aria-valuemax={total}
@@ -70,52 +70,44 @@ export function ProtocolPlayer({ protocolId, title, steps }: ProtocolPlayerProps
         </div>
       </div>
 
-      {/* 1단계 119 확대 연출 */}
+      {/* 1단계 119 확대 연출 — 색 마커·깜빡임 없이 문장 크기와 버튼 크기로만 말합니다(§1-2). */}
       {emphasize && (
         <Card tone="danger">
-          <div className="flex items-center justify-center gap-2">
-            {/* 장식성 깜빡임은 쓰지 않습니다 — 크기와 색만으로 우선순위를 말합니다. */}
-            <span aria-hidden="true" className="inline-block h-3 w-3 rounded-chip bg-danger" />
-            <p className="text-lg font-extrabold text-danger-ink md:text-xl">
-              먼저 119부터 누르세요
-            </p>
-          </div>
+          <p className="chim-cue text-center text-danger-ink">먼저 119부터 누르세요</p>
           <div className="mt-4">
             <Call119Button size="xl" />
           </div>
         </Card>
       )}
 
-      {/* 대형 자막 */}
+      {/* 대형 자막 — 이 화면 전체에서 가장 큰 글자입니다(코어 중의 코어, §3). */}
       <Card tone={silent ? "quiet" : "default"}>
-        {/* 필은 단계 번호 하나만 — 진행 수치와 침묵 표시는 작은 텍스트로 둡니다. */}
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-          <Badge tone="brand">{step ? step.id : protocolId}</Badge>
-          <span className="chim-num border-l border-line pl-2.5 text-sm font-bold text-ink-soft">
+        {/* 필은 단계 번호 하나만 — 진행 수치와 침묵 표시는 가운뎃점으로 이어 붙인 작은 텍스트입니다. */}
+        <div className="chim-caption flex flex-wrap items-center gap-x-2 gap-y-1 font-bold text-ink-muted">
+          <Badge tone="neutral">{step ? step.id : protocolId}</Badge>
+          <span className="chim-num">
             {index + 1} / {total}
           </span>
           {silent && (
-            <span className="border-l border-line pl-2.5 text-sm font-bold text-ink-soft">
-              의도된 침묵
-            </span>
+            <>
+              <span aria-hidden="true">·</span>
+              <span>의도된 침묵</span>
+            </>
           )}
         </div>
 
-        <p
-          aria-live="polite"
-          className="mt-4 text-2xl leading-snug font-extrabold text-ink md:text-4xl"
-        >
+        <p aria-live="polite" className="chim-subtitle mt-4 text-ink">
           {silent ? "안내 음성을 여기서 멈춥니다." : voiceText}
         </p>
 
         {silent && (
-          <p className="mt-3 text-base leading-relaxed text-ink-soft md:text-lg">
+          <p className="chim-core mt-3 text-ink-soft">
             지금부터는 119 상황실 지시에 따르세요. 화면은 이대로 두셔도 됩니다.
           </p>
         )}
 
         {step?.screen && (
-          <p className="mt-5 border-t border-line pt-4 text-base leading-relaxed text-ink-soft">
+          <p className="chim-core-sm mt-5 border-t border-line pt-4 text-ink-soft">
             {step.screen}
           </p>
         )}
@@ -144,10 +136,11 @@ export function ProtocolPlayer({ protocolId, title, steps }: ProtocolPlayerProps
               </>
             )}
           </BigButton>
+          {/* 보조 조작은 한 단계 작은 크기(17px·48px 터치)로 두어 재생 버튼이 주인공이 되게 합니다. */}
           <BigButton
             onClick={() => goTo(index - 1)}
             variant="secondary"
-            size="lg"
+            size="md"
             disabled={index === 0}
             block
             className="order-2 whitespace-nowrap sm:order-1"
@@ -157,7 +150,7 @@ export function ProtocolPlayer({ protocolId, title, steps }: ProtocolPlayerProps
           <BigButton
             onClick={() => goTo(index + 1)}
             variant="secondary"
-            size="lg"
+            size="md"
             disabled={index === total - 1}
             block
             className="order-3 whitespace-nowrap"
@@ -166,7 +159,7 @@ export function ProtocolPlayer({ protocolId, title, steps }: ProtocolPlayerProps
           </BigButton>
         </div>
 
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap gap-1">
           <BigButton onClick={replay} variant="ghost" disabled={silent || !ttsSupported || !voiceOn}>
             이 단계 다시 듣기
           </BigButton>
@@ -186,52 +179,53 @@ export function ProtocolPlayer({ protocolId, title, steps }: ProtocolPlayerProps
         </div>
 
         {!ttsSupported && (
-          <p className="mt-3 rounded-card border border-warn-line bg-warn-soft px-4 py-3 text-base leading-relaxed font-semibold text-warn-ink">
+          <p className="chim-body mt-3 rounded-card bg-warn-soft px-4 py-3 font-semibold text-warn-ink">
             이 기기에서는 음성 안내를 사용할 수 없습니다. 자막이 같은 속도로 자동 진행되니 화면을
             보고 따라 주세요.
           </p>
         )}
       </div>
 
-      {/* 전체 단계 목록 */}
+      {/* 전체 단계 목록 — 위계가 낮은 목록이라 카드 대신 흰 면 한 장 + hairline으로 나눕니다(§7). */}
       <section aria-labelledby="steps-heading">
-        <h2 id="steps-heading" className="mb-3 text-lg font-extrabold text-ink md:text-xl">
+        <h2 id="steps-heading" className="chim-h3 mb-3 text-ink">
           전체 단계 — {title}
         </h2>
-        <ol className="space-y-2">
+        {/* 배경은 li가 지고 버튼은 그 위를 채웁니다 — 컨테이너에 overflow-hidden을 걸지 않아
+            키보드 포커스 링(3px·offset 2px)이 잘리지 않습니다. */}
+        <ol className="chim-hairline rounded-card bg-white">
           {steps.map((s, i) => {
             const current = i === index;
-            const done = i < index;
             return (
-              <li key={s.id}>
+              <li
+                key={s.id}
+                className={[
+                  "transition-colors duration-150 first:rounded-t-card last:rounded-b-card",
+                  // 아직 지나지 않은 단계도 흐리게 두지 않습니다.
+                  // (불투명도를 걸면 본문 대비가 WCAG AA 4.5:1 아래로 떨어집니다.)
+                  current ? "bg-brand-50" : "hover:bg-paper-2",
+                ].join(" ")}
+              >
                 <button
                   type="button"
                   onClick={() => goTo(i)}
                   aria-current={current ? "step" : undefined}
-                  className={[
-                    "flex w-full min-h-[48px] items-start gap-3 rounded-card border px-4 py-3 text-left transition-colors duration-150",
-                    // 아직 지나지 않은 단계는 opacity 대신 배경색으로만 약하게 표시합니다.
-                    // (불투명도를 걸면 본문 대비가 WCAG AA 4.5:1 아래로 떨어집니다.)
-                    current
-                      ? "border-brand-600 bg-brand-50"
-                      : done
-                        ? "border-line bg-white"
-                        : "border-line bg-paper-2 hover:bg-white",
-                  ].join(" ")}
+                  className="flex min-h-[48px] w-full items-start gap-3 px-4 py-3 text-left"
                 >
                   <span
                     aria-hidden="true"
                     className={[
-                      "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-chip text-base font-extrabold",
-                      current ? "bg-brand-600 text-white" : "bg-neutral-soft text-ink-soft",
+                      "chim-caption chim-num mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-chip font-extrabold",
+                      // 흰 숫자를 얹는 채움은 4.5:1을 넘는 brand-700(4.9:1)을 씁니다.
+                      current ? "bg-brand-700 text-white" : "bg-neutral-soft text-ink-soft",
                     ].join(" ")}
                   >
                     {i + 1}
                   </span>
                   <span
                     className={[
-                      "text-base leading-relaxed",
-                      current ? "font-extrabold text-ink" : "text-ink-soft",
+                      "chim-label leading-relaxed",
+                      current ? "font-bold text-ink" : "font-normal text-ink-soft",
                     ].join(" ")}
                   >
                     {s.voice.trim().length > 0 ? s.voice : "(음성 없음 — 의도된 침묵 단계)"}

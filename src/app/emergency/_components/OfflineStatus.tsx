@@ -107,12 +107,12 @@ export function OfflineStatus() {
     return (
       <p
         role="status"
-        className="flex items-start gap-2.5 rounded-card border border-ok-line bg-ok-soft px-4 py-3 text-base leading-relaxed font-extrabold text-ok-ink md:text-lg"
+        className="chim-body flex items-start gap-2.5 rounded-card bg-ok-soft px-4 py-3 font-semibold text-ok-ink"
       >
         {offline ? (
-          <IconOffline className="mt-1 h-5 w-5 shrink-0" />
+          <IconOffline className="mt-0.5 h-5 w-5 shrink-0" />
         ) : (
-          <IconSave className="mt-1 h-5 w-5 shrink-0" />
+          <IconSave className="mt-0.5 h-5 w-5 shrink-0" />
         )}
         <span>
           {offline
@@ -126,12 +126,12 @@ export function OfflineStatus() {
   return (
     <p
       role="status"
-      className="flex items-start gap-2.5 rounded-card border border-warn-line bg-warn-soft px-4 py-3 text-base leading-relaxed font-bold text-warn-ink"
+      className="chim-body flex items-start gap-2.5 rounded-card bg-warn-soft px-4 py-3 font-semibold text-warn-ink"
     >
       {offline ? (
-        <IconOffline className="mt-1 h-5 w-5 shrink-0" />
+        <IconOffline className="mt-0.5 h-5 w-5 shrink-0" />
       ) : (
-        <IconClock className="mt-1 h-5 w-5 shrink-0" />
+        <IconClock className="mt-0.5 h-5 w-5 shrink-0" />
       )}
       <span>
         {offline

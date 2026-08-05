@@ -22,12 +22,15 @@ const STATUS_LABEL: Record<CheckStatus, string> = {
   loading: "확인 중",
 };
 
-/** 항목이 많으므로 색 배경 대신 보더로만 구분합니다(화면당 색 블록 2개 규칙). */
-const STATUS_BOX: Record<CheckStatus, string> = {
-  ok: "border-ok-line bg-white",
-  fail: "border-danger-line bg-white",
-  unknown: "border-line bg-white",
-  loading: "border-line bg-paper-2",
+/**
+ * 행 바탕 — 항목이 일곱 개라 보더로 두르지 않고 흰 면 한 장 위에 hairline으로만 나눕니다(§7).
+ * 무대 직전 30초 안에 눈에 걸려야 하는 것은 "확인 필요" 한 줄뿐이라 그 행만 옅은 면을 깝니다.
+ */
+const STATUS_ROW: Record<CheckStatus, string> = {
+  ok: "",
+  fail: "bg-danger-soft",
+  unknown: "",
+  loading: "",
 };
 
 const STATUS_TEXT: Record<CheckStatus, string> = {
@@ -39,26 +42,25 @@ const STATUS_TEXT: Record<CheckStatus, string> = {
 
 function CheckRow({ result }: { result: CheckResult }) {
   return (
-    <li>
-      <div className={cx("rounded-card border p-4 md:p-5", STATUS_BOX[result.status])}>
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-          <StatusMark kind={STATUS_MARK[result.status]} size="sm" />
-          <span className={cx("text-base font-extrabold", STATUS_TEXT[result.status])}>
-            {result.title}
-          </span>
-          <span className="border-l border-line pl-2.5 text-sm font-semibold text-ink-muted">
-            {STATUS_LABEL[result.status]}
-          </span>
-        </div>
-
-        <p className="mt-2 text-base leading-relaxed text-ink">{result.detail}</p>
-
-        {result.fix && (
-          <p className="mt-2 text-base leading-relaxed font-semibold text-ink-soft">
-            조치: {result.fix}
-          </p>
-        )}
+    <li
+      className={cx(
+        "px-4 py-3.5 first:rounded-t-card last:rounded-b-card md:px-5",
+        STATUS_ROW[result.status],
+      )}
+    >
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <StatusMark kind={STATUS_MARK[result.status]} size="sm" />
+        <span className="chim-body font-bold text-ink">{result.title}</span>
+        <span className={cx("chim-caption font-bold", STATUS_TEXT[result.status])}>
+          {STATUS_LABEL[result.status]}
+        </span>
       </div>
+
+      <p className="chim-meta mt-1 pl-6 text-ink-soft">{result.detail}</p>
+
+      {result.fix && (
+        <p className="chim-meta mt-1 pl-6 font-semibold text-ink">조치: {result.fix}</p>
+      )}
     </li>
   );
 }
@@ -69,6 +71,10 @@ function CheckRow({ result }: { result: CheckResult }) {
  * 프로덕션 빌드·서비스워커·응급 캐시·TTS 보이스·음성 인식·localStorage·네트워크를
  * 한 번에 훑어봅니다. 전부 브라우저에서만 확인 가능하므로 마운트 전에는 항상
  * "확인 중" 플레이스홀더만 그려 SSR과 첫 클라이언트 렌더가 어긋나지 않게 합니다.
+ *
+ * 크기(v3 §3): 발표자 도구이므로 전 요소가 UI 크롬 크기(13~16px)입니다.
+ * 코어 콘텐츠 확대 규칙(대사·자막·CTA 18px+)은 이 화면에 적용되지 않습니다 —
+ * 여기서 필요한 것은 큰 글자가 아니라 한눈에 훑히는 밀도입니다.
  */
 export function CheckClient() {
   const [mounted, setMounted] = useState(false);
@@ -95,17 +101,17 @@ export function CheckClient() {
   return (
     <div>
       <Card tone="warn" className="mb-6">
-        <p className="text-base leading-relaxed font-extrabold text-warn-ink">
+        <p className="chim-label font-extrabold text-warn-ink">
           발표자 전용 점검 화면입니다 · 심사 화면 아님
         </p>
-        <p className="mt-1 text-base leading-relaxed text-ink-soft">
+        <p className="chim-meta mt-1 text-ink-soft">
           무대에 올라가시기 전, 오프라인 시연에 필요한 조건을 한 번에 훑어보는 화면입니다.
           이 화면 자체는 어디에도 링크되어 있지 않습니다.
         </p>
       </Card>
 
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <p aria-live="polite" className="text-base font-bold text-ink">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <p aria-live="polite" className="chim-label text-ink">
           {!mounted || checking
             ? "확인하는 중입니다…"
             : allOk
@@ -117,7 +123,7 @@ export function CheckClient() {
         </BigButton>
       </div>
 
-      <ul aria-live="polite" className="space-y-3">
+      <ul aria-live="polite" className="chim-hairline rounded-card bg-white">
         {results.map((result) => (
           <CheckRow key={result.id} result={result} />
         ))}

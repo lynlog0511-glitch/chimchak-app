@@ -47,18 +47,18 @@ function CheckRow({ result }: { result: CheckResult }) {
     >
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <StatusMark kind={STATUS_MARK[result.status]} size="sm" />
-        <span className="text-[14px] leading-[1.45] font-bold text-ink">{result.title}</span>
-        <span className={cx("text-[12px] leading-[1.4] font-bold", STATUS_TEXT[result.status])}>
+        <span className="text-[0.875rem] leading-[1.45] font-bold text-ink">{result.title}</span>
+        <span className={cx("text-[0.75rem] leading-[1.4] font-bold", STATUS_TEXT[result.status])}>
           {STATUS_LABEL[result.status]}
         </span>
       </div>
 
-      <p className="mt-[3px] pl-[24px] text-[12.5px] leading-[1.6] text-ink-soft">
+      <p className="mt-[3px] pl-[24px] text-[0.7813rem] leading-[1.6] text-ink-soft">
         {result.detail}
       </p>
 
       {result.fix && (
-        <p className="mt-[3px] pl-[24px] text-[12.5px] leading-[1.6] font-semibold text-ink">
+        <p className="mt-[3px] pl-[24px] text-[0.7813rem] leading-[1.6] font-semibold text-ink">
           조치: {result.fix}
         </p>
       )}
@@ -103,17 +103,17 @@ export function CheckClient() {
   return (
     <div>
       <div className="mt-[14px] rounded-[14px] bg-warn-soft px-[15px] py-[13px]">
-        <p className="text-[13.5px] leading-[1.45] font-extrabold text-warn-ink">
+        <p className="text-[0.8438rem] leading-[1.45] font-extrabold text-warn-ink">
           발표자 전용 점검 화면입니다 · 심사 화면 아님
         </p>
-        <p className="mt-[5px] text-[12px] leading-[1.6] text-ink-soft">
+        <p className="mt-[5px] text-[0.75rem] leading-[1.6] text-ink-soft">
           무대에 올라가시기 전, 오프라인 시연에 필요한 조건을 한 번에 훑어보는 화면입니다. 이
           화면 자체는 어디에도 링크되어 있지 않습니다.
         </p>
       </div>
 
       <div className="mt-[16px] flex items-center gap-3">
-        <p aria-live="polite" className="min-w-0 flex-1 text-[13.5px] leading-[1.5] text-ink">
+        <p aria-live="polite" className="min-w-0 flex-1 text-[0.8438rem] leading-[1.5] text-ink">
           {!mounted || checking
             ? "확인하는 중입니다…"
             : allOk

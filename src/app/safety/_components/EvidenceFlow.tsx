@@ -143,6 +143,12 @@ function FlowBox({ x, y, node, tone = "ink" }: { x: number; y: number; node: Flo
   );
 }
 
+/**
+ * 접이식 흐름도. **여기 글자만 px 고정입니다**(앱의 나머지는 rem — 설정 글자 크기에 연동).
+ * 720×600 좌표계 위에 선과 상자를 손으로 놓은 그림이라, 글자만 커지면 상자 밖으로 넘칩니다.
+ * 대신 같은 내용이 바로 위 `FlowSteps`에 **실제 텍스트**로 먼저 나오고 그쪽은 설정을 그대로 따릅니다 —
+ * 확대해서 읽으실 분이 못 읽는 문장은 없습니다.
+ */
 function FlowDiagram() {
   return (
     <svg
@@ -347,13 +353,13 @@ function StepRow({ index, node }: { index: number; node: FlowNode }) {
     <li className="flex gap-[10px] border-t border-line py-[13px]">
       <span
         aria-hidden
-        className="chim-num w-[13px] flex-none text-[13px] leading-[1.5] font-extrabold text-brand-700"
+        className="chim-num w-[13px] flex-none text-[0.8125rem] leading-[1.5] font-extrabold text-brand-700"
       >
         {index}
       </span>
       <div className="min-w-0">
-        <p className="text-[14px] leading-[1.45] font-bold text-ink">{node.title}</p>
-        <p className="mt-[2px] text-[12.5px] leading-[1.6] text-ink-muted">{node.caption}</p>
+        <p className="text-[0.875rem] leading-[1.45] font-bold text-ink">{node.title}</p>
+        <p className="mt-[2px] text-[0.7813rem] leading-[1.6] text-ink-muted">{node.caption}</p>
       </div>
     </li>
   );
@@ -363,8 +369,8 @@ function StepRow({ index, node }: { index: number; node: FlowNode }) {
 function BranchStep({ node }: { node: FlowNode }) {
   return (
     <li>
-      <p className="text-[13.5px] leading-[1.45] font-bold text-ink">{node.title}</p>
-      <p className="mt-[2px] text-[12.5px] leading-[1.6] text-ink-soft">{node.caption}</p>
+      <p className="text-[0.8438rem] leading-[1.45] font-bold text-ink">{node.title}</p>
+      <p className="mt-[2px] text-[0.7813rem] leading-[1.6] text-ink-soft">{node.caption}</p>
     </li>
   );
 }
@@ -379,20 +385,20 @@ function FlowSteps() {
         <li className="flex gap-[10px] border-t border-line py-[13px]">
           <span
             aria-hidden
-            className="chim-num w-[13px] flex-none text-[13px] leading-[1.5] font-extrabold text-brand-700"
+            className="chim-num w-[13px] flex-none text-[0.8125rem] leading-[1.5] font-extrabold text-brand-700"
           >
             {INPUT_NODES.length + 1}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-[14px] leading-[1.45] font-bold text-brand-800">근거 확인</p>
-            <p className="mt-[2px] text-[12.5px] leading-[1.6] text-ink-muted">
+            <p className="text-[0.875rem] leading-[1.45] font-bold text-brand-800">근거 확인</p>
+            <p className="mt-[2px] text-[0.7813rem] leading-[1.6] text-ink-muted">
               여기서 길이 갈립니다. 근거를 찾았는지에 따라 다음이 달라집니다.
             </p>
 
             {/* 분기 — 라벨 한 줄 + 옅은 면. 아이콘은 쓰지 않습니다. */}
             <div className="mt-[10px] space-y-[8px]">
               <div className="rounded-[14px] bg-paper-2 px-[13px] py-[12px]">
-                <p className="text-[13.5px] leading-[1.45] font-extrabold text-brand-800">
+                <p className="text-[0.8438rem] leading-[1.45] font-extrabold text-brand-800">
                   예 · 근거를 찾았을 때
                 </p>
                 <ol className="mt-[8px] space-y-[8px]">
@@ -403,7 +409,7 @@ function FlowSteps() {
               </div>
 
               <div className="rounded-[14px] bg-warn-soft px-[13px] py-[12px]">
-                <p className="text-[13.5px] leading-[1.45] font-extrabold text-warn-ink">
+                <p className="text-[0.8438rem] leading-[1.45] font-extrabold text-warn-ink">
                   아니오 · 근거를 찾지 못했을 때
                 </p>
                 <ol className="mt-[8px] space-y-[8px]">
@@ -411,7 +417,7 @@ function FlowSteps() {
                     <BranchStep key={n.key} node={n} />
                   ))}
                 </ol>
-                <p className="mt-[10px] text-[13px] leading-[1.6] font-bold text-ink">
+                <p className="mt-[10px] text-[0.8125rem] leading-[1.6] font-bold text-ink">
                   「공식 지침에서 근거를 찾지 못했습니다. 담당 간호사 또는 기관에 확인해 주세요.」
                 </p>
               </div>
@@ -421,8 +427,8 @@ function FlowSteps() {
       </ol>
 
       <div className="mt-4 rounded-[14px] bg-tint px-[15px] py-[14px]">
-        <p className="text-[14px] leading-[1.45] font-extrabold text-brand-900">{L3_TITLE}</p>
-        <p className="mt-[4px] text-[12.5px] leading-[1.6] text-ink-soft">{L3_SUB}</p>
+        <p className="text-[0.875rem] leading-[1.45] font-extrabold text-brand-900">{L3_TITLE}</p>
+        <p className="mt-[4px] text-[0.7813rem] leading-[1.6] text-ink-soft">{L3_SUB}</p>
       </div>
     </div>
   );
@@ -447,12 +453,12 @@ export function EvidenceFlow() {
 
       <details className="group mt-4 rounded-[14px] bg-paper-2">
         <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-2 px-[15px] py-[12px] [&::-webkit-details-marker]:hidden">
-          <span className="min-w-0 flex-1 text-[13.5px] leading-[1.45] font-bold text-ink">
+          <span className="min-w-0 flex-1 text-[0.8438rem] leading-[1.45] font-bold text-ink">
             같은 내용을 흐름도 한 장으로 보기
           </span>
           <span
             aria-hidden
-            className="flex-none text-[17px] leading-none text-faint transition-transform duration-150 ease-soft group-open:rotate-90"
+            className="flex-none text-[1.0625rem] leading-none text-faint transition-transform duration-150 ease-soft group-open:rotate-90"
           >
             ›
           </span>
@@ -463,7 +469,7 @@ export function EvidenceFlow() {
         </div>
       </details>
 
-      <figcaption className="mt-[10px] text-[11.5px] leading-[1.6] text-tertiary">
+      <figcaption className="mt-[10px] text-[0.7188rem] leading-[1.6] text-tertiary">
         그림 · 근거가 확인된 범위 안에서만 피드백이 나갑니다. 근거를 찾지 못하면 생성을 멈추고
         확인 안내로 넘어갑니다.
       </figcaption>

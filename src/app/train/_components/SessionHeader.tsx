@@ -44,10 +44,10 @@ export function SessionHeader({
   className,
 }: SessionHeaderProps) {
   const backClass =
-    "-ml-[14px] flex h-12 w-12 flex-none items-center justify-center text-[22px] leading-none text-ink-soft md:mr-1 md:text-[20px]";
+    "-ml-[14px] flex h-12 w-12 flex-none items-center justify-center text-[1.375rem] leading-none text-ink-soft md:mr-1 md:text-[1.25rem]";
 
   return (
-    <header className={cx("flex items-center pt-1.5 pb-3 md:py-2", className)}>
+    <header className={cx("flex items-start pt-1.5 pb-3 md:items-center md:py-2", className)}>
       {backHref ? (
         <Link href={backHref} aria-label={backLabel} onClick={onBack} className={backClass}>
           <span aria-hidden>‹</span>
@@ -59,12 +59,14 @@ export function SessionHeader({
       ) : null}
 
       <div className="min-w-0 flex-1 md:flex md:items-baseline md:gap-2">
-        <h1 className="truncate text-[16px] leading-[1.35] font-bold tracking-[-0.01em] text-ink md:shrink-0 md:text-[15.5px]">
+        <h1 className="truncate text-[1rem] leading-[1.35] font-bold tracking-[-0.01em] text-ink md:shrink-0 md:text-[0.9688rem]">
           {title}
         </h1>
-        <p className="mt-[1px] flex min-w-0 items-center gap-[5px] text-[12.5px] leading-[1.4] text-ink-muted md:mt-0">
-          <StatusDot tone={statusTone} />
-          <span className="min-w-0 truncate">{status}</span>
+        {/* 「AI는 어르신 역만 맡습니다」는 이 제품의 방어 논리입니다 —
+            390px에서 잘리지 않도록 모바일에서는 두 줄까지 허용합니다(md↑ 한 줄 유지). */}
+        <p className="mt-[1px] flex min-w-0 items-start gap-[5px] text-[0.7813rem] leading-[1.4] text-ink-muted md:mt-0 md:items-center">
+          <StatusDot tone={statusTone} className="relative top-[4px] md:top-0" />
+          <span className="min-w-0 md:truncate">{status}</span>
         </p>
       </div>
 
@@ -73,7 +75,7 @@ export function SessionHeader({
         <SessionProgressBar index={progress.index} total={progress.total} />
       </div>
 
-      {action && <div className="flex-none">{action}</div>}
+      {action && <div className="flex-none whitespace-nowrap">{action}</div>}
     </header>
   );
 }

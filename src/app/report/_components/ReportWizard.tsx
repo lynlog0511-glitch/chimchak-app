@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { RecordDraft } from "@/types";
 import { BigButton } from "@/components";
 import { maskText } from "@/engine/masking";
@@ -55,6 +55,31 @@ export function ReportWizard() {
   const [secondPassCount, setSecondPassCount] = useState(0);
   /** 실제 입력 시작 시각(첫 타이핑 또는 마이크 시작). 예시 문장 채우기는 포함하지 않는다. */
   const inputStartRef = useRef<number | null>(null);
+
+  /**
+   * 지금 화면의 제목. 단계가 바뀌면 여기로 초점을 옮깁니다.
+   * 각 단계 컴포넌트가 자기 h2에 이 ref를 붙이므로, 항상 **지금 보이는** 제목 하나만 가리킵니다.
+   */
+  const headingRef = useRef<HTMLHeadingElement | null>(null);
+  /** 마지막으로 보여 준 화면. 첫 렌더에서는 스크롤·초점을 건드리지 않습니다. */
+  const shownRef = useRef<string | null>(null);
+
+  /**
+   * 단계 전환 시 화면 맨 위로 되돌리고 새 단계 제목을 읽어 줍니다.
+   *
+   * 이걸 하지 않으면 ②로 넘어갔을 때 가림 결과 문단 중간에 떨어지고,
+   * 확정 뒤에는 「확정했습니다」가 뷰포트 위로 밀려나 확정 사실 자체가 화면에서 사라집니다.
+   * 값이 실제로 바뀐 때만 움직이므로, 같은 화면에서 효과가 다시 돌아도 초점을 빼앗지 않습니다.
+   */
+  useEffect(() => {
+    const shown = saved ? "confirmed" : `step-${step}`;
+    if (shownRef.current === shown) return;
+    const first = shownRef.current === null;
+    shownRef.current = shown;
+    if (first) return;
+    window.scrollTo(0, 0);
+    headingRef.current?.focus();
+  }, [step, saved]);
 
   const markInputStart = (): void => {
     if (inputStartRef.current === null) inputStartRef.current = Date.now();
@@ -136,28 +161,57 @@ export function ReportWizard() {
 
         {/* 확정 직후의 주인공은 이 한 줄입니다. */}
         <div className="mt-[18px]">
-          <h2 className="text-[19px] leading-[1.4] font-extrabold text-ok-ink">확정했습니다</h2>
-          <p className="mt-[3px] text-[12px] leading-[1.5] font-bold text-ok-ink">
+          <h2
+            ref={headingRef}
+            tabIndex={-1}
+            className="text-[1.1875rem] leading-[1.4] font-extrabold text-ok-ink"
+          >
+            확정했습니다
+          </h2>
+          <p className="mt-[3px] text-[0.75rem] leading-[1.5] font-bold text-ok-ink">
             이 기기에만 저장
           </p>
-          <p className="mt-[10px] text-[14px] leading-[1.75] text-ink">
+          <p className="mt-[10px] text-[0.875rem] leading-[1.75] text-ink">
             사용자가 확정한 뒤에만 기관 시스템으로 전달됩니다. 지금 남은 것은 가명처리 2단을 통과한
             텍스트뿐이며, 말씀하신 음성과 원문은 저장하지 않았습니다.
           </p>
-          <p className="mt-[8px] text-[12.5px] leading-[1.7] text-ink-soft">
+          <p className="mt-[8px] text-[0.7813rem] leading-[1.7] text-ink-soft">
             {secondPassCount > 0
               ? `저장 직전 2차 검사에서 ${secondPassCount}곳을 더 가렸습니다.`
               : "저장 직전 2차 검사에서 추가로 가릴 항목은 나오지 않았습니다."}
           </p>
-          {showElapsed && (
-            <p className="mt-[4px] text-[12.5px] leading-[1.7] text-ink-soft">
-              이번 기록 {formatElapsed(saved.elapsedSec as number)} · 손으로 쓰면 20~30분(현직
-              인터뷰 실측)
-            </p>
-          )}
         </div>
 
-        <p className="mt-6 text-[12.5px] leading-[1.5] font-bold text-ink-muted">
+        {/*
+          앱에서 유일한 절감 근거입니다. 예시 문장으로 시작하면 소요시간을 재지 않는데,
+          그때 이 블록이 통째로 사라지면 「그래서 얼마나 줄었나」에 답할 화면이 0이 됩니다.
+          비교 기준(손으로 쓰면 20~30분)은 항상 두고, 실측이 있을 때만 앞에 병기합니다.
+        */}
+        <div className="mt-[14px] rounded-[14px] bg-paper-2 px-4 py-[14px]">
+          <p className="text-[0.75rem] leading-[1.5] font-bold tracking-[0.06em] text-ink-muted">
+            걸린 시간
+          </p>
+          <p className="mt-[6px] text-[0.9375rem] leading-[1.55] font-bold text-ink">
+            {showElapsed && (
+              <>
+                이번 기록{" "}
+                <span className="chim-num text-brand-800">
+                  {formatElapsed(saved.elapsedSec as number)}
+                </span>{" "}
+                ·{" "}
+              </>
+            )}
+            손으로 쓰면 <span className="chim-num text-brand-800">20~30분</span>
+          </p>
+          <p className="mt-[6px] text-[0.7813rem] leading-[1.7] text-ink-soft">
+            20~30분은 현직 인터뷰 실측입니다.{" "}
+            {showElapsed
+              ? "이번 기록 시간은 처음 적기 시작한 순간부터 확정까지를 이 기기에서 잰 값입니다."
+              : "이번 회차는 예시 문장으로 시작해 소요 시간을 재지 않았습니다."}
+          </p>
+        </div>
+
+        <p className="mt-6 text-[0.7813rem] leading-[1.5] font-bold text-ink-muted">
           확정한 기록 초안 — 다섯 칸
         </p>
         <DraftRows draft={saved.draft} empty="confirmed" className="mt-[2px]" />
@@ -186,13 +240,27 @@ export function ReportWizard() {
             onChange={setText}
             onNext={() => setStep(2)}
             onInputStart={markInputStart}
+            headingRef={headingRef}
           />
         )}
 
-        {step === 2 && <MaskReview text={text} onBack={() => setStep(1)} onNext={goDraft} />}
+        {step === 2 && (
+          <MaskReview
+            text={text}
+            onBack={() => setStep(1)}
+            onNext={goDraft}
+            headingRef={headingRef}
+          />
+        )}
 
         {step === 3 && (
-          <DraftForm draft={draft} onChange={setDraft} onBack={() => setStep(2)} onConfirm={confirm} />
+          <DraftForm
+            draft={draft}
+            onChange={setDraft}
+            onBack={() => setStep(2)}
+            onConfirm={confirm}
+            headingRef={headingRef}
+          />
         )}
       </div>
     </div>

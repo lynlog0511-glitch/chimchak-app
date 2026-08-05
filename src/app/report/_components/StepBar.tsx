@@ -24,7 +24,7 @@ const STEPS: { n: 1 | 2 | 3; mark: string; label: string }[] = [
 export function StepBar({ current, finished = false }: StepBarProps) {
   return (
     <nav aria-label="기록 코칭 진행 단계">
-      <ol className="flex items-center gap-[8px] text-[12.5px] leading-[1.4] font-semibold">
+      <ol className="flex items-center gap-[8px] text-[0.7813rem] leading-[1.4] font-semibold">
         {STEPS.map((step, index) => {
           const done = finished || step.n < current;
           const active = !finished && step.n === current;

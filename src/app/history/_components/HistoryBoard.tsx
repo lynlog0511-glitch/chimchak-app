@@ -100,7 +100,7 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
 
   if (!loaded) {
     return (
-      <p className="mt-4 text-[12.5px] leading-[1.6] text-tertiary">
+      <p className="mt-4 text-[0.7813rem] leading-[1.6] text-tertiary">
         이 기기에 저장된 기록을 불러오는 중입니다.
       </p>
     );
@@ -116,14 +116,14 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
           className="mb-4 flex min-h-[48px] items-center gap-[10px] rounded-[14px] bg-tint px-[15px] py-[14px]"
         >
           <span className="min-w-0 flex-1">
-            <span className="block text-[12px] leading-[1.4] font-bold text-brand-700">
+            <span className="block text-[0.75rem] leading-[1.4] font-bold text-brand-700">
               다음엔 이 장면
             </span>
-            <span className="mt-[2px] block text-[14.5px] leading-[1.4] font-bold text-brand-900">
+            <span className="mt-[2px] block text-[0.9063rem] leading-[1.4] font-bold text-brand-900">
               {nextTrainingSentence(suggestion)}
             </span>
           </span>
-          <span className="flex-none text-[14px] font-bold whitespace-nowrap text-brand-700">
+          <span className="flex-none text-[0.875rem] font-bold whitespace-nowrap text-brand-700">
             가기 ›
           </span>
         </Link>
@@ -150,16 +150,16 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
         </div>
       ) : (
         <div className="border-b border-line px-[2px] py-[14px]">
-          <p className="text-[14.5px] leading-[1.5] font-bold text-ink">
+          <p className="text-[0.9063rem] leading-[1.5] font-bold text-ink">
             아직 완주한 훈련이 없습니다
           </p>
-          <p className="mt-[3px] text-[12.5px] leading-[1.6] text-ink-soft">
+          <p className="mt-[3px] text-[0.7813rem] leading-[1.6] text-ink-soft">
             정답을 맞히는 시험이 아니라 말이 나오게 만드는 연습입니다. 한 번 마치시면 이 자리에
             잘한 것과 다시 볼 것이 문장으로 남습니다.
           </p>
           <Link
             href="/train"
-            className="mt-[6px] inline-flex min-h-[48px] items-center text-[13px] font-bold text-brand-700"
+            className="mt-[6px] inline-flex min-h-[48px] items-center text-[0.8125rem] font-bold text-brand-700"
           >
             첫 훈련 시작하기 ›
           </Link>
@@ -169,11 +169,12 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
       {/* 이수 확인서 — 인쇄용 화면으로 나갑니다(이수 사실만 담습니다). */}
       <Link
         href="/history/certificate"
-        className="mt-4 flex min-h-[50px] w-full items-center justify-center rounded-[14px] border border-line-strong bg-white text-[14.5px] font-bold text-ink"
+        className="mt-4 flex min-h-[50px] w-full items-center justify-center rounded-[14px] border border-line-strong bg-white text-[0.9063rem] font-bold text-ink"
       >
         이수 확인서 만들기
       </Link>
-      <p className="mt-[6px] text-center text-[11.5px] leading-[1.5] text-tertiary">
+      {/* 안심 문구는 고지가 아니라 읽으라고 두는 줄입니다 — 크기·대비를 한 단계 올려 둡니다. */}
+      <p className="mt-[8px] text-center text-[0.8438rem] leading-[1.6] text-ink-soft">
         확인서에는 이수 사실만 담깁니다 — 판정·대화 내용 없음
       </p>
 
@@ -183,16 +184,16 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
         <ReportList reports={reports} />
       ) : (
         <div className="border-b border-line px-[2px] py-[14px]">
-          <p className="text-[14.5px] leading-[1.5] font-bold text-ink">
+          <p className="text-[0.9063rem] leading-[1.5] font-bold text-ink">
             아직 확정한 기록이 없습니다
           </p>
-          <p className="mt-[3px] text-[12.5px] leading-[1.6] text-ink-soft">
+          <p className="mt-[3px] text-[0.7813rem] leading-[1.6] text-ink-soft">
             오늘 있었던 일을 말로 보고하시면 가명처리를 거쳐 급여제공기록지 5요소 초안이
             만들어집니다.
           </p>
           <Link
             href="/report"
-            className="mt-[6px] inline-flex min-h-[48px] items-center text-[13px] font-bold text-brand-700"
+            className="mt-[6px] inline-flex min-h-[48px] items-center text-[0.8125rem] font-bold text-brand-700"
           >
             음성 보고하러 가기 ›
           </Link>
@@ -201,36 +202,41 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
 
       {/* 이 기록이 어디에 쓰이는지 — 면 카드 한 장으로 조용히 둡니다. */}
       <div className="mt-7 rounded-[14px] bg-paper-2 px-4 py-[14px]">
-        <p className="text-[12px] leading-[1.5] font-bold tracking-[0.06em] text-ink-muted">
+        <p className="text-[0.75rem] leading-[1.5] font-bold tracking-[0.06em] text-ink-muted">
           이 기록이 쓰이는 곳
         </p>
-        <p className="mt-[6px] text-[12.5px] leading-[1.7] text-ink-soft">
+        <p className="mt-[8px] text-[0.8438rem] leading-[1.7] text-ink-soft">
           훈련 이력은 이 기기에만 쌓입니다. 기관에서 요구하는 보수교육·직무평가 증빙으로 쓰실 수
           있도록 이수 여부와 이수 일시를 중심으로 남기며, 내부 판정 결과와 대화 내용은 기관
           관리자에게 공개되지 않고 인사평가에 연동하지 않습니다.
         </p>
-        <p className="mt-[6px] text-[12.5px] leading-[1.7] text-ink-soft">
+        {/* 오독 방지 — 확인서 하단 각주와 같은 문장을 여기에도 둡니다(경계는 두 곳에서 같아야 합니다). */}
+        <p className="mt-[8px] text-[0.8438rem] leading-[1.7] font-bold text-ink">
+          이 기록과 이수 확인서는 앱 기록 기반이며 법정 보수교육 이수 인정이 아닙니다 — 기관 자체
+          직무교육·정기평가 내부 증빙용입니다.
+        </p>
+        <p className="mt-[8px] text-[0.8438rem] leading-[1.7] text-ink-soft">
           훈련 대사는 가상 인물의 AI 생성 문장이며, 말씀하신 발화 원문은 어디에도 저장하지 않습니다.
         </p>
 
         <div className="mt-[14px] border-t border-line pt-[12px]">
           {confirmClear ? (
             <div>
-              <p className="text-[12.5px] leading-[1.6] font-bold text-danger-ink">
+              <p className="text-[0.7813rem] leading-[1.6] font-bold text-danger-ink">
                 이 기기에 저장된 훈련 이력과 확정 기록을 모두 지울까요? 되돌릴 수 없습니다.
               </p>
               <div className="mt-[10px] flex gap-2">
                 <button
                   type="button"
                   onClick={handleClear}
-                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-[14px] bg-danger-ink text-[14px] font-bold text-white"
+                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-[14px] bg-danger-ink text-[0.875rem] font-bold text-white"
                 >
                   네, 지웁니다
                 </button>
                 <button
                   type="button"
                   onClick={() => setConfirmClear(false)}
-                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-[14px] bg-white text-[14px] font-bold text-ink-soft"
+                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-[14px] bg-white text-[0.875rem] font-bold text-ink-soft"
                 >
                   취소
                 </button>
@@ -240,7 +246,7 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
             <button
               type="button"
               onClick={() => setConfirmClear(true)}
-              className="flex min-h-[48px] items-center text-[13px] font-bold text-ink-soft"
+              className="flex min-h-[48px] items-center text-[0.8125rem] font-bold text-ink-soft"
             >
               이 기기의 기록 지우기
             </button>

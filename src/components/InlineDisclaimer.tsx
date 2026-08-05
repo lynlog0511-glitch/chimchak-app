@@ -40,7 +40,7 @@ export function InlineDisclaimer({
       role="note"
       className={cx(
         "text-center leading-[1.6]",
-        size === "sm" ? "text-[10.5px]" : "text-[11.5px]",
+        size === "sm" ? "text-[0.6563rem]" : "text-[0.7188rem]",
         tone === "faint" ? "text-extra-faint" : "text-ink-muted",
         className,
       )}

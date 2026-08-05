@@ -94,19 +94,19 @@ export default function TrainIndexPage() {
               aria-label={`${scenario.title} — 브리핑 열기`}
               className="block rounded-[14px] bg-paper-2 px-4 py-[15px] transition-colors duration-150 ease-soft active:bg-neutral-line"
             >
-              <span className="block text-[12px] leading-[1.5] font-bold text-ink-muted">
+              <span className="block text-[0.75rem] leading-[1.5] font-bold text-ink-muted">
                 {eyebrow}
               </span>
-              <span className="mt-[4px] block text-[17px] leading-[1.4] font-bold text-ink">
+              <span className="mt-[4px] block text-[1.0625rem] leading-[1.4] font-bold text-ink">
                 {scenario.title}
               </span>
-              <span className="mt-[4px] block text-[13.5px] leading-[1.55] text-ink-soft">
+              <span className="mt-[4px] block text-[0.8438rem] leading-[1.55] text-ink-soft">
                 {CARD_SUMMARY[scenario.id] ?? scenario.summary}
               </span>
               <span className="mt-[10px] flex items-center gap-3">
                 {/* 해 본 횟수는 기기(localStorage)에서만 읽습니다 — 마운트 뒤에 채워집니다. */}
                 <PracticeCount scenarioId={scenario.id} />
-                <span aria-hidden className="ml-auto text-[14px] leading-none font-bold text-brand-700">
+                <span aria-hidden className="ml-auto text-[0.875rem] leading-none font-bold text-brand-700">
                   연습하기 ›
                 </span>
               </span>
@@ -117,7 +117,7 @@ export default function TrainIndexPage() {
 
       {/* 전체 12종 편성표 — 기본은 접혀 있습니다. 펼치면 유형 4종 × 난이도 3단계 매트릭스입니다. */}
       <details className="group mt-4">
-        <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 border-t border-line px-[2px] py-[13px] text-[14.5px] leading-[1.4] font-semibold text-ink [&::-webkit-details-marker]:hidden">
+        <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 border-t border-line px-[2px] py-[13px] text-[0.9063rem] leading-[1.4] font-semibold text-ink [&::-webkit-details-marker]:hidden">
           <span>
             전체 {SCENARIO_MATRIX.length}종 편성표{" "}
             <span className="font-medium text-ink-faint">
@@ -126,7 +126,7 @@ export default function TrainIndexPage() {
           </span>
           <span
             aria-hidden
-            className="flex-none text-[13px] leading-none text-ink-ghost transition-transform duration-150 group-open:rotate-180"
+            className="flex-none text-[0.8125rem] leading-none text-ink-ghost transition-transform duration-150 group-open:rotate-180"
           >
             ⌄
           </span>
@@ -144,16 +144,16 @@ export default function TrainIndexPage() {
                       key={`${cell.typeLabel}-${cell.level}`}
                       className="flex items-baseline gap-[10px] border-b border-line py-[9px] last:border-b-0"
                     >
-                      <span className="w-[30px] flex-none text-[12px] leading-[1.5] font-semibold text-ink-faint">
+                      <span className="w-[30px] flex-none text-[0.75rem] leading-[1.5] font-semibold text-ink-faint">
                         {levelLabelOf(cell.level)}
                       </span>
                       <span
-                        className={`min-w-0 flex-1 text-[13px] leading-[1.5] ${open ? "font-semibold text-ink" : "text-ink-muted"}`}
+                        className={`min-w-0 flex-1 text-[0.8125rem] leading-[1.5] ${open ? "font-semibold text-ink" : "text-ink-muted"}`}
                       >
                         {cell.title}
                       </span>
                       <span
-                        className={`flex-none text-[11.5px] leading-[1.5] font-semibold ${open ? "text-brand-700" : "text-ink-faint"}`}
+                        className={`flex-none text-[0.7188rem] leading-[1.5] font-semibold ${open ? "text-brand-700" : "text-ink-faint"}`}
                       >
                         {open ? "열림" : "준비 중"}
                       </span>
@@ -164,7 +164,7 @@ export default function TrainIndexPage() {
             </section>
           ))}
 
-          <p className="mt-[10px] text-[11.5px] leading-[1.6] text-ink-faint">
+          <p className="mt-[10px] text-[0.7188rem] leading-[1.6] text-ink-faint">
             열린 {openCount}종만으로 루브릭 30항목이 한 번씩 실행되고, 생성 통제 3계층(L1·L2·L3)이 모두
             지나갑니다. 잠긴 칸은 같은 루브릭 30항목을 그대로 재사용합니다.
             <br />
@@ -174,7 +174,7 @@ export default function TrainIndexPage() {
       </details>
 
       {/* 가상 인물 고지 한 줄 — 대사가 없는 화면이라 목록 끝에 조용히 답니다. */}
-      <p className="mt-[10px] text-[11.5px] leading-[1.6] text-ink-faint">{FICTION_NOTICE}</p>
+      <p className="mt-[10px] text-[0.7188rem] leading-[1.6] text-ink-faint">{FICTION_NOTICE}</p>
 
       <InlineDisclaimer size="md" tone="readable" className="mt-5 mb-6" />
     </PageShell>

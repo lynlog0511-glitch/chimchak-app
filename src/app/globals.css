@@ -75,6 +75,15 @@
   --color-paper: #ffffff; /* 화면 배경 */
   --color-paper-2: #f5f6f6; /* surface — 면 카드·AI 말풍선·입력 pill·보조 버튼 */
   --color-paper-out: #f1f2f0; /* 데스크톱 컬럼 밖 지면·아바타 바탕 */
+
+  /* ★ 데스크톱 세션 우측 레일 면 — **값은 paper-2와 같습니다**(역할 별칭입니다).
+     시안에 없던 생 hex `#fbfcfc`(SessionRail)를 대신합니다.
+     #fbfcfc는 흰색과 상대휘도 차가 1.5% 수준이라 '다른 면'으로도 '같은 지면'으로도 읽히지 않고
+     흰 지면이 탁해 보이는 효과만 냈습니다(심미 mi47 실측). 중간값은 쓰지 않습니다 —
+     가이드 §1이 '카드·입력 필드·보조 블록'에 지정한 면은 paper-2 하나뿐이고, 레일은 보조 블록입니다.
+     ※ 레일을 흰색으로 두기로 하면 이 토큰 대신 좌측 hairline 1px을 쓰세요(둘 중 하나만). */
+  --color-paper-rail: #f5f6f6;
+
   --color-line: #eef0ef; /* hairline — 행 구분·탭바 상단선 */
   --color-line-strong: #e4e7e5; /* 보더 — 흰 배경 버튼·유형별 4칸 테두리 */
 

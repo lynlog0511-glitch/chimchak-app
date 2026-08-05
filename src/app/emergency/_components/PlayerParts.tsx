@@ -101,7 +101,7 @@ export function ProtocolReadingLine({
     return (
       <p
         className={cx(
-          "flex items-center gap-[6px] text-[12.5px] leading-[1.5] font-bold text-danger-ink",
+          "flex items-center gap-[6px] text-[0.7813rem] leading-[1.5] font-bold text-danger-ink",
           className,
         )}
       >
@@ -112,7 +112,7 @@ export function ProtocolReadingLine({
   }
 
   return (
-    <p className={cx("text-[12.5px] leading-[1.5] font-bold text-ink-muted", className)}>
+    <p className={cx("text-[0.7813rem] leading-[1.5] font-bold text-ink-muted", className)}>
       {READING_TEXT[state]}
     </p>
   );
@@ -139,7 +139,7 @@ export function nextStepPreview(steps: ProtocolStep[], index: number): string | 
    [이전 | 잠시 멈춤] 아웃라인(line-strong 1px, 흰 바탕) + [다음 단계] 틸 채움(flex 1.4).
    최소 높이 52px — 손이 바쁜 상황에서 눌리는 크기입니다(터치 48px+ 하한을 넘깁니다). */
 const CONTROL_BASE =
-  "flex min-h-[52px] items-center justify-center rounded-[14px] px-3 text-[15px] " +
+  "flex min-h-[52px] items-center justify-center rounded-[14px] px-3 text-[0.9375rem] " +
   "transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-45";
 
 export const CONTROL_OUTLINE = `${CONTROL_BASE} flex-1 border border-line-strong bg-paper font-semibold text-ink-soft active:bg-paper-2`;
@@ -149,7 +149,7 @@ export const CONTROL_PRIMARY = `${CONTROL_BASE} flex-[1.4] bg-brand-600 font-bol
 
 /** 부수 조작 — 텍스트만. 48px 터치는 지킵니다. */
 export const CONTROL_QUIET =
-  "flex min-h-[48px] flex-1 items-center justify-center rounded-[12px] px-2 text-[13px] font-semibold " +
+  "flex min-h-[48px] flex-1 items-center justify-center rounded-[12px] px-2 text-[0.8125rem] font-semibold " +
   "text-ink-muted transition-colors duration-150 active:bg-paper-2 disabled:cursor-not-allowed disabled:opacity-45";
 
 /* ── 각주 2줄 (시안 6d 하단 · 가이드 §4.8) ────────────────────
@@ -160,7 +160,7 @@ export const CONTROL_QUIET =
    안전을 단언하는 문장에는 쓰지 않습니다(장식 각주가 아니라 읽혀야 하는 고지입니다). */
 export function ProtocolFootnote({ className }: { className?: string }) {
   return (
-    <p className={cx("text-center text-[11px] leading-[1.6] text-ink-muted", className)}>
+    <p className={cx("text-center text-[0.6875rem] leading-[1.6] text-ink-muted", className)}>
       {PROTOCOL_NOTICE}
       <br />
       신체 술기는 119 상황실이 목소리로 직접 지도합니다

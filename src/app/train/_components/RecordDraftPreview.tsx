@@ -62,15 +62,15 @@ export function RecordDraftPreview({
 
   return (
     <div className={cx("rounded-card p-4", outer, className)}>
-      <p className="text-[12px] leading-[1.5] font-bold tracking-[0.06em] text-ink-muted">
+      <p className="text-[0.75rem] leading-[1.5] font-bold tracking-[0.06em] text-ink-muted">
         기록 초안 미리보기 · 급여제공기록지 5요소
       </p>
-      <p className="mt-1 text-[12px] leading-[1.6] text-ink-muted">
+      <p className="mt-1 text-[0.75rem] leading-[1.6] text-ink-muted">
         말씀하신 내용에서 개인을 특정할 수 있는 부분을 먼저 가린 뒤 초안을 만들었습니다.
       </p>
 
       {/* 기록 초안 본문은 코어 콘텐츠입니다 — 17px 하한(§3). */}
-      <p className="mt-2.5 rounded-[14px] bg-white px-3.5 py-3 text-[17px] leading-[1.6] text-ink">
+      <p className="mt-2.5 rounded-[14px] bg-white px-3.5 py-3 text-[1.0625rem] leading-[1.6] text-ink">
         {parts.map((part, index) =>
           part.masked ? (
             <mark
@@ -87,7 +87,7 @@ export function RecordDraftPreview({
       </p>
 
       {kinds.length > 0 && (
-        <ul className="mt-2 space-y-1 text-[12px] leading-[1.65] text-ink-soft">
+        <ul className="mt-2 space-y-1 text-[0.75rem] leading-[1.65] text-ink-soft">
           {kinds.map((kind) => (
             <li key={kind} className="flex gap-2">
               <span className="shrink-0 font-bold text-warn-ink">{kind}</span>
@@ -105,7 +105,7 @@ export function RecordDraftPreview({
             <div
               key={slot}
               className={cx(
-                "flex gap-2 rounded-[14px] px-3 py-2 text-[13px] leading-[1.6]",
+                "flex gap-2 rounded-[14px] px-3 py-2 text-[0.8125rem] leading-[1.6]",
                 filled ? "bg-white" : "bg-warn-soft",
               )}
             >
@@ -121,7 +121,7 @@ export function RecordDraftPreview({
       </dl>
 
       {draft.missing.length > 0 && (
-        <p className="mt-2 text-[12px] leading-[1.65] font-semibold text-warn-ink">
+        <p className="mt-2 text-[0.75rem] leading-[1.65] font-semibold text-warn-ink">
           비어 있는 항목: {draft.missing.join(" · ")} — 한 문장만 덧붙이시면 기록지에 그대로 옮길 수
           있습니다.
         </p>

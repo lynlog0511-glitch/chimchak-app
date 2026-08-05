@@ -50,17 +50,17 @@ export function TrainingRow({ record, typeLabel }: TrainingRowProps) {
           aria-controls={panelId}
           className="min-h-[48px] min-w-0 flex-1 py-2 text-left"
         >
-          <span className="block text-[12px] leading-[1.4] text-tertiary">
+          <span className="block text-[0.75rem] leading-[1.4] text-tertiary">
             {formatShortDate(record.startedAt)} · {typeLabel}
           </span>
-          <span className="mt-[2px] block text-[15.5px] leading-[1.35] font-bold text-ink">
+          <span className="mt-[2px] block text-[0.9688rem] leading-[1.35] font-bold text-ink">
             {record.scenarioTitle}
           </span>
-          <span className="mt-[3px] line-clamp-2 block text-[12.5px] leading-[1.5] text-ink-soft">
+          <span className="mt-[3px] line-clamp-2 block text-[0.7813rem] leading-[1.5] text-ink-soft">
             <span className="font-bold text-ok-ink">잘한 것 {green}</span> · 다시 볼 것 {coaching} —{" "}
             {summaryTail(record)}
           </span>
-          <span className="mt-[3px] block text-[11.5px] leading-[1.4] text-tertiary">
+          <span className="mt-[3px] block text-[0.7188rem] leading-[1.4] text-tertiary">
             {open ? "접기" : "자세히 보기"}
           </span>
         </button>
@@ -68,7 +68,7 @@ export function TrainingRow({ record, typeLabel }: TrainingRowProps) {
         <Link
           href={trainHref(record.scenarioId)}
           aria-label={`${record.scenarioTitle} 다시 연습하기`}
-          className="flex min-h-[48px] flex-none items-center px-2 text-[13px] font-bold whitespace-nowrap text-brand-700"
+          className="flex min-h-[48px] flex-none items-center px-2 text-[0.8125rem] font-bold whitespace-nowrap text-brand-700"
         >
           다시 ›
         </Link>
@@ -76,8 +76,8 @@ export function TrainingRow({ record, typeLabel }: TrainingRowProps) {
 
       {open && (
         <div id={panelId} className="mb-[14px] rounded-[14px] bg-paper-2 px-4 py-[14px]">
-          <p className="text-[13px] leading-[1.5] font-bold text-ink">{record.endingTitle}</p>
-          <p className="mt-[3px] text-[12.5px] leading-[1.6] text-ink-soft">
+          <p className="text-[0.8125rem] leading-[1.5] font-bold text-ink">{record.endingTitle}</p>
+          <p className="mt-[3px] text-[0.7813rem] leading-[1.6] text-ink-soft">
             {verdictNote(record.verdict)}
           </p>
 
@@ -95,18 +95,19 @@ export function TrainingRow({ record, typeLabel }: TrainingRowProps) {
           />
 
           {record.cfCount > 0 && (
-            <p className="mt-[14px] rounded-[12px] bg-danger-soft px-3 py-[10px] text-[12.5px] leading-[1.6] font-semibold text-danger-ink">
+            <p className="mt-[14px] rounded-[12px] bg-danger-soft px-3 py-[10px] text-[0.7813rem] leading-[1.6] font-semibold text-danger-ink">
               안전과 직결된 구간에서 즉시 중단 안내를 받으셨습니다. 대안 행동을 확인하신 뒤 같은
               상황을 다시 연습해 보세요.
             </p>
           )}
 
-          <p className="mt-[12px] text-[11.5px] leading-[1.5] text-tertiary">
+          <p className="mt-[12px] text-[0.7188rem] leading-[1.5] text-tertiary">
             대화 <span className="chim-num">{record.turnCount}</span>턴
             {record.retriesUsed > 0 && " · 다시 해보기 사용"} · 마친 시각{" "}
             {formatDateTime(record.endedAt)}
           </p>
-          <p className="mt-[4px] text-[11.5px] leading-[1.5] text-tertiary">
+          {/* 안심 문구 — 캡션 등급(11.5px tertiary)에서 읽히는 등급으로 올려 둡니다. */}
+          <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
             대사는 가상 인물의 AI 생성 문장이며, 말씀하신 발화 원문은 저장하지 않습니다.
           </p>
         </div>
@@ -130,7 +131,7 @@ function RowList({
     <div className="mt-[14px]">
       <p
         className={cx(
-          "text-[12px] leading-[1.5] font-bold tracking-[0.06em]",
+          "text-[0.75rem] leading-[1.5] font-bold tracking-[0.06em]",
           labelClass,
         )}
       >
@@ -139,13 +140,13 @@ function RowList({
       {items.length > 0 ? (
         <ul className="chim-hairline mt-[4px] border-t border-line">
           {items.map((item, index) => (
-            <li key={index} className="py-[8px] text-[13px] leading-[1.6] text-ink">
+            <li key={index} className="py-[8px] text-[0.8125rem] leading-[1.6] text-ink">
               {item}
             </li>
           ))}
         </ul>
       ) : (
-        <p className="mt-[4px] text-[12.5px] leading-[1.6] text-tertiary">{empty}</p>
+        <p className="mt-[4px] text-[0.7813rem] leading-[1.6] text-tertiary">{empty}</p>
       )}
     </div>
   );

@@ -6,7 +6,7 @@
  * 시나리오 데이터를 해석하거나 대사를 지어내지 않습니다(대사는 데이터의 앵커 문구 그대로).
  */
 
-import type { CueDef, PersonaDef, Scenario, SessionState, TurnDef } from "@/types";
+import type { BranchDef, CueDef, PersonaDef, Scenario, SessionState, TurnDef } from "@/types";
 import {
   advanceAfterCF,
   advanceAuto,
@@ -37,6 +37,80 @@ export const RESTORED_LOG_NOTICE_PARTIAL =
  * 발화 원문은 저장하지 않으므로(브리프 §2) 되살릴 때는 이 문구로 대신합니다.
  */
 export const RESTORED_UTTERANCE = "(직접 말씀하신 응답)";
+
+/**
+ * 멈춰 세웠던 지점(⚑CF)에서 저장된 훈련을 이어서 열었을 때의 한 줄.
+ *
+ * 몇 시간 뒤 돌아오신 분이 처음 보는 화면이 「잠깐, 여기서 멈춥니다」 시트가 되지 않도록,
+ * 시트는 다시 띄우지 않고 **그 CUE 대기 상태**로 되돌린 뒤 로그에 이 문장만 남깁니다.
+ */
+export const RESUMED_AT_CF_NOTICE = "지난번에 멈췄던 장면입니다.";
+
+/* ── 시연 프리셋 (?demo=) ─────────────────────────────────── */
+
+/**
+ * 발표용 빨리감기 지점.
+ *  - `cf`  : ⚑CF가 열리는 CUE **직전**
+ *  - `l3`  : L3 응급 안내로 넘어가는 CUE **직전** (B02)
+ *  - `end` : 엔딩으로 끝나는 CUE **직전**
+ *
+ * 엔진은 손대지 않습니다 — 시나리오 데이터에서 고른 분기 id를 `submitResponse`로 그대로 재생합니다.
+ */
+export type DemoPreset = "cf" | "l3" | "end";
+
+const DEMO_PRESETS: readonly DemoPreset[] = ["cf", "l3", "end"];
+
+/**
+ * `?demo=` 쿼리 값을 프리셋으로 읽습니다. 모르는 값이면 `undefined` — 쿼리가 없을 때와 같습니다.
+ *
+ * @example parseDemoPreset("L3") // "l3"
+ * @example parseDemoPreset("아무거나") // undefined
+ */
+export function parseDemoPreset(value: string | null | undefined): DemoPreset | undefined {
+  if (!value) return undefined;
+  const key = value.trim().toLowerCase();
+  return DEMO_PRESETS.find((preset) => preset === key);
+}
+
+/** 자동 재생한 구간을 숨기지 않습니다 — 로그 맨 위에 그대로 밝힙니다. */
+export const DEMO_LOG_BANNER = "시연용 빨리감기 — 여기까지 자동 재생했습니다";
+
+/** 분기의 루브릭 평균 점수 — 자동 재생은 「잘 대응한 갈래」를 따라갑니다. */
+function branchQuality(branch: BranchDef): number {
+  if (branch.rubricHits.length === 0) return 0;
+  let sum = 0;
+  for (const hit of branch.rubricHits) sum += hit.score;
+  return sum / branch.rubricHits.length;
+}
+
+/** 자동 재생이 고를 분기 — ⚑CF·재훈련 권고 분기는 지나가지 않습니다. */
+function demoBranch(cue: CueDef): BranchDef | undefined {
+  const safe = cue.branches.filter(
+    (branch) => branch.criticalFail !== true && branch.retrainAdvice !== true,
+  );
+  const pool = safe.length > 0 ? safe : cue.branches;
+  let best: BranchDef | undefined;
+  for (const branch of pool) {
+    if (!best) {
+      best = branch;
+      continue;
+    }
+    const delta = branchQuality(branch) - branchQuality(best);
+    if (delta > 0 || (delta === 0 && branch.gaugeDelta < best.gaugeDelta)) best = branch;
+  }
+  return best;
+}
+
+/** 이 CUE에서 자동 재생을 멈출지 — 보여 드릴 장면 「직전」에서 손을 뗍니다. */
+function demoStopsBefore(
+  cue: CueDef,
+  preset: DemoPreset,
+  chosen: BranchDef | undefined,
+): boolean {
+  if (preset === "cf") return cue.branches.some((branch) => branch.criticalFail === true);
+  if (preset === "l3") return cue.branches.some((branch) => branch.next.startsWith("protocol:"));
+  return Boolean(chosen && chosen.next.startsWith("end:"));
+}
 
 /* ── 로그 ──────────────────────────────────────────────── */
 
@@ -88,7 +162,9 @@ export type TrainAction =
   | { type: "protocolDone" }
   | { type: "restart" }
   /** 저장해 둔 결정 목록을 순서대로 다시 넣어 진행 상태를 되짚습니다 */
-  | { type: "resume"; progress: SessionProgress };
+  | { type: "resume"; progress: SessionProgress }
+  /** 시연용 빨리감기 — 프리셋 지점 직전까지 분기를 자동으로 재생합니다 */
+  | { type: "demo"; preset: DemoPreset };
 
 /* ── 헬퍼 ──────────────────────────────────────────────── */
 
@@ -503,6 +579,29 @@ export function makeTrainReducer(scenario: Scenario) {
         // 한 턴도 되살리지 못했으면 그냥 처음부터 시작하는 편이 정직합니다.
         if (replayed === 0) return begun;
 
+        /* 멈춰 세웠던 지점에서 저장된 경우 — ⚑CF 시트를 다시 띄우지 않습니다.
+           몇 시간 뒤 돌아오신 분이 처음 보는 화면이 전면 인터럽트가 되지 않도록,
+           그 CUE 대기 상태로 되돌리고 무슨 자리인지만 로그에 한 줄로 밝힙니다. */
+        if (next.session.status === "interrupted") {
+          next = {
+            ...next,
+            session: advanceAfterCF(scenario, next.session),
+            critical: null,
+            lastFeedback: null,
+            attempt: next.attempt + 1,
+            log: [
+              ...next.log,
+              {
+                key: `resume-cf-${next.seq}`,
+                kind: "notice",
+                text: RESUMED_AT_CF_NOTICE,
+                tone: "brand",
+              },
+            ],
+            seq: next.seq + 1,
+          };
+        }
+
         // 되살리지 못한 ⚑CF가 있어도 횟수만은 사실대로 남깁니다.
         // (새로고침 한 번으로 ⚑CF가 없던 일이 되면 안 됩니다. 판정 자체는 그대로 엔진이 한 것입니다.)
         const cfCount = Math.max(
@@ -524,6 +623,59 @@ export function makeTrainReducer(scenario: Scenario) {
               text: skipped > 0 ? RESTORED_LOG_NOTICE_PARTIAL : RESTORED_LOG_NOTICE,
               tone: "brand",
             },
+            ...next.log,
+          ],
+        };
+      }
+
+      /**
+       * 시연용 빨리감기 — 프리셋이 가리키는 장면 **직전**까지 자동으로 재생합니다.
+       *
+       * 판정은 전부 엔진이 다시 합니다(`submit`을 그대로 돌립니다). 화면이 결과를 지어내지 않고,
+       * 자동으로 지나간 구간은 로그 맨 위 배너로 밝힙니다 — 쿼리가 없으면 이 경로를 타지 않습니다.
+       */
+      case "demo": {
+        const begun = reduce(state, { type: "start" });
+        let next = begun;
+        let played = 0;
+
+        // 데이터가 잘못 이어져 있어도 화면이 멈추지 않도록 상한을 둡니다.
+        for (let guard = 0; guard < 24; guard += 1) {
+          if (next.session.status === "protocol") {
+            const done = reduce(next, { type: "protocolDone" });
+            if (done === next) break;
+            next = done;
+            continue;
+          }
+          // 자동 재생은 ⚑CF를 지나가지 않습니다(안전 분기만 고릅니다). 만나면 거기서 손을 뗍니다.
+          if (next.phase !== "session" || next.session.status !== "running") break;
+
+          const turn = currentTurn(scenario, next.session);
+          const cue = turn?.cue;
+          if (!turn || !cue) break;
+
+          const branch = demoBranch(cue);
+          // 첫 CUE에서 곧바로 멈추면 빨리감기가 아무 일도 하지 않습니다 —
+          // 한 턴은 반드시 재생한 뒤부터 「직전」을 셉니다(A01은 CUE-1에도 ⚑CF 분기가 있습니다).
+          if (played > 0 && demoStopsBefore(cue, action.preset, branch)) break;
+          if (!branch) break;
+
+          const after = reduce(next, {
+            type: "submit",
+            input: { branchId: branch.id, viaButton: true },
+          });
+          if (after === next) break;
+          next = after;
+          played += 1;
+        }
+
+        // 한 턴도 재생하지 않았으면 그냥 처음부터입니다 — 배너를 붙이지 않습니다.
+        if (played === 0) return begun;
+
+        return {
+          ...next,
+          log: [
+            { key: "demo-banner", kind: "notice", text: DEMO_LOG_BANNER, tone: "brand" },
             ...next.log,
           ],
         };

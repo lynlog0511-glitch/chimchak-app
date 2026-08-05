@@ -7,13 +7,17 @@ import { EvidenceFlow } from "./_components/EvidenceFlow";
 import { LiveMeterPanel } from "./_components/LiveMeterPanel";
 import { LiveProofPanel } from "./_components/LiveProofPanel";
 import { MaskingPipeline } from "./_components/MaskingPipeline";
+import { PlanTag } from "./_components/PlanTag";
+import { ReviewLedger } from "./_components/ReviewLedger";
+import { RubricAllList } from "./_components/RubricAllList";
+import { RuleEngineProof } from "./_components/RuleEngineProof";
 import { SafetyToc, type TocItem } from "./_components/SafetyToc";
 import { TierShareDiagram } from "./_components/TierShareDiagram";
 
 export const metadata: Metadata = {
   title: "안전·개인정보 설계",
   description:
-    "3계층 생성통제, 기록 코칭 개인정보 경로, 폴백 매트릭스, 근거 문서 화이트리스트, 의료기기 경계, 접근권한 3등급",
+    "3계층 생성통제, 기록 코칭 개인정보 경로, 폴백 매트릭스, 근거 문서 화이트리스트, 의료기기 경계, 접근권한 3등급, 루브릭 30항목과 감수 이력",
 };
 
 /* ── 안전 설계 = 시안 7b ───────────────────────────────────────
@@ -21,7 +25,11 @@ export const metadata: Metadata = {
      → 「위험할수록 AI의 지분이 줄어듭니다」 지분 막대
      → 「지금 이 기기에서 — 실시간 계측」 두 칸
      → 「개인정보가 움직이는 길 — 한 줄뿐입니다」 3칩
-     → 그 아래로 상세(3계층 표·개인정보 경로·폴백·화이트리스트·의료기기 경계·접근권한).
+     → 그 아래로 상세(3계층 표·개인정보 경로·폴백·화이트리스트·의료기기 경계·접근권한
+       ·루브릭 30항목과 감수 이력) → 기관 담당자용 요약 한 장.
+
+   화면이 「지금 되는 것」과 「설계까지 한 것」을 같은 말투로 섞지 않도록,
+   아직 구현하지 않은 항목에는 「계획」 배지를 답니다(접근권한 표의 두 행·가명처리 6단의 저장).
 
    상세는 하나도 지우지 않았습니다 — 목차 칩이 가리키는 여섯 항목으로 자리만 옮겼고,
    길이가 부담스러운 흐름도만 접어 두었습니다(펼치면 그대로 있습니다).
@@ -53,13 +61,13 @@ function Section({
   return (
     // 목차 칩이 위에 붙어 있으므로, 앵커로 뛰었을 때 제목이 칩 아래에 놓이도록 여백을 둡니다.
     <section id={id} className="scroll-mt-[68px]">
-      <p className="chim-num text-[12px] leading-[1.5] font-bold tracking-[0.06em] text-ink-muted">
+      <p className="chim-num text-[0.75rem] leading-[1.5] font-bold tracking-[0.06em] text-ink-muted">
         {num}
       </p>
-      <h2 className="mt-[2px] text-[17px] leading-[1.4] font-extrabold tracking-[-0.01em] text-ink">
+      <h2 className="mt-[2px] text-[1.0625rem] leading-[1.4] font-extrabold tracking-[-0.01em] text-ink">
         {title}
       </h2>
-      {lead && <p className="mt-[6px] text-[13.5px] leading-[1.65] text-ink-soft">{lead}</p>}
+      {lead && <p className="mt-[6px] text-[0.8438rem] leading-[1.65] text-ink-soft">{lead}</p>}
       <div className="mt-[14px]">{children}</div>
     </section>
   );
@@ -106,12 +114,12 @@ function Note({
     return (
       <details className={cx("group rounded-[14px]", NOTE_SURFACE[tone], className)}>
         <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-2 px-[15px] py-[12px] [&::-webkit-details-marker]:hidden">
-          <span className={cx("min-w-0 flex-1 text-[14px] leading-[1.45] font-extrabold", headTone)}>
+          <span className={cx("min-w-0 flex-1 text-[0.875rem] leading-[1.45] font-extrabold", headTone)}>
             {title}
           </span>
           <span
             aria-hidden
-            className="flex-none text-[17px] leading-none text-faint transition-transform duration-150 ease-soft group-open:rotate-90"
+            className="flex-none text-[1.0625rem] leading-none text-faint transition-transform duration-150 ease-soft group-open:rotate-90"
           >
             ›
           </span>
@@ -124,7 +132,7 @@ function Note({
   return (
     <div className={cx("rounded-[14px] px-[15px] py-[14px]", NOTE_SURFACE[tone], className)}>
       {title && (
-        <p className={cx("text-[14px] leading-[1.45] font-extrabold", headTone)}>{title}</p>
+        <p className={cx("text-[0.875rem] leading-[1.45] font-extrabold", headTone)}>{title}</p>
       )}
       <div className={cx(title && "mt-[6px]")}>{children}</div>
     </div>
@@ -157,14 +165,14 @@ function DataRows({
       <ul className="chim-hairline border-y border-line">
         {rows.map((row, ri) => (
           <li key={ri} className="py-[14px]">
-            <p className="text-[14.5px] leading-[1.45] font-extrabold text-ink">{row.head}</p>
+            <p className="text-[0.9063rem] leading-[1.45] font-extrabold text-ink">{row.head}</p>
             <dl className="mt-[7px]">
               {row.cells.map((cell, ci) => (
                 <div key={ci} className={ci > 0 ? "mt-[8px]" : undefined}>
-                  <dt className="text-[11.5px] leading-[1.4] font-bold tracking-[0.04em] text-ink-muted">
+                  <dt className="text-[0.7188rem] leading-[1.4] font-bold tracking-[0.04em] text-ink-muted">
                     {columns[ci]}
                   </dt>
-                  <dd className="mt-[2px] text-[13.5px] leading-[1.6] text-ink">{cell}</dd>
+                  <dd className="mt-[2px] text-[0.8438rem] leading-[1.6] text-ink">{cell}</dd>
                 </div>
               ))}
             </dl>
@@ -198,7 +206,8 @@ const PRIVACY_STEPS = [
   { step: "2차 가명처리", desc: "저장 직전에 한 번 더 검사합니다." },
   {
     step: "저장",
-    desc: "확정한 텍스트만 남습니다(이 데모에서는 이 기기의 브라우저 저장소). 기관 연동 시 전송 TLS 1.3 · 저장 AES-256으로 설계했습니다.",
+    desc: "확정한 텍스트만 남습니다(이 데모에서는 이 기기의 브라우저 저장소).",
+    plan: "기관 연동 시 전송 TLS 1.3 · 저장 AES-256으로 설계했습니다 — 이 데모에는 기관 연동 자체가 없습니다.",
   },
 ];
 
@@ -227,6 +236,25 @@ const DOC_RULES = [
   },
 ];
 
+/**
+ * 기관 담당자가 「그래서 우리한테 뭐가 나옵니까」에 답을 찾는 자리 — 세 줄이면 충분합니다.
+ * 가격·계약 조건은 여기에 적지 않습니다(이 화면은 안전 설계 문서이지 견적서가 아닙니다).
+ */
+const INSTITUTION_ITEMS: readonly { t: string; d: string }[] = [
+  {
+    t: "훈련 이력 증빙",
+    d: "누가 어떤 상황을 언제 훈련했는지 이수 확인서로 정리해 드립니다.",
+  },
+  {
+    t: "기록 초안",
+    d: "말로 보고하면 가명처리된 기록 초안이 나옵니다 — 기록에 드는 시간이 줄어듭니다.",
+  },
+  {
+    t: "관리자에게는 이수 여부만",
+    d: "점수와 대화 내용은 관리자에게 공개하지 않습니다(위 접근권한 3등급).",
+  },
+];
+
 /* 판정 표기 — 이모지 대신 표준 마크를 문장 안에 그대로 놓습니다. */
 const MET = <StatusMark kind="met" label="충족" size="sm" quiet />;
 const COACH = <StatusMark kind="coach" label="코칭" size="sm" quiet />;
@@ -244,7 +272,7 @@ export default function SafetyPage() {
       <section aria-labelledby="tier-share-title" className="pt-[10px]">
         <h2
           id="tier-share-title"
-          className="text-[16px] leading-[1.4] font-extrabold tracking-[-0.01em] text-ink"
+          className="text-[1rem] leading-[1.4] font-extrabold tracking-[-0.01em] text-ink"
         >
           위험할수록 AI의 지분이 줄어듭니다
         </h2>
@@ -258,7 +286,7 @@ export default function SafetyPage() {
       <section aria-labelledby="privacy-path-title" className="mt-[16px]">
         <h2
           id="privacy-path-title"
-          className="text-[12.5px] leading-[1.5] font-bold text-ink-muted"
+          className="text-[0.7813rem] leading-[1.5] font-bold text-ink-muted"
         >
           개인정보가 움직이는 길 — 한 줄뿐입니다
         </h2>
@@ -267,26 +295,26 @@ export default function SafetyPage() {
             <li key={chip.label} className="flex items-center gap-[7px]">
               <span
                 className={cx(
-                  "rounded-[8px] px-[10px] py-[7px] text-[12.5px] leading-[1.4] font-semibold",
+                  "rounded-[8px] px-[10px] py-[7px] text-[0.7813rem] leading-[1.4] font-semibold",
                   chip.tint ? "bg-brand-tint text-brand-on-tint" : "bg-paper-2 text-ink-soft",
                 )}
               >
                 {chip.label}
               </span>
               {i < PATH_CHIPS.length - 1 && (
-                <span aria-hidden className="text-[12.5px] leading-none text-faint">
+                <span aria-hidden className="text-[0.7813rem] leading-none text-faint">
                   ›
                 </span>
               )}
             </li>
           ))}
         </ol>
-        <p className="mt-[7px] text-[11.5px] leading-[1.6] text-tertiary">
+        <p className="mt-[7px] text-[0.7188rem] leading-[1.6] text-tertiary">
           원문은 저장하지 않습니다 — 세션이 끝나면 사라집니다
         </p>
       </section>
 
-      <p className="mt-[22px] text-[13.5px] leading-[1.65] text-ink-soft">
+      <p className="mt-[22px] text-[0.8438rem] leading-[1.65] text-ink-soft">
         침착은 공식 근거가 확인된 범위에서만 피드백하고, 근거가 부족하거나 실제 응급 상황에서는
         생성 대신 검수된 안내를 내보냅니다. 아래는 그 경계를 어디에 그었는지에 대한 기록입니다.
       </p>
@@ -333,17 +361,20 @@ export default function SafetyPage() {
             ]}
           />
 
+          {/* 규칙 엔진 실행 로그 — 「규칙이 판정한다」는 주장 바로 아래에 그 검증 결과를 놓습니다. */}
+          <RuleEngineProof className="mt-4" />
+
           {/* 흐름도 — 세로 스텝 목록은 그대로 보이고, 큰 다이어그램은 그 안에서 한 번 더 접힙니다. */}
           <div className="mt-6">
             <EvidenceFlow />
           </div>
 
           <Note tone="danger" className="mt-4">
-            <p className="text-[13.5px] leading-[1.65] font-bold text-danger-ink">
+            <p className="text-[0.8438rem] leading-[1.65] font-bold text-danger-ink">
               응급 화면에는 「이 안내는 사전 검수된 고정 문구입니다 · AI 생성 아님」을 상시
               표시하고, 119 버튼을 항상 노출합니다.
             </p>
-            <p className="mt-[6px] text-[13.5px] leading-[1.65] text-ink">
+            <p className="mt-[6px] text-[0.8438rem] leading-[1.65] text-ink">
               몸에 손이 닿는 술기는 화면으로 지도하지 않습니다. 해당 구간에서는 「이 부분은 119
               상황실이 목소리로 직접 지도합니다」로 넘깁니다.
             </p>
@@ -359,30 +390,36 @@ export default function SafetyPage() {
         >
           <div className="space-y-[8px]">
             <div className="rounded-[14px] bg-paper-2 px-[15px] py-[14px]">
-              <p className="text-[14px] leading-[1.45] font-extrabold text-brand-800">훈련 경로</p>
-              <p className="mt-[6px] text-[13.5px] leading-[1.65] text-ink">
-                상대는 전부 가상 인물이고 개인정보 입력란이 존재하지 않습니다. 외부 전송 0건.
+              <p className="text-[0.875rem] leading-[1.45] font-extrabold text-brand-800">훈련 경로</p>
+              <p className="mt-[6px] text-[0.8438rem] leading-[1.65] text-ink">
+                상대는 전부 가상 인물이고 개인정보 입력란이 존재하지 않습니다. 침착 서버로 보내는
+                것 0건 · 음성 인식은 브라우저 내장 기능이라 기기·브라우저에 따라 제조사 서버를
+                경유할 수 있으며, 원문은 저장하지 않습니다.
+              </p>
+              {/* 마이크를 아예 안 쓰는 길이 있다는 사실을 같은 자리에서 알려 드립니다. */}
+              <p className="mt-[6px] text-[0.8125rem] leading-[1.6] text-ink-soft">
+                타이핑·버튼으로만 하시면 네트워크를 전혀 쓰지 않고 끝까지 훈련하실 수 있습니다.
               </p>
             </div>
             <div className="rounded-[14px] bg-paper-2 px-[15px] py-[14px]">
-              <p className="text-[14px] leading-[1.45] font-extrabold text-ink">
+              <p className="text-[0.875rem] leading-[1.45] font-extrabold text-ink">
                 이 데모에서의 동작
               </p>
-              <p className="mt-[6px] text-[13.5px] leading-[1.65] text-ink">
+              <p className="mt-[6px] text-[0.8438rem] leading-[1.65] text-ink">
                 세션 기록은 이 기기의 브라우저 저장소에만 남습니다. 발화 원문은 저장하지 않고,
                 화면을 벗어나는 순간 사라집니다.
               </p>
             </div>
           </div>
 
-          <p className="mt-6 text-[14.5px] leading-[1.45] font-extrabold text-ink">
+          <p className="mt-6 text-[0.9063rem] leading-[1.45] font-extrabold text-ink">
             기록 코칭 경로 — 개인정보는 이 한 줄로만 움직입니다
           </p>
 
           <MaskingPipeline steps={PRIVACY_STEPS} className="mt-[10px]" />
 
           <Note tone="warn" title="외부 경계" className="mt-4">
-            <p className="text-[13.5px] leading-[1.65] text-ink">
+            <p className="text-[0.8438rem] leading-[1.65] text-ink">
               이 선을 넘어가는 것은 가명처리 2단을 통과한 텍스트뿐입니다. 가명처리 대상은
               성명·연락처·인정번호·주소·생년·기관명 6종이며, 처리 후에도 가명정보로 취급합니다.
               확정 버튼을 누른 뒤에만 기관 시스템으로 보냅니다.
@@ -439,7 +476,7 @@ export default function SafetyPage() {
           />
 
           <Note tone="quiet" className="mt-4">
-            <p className="text-[13.5px] leading-[1.65] text-ink">
+            <p className="text-[0.8438rem] leading-[1.65] text-ink">
               마이크가 없거나 음성 인식이 되지 않는 환경에서도 모든 훈련을 버튼만으로 끝까지 진행할
               수 있습니다. 버튼 폴백은 예비 수단이 아니라 1급 경로입니다.
             </p>
@@ -458,13 +495,13 @@ export default function SafetyPage() {
           <ol className="chim-hairline mt-6 border-y border-line">
             {DOC_RULES.map((r) => (
               <li key={r.t} className="py-[13px]">
-                <p className="text-[14px] leading-[1.45] font-extrabold text-ink">{r.t}</p>
-                <p className="mt-[3px] text-[13px] leading-[1.6] text-ink-soft">{r.d}</p>
+                <p className="text-[0.875rem] leading-[1.45] font-extrabold text-ink">{r.t}</p>
+                <p className="mt-[3px] text-[0.8125rem] leading-[1.6] text-ink-soft">{r.d}</p>
               </li>
             ))}
           </ol>
 
-          <p className="mt-[10px] text-[11.5px] leading-[1.6] text-tertiary">
+          <p className="mt-[10px] text-[0.7188rem] leading-[1.6] text-tertiary">
             화면에서는 피드백마다 근거 출처 칩이 붙습니다. 칩을 누르면 어떤 문서인지 확인할 수
             있습니다.
           </p>
@@ -480,15 +517,15 @@ export default function SafetyPage() {
           <dl className="chim-hairline border-y border-line">
             {NOT_MEDICAL.map((n) => (
               <div key={n.k} className="py-[13px]">
-                <dt className="text-[14px] leading-[1.45] font-extrabold text-brand-800">{n.k}</dt>
-                <dd className="mt-[3px] text-[13.5px] leading-[1.6] text-ink">{n.v}</dd>
+                <dt className="text-[0.875rem] leading-[1.45] font-extrabold text-brand-800">{n.k}</dt>
+                <dd className="mt-[3px] text-[0.8438rem] leading-[1.6] text-ink">{n.v}</dd>
               </div>
             ))}
           </dl>
 
           <div className="mt-4 space-y-[8px]">
             <Note tone="warn" title="전 화면 고정 고지" collapsible>
-              <p className="text-[13.5px] leading-[1.65] text-ink">
+              <p className="text-[0.8438rem] leading-[1.65] text-ink">
                 「본 서비스는 훈련·교육 목적이며 119 신고 및 의료인의 진단·처방을 대체하지
                 않습니다.」를 모든 화면에 표시합니다. 효과를 단정하는 표현, 임상 판정을 흉내 내는
                 표현, 처치를 지시하는 표현 등 8종은 금지 표현 목록으로 정해 두고 화면 문구에서
@@ -497,7 +534,7 @@ export default function SafetyPage() {
               </p>
             </Note>
             <Note tone="quiet" title="오채점은 비대칭으로 다룹니다" collapsible>
-              <p className="text-[13.5px] leading-[1.65] text-ink">
+              <p className="text-[0.8438rem] leading-[1.65] text-ink">
                 맞는 대응에 {COACH}을 주는 것보다, 틀린 대응에 {MET}을 주는 쪽이 훨씬 위험합니다.
                 후자는 0건을 목표로 합니다. 확신이 낮을 때 판정을 「보류」로 표시하는 단계는 설계에
                 넣어 두었고, 알파에서는 아직 구현하지 않았습니다. 대신 알파는 근거를 찾지 못하면
@@ -505,7 +542,7 @@ export default function SafetyPage() {
               </p>
             </Note>
             <Note tone="brand">
-              <p className="text-[13.5px] leading-[1.65] text-ink">
+              <p className="text-[0.8438rem] leading-[1.65] text-ink">
                 화면에는 점수·등급·순위·백분위를 표시하지 않습니다. {MET}과 {COACH} 두 가지, 코칭 한
                 문장, 근거 출처까지가 전부입니다.
               </p>
@@ -520,6 +557,13 @@ export default function SafetyPage() {
           title="접근권한 3등급"
           lead="내부 판정 결과가 인사평가로 흘러가면 아무도 솔직하게 실패하지 않습니다. 실패 없는 훈련은 효과가 0이 되기 때문에, 권한을 처음부터 나눠 두었습니다."
         >
+          {/* 「지금 되는 것」과 「설계까지 한 것」을 표에 들어가기 전에 먼저 갈라 둡니다. */}
+          <p className="mb-[12px] text-[0.8125rem] leading-[1.65] text-ink-soft">
+            이 데모에서 실제로 동작하는 것은 「사용자」 행 하나입니다. 기관 관리자 콘솔과 기관
+            시스템 연동은 설계까지 끝냈고 아직 구현하지 않았습니다 — 아래 표에 「계획」으로
+            표시해 두었습니다.
+          </p>
+
           <DataRows
             caption="접근권한 3등급"
             columns={["볼 수 있는 것", "볼 수 없는 것", "추가 통제"]}
@@ -535,7 +579,12 @@ export default function SafetyPage() {
                 ],
               },
               {
-                head: "기관 관리자",
+                head: (
+                  <>
+                    기관 관리자{" "}
+                    <PlanTag />
+                  </>
+                ),
                 cells: [
                   "소속 인원의 이수 여부와 이수 일시",
                   "내부 판정 결과, 대화 전문, 발화 원문",
@@ -543,7 +592,12 @@ export default function SafetyPage() {
                 ],
               },
               {
-                head: "운영자",
+                head: (
+                  <>
+                    운영자{" "}
+                    <PlanTag />
+                  </>
+                ),
                 cells: [
                   "장애 대응에 필요한 최소 범위",
                   "개인을 식별할 수 있는 원문",
@@ -554,22 +608,68 @@ export default function SafetyPage() {
           />
 
           <Note tone="quiet" className="mt-4">
-            <p className="text-[13.5px] leading-[1.65] text-ink">
+            <p className="text-[0.8438rem] leading-[1.65] text-ink">
               비밀번호는 Argon2id로 해시해 저장합니다. 국내 리전 처리가 기본값이며, 국외 사업자를
               쓰게 되면 「개인정보 보호법」 제28조의8에 따라 이전 국가·항목·목적·보유기간을 명시해
               공개합니다.
             </p>
-            <p className="mt-[8px] text-[11.5px] leading-[1.6] text-tertiary">
+            <p className="mt-[8px] text-[0.7188rem] leading-[1.6] text-tertiary">
               대응 조항 · 「개인정보 보호법」 제16·21·26·28조의8·34조 · 「개인정보의 안전성 확보조치
               기준」 제5·6·8조 · AI 기본법상 고영향 AI 비해당.
             </p>
           </Note>
+
+          {/* 센터장이 실제로 던지는 질문 하나에 대한 답 — 조문 번호가 아니라 주어와 시한으로. */}
+          <Note tone="quiet" title="개인정보가 유출되면 누가 신고합니까" className="mt-[8px]">
+            <p className="text-[0.8438rem] leading-[1.65] text-ink">
+              유출 정황을 알게 되면 24시간 안에 정보주체와 기관에 알립니다. 요건에 해당하면
+              개인정보보호위원회 또는 한국인터넷진흥원(KISA)에 신고하는데, 그 신고의 주체는
+              개인정보처리자인 기관입니다. 침착은 처리를 위탁받은 쪽이라 사실 확인 자료와
+              접속기록, 통지 문안 초안을 지체 없이 드리고 기술 조치를 함께 진행합니다.
+            </p>
+          </Note>
+        </Section>
+
+        {/* 7. 판정 기준과 감수 이력 — 「자산을 보여 달라」는 요청에 화면이 답하는 자리입니다. */}
+        <Section
+          id="rubric"
+          num="07"
+          title="루브릭 30항목과 감수 이력"
+          lead="이 제품의 자산은 모델이 아니라 루브릭 30항목입니다. 감추고 믿어 달라고 하는 대신, 판정 기준 문장을 전부 펴 두고 누가 어디까지 감수했는지도 같이 적었습니다."
+        >
+          <RubricAllList />
+          <ReviewLedger className="mt-[8px]" />
         </Section>
       </div>
 
+      {/* 기관 담당자용 요약 — 화면의 주인공이 아니므로 작게 둡니다(가격·숫자는 적지 않습니다). */}
+      <section
+        aria-labelledby="institution-summary-title"
+        className="mt-7 rounded-[14px] bg-paper-2 px-[15px] py-[14px]"
+      >
+        <h2
+          id="institution-summary-title"
+          className="text-[0.7813rem] leading-[1.5] font-bold text-ink-muted"
+        >
+          기관 도입 시 제공되는 것
+        </h2>
+        <ul className="chim-hairline mt-[8px] border-y border-line">
+          {INSTITUTION_ITEMS.map((item) => (
+            <li key={item.t} className="py-[10px]">
+              <p className="text-[0.8438rem] leading-[1.45] font-bold text-ink">{item.t}</p>
+              <p className="mt-[2px] text-[0.7813rem] leading-[1.6] text-ink-muted">{item.d}</p>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-[9px] text-[0.8125rem] leading-[1.6] text-ink-soft">
+          법정 보수교육 이수 인정은 아니며, 기관 내부 교육 기록·평가 대비 자료로 활용하실 수
+          있습니다.
+        </p>
+      </section>
+
       {/* 하단 — 고정 문구를 다시 한 번 놓고 훈련·응급으로 내보냅니다. */}
       <div className="mt-7 rounded-[14px] bg-paper-2 px-[15px] py-[16px]">
-        <p className="text-[15px] leading-[1.5] font-extrabold text-ink">
+        <p className="text-[0.9375rem] leading-[1.5] font-extrabold text-ink">
           정답을 맞히는 시험이 아니라, 말이 나오게 만드는 연습입니다.
         </p>
         <div className="mt-[14px] flex flex-col gap-2">

@@ -52,19 +52,19 @@ export function PrivacyPath({ reached, className }: PrivacyPathProps) {
             <li key={step.n} aria-current={active ? "step" : undefined} className="py-[9px]">
               <p
                 className={cx(
-                  "text-[13px] leading-[1.45] font-bold",
+                  "text-[0.8125rem] leading-[1.45] font-bold",
                   active ? "text-brand-800" : done ? "text-ink" : "text-tertiary",
                 )}
               >
                 <span className="chim-num">{step.n}</span>. {step.title}
-                {active && <span className="ml-[6px] text-[11.5px] font-bold">지금 여기</span>}
+                {active && <span className="ml-[6px] text-[0.7188rem] font-bold">지금 여기</span>}
                 <span className="sr-only">
                   {done ? " 지나온 단계" : active ? " 현재 단계" : " 다음 단계"}
                 </span>
               </p>
               <p
                 className={cx(
-                  "mt-[2px] text-[12px] leading-[1.6]",
+                  "mt-[2px] text-[0.75rem] leading-[1.6]",
                   step.n <= reached ? "text-ink-soft" : "text-tertiary",
                 )}
               >
@@ -77,10 +77,10 @@ export function PrivacyPath({ reached, className }: PrivacyPathProps) {
 
       {/* 이 화면에서 색 면으로 남기는 블록은 이 경계 안내 하나입니다. */}
       <div className="mt-[14px] rounded-[14px] bg-warn-soft px-4 py-[14px]">
-        <p className="text-[14px] leading-[1.6] font-bold text-warn-ink">
+        <p className="text-[0.875rem] leading-[1.6] font-bold text-warn-ink">
           기기 밖으로 나가는 것은 가명처리 2단을 통과한 텍스트뿐입니다.
         </p>
-        <p className="mt-[6px] text-[12.5px] leading-[1.7] text-ink-soft">
+        <p className="mt-[6px] text-[0.7813rem] leading-[1.7] text-ink-soft">
           말한 음성과 원문은 이 기기 안에만 있고 저장하지 않습니다. 가명처리 대상은
           성명·번호·기관명·주소·생년이며, 처리 후에도 가명정보로 다룹니다.
         </p>

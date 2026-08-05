@@ -71,15 +71,15 @@ export function ProtocolPlayer({ title, steps, backHref }: ProtocolPlayerProps) 
         <div className="flex items-center gap-3">
           <Link
             href={backHref}
-            className="-ml-2 flex min-h-[48px] items-center gap-[5px] px-2 text-[14px] font-semibold text-ink-muted transition-colors duration-150 active:text-ink"
+            className="-ml-2 flex min-h-[48px] items-center gap-[5px] px-2 text-[0.875rem] font-semibold text-ink-muted transition-colors duration-150 active:text-ink"
           >
-            <span aria-hidden className="text-[19px] leading-none">
+            <span aria-hidden className="text-[1.1875rem] leading-none">
               ‹
             </span>
             안내 종료
           </Link>
           {/* 제목이 길어도 「N / M」은 잘리지 않습니다 — 잘리는 쪽은 언제나 제목입니다. */}
-          <p className="ml-auto flex min-w-0 items-baseline gap-[5px] text-[13px] leading-[1.4] font-bold text-ink-soft">
+          <p className="ml-auto flex min-w-0 items-baseline gap-[5px] text-[0.8125rem] leading-[1.4] font-bold text-ink-soft">
             <span className="min-w-0 truncate">{title}</span>
             <span className="chim-num flex-none">
               · {index + 1} / {total}
@@ -101,20 +101,20 @@ export function ProtocolPlayer({ title, steps, backHref }: ProtocolPlayerProps) 
 
         <p
           aria-live="polite"
-          className="mt-3 text-[29px] leading-[1.45] font-extrabold tracking-[-0.015em] text-ink md:text-[40px]"
+          className="mt-3 text-[1.8125rem] leading-[1.45] font-extrabold tracking-[-0.015em] text-ink md:text-[2.5rem]"
         >
           {silent ? "안내 음성을 여기서 멈춥니다." : voiceText}
         </p>
 
         {/* 화면 보조 문구 — 데이터의 `screen`은 사용자가 그대로 읽는 문장입니다(레이아웃 지시문 아님). */}
         {step?.screen && (
-          <p className="mt-3 text-[15px] leading-[1.65] text-ink-soft">{step.screen}</p>
+          <p className="mt-3 text-[0.9375rem] leading-[1.65] text-ink-soft">{step.screen}</p>
         )}
 
         {step?.address && <ProtocolAddressCard address={step.address} className="mt-4" />}
 
         {preview && (
-          <p className="mt-4 text-[13.5px] leading-[1.6] text-tertiary">다음 — {preview}</p>
+          <p className="mt-4 text-[0.8438rem] leading-[1.6] text-tertiary">다음 — {preview}</p>
         )}
       </div>
 
@@ -145,7 +145,7 @@ export function ProtocolPlayer({ title, steps, backHref }: ProtocolPlayerProps) 
 
       {/* 아래는 재생을 방해하지 않는 보조 영역입니다 — 위계를 낮춰 선 하나로만 나눕니다. */}
       {!ttsSupported && (
-        <p className="mt-5 rounded-[14px] bg-warn-soft px-4 py-3 text-[14px] leading-[1.6] font-semibold text-warn-ink">
+        <p className="mt-5 rounded-[14px] bg-warn-soft px-4 py-3 text-[0.875rem] leading-[1.6] font-semibold text-warn-ink">
           이 기기에서는 음성 안내를 사용할 수 없습니다. 자막이 같은 속도로 자동 진행되니 화면을 보고
           따라 주세요.
         </p>
@@ -193,7 +193,7 @@ export function ProtocolPlayer({ title, steps, backHref }: ProtocolPlayerProps) 
                 <span
                   aria-hidden
                   className={cx(
-                    "chim-num flex h-7 w-7 flex-none items-center justify-center rounded-[9px] text-[12.5px] font-extrabold",
+                    "chim-num flex h-7 w-7 flex-none items-center justify-center rounded-[9px] text-[0.7813rem] font-extrabold",
                     /* 빨강은 119 버튼 하나로 족합니다 — 지금 단계 표시는 danger **면**으로만(5b 마커와 같은 언어). */
                     current ? "bg-danger-soft text-danger-ink" : "bg-paper-2 text-ink-muted",
                   )}
@@ -202,7 +202,7 @@ export function ProtocolPlayer({ title, steps, backHref }: ProtocolPlayerProps) 
                 </span>
                 <span
                   className={cx(
-                    "min-w-0 flex-1 text-[14.5px] leading-[1.55]",
+                    "min-w-0 flex-1 text-[0.9063rem] leading-[1.55]",
                     current ? "font-bold text-ink" : "text-ink-soft",
                   )}
                 >

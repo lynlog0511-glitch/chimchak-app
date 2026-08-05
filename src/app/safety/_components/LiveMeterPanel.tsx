@@ -35,14 +35,14 @@ function MeterCell({
     <div className="min-w-0 flex-1 rounded-[10px] bg-paper px-[12px] py-[10px]">
       <p
         className={cx(
-          "chim-num text-[22px] leading-[1.2] font-extrabold tracking-[-0.02em]",
+          "chim-num text-[1.375rem] leading-[1.2] font-extrabold tracking-[-0.02em]",
           tone === "danger" ? "text-danger-ink" : "text-ink",
         )}
       >
         {value}
-        <span className="text-[12px] font-semibold text-ink-muted"> {unit}</span>
+        <span className="text-[0.75rem] font-semibold text-ink-muted"> {unit}</span>
       </p>
-      <p className="mt-[1px] text-[11.5px] leading-[1.5] text-ink-muted">{label}</p>
+      <p className="mt-[1px] text-[0.7188rem] leading-[1.5] text-ink-muted">{label}</p>
     </div>
   );
 }
@@ -71,7 +71,7 @@ export function LiveMeterPanel({ className }: LiveMeterPanelProps) {
             clean ? "bg-ok" : "bg-danger",
           )}
         />
-        <h2 id="live-meter-title" className="text-[12.5px] leading-[1.5] font-bold text-ink">
+        <h2 id="live-meter-title" className="text-[0.7813rem] leading-[1.5] font-bold text-ink">
           지금 이 기기에서 — 실시간 계측
         </h2>
       </div>
@@ -87,18 +87,18 @@ export function LiveMeterPanel({ className }: LiveMeterPanelProps) {
       </div>
 
       {mounted && !clean && (
-        <p className="mt-[8px] text-[11.5px] leading-[1.55] font-bold text-danger-ink">
+        <p className="mt-[8px] text-[0.7188rem] leading-[1.55] font-bold text-danger-ink">
           외부 출처 요청이 잡혔습니다 — 감추지 않고 아래 「데이터」 항목에 그대로 나열합니다.
         </p>
       )}
 
       {mounted && !measuring && stored === 0 && (
-        <p className="mt-[8px] text-[11.5px] leading-[1.55] text-tertiary">
+        <p className="mt-[8px] text-[0.7188rem] leading-[1.55] text-tertiary">
           지금 이 실행에서는 아직 저장 전입니다 — 응급 안내 저장은 프로덕션 실행에서 이뤄집니다.
         </p>
       )}
 
-      <p className="mt-[8px] text-[11.5px] leading-[1.55] text-tertiary">
+      <p className="mt-[8px] text-[0.7188rem] leading-[1.55] text-tertiary">
         의심되시면 개발자도구 네트워크 탭을 함께 봐 주세요
       </p>
     </section>

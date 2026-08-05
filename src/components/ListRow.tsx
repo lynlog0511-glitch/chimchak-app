@@ -8,14 +8,14 @@ export type ListRowSize = "md" | "lg";
 const SIZE: Record<ListRowSize, { row: string; title: string; subtitle: string; gap: string }> = {
   md: {
     row: "py-[15px] px-[2px]",
-    title: "text-[16px]",
-    subtitle: "text-[13px]",
+    title: "text-[1rem]",
+    subtitle: "text-[0.8125rem]",
     gap: "gap-3",
   },
   lg: {
     row: "py-4 px-[2px]",
-    title: "text-[17.5px]",
-    subtitle: "text-[12.5px]",
+    title: "text-[1.0938rem]",
+    subtitle: "text-[0.7813rem]",
     gap: "gap-[13px]",
   },
 };
@@ -85,7 +85,7 @@ export function ListRow({
         )}
       </span>
       {trailing ?? (
-        <span aria-hidden className="flex-none text-[17px] leading-none text-faint">
+        <span aria-hidden className="flex-none text-[1.0625rem] leading-none text-faint">
           ›
         </span>
       )}

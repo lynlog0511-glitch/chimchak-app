@@ -27,7 +27,7 @@ export default function CertificatePage() {
           action={
             <Link
               href="/history"
-              className="flex min-h-[48px] items-center px-1 text-[13.5px] font-semibold text-ink-muted"
+              className="flex min-h-[48px] items-center px-1 text-[0.8438rem] font-semibold text-ink-muted"
             >
               닫기
             </Link>

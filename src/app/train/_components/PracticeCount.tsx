@@ -26,7 +26,7 @@ export function PracticeCount({ scenarioId, className }: PracticeCountProps) {
   }, [scenarioId]);
 
   return (
-    <span className={cx("chim-num text-[12px] leading-[1.5] text-ink-faint", className)}>
+    <span className={cx("chim-num text-[0.75rem] leading-[1.5] text-ink-faint", className)}>
       {count === null ? "" : count > 0 ? `해 본 횟수 ${count}` : "아직 안 해봄"}
     </span>
   );

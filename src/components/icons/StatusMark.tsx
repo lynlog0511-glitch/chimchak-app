@@ -1,3 +1,4 @@
+import { CHECK_PATH_IN_CIRCLE } from "./glyphs";
 import { cx } from "../utils";
 
 export type StatusMarkKind = "met" | "coach" | "stop";
@@ -74,8 +75,9 @@ function MarkShape({ kind, className }: { kind: StatusMarkKind; className?: stri
       {kind === "met" && (
         <>
           <circle cx="12" cy="12" r="8.6" fill="currentColor" stroke="none" />
-          {/* 흰 체크는 도형 위 그래픽 — ok(#1E9E6A) 대비 3.4:1로 3:1 기준을 넘습니다. */}
-          <path d="m8.2 12.3 2.6 2.6 5-5.4" stroke="#ffffff" strokeWidth={2.2} />
+          {/* 흰 체크는 도형 위 그래픽 — ok(#1E9E6A) 대비 3.4:1로 3:1 기준을 넘습니다.
+              기하는 glyphs.tsx 한 곳에만 둡니다(텍스트 ✓와 이원화되지 않도록 — 심미 mi45). */}
+          <path d={CHECK_PATH_IN_CIRCLE} stroke="#ffffff" strokeWidth={2.2} />
         </>
       )}
       {kind === "coach" && <circle cx="12" cy="12" r="8.2" />}

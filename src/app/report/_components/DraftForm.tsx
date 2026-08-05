@@ -1,5 +1,6 @@
 "use client";
 
+import type { Ref } from "react";
 import type { RecordDraft } from "@/types";
 import { BigButton, SourceChip, cx } from "@/components";
 import { RECORD_SLOT_LABELS, recomputeMissing, type RecordSlot } from "@/engine/record";
@@ -11,6 +12,8 @@ export interface DraftFormProps {
   onChange: (next: RecordDraft) => void;
   onBack: () => void;
   onConfirm: () => void;
+  /** 이 단계의 제목에 붙는 ref — 단계가 바뀔 때 위저드가 여기로 초점을 옮깁니다. */
+  headingRef?: Ref<HTMLHeadingElement>;
 }
 
 interface SlotSpec {
@@ -45,7 +48,7 @@ const SLOTS: SlotSpec[] = [
  * 5요소를 편집할 수 있고, 비어 있는 칸은 「채워 주세요」로 강조합니다.
  * 확정은 사용자가 직접 눌러야만 일어납니다 — 그 규칙은 그대로입니다.
  */
-export function DraftForm({ draft, onChange, onBack, onConfirm }: DraftFormProps) {
+export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: DraftFormProps) {
   const setSlot = (key: RecordSlot, value: string): void => {
     const next: RecordDraft = { ...draft };
     next[key] = value;
@@ -57,10 +60,10 @@ export function DraftForm({ draft, onChange, onBack, onConfirm }: DraftFormProps
 
   return (
     <div>
-      <h2 className="text-[17px] leading-[1.45] font-bold text-ink">
+      <h2 ref={headingRef} tabIndex={-1} className="text-[1.0625rem] leading-[1.45] font-bold text-ink">
         급여제공기록지 초안을 확인하고 고쳐 주세요
       </h2>
-      <p className="mt-[6px] text-[12.5px] leading-[1.7] text-ink-muted">
+      <p className="mt-[6px] text-[0.7813rem] leading-[1.7] text-ink-muted">
         가명처리를 마친 문장에서 5요소를 나눠 담았습니다. 기기 안의 규칙으로 나눈 초안이라 어색한
         곳이 있을 수 있습니다. 사실과 다르면 바로 고쳐 주세요.
       </p>
@@ -69,7 +72,7 @@ export function DraftForm({ draft, onChange, onBack, onConfirm }: DraftFormProps
       </div>
 
       {missingCount > 0 && (
-        <p role="status" className="mt-4 text-[13px] leading-[1.6] font-bold text-warn-ink">
+        <p role="status" className="mt-4 text-[0.8125rem] leading-[1.6] font-bold text-warn-ink">
           비어 있는 칸이 <span className="chim-num">{missingCount}</span>곳 있습니다 —{" "}
           {draft.missing.join(" · ")}. 아래에서 채워 주세요.
         </p>
@@ -83,7 +86,7 @@ export function DraftForm({ draft, onChange, onBack, onConfirm }: DraftFormProps
           const fieldId = `draft-${slot.key}`;
           const hintId = `${fieldId}-hint`;
           const shared = cx(
-            "mt-[6px] w-full rounded-[14px] border bg-white p-[13px] text-[15px] leading-[1.7] text-ink placeholder:text-tertiary focus:outline-none",
+            "mt-[6px] w-full rounded-[14px] border bg-white p-[13px] text-[0.9375rem] leading-[1.7] text-ink placeholder:text-tertiary focus:outline-none",
             empty
               ? "border-warn-line focus:border-warn-ink"
               : "border-line-strong focus:border-brand-400",
@@ -92,11 +95,11 @@ export function DraftForm({ draft, onChange, onBack, onConfirm }: DraftFormProps
           return (
             <div key={slot.key}>
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                <label htmlFor={fieldId} className="text-[13px] leading-[1.5] font-bold text-ink">
+                <label htmlFor={fieldId} className="text-[0.8125rem] leading-[1.5] font-bold text-ink">
                   {label}
                 </label>
                 {empty && (
-                  <span id={hintId} className="text-[12px] leading-[1.5] font-bold text-warn-ink">
+                  <span id={hintId} className="text-[0.75rem] leading-[1.5] font-bold text-warn-ink">
                     채워 주세요 — {SLOT_PROMPTS[slot.key]}
                   </span>
                 )}
@@ -131,8 +134,8 @@ export function DraftForm({ draft, onChange, onBack, onConfirm }: DraftFormProps
       <PrivacyPath reached={4} className="mt-6" />
 
       <div className="mt-6 rounded-[14px] bg-paper-2 px-4 py-[14px]">
-        <p className="text-[14px] leading-[1.5] font-bold text-ink">확정은 사용자가 누릅니다</p>
-        <p className="mt-[6px] text-[12.5px] leading-[1.7] text-ink-soft">
+        <p className="text-[0.875rem] leading-[1.5] font-bold text-ink">확정은 사용자가 누릅니다</p>
+        <p className="mt-[6px] text-[0.7813rem] leading-[1.7] text-ink-soft">
           사용자가 확정한 뒤에만 기관 시스템으로 전달됩니다. 확정 직전에 2차 가명처리를 한 번 더
           돌리고, 이 기기의 저장소에만 남깁니다. 최종 기록의 내용과 책임은 작성하신 분에게
           있습니다.
@@ -143,7 +146,7 @@ export function DraftForm({ draft, onChange, onBack, onConfirm }: DraftFormProps
         이대로 확정하기
       </BigButton>
       {allEmpty && (
-        <p className="mt-[6px] text-center text-[11.5px] leading-[1.5] text-tertiary">
+        <p className="mt-[6px] text-center text-[0.7188rem] leading-[1.5] text-tertiary">
           5요소가 모두 비어 있어 아직 확정할 수 없습니다. 한 칸이라도 채워 주세요
         </p>
       )}

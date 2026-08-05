@@ -12,7 +12,7 @@ import {
   saveSession,
   type SessionProgress,
 } from "@/lib/storage";
-import type { EmergencyProtocol, Scenario } from "@/types";
+import type { EmergencyProtocol, Scenario, TurnDef } from "@/types";
 import { BriefingPanel } from "./BriefingPanel";
 import { CriticalInterrupt } from "./CriticalInterrupt";
 import { CueResponder } from "./CueResponder";
@@ -26,6 +26,7 @@ import {
   EMOTION_WORD,
   emotionLevel,
   FICTION_NOTICE,
+  NEW_LINE_ANCHOR,
   SESSION_STATUS_ENDED,
   SESSION_STATUS_PROTOCOL,
   sessionSubtitle,
@@ -34,6 +35,7 @@ import { cueProgress } from "./sessionProgress";
 import {
   initialTrainState,
   makeTrainReducer,
+  parseDemoPreset,
   type CriticalInterruptState,
   type LogItem,
 } from "./sessionMachine";
@@ -78,6 +80,59 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   const [speakingKey, setSpeakingKey] = useState("");
   const spokenKeyRef = useRef<string>("");
   const savedIdRef = useRef<string>("");
+
+  /**
+   * ⚑CF 시트에서 고르신 대안 문장.
+   * 같은 CUE로 돌아왔을 때 보기 맨 위에 다시 세웁니다 — 다음 응답을 보내면 지웁니다.
+   */
+  const [chosenAlternative, setChosenAlternative] = useState<string>("");
+
+  /* ── 하단 도킹 (모바일: 페이지 스크롤 하나 + 컴포저 도크) ─────────
+     도크가 로그 바닥을 가리므로, 그 높이만큼을 스크롤 여백으로 로그에 알려 줍니다.
+     md↑ 2단에서는 도크가 대화 아래 자기 자리에 서므로 가리는 것이 없어 0입니다. */
+  const [dockNode, setDockNode] = useState<HTMLDivElement | null>(null);
+  const [dockHeight, setDockHeight] = useState(0);
+
+  useEffect(() => {
+    if (!dockNode) {
+      setDockHeight(0);
+      return undefined;
+    }
+    const desktop = window.matchMedia("(min-width: 768px)");
+    const measure = () => {
+      setDockHeight(desktop.matches ? 0 : Math.round(dockNode.getBoundingClientRect().height));
+    };
+    measure();
+    const observer =
+      typeof ResizeObserver === "undefined" ? undefined : new ResizeObserver(measure);
+    observer?.observe(dockNode);
+    desktop.addEventListener("change", measure);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer?.disconnect();
+      desktop.removeEventListener("change", measure);
+      window.removeEventListener("resize", measure);
+    };
+  }, [dockNode]);
+
+  /** 새로 등장한 인물 대사가 화면 밖일 때 컴포저 위에 뜨는 앵커 */
+  const [newLine, setNewLine] = useState<{ offscreen: boolean; speaker: TurnDef["speaker"] }>({
+    offscreen: false,
+    speaker: "system",
+  });
+  const scrollToLatestLineRef = useRef<(() => void) | null>(null);
+
+  const handleLatestLineOffscreen = useCallback(
+    (offscreen: boolean, speaker: TurnDef["speaker"]) => {
+      setNewLine((prev) =>
+        prev.offscreen === offscreen && prev.speaker === speaker ? prev : { offscreen, speaker },
+      );
+    },
+    [],
+  );
+
+  /** 엔딩 패널 — 완주 직후 이 자리를 화면 맨 위로 끌어옵니다 */
+  const endingRef = useRef<HTMLDivElement | null>(null);
 
   const turn = currentTurn(scenario, state.session);
   const cue = state.session.status === "running" ? currentCue(scenario, state.session) : undefined;
@@ -179,6 +234,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     (input: { utterance?: string; branchId?: string; viaButton: boolean }) => {
       stopSpeaking();
       setSpeakingKey("");
+      setChosenAlternative("");
       dispatch({ type: "submit", input });
     },
     [],
@@ -196,9 +252,31 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     setCheckpoint(null);
     setAtBriefing(false);
     setCriticalScene(null);
+    setChosenAlternative("");
     dispatch({ type: "start" });
     scrollToTop();
   }, [scenario.id, scrollToTop]);
+
+  /**
+   * 시연 프리셋 — `/train/[id]?demo=cf|l3|end`.
+   *
+   * 쿼리를 **마운트 뒤에** 한 번만 읽습니다(쿼리가 없으면 이 경로를 타지 않아 동작이 완전히 같습니다).
+   * 재생은 엔진의 `submitResponse`가 그대로 하고, 지나간 구간은 로그 맨 위 배너로 밝힙니다.
+   */
+  const demoAppliedRef = useRef(false);
+
+  useEffect(() => {
+    if (demoAppliedRef.current) return;
+    demoAppliedRef.current = true;
+    if (typeof window === "undefined") return;
+    const preset = parseDemoPreset(new URLSearchParams(window.location.search).get("demo"));
+    if (!preset) return;
+    setCheckpoint(null);
+    setAtBriefing(false);
+    setCriticalScene(null);
+    setChosenAlternative("");
+    dispatch({ type: "demo", preset });
+  }, []);
 
   const handleRestart = useCallback(() => {
     stopSpeaking();
@@ -208,15 +286,18 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     setCheckpoint(null);
     setAtBriefing(false);
     setCriticalScene(null);
+    setChosenAlternative("");
     dispatch({ type: "restart" });
     scrollToTop();
   }, [scenario.id, scrollToTop]);
 
   /**
    * ⚑CF 시트를 닫고 같은 장면으로 돌아갑니다.
-   * 대안을 고르셨으면 그 문구를 로그에 한 줄로 남깁니다 — 발화로 전송하지는 않습니다.
+   * 대안을 고르셨으면 그 문구를 로그에 한 줄로 남기고, **보기 맨 위에 그 문장을 다시 세웁니다** —
+   * 대안을 골라 놓고 버튼으로 다시 고를 수 없으면 「버튼만으로 끝까지」 약속이 그 지점에서 깨집니다.
    */
   const handleRetryAfterCritical = useCallback((alternative?: string) => {
+    setChosenAlternative((alternative ?? "").trim());
     dispatch({ type: "retryAfterCritical", alternative });
   }, []);
 
@@ -229,6 +310,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     dispatch({ type: "resume", progress: checkpoint });
     setCheckpoint(null);
     setAtBriefing(false);
+    setChosenAlternative("");
     scrollToTop();
   }, [checkpoint, scrollToTop]);
 
@@ -245,6 +327,28 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     setAtBriefing(true);
     scrollToTop();
   }, [scenario.id, scrollToTop]);
+
+  /**
+   * 완주 직후 — 엔딩 패널을 화면 맨 위로 끌어옵니다.
+   * 훈련을 끝내고도 축하도 다음 행동 버튼도 화면 밖 아래에 숨어 있던 자리입니다(평가 UX c2).
+   */
+  useEffect(() => {
+    if (state.phase !== "ended") return undefined;
+    /* 엔딩 패널이 이 커밋에서 갓 마운트되므로, ref가 잡힐 때까지 몇 프레임 재시도합니다.
+       (첫 rAF에 ref가 비어 있으면 scrollTo(0,0) 폴백이 c2를 재현합니다 — 실측으로 확인된 함정) */
+    let frame = 0;
+    let tries = 0;
+    const attempt = () => {
+      const node = endingRef.current;
+      if (node) {
+        node.scrollIntoView({ block: "start", behavior: "auto" });
+        return;
+      }
+      if (tries++ < 10) frame = window.requestAnimationFrame(attempt);
+    };
+    frame = window.requestAnimationFrame(attempt);
+    return () => window.cancelAnimationFrame(frame);
+  }, [state.phase]);
 
   /* ── 브리핑 ───────────────────────────────────────────── */
 
@@ -275,14 +379,20 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
       : sessionSubtitle(scenario, progress.index);
 
   const interrupted = state.critical !== null;
+  const composing = Boolean(cue && turn && !ended && !inProtocol);
 
   return (
     <>
-      {/* ⚑CF 시트가 떠 있는 동안 세션은 뒤로 물러납니다 (시안 6c — 배경 .25 + 딤 .32). */}
+      {/* ⚑CF 시트가 떠 있는 동안 세션은 뒤로 물러납니다 (시안 6c — 배경 .25 + 딤 .32).
+
+          **모바일: 페이지 스크롤 하나**(가이드 §5). 대화가 251px 창에 갇혀 있던 구조를 걷어내고,
+          컴포저만 화면 아래에 도킹합니다 — 내용이 길면 페이지가 늘어나는 것이 정상입니다.
+          **md↑**: 시안 7d 그대로 뷰포트에 고정된 2단(대화 + 레일)입니다. */}
       <div
         aria-hidden={interrupted || undefined}
         className={cx(
-          "flex min-h-0 flex-1 flex-col",
+          "flex min-h-[calc(100dvh_-_var(--chim-safe-t))] flex-col",
+          "md:h-[calc(100dvh_-_var(--chim-safe-t))] md:min-h-0 md:overflow-hidden",
           interrupted && "pointer-events-none opacity-30",
         )}
       >
@@ -301,7 +411,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
                   type="button"
                   onClick={toggleTts}
                   aria-pressed={ttsOn}
-                  className="flex min-h-[48px] items-center px-2 text-[13px] font-semibold text-ink-muted"
+                  className="flex min-h-[48px] items-center px-2 text-[0.8125rem] font-semibold text-ink-muted"
                 >
                   {ttsOn ? "소리 끄기" : "소리 켜기"}
                 </button>
@@ -309,7 +419,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
                   <button
                     type="button"
                     onClick={() => setExitOpen(true)}
-                    className="flex min-h-[48px] items-center px-2 text-[14px] font-semibold text-ink-muted"
+                    className="flex min-h-[48px] items-center px-2 text-[0.875rem] font-semibold text-ink-muted"
                   >
                     종료
                   </button>
@@ -322,21 +432,22 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
         </div>
 
         {/* md↑ 2단 — 대화는 가운데 560px, 곁의 것은 오른쪽 270px 레일로 (시안 7d). */}
-        <div className="flex min-h-0 flex-1">
-          <div className="flex min-h-0 flex-1 flex-col md:border-r md:border-line">
-            {/* 본문 — 지문과 대화. 말하는 중에는 옅어집니다(시안 4b). */}
+        <div className="flex flex-1 flex-col md:min-h-0 md:flex-row">
+          <div className="flex flex-1 flex-col md:min-h-0 md:border-r md:border-line">
+            {/* 본문 — 지문과 대화. 말하는 중에는 옅어집니다(시안 4b).
+                내부 스크롤 상자는 md↑에서만 켭니다. */}
             <div
               className={cx(
-                "min-h-0 flex-1 overflow-y-auto px-[18px] pt-4 pb-6 transition-opacity duration-200 md:px-8 md:pt-6",
+                "flex-1 px-[18px] pt-4 pb-6 transition-opacity duration-200 md:min-h-0 md:overflow-y-auto md:px-8 md:pt-6",
                 listening && "pointer-events-none opacity-45",
               )}
             >
               <div className="md:mx-auto md:max-w-[560px]">
-                <p className="text-center text-[12.5px] leading-[1.6] text-tertiary">
+                <p className="text-center text-[0.7813rem] leading-[1.6] text-tertiary">
                   {scenario.context}
                 </p>
                 {/* 가상 인물 고지 — 화면마다 한 번은 또렷하게 남습니다(말풍선의 「AI 생성 · 가상 인물」과 별도). */}
-                <p className="mt-1 mb-4 text-center text-[11.5px] leading-[1.6] text-ink-muted">
+                <p className="mt-1 mb-4 text-center text-[0.7188rem] leading-[1.6] text-ink-muted">
                   {FICTION_NOTICE}
                 </p>
 
@@ -345,20 +456,26 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
                   gaugeLabel={scenario.gauge.label}
                   emotion={emotion}
                   speaking={speakingKey.length > 0}
+                  bottomInset={dockHeight}
+                  autoScroll={!ended}
+                  onLatestLineOffscreen={composing ? handleLatestLineOffscreen : undefined}
+                  scrollToLatestLineRef={scrollToLatestLineRef}
                 />
 
                 {ended && record ? (
-                  <EndingPanel
-                    scenario={scenario}
-                    session={state.session}
-                    ending={ending}
-                    record={record}
-                    advisoryEnding={advisoryEnding}
-                    criticalFeedback={criticalScene?.feedback}
-                    criticalAlternatives={criticalScene?.alternatives}
-                    onRestart={handleRestart}
-                    className="mt-6"
-                  />
+                  <div ref={endingRef} className="scroll-mt-3">
+                    <EndingPanel
+                      scenario={scenario}
+                      session={state.session}
+                      ending={ending}
+                      record={record}
+                      advisoryEnding={advisoryEnding}
+                      criticalFeedback={criticalScene?.feedback}
+                      criticalAlternatives={criticalScene?.alternatives}
+                      onRestart={handleRestart}
+                      className="mt-6"
+                    />
+                  </div>
                 ) : inProtocol ? (
                   protocol ? (
                     <ProtocolInline
@@ -369,7 +486,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
                     />
                   ) : (
                     <div className="mt-6 rounded-card bg-danger-soft p-4">
-                      <p className="text-[15px] leading-[1.6] font-bold text-danger-ink">
+                      <p className="text-[0.9375rem] leading-[1.6] font-bold text-danger-ink">
                         응급 안내를 불러오지 못했습니다. 아래 버튼으로 이어서 진행해 주세요.
                       </p>
                       <BigButton
@@ -386,19 +503,35 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
               </div>
             </div>
 
-            {/* 입력 도크 — 대화 중에만 섭니다. 그 밖의 구간에서는 고지 한 줄만 남깁니다. */}
-            {cue && turn && !ended && !inProtocol ? (
-              <CueResponder
-                scenario={scenario}
-                session={state.session}
-                cue={cue}
-                attempt={state.attempt}
-                micSupported={micSupported}
-                onSubmit={handleSubmit}
-                onListeningChange={setListening}
-              />
+            {/* 입력 도크 — 대화 중에만 섭니다. 그 밖의 구간에서는 고지 한 줄만 남깁니다.
+                모바일에서는 화면 아래에 붙어 있고(sticky), md↑에서는 대화 아래 제자리에 섭니다. */}
+            {composing && cue && turn ? (
+              <div ref={setDockNode} className="sticky bottom-0 z-20 md:static md:flex-none">
+                <CueResponder
+                  scenario={scenario}
+                  session={state.session}
+                  cue={cue}
+                  attempt={state.attempt}
+                  micSupported={micSupported}
+                  chosenAlternative={chosenAlternative || undefined}
+                  anchor={
+                    newLine.offscreen ? (
+                      <button
+                        type="button"
+                        onClick={() => scrollToLatestLineRef.current?.()}
+                        className="flex min-h-[48px] w-full items-center justify-center gap-1.5 border-b border-line bg-tint px-[18px] text-[0.8438rem] leading-[1.4] font-bold text-brand-800 md:px-8"
+                      >
+                        {NEW_LINE_ANCHOR[newLine.speaker]}
+                        <span aria-hidden>↑</span>
+                      </button>
+                    ) : null
+                  }
+                  onSubmit={handleSubmit}
+                  onListeningChange={setListening}
+                />
+              </div>
             ) : (
-              <div className="flex-none border-t border-line bg-paper px-[18px] pt-3 pb-6 md:px-8">
+              <div className="border-t border-line bg-paper px-[18px] pt-3 pb-6 md:flex-none md:px-8">
                 <InlineDisclaimer tone="readable" />
               </div>
             )}
@@ -430,10 +563,10 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
             className="absolute inset-0 cursor-default"
           />
           <div className="animate-fade-up relative w-full max-w-[380px] rounded-panel bg-white p-5 shadow-panel">
-            <h2 id="session-exit-title" className="text-[17px] leading-[1.4] font-bold text-ink">
+            <h2 id="session-exit-title" className="text-[1.0625rem] leading-[1.4] font-bold text-ink">
               훈련을 끝낼까요?
             </h2>
-            <p className="mt-2 text-[13px] leading-[1.6] text-ink-soft">
+            <p className="mt-2 text-[0.8125rem] leading-[1.6] text-ink-soft">
               지금까지 진행한 자리는 이 기기에 남아 있어, 다음에 이어서 하실 수 있습니다. 말씀하신
               내용은 저장하지 않습니다.
             </p>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import type { Ref } from "react";
 import type { MaskSpan } from "@/types";
 import { BigButton } from "@/components";
 import {
@@ -22,6 +23,8 @@ export interface MaskReviewProps {
   text: string;
   onBack: () => void;
   onNext: () => void;
+  /** 이 단계의 제목에 붙는 ref — 단계가 바뀔 때 위저드가 여기로 초점을 옮깁니다. */
+  headingRef?: Ref<HTMLHeadingElement>;
 }
 
 const KIND_ORDER: MaskKind[] = ["성명", "번호", "기관명", "주소", "생년"];
@@ -68,7 +71,7 @@ function splitOriginal(text: string, spans: MaskSpan[]): OriginalPart[] {
  * 가려진 자리에는 brand-tint 칩(대상자·기관·번호…)을 앉힌 뒤 아래 한 줄 범례로 규칙을 밝힙니다.
  * 원문 대조와 종류별 사유는 접힘 행 안에 그대로 남겨 두었습니다 — 기능은 한 곳도 줄이지 않았습니다.
  */
-export function MaskReview({ text, onBack, onNext }: MaskReviewProps) {
+export function MaskReview({ text, onBack, onNext, headingRef }: MaskReviewProps) {
   const result = useMemo(() => maskText(text), [text]);
   const originalSpans = useMemo(() => maskSpansOnOriginal(text), [text]);
   const parts = useMemo(() => splitOriginal(text, originalSpans), [text, originalSpans]);
@@ -82,13 +85,17 @@ export function MaskReview({ text, onBack, onNext }: MaskReviewProps) {
   return (
     <div>
       {/* 이 화면의 주인공 — 기기 밖으로 나갈 글 한 문단 */}
-      <h2 className="text-[12.5px] leading-[1.5] font-bold tracking-normal text-ink-muted">
+      <h2
+        ref={headingRef}
+        tabIndex={-1}
+        className="text-[0.7813rem] leading-[1.5] font-bold tracking-normal text-ink-muted"
+      >
         {total > 0
           ? "이렇게 가렸어요 — 기기 밖으로 나가는 건 이 글뿐입니다"
           : "가릴 항목을 찾지 못했어요 — 기기 밖으로 나가는 건 이 글뿐입니다"}
       </h2>
 
-      <div className="mt-[8px] mb-[10px] rounded-[14px] bg-paper-2 px-4 py-[15px] text-[16px] leading-[1.85] text-ink">
+      <div className="mt-[8px] mb-[10px] rounded-[14px] bg-paper-2 px-4 py-[15px] text-[1rem] leading-[1.85] text-ink">
         {maskedParts.map((part, index) =>
           part.masked && part.kind ? (
             <strong
@@ -105,7 +112,7 @@ export function MaskReview({ text, onBack, onNext }: MaskReviewProps) {
       </div>
 
       {foundKinds.length > 0 ? (
-        <p className="mb-4 text-[12px] leading-[1.7] text-ink-muted">
+        <p className="mb-4 text-[0.75rem] leading-[1.7] text-ink-muted">
           {foundKinds.map((kind, index) => (
             <span key={kind}>
               {index > 0 && " · "}
@@ -114,15 +121,15 @@ export function MaskReview({ text, onBack, onNext }: MaskReviewProps) {
           ))}
         </p>
       ) : (
-        <p className="mb-4 text-[12px] leading-[1.7] text-ink-muted">
+        <p className="mb-4 text-[0.75rem] leading-[1.7] text-ink-muted">
           이름·연락처·기관명·주소·생년이 들어 있다면 「다시 말하기」로 돌아가 확인해 주세요.
         </p>
       )}
 
       {/* 다섯 칸 초안 미리보기 — 고치는 것은 다음 화면입니다. */}
-      <p className="text-[12.5px] leading-[1.5] font-bold text-ink-muted">기록 초안 — 다섯 칸</p>
+      <p className="text-[0.7813rem] leading-[1.5] font-bold text-ink-muted">기록 초안 — 다섯 칸</p>
       <DraftRows draft={preview} className="mt-[2px]" />
-      <p className="mt-[10px] text-[12.5px] leading-[1.7] text-ink-soft">
+      <p className="mt-[10px] text-[0.7813rem] leading-[1.7] text-ink-soft">
         아직 저장되지 않았습니다. 다음 화면에서 고치고 확정하실 때 한 번 더 검사한 뒤에 이 기기에만
         남깁니다.
       </p>
@@ -130,23 +137,23 @@ export function MaskReview({ text, onBack, onNext }: MaskReviewProps) {
       {/* 원문 대조 · 종류별 사유 — 시안에는 없지만 기능은 그대로 두고 접어 둡니다. */}
       {total > 0 && (
         <details className="group mt-4 border-y border-line">
-          <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 px-[2px] text-[14.5px] leading-[1.5] font-semibold text-ink [&::-webkit-details-marker]:hidden">
+          <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 px-[2px] text-[0.9063rem] leading-[1.5] font-semibold text-ink [&::-webkit-details-marker]:hidden">
             <span>
               말씀하신 원문과 나란히 보기 — <span className="chim-num">{total}</span>곳
             </span>
             <span
               aria-hidden
-              className="text-[15px] leading-none text-faint transition-transform duration-150 group-open:rotate-180"
+              className="text-[0.9375rem] leading-none text-faint transition-transform duration-150 group-open:rotate-180"
             >
               ⌄
             </span>
           </summary>
 
           <div className="pb-4">
-            <p className="text-[12px] leading-[1.5] font-bold text-ink-muted">
+            <p className="text-[0.75rem] leading-[1.5] font-bold text-ink-muted">
               말씀하신 원문 · 이 기기 안에만 있습니다
             </p>
-            <p className="mt-[8px] rounded-[14px] bg-paper-2 px-4 py-[14px] text-[14.5px] leading-[1.9] text-ink">
+            <p className="mt-[8px] rounded-[14px] bg-paper-2 px-4 py-[14px] text-[0.9063rem] leading-[1.9] text-ink">
               {parts.map((part, index) =>
                 part.kind ? (
                   <mark
@@ -170,10 +177,10 @@ export function MaskReview({ text, onBack, onNext }: MaskReviewProps) {
                   key={kind}
                   className="flex flex-wrap items-baseline gap-x-[10px] gap-y-[2px] py-[10px]"
                 >
-                  <span className="flex-none text-[12.5px] leading-[1.5] font-bold text-ink">
+                  <span className="flex-none text-[0.7813rem] leading-[1.5] font-bold text-ink">
                     {MASK_KIND_LABELS[kind]} <span className="chim-num">{counts[kind]}</span>곳
                   </span>
-                  <span className="min-w-[11rem] flex-1 text-[12.5px] leading-[1.6] text-ink-soft">
+                  <span className="min-w-[11rem] flex-1 text-[0.7813rem] leading-[1.6] text-ink-soft">
                     {MASK_KIND_REASONS[kind]}
                   </span>
                 </li>

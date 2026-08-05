@@ -38,19 +38,19 @@ export function SessionPreviewCard({ className }: SessionPreviewCardProps) {
         className,
       )}
     >
-      <figcaption className="mb-3 text-[11.5px] leading-[1.4] font-bold tracking-[0.05em] text-ink-muted">
-        90초면 첫 판정까지 — 실제 화면
+      <figcaption className="mb-3 text-[0.7188rem] leading-[1.4] font-bold tracking-[0.05em] text-ink-muted">
+        실제 훈련 화면 — 한 턴이면 첫 판정이 옵니다
       </figcaption>
 
       {/* 어르신 — 아바타 30px + 감정 링(불안). 말풍선은 화자 쪽 모서리만 4px입니다. */}
       <div className="mb-[10px] flex gap-2">
         <span
           aria-hidden
-          className="flex h-[30px] w-[30px] flex-none items-center justify-center rounded-chip bg-paper-out text-[12px] font-bold text-ink-soft shadow-[0_0_0_2px_#f0c987]"
+          className="flex h-[30px] w-[30px] flex-none items-center justify-center rounded-chip bg-paper-out text-[0.75rem] font-bold text-ink-soft shadow-[0_0_0_2px_var(--color-emotion-ring)]"
         >
           박
         </span>
-        <p className="rounded-[4px_14px_14px_14px] bg-paper-2 px-3 py-[9px] text-[13.5px] leading-[1.55] text-ink">
+        <p className="rounded-[4px_14px_14px_14px] bg-paper-2 px-3 py-[9px] text-[0.8438rem] leading-[1.55] text-ink">
           <span className="sr-only">박 어르신(가상 인물): </span>
           {ELDER_LINE}
         </p>
@@ -58,7 +58,7 @@ export function SessionPreviewCard({ className }: SessionPreviewCardProps) {
 
       {/* 학습자 — 틸 면 + 딥 텍스트. 채움이 아니라 면입니다(채움은 CTA·마이크 전용). */}
       <div className="mb-3 flex justify-end">
-        <p className="max-w-[85%] rounded-[14px_4px_14px_14px] bg-brand-tint px-3 py-[9px] text-[13.5px] leading-[1.55] text-brand-on-tint">
+        <p className="max-w-[85%] rounded-[14px_4px_14px_14px] bg-brand-tint px-3 py-[9px] text-[0.8438rem] leading-[1.55] text-brand-on-tint">
           <span className="sr-only">나의 대답: </span>
           {LEARNER_LINE}
         </p>
@@ -68,11 +68,11 @@ export function SessionPreviewCard({ className }: SessionPreviewCardProps) {
       <div className="flex gap-[7px] border-t border-line pt-[11px]">
         <span
           aria-hidden
-          className="relative top-[1px] flex h-[15px] w-[15px] flex-none items-center justify-center rounded-chip bg-ok text-[9.5px] font-extrabold text-white"
+          className="relative top-[1px] flex h-[15px] w-[15px] flex-none items-center justify-center rounded-chip bg-ok text-[0.5938rem] font-extrabold text-white"
         >
           ✓
         </span>
-        <p className="text-[12.5px] leading-[1.55] text-ink-soft">
+        <p className="text-[0.7813rem] leading-[1.55] text-ink-soft">
           <b className="font-bold text-ok-ink">충족</b> — {PRAISE}{" "}
           <span className="text-tertiary">· {PRAISE_DOC}</span>
         </p>

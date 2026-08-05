@@ -72,3 +72,10 @@ export type { IconDotProps } from "./status";
 /* 판정 마크 — 초록 원·흰 원·빨강 원 이모지의 표준 대체물 */
 export { StatusMark, STATUS_MARK_LABEL } from "./StatusMark";
 export type { StatusMarkProps, StatusMarkKind, StatusMarkSize } from "./StatusMark";
+
+/* 텍스트 글리프 대체물 — 동봉 폰트에 **없는** `⌄`(U+2304)를 비롯한 기호를 SVG로 통일합니다.
+   `⌄`를 쓰는 자리(편성표·브리핑 details·엔딩 「외 N개」·CF 대안 다시 보기·규칙 예시)는
+   `<ChevronGlyph open={…} />`로 바꾸면 폴백도, rotate-180의 축 어긋남도 함께 사라집니다. */
+export { ChevronGlyph, RotateGlyph, CheckGlyph, GLYPH_PX, CIRCLE_MARK_PX } from "./glyphs";
+export { CHECK_PATH, CHECK_PATH_IN_CIRCLE } from "./glyphs";
+export type { GlyphProps, GlyphSize, ChevronGlyphProps } from "./glyphs";

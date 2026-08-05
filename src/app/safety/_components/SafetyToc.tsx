@@ -127,7 +127,7 @@ export function SafetyToc({ items, className }: SafetyTocProps) {
               >
                 <span
                   className={cx(
-                    "rounded-chip px-[12px] py-[7px] text-[12px] leading-[1.4] whitespace-nowrap",
+                    "rounded-chip px-[12px] py-[7px] text-[0.75rem] leading-[1.4] whitespace-nowrap",
                     "transition-colors duration-150 ease-soft",
                     isActive
                       ? "bg-ink font-bold text-white"

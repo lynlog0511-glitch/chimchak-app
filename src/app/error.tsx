@@ -29,7 +29,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
       />
 
       <div className="mt-[16px] rounded-[14px] bg-paper-2 px-[15px] py-[14px]">
-        <p className="text-[13.5px] leading-[1.65] text-ink">
+        <p className="text-[0.8438rem] leading-[1.65] text-ink">
           이 오류는 이 기기 안에서만 발생한 것이며, 저장된 훈련 기록에는 영향을 주지 않습니다.
           급하신 상황이라면 아래에서 응급 안내를 바로 여실 수 있습니다.
         </p>

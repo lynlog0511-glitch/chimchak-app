@@ -152,6 +152,18 @@ export function sessionSubtitle(scenario: Scenario, index: number): string {
   return `${situationOrdinal(index)} 상황 · ${aiRoleNote(scenario)}`;
 }
 
+/**
+ * 컴포저 위 회수 앵커 — 새 대사가 화면 밖에 있을 때 한 줄로 부릅니다.
+ * 「판정을 받아도 판정을 볼 수 없는」 일이 없도록 남기는 길입니다(평가 UX c1).
+ */
+export const NEW_LINE_ANCHOR: Record<TurnDef["speaker"], string> = {
+  elder: "어르신이 새로 말씀하셨어요",
+  guardian: "보호자가 새로 말씀하셨어요",
+  dispatcher: "119 상황실이 새로 안내했어요",
+  protocol: "새 안내가 올라왔어요",
+  system: "새 내용이 올라왔어요",
+};
+
 /* ── 감정 상태 (시안 4a③ — 게이지가 숫자 막대 대신 인물에 붙습니다) ── */
 
 export type EmotionLevel = "calm" | "uneasy" | "crisis";

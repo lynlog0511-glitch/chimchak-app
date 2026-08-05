@@ -47,6 +47,22 @@ export function formatShortDate(iso: string, now: Date = new Date()): string {
   return `${head}${date.getMonth() + 1}월 ${date.getDate()}일`;
 }
 
+/**
+ * 아주 좁은 칸(유형별 4칸)에 들어가는 최소 날짜 표기 — 「8.5」.
+ * 해가 바뀐 기록은 앞에 두 자리 연도를 붙여 「25.12.3」으로 둡니다(같은 해면 생략).
+ * 읽어야 하는 문장이 아니라 칸 안 메타라서 이렇게까지 줄입니다 —
+ * 화면 낭독용 전체 표기는 `formatShortDate`를 함께 씁니다.
+ *
+ * @example formatTinyDate("2026-08-05T07:40:00.000Z") // "8.5"
+ */
+export function formatTinyDate(iso: string, now: Date = new Date()): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  const md = `${date.getMonth() + 1}.${date.getDate()}`;
+  if (date.getFullYear() === now.getFullYear()) return md;
+  return `${String(date.getFullYear()).slice(2)}.${md}`;
+}
+
 /** 엔딩 판정별 배지 톤 — 색만 다르고 점수는 붙지 않습니다. */
 export function verdictTone(verdict: EndingDef["verdict"]): BadgeTone {
   switch (verdict) {

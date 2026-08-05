@@ -135,17 +135,17 @@ export function PageShell({
             {hasLegacyHead && (
               <header className="pt-2 pb-4">
                 {eyebrow && (
-                  <p className="mb-1 text-[12px] font-bold tracking-[0.06em] text-ink-muted">
+                  <p className="mb-1 text-[0.75rem] font-bold tracking-[0.06em] text-ink-muted">
                     {eyebrow}
                   </p>
                 )}
                 {title && (
-                  <h1 className="text-[22px] leading-[1.3] font-extrabold tracking-[-0.01em] text-ink">
+                  <h1 className="text-[1.375rem] leading-[1.3] font-extrabold tracking-[-0.01em] text-ink">
                     {title}
                   </h1>
                 )}
                 {description && (
-                  <p className="mt-[3px] text-[12.5px] leading-[1.5] text-ink-muted">
+                  <p className="mt-[3px] text-[0.7813rem] leading-[1.5] text-ink-muted">
                     {description}
                   </p>
                 )}

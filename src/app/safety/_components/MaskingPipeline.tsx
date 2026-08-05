@@ -1,10 +1,13 @@
 import { cx } from "@/components/utils";
+import { PlanTag } from "./PlanTag";
 
 export interface MaskingStep {
   /** 단계 이름 (예: 1차 가명처리) */
   step: string;
-  /** 그 단계에서 실제로 일어나는 일 */
+  /** 그 단계에서 **지금** 일어나는 일 */
   desc: string;
+  /** 설계는 끝났지만 아직 구현하지 않은 부분 — 「계획」 배지를 달아 구현물과 갈라 놓습니다. */
+  plan?: string;
 }
 
 export interface MaskingPipelineProps {
@@ -30,13 +33,20 @@ export function MaskingPipeline({ steps, className }: MaskingPipelineProps) {
         <li key={s.step} className="flex gap-[10px] py-[13px]">
           <span
             aria-hidden
-            className="chim-num w-[13px] flex-none text-[13px] leading-[1.5] font-extrabold text-brand-700"
+            className="chim-num w-[13px] flex-none text-[0.8125rem] leading-[1.5] font-extrabold text-brand-700"
           >
             {i + 1}
           </span>
           <div className="min-w-0">
-            <p className="text-[14px] leading-[1.45] font-bold text-ink">{s.step}</p>
-            <p className="mt-[2px] text-[12.5px] leading-[1.6] text-ink-muted">{s.desc}</p>
+            <p className="text-[0.875rem] leading-[1.45] font-bold text-ink">{s.step}</p>
+            <p className="mt-[2px] text-[0.7813rem] leading-[1.6] text-ink-muted">{s.desc}</p>
+            {/* 「지금 되는 것」 아래에 「계획」을 따로 세웁니다 — 같은 문단에 섞으면 구별되지 않습니다. */}
+            {s.plan && (
+              <p className="mt-[5px] text-[0.7813rem] leading-[1.6] text-ink-muted">
+                <PlanTag className="mr-[6px]" />
+                {s.plan}
+              </p>
+            )}
           </div>
         </li>
       ))}

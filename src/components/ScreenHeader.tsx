@@ -38,12 +38,12 @@ export function ScreenHeader({
       <div className="min-w-0 flex-1">
         <Heading
           id={id}
-          className="text-[22px] leading-[1.3] font-extrabold tracking-[-0.01em] text-ink"
+          className="text-[1.375rem] leading-[1.3] font-extrabold tracking-[-0.01em] text-ink"
         >
           {title}
         </Heading>
         {subtitle && (
-          <div className="mt-[3px] text-[12.5px] leading-[1.5] text-ink-muted">{subtitle}</div>
+          <div className="mt-[3px] text-[0.7813rem] leading-[1.5] text-ink-muted">{subtitle}</div>
         )}
       </div>
       {action && <div className="flex-none">{action}</div>}

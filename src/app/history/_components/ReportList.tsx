@@ -72,22 +72,22 @@ function ReportRow({ report }: { report: StoredReport }) {
         className="flex min-h-[48px] w-full items-center gap-3 px-[2px] py-[14px] text-left"
       >
         <span className="min-w-0 flex-1">
-          <span className="block text-[12px] leading-[1.4] text-tertiary">
+          <span className="block text-[0.75rem] leading-[1.4] text-tertiary">
             {formatShortDate(report.createdAt)} · 가명처리 2단 통과
             {isDisplayableElapsed(report.elapsedSec) &&
               ` · ${formatElapsedDuration(report.elapsedSec)} 만에 작성`}
           </span>
-          <span className="mt-[2px] line-clamp-2 block text-[15.5px] leading-[1.35] font-bold text-ink">
+          <span className="mt-[2px] line-clamp-2 block text-[0.9688rem] leading-[1.35] font-bold text-ink">
             {firstSentence(report.maskedText)}
           </span>
-          <span className="mt-[3px] block text-[12.5px] leading-[1.5] text-ink-soft">
+          <span className="mt-[3px] block text-[0.7813rem] leading-[1.5] text-ink-soft">
             5요소 {filled}칸 채움 · {maskedTotal > 0 ? `${maskedTotal}곳 가림` : "가릴 항목 없음"}
           </span>
         </span>
         <span
           aria-hidden
           className={cx(
-            "flex-none text-[17px] leading-none text-faint transition-transform duration-150",
+            "flex-none text-[1.0625rem] leading-none text-faint transition-transform duration-150",
             open && "rotate-90",
           )}
         >
@@ -97,15 +97,15 @@ function ReportRow({ report }: { report: StoredReport }) {
 
       {open && (
         <div id={panelId} className="mb-[14px] rounded-[14px] bg-paper-2 px-4 py-[14px]">
-          <p className="text-[12px] leading-[1.5] font-bold tracking-[0.06em] text-ink-muted">
+          <p className="text-[0.75rem] leading-[1.5] font-bold tracking-[0.06em] text-ink-muted">
             확정한 본문
           </p>
-          <p className="mt-[6px] text-[13.5px] leading-[1.8] text-ink">
+          <p className="mt-[6px] text-[0.8438rem] leading-[1.8] text-ink">
             <TokenText text={report.maskedText} />
           </p>
 
           {counts.length > 0 && (
-            <p className="mt-[10px] text-[11.5px] leading-[1.5] text-tertiary">
+            <p className="mt-[10px] text-[0.7188rem] leading-[1.5] text-tertiary">
               {counts.map(([kind, value]) => `${kind} ${value}곳`).join(" · ")} 가림
             </p>
           )}
@@ -115,14 +115,14 @@ function ReportRow({ report }: { report: StoredReport }) {
               const value = report.draft[slot];
               return (
                 <div key={slot} className="py-[10px]">
-                  <dt className="text-[11.5px] leading-[1.4] font-bold text-ink-muted">
+                  <dt className="text-[0.7188rem] leading-[1.4] font-bold text-ink-muted">
                     {RECORD_SLOT_LABELS[slot]}
                   </dt>
-                  <dd className="mt-[2px] text-[13.5px] leading-[1.6] text-ink">
+                  <dd className="mt-[2px] text-[0.8438rem] leading-[1.6] text-ink">
                     {value.trim().length > 0 ? (
                       <TokenText text={value} />
                     ) : (
-                      <span className="text-[12.5px] font-semibold text-warn-ink">
+                      <span className="text-[0.7813rem] font-semibold text-warn-ink">
                         비어 있습니다
                       </span>
                     )}
@@ -132,7 +132,7 @@ function ReportRow({ report }: { report: StoredReport }) {
             })}
           </dl>
 
-          <p className="mt-[10px] text-[11.5px] leading-[1.5] text-tertiary">
+          <p className="mt-[10px] text-[0.7188rem] leading-[1.5] text-tertiary">
             남아 있는 것은 가명처리를 마친 텍스트뿐이며, 음성과 원문은 저장하지 않았습니다.
           </p>
         </div>

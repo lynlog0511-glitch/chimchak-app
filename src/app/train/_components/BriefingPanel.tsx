@@ -86,11 +86,11 @@ function castLine(personas: readonly PersonaDef[]): string {
 function Fold({ title, children }: { title: string; children: ReactNode }) {
   return (
     <details className="group border-t border-line">
-      <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 px-[2px] py-[13px] text-[14.5px] leading-[1.4] font-semibold text-ink [&::-webkit-details-marker]:hidden">
+      <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 px-[2px] py-[13px] text-[0.9063rem] leading-[1.4] font-semibold text-ink [&::-webkit-details-marker]:hidden">
         <span>{title}</span>
         <span
           aria-hidden
-          className="flex-none text-[13px] leading-none text-ink-ghost transition-transform duration-150 group-open:rotate-180"
+          className="flex-none text-[0.8125rem] leading-none text-ink-ghost transition-transform duration-150 group-open:rotate-180"
         >
           ⌄
         </span>
@@ -139,9 +139,9 @@ function ResumeBlock({
 
   return (
     <div className="rounded-[14px] bg-paper-2 px-4 py-[15px]">
-      <h2 className="text-[15px] leading-[1.4] font-bold text-ink">진행하던 훈련이 있습니다</h2>
-      <p className="mt-1 text-[12.5px] leading-[1.5] font-semibold text-ink-muted">{meta}</p>
-      <p className="mt-2 text-[12.5px] leading-[1.6] text-ink-muted">
+      <h2 className="text-[0.9375rem] leading-[1.4] font-bold text-ink">진행하던 훈련이 있습니다</h2>
+      <p className="mt-1 text-[0.7813rem] leading-[1.5] font-semibold text-ink-muted">{meta}</p>
+      <p className="mt-2 text-[0.7813rem] leading-[1.6] text-ink-muted">
         저장해 둔 것은 어느 갈래를 고르셨는지와 진행 위치뿐입니다. 말씀하신 내용은 기기에도 남기지
         않았습니다.
       </p>
@@ -195,9 +195,9 @@ export function BriefingPanel({
       <div className="pt-1 pb-1">
         <Link
           href="/train"
-          className="-ml-[2px] inline-flex min-h-[48px] items-center gap-[10px] pr-2 text-[14px] leading-none font-semibold text-ink-muted transition-colors duration-150 hover:text-ink"
+          className="-ml-[2px] inline-flex min-h-[48px] items-center gap-[10px] pr-2 text-[0.875rem] leading-none font-semibold text-ink-muted transition-colors duration-150 hover:text-ink"
         >
-          <span aria-hidden className="text-[22px] leading-none text-ink-soft">
+          <span aria-hidden className="text-[1.375rem] leading-none text-ink-soft">
             ‹
           </span>
           훈련 목록
@@ -211,21 +211,21 @@ export function BriefingPanel({
         </div>
       )}
 
-      <p className="text-[12px] leading-[1.5] font-bold tracking-[0.06em] text-ink-muted">
+      <p className="text-[0.75rem] leading-[1.5] font-bold tracking-[0.06em] text-ink-muted">
         {eyebrow}
       </p>
-      <h1 className="mt-[6px] text-[24px] leading-[1.35] font-extrabold tracking-[-0.02em] text-ink">
+      <h1 className="mt-[6px] text-[1.5rem] leading-[1.35] font-extrabold tracking-[-0.02em] text-ink">
         {scenario.title}
       </h1>
 
       {/* 상황 지문 — 이 화면에서 면(paper-2)을 쓰는 곳은 여기 하나입니다. */}
       <div className="mt-[14px] rounded-[14px] bg-paper-2 px-4 py-[15px]">
-        <p className="text-[15.5px] leading-[1.65] text-ink">{scenario.context}</p>
-        {cast && <p className="mt-2 text-[12.5px] leading-[1.55] text-ink-muted">{cast}</p>}
+        <p className="text-[0.9688rem] leading-[1.65] text-ink">{scenario.context}</p>
+        {cast && <p className="mt-2 text-[0.7813rem] leading-[1.55] text-ink-muted">{cast}</p>}
       </div>
 
       {/* 고정 문구 — 안전 규칙에 걸린 문장입니다. 한 글자도 바꾸지 마세요. */}
-      <p className="mt-[10px] text-[13.5px] leading-[1.6] text-ink-soft">
+      <p className="mt-[10px] text-[0.8438rem] leading-[1.6] text-ink-soft">
         {splitOk ? (
           <>
             {lineHead}
@@ -238,8 +238,14 @@ export function BriefingPanel({
         틀려도 벌점은 없습니다.
       </p>
 
+      {/* 겁을 없애는 문장은 **결정하는 자리 바로 위**에 둡니다 —
+          화면 맨 아래 11.5px 각주로는 시작 버튼을 누르는 순간 눈에 들어오지 않았습니다. */}
+      <p className="mt-[14px] text-[0.8438rem] leading-[1.6] font-semibold text-ink-soft">
+        마이크가 없어도 버튼만으로 끝까지 할 수 있어요.
+      </p>
+
       {/* 시작 버튼은 접힘보다 위, 첫 화면 안에 있습니다(시안 6f의 핵심). */}
-      <div className="mt-[14px]">
+      <div className="mt-2">
         <BigButton onClick={onStart} size="lg" block className="font-bold">
           훈련 시작하기
         </BigButton>
@@ -249,7 +255,7 @@ export function BriefingPanel({
         <Fold title={`오늘 연습할 것 ${scenario.objectives.length}가지`}>
           <ul className="space-y-2">
             {scenario.objectives.map((objective) => (
-              <li key={objective} className="flex gap-2 text-[13.5px] leading-[1.65] text-ink-soft">
+              <li key={objective} className="flex gap-2 text-[0.8438rem] leading-[1.65] text-ink-soft">
                 <span aria-hidden className="flex-none text-ink-ghost">
                   ·
                 </span>
@@ -260,28 +266,28 @@ export function BriefingPanel({
         </Fold>
 
         <Fold title="등장인물 자세히">
-          <p className="text-[12px] leading-[1.6] font-semibold text-ink-muted">{FICTION_NOTICE}</p>
+          <p className="text-[0.75rem] leading-[1.6] font-semibold text-ink-muted">{FICTION_NOTICE}</p>
           <ul className="mt-3 space-y-3">
             {scenario.personas.map((persona) => (
               <li key={persona.name}>
-                <p className="text-[14px] leading-[1.5] font-bold text-ink">
+                <p className="text-[0.875rem] leading-[1.5] font-bold text-ink">
                   {plainName(persona.name)}
-                  <span className="ml-2 text-[12.5px] font-semibold text-ink-muted">
+                  <span className="ml-2 text-[0.7813rem] font-semibold text-ink-muted">
                     {ROLE_LABEL[persona.role]}
                   </span>
                 </p>
-                <p className="mt-1 text-[13.5px] leading-[1.65] text-ink-soft">{persona.profile}</p>
+                <p className="mt-1 text-[0.8438rem] leading-[1.65] text-ink-soft">{persona.profile}</p>
               </li>
             ))}
           </ul>
         </Fold>
 
         <Fold title="응답 방법 · 마이크 권한 안내">
-          <ul className="space-y-2.5 text-[13.5px] leading-[1.65] text-ink-soft">
+          <ul className="space-y-2.5 text-[0.8438rem] leading-[1.65] text-ink-soft">
             <li>
               <span className="font-bold text-ink">말하기 — </span>
               {micSupported
-                ? "마이크 버튼을 누르면 브라우저가 마이크 허용을 물어봅니다. ‘허용’을 누르신 뒤 버튼을 다시 눌러 말씀해 주세요. 허용하지 않으셔도 버튼과 직접 입력으로 끝까지 하실 수 있습니다."
+                ? "마이크 버튼을 처음 누르면 브라우저가 마이크 허용을 물어봅니다. ‘허용’을 누르신 뒤, 버튼을 꾹 누른 채로 말씀하시고 다 말씀하시면 손을 떼세요. 허용하지 않으셔도 버튼과 직접 입력으로 끝까지 하실 수 있습니다."
                 : "이 기기에서는 음성 인식을 쓸 수 없습니다. 버튼과 직접 입력만으로 끝까지 진행하실 수 있습니다."}
             </li>
             <li>
@@ -302,29 +308,29 @@ export function BriefingPanel({
 
         {/* 루브릭 코드·근거 문서·제약 조건은 전부 이 안에 있습니다(가이드 v4 §4.10). */}
         <Fold title="이 훈련의 설계 보기">
-          <p className="text-[12px] leading-[1.6] font-bold tracking-[0.06em] text-ink-muted">
+          <p className="text-[0.75rem] leading-[1.6] font-bold tracking-[0.06em] text-ink-muted">
             학습목표와 루브릭 항목
           </p>
           <ul className="mt-2 space-y-1.5">
             {scenario.objectives.map((objective) => (
-              <li key={objective} className="text-[13px] leading-[1.65] text-ink-soft">
+              <li key={objective} className="text-[0.8125rem] leading-[1.65] text-ink-soft">
                 {objective}
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-[12.5px] leading-[1.6] text-ink-muted">
+          <p className="mt-2 text-[0.7813rem] leading-[1.6] text-ink-muted">
             이 상황에서 보는 항목은 {scenario.appliedRubric.length}개이며, 점수와 등급은 화면에
             내지 않습니다.
           </p>
 
-          <p className="mt-4 text-[12px] leading-[1.6] font-bold tracking-[0.06em] text-ink-muted">
+          <p className="mt-4 text-[0.75rem] leading-[1.6] font-bold tracking-[0.06em] text-ink-muted">
             이 상황의 제약 조건
           </p>
           <ul className="mt-2 space-y-1.5">
             {scenario.constraints.map((constraint) => (
               <li
                 key={constraint}
-                className="flex gap-2 text-[13px] leading-[1.65] text-ink-soft"
+                className="flex gap-2 text-[0.8125rem] leading-[1.65] text-ink-soft"
               >
                 <span aria-hidden className="flex-none text-ink-ghost">
                   ·
@@ -334,10 +340,10 @@ export function BriefingPanel({
             ))}
           </ul>
 
-          <p className="mt-4 text-[12px] leading-[1.6] font-bold tracking-[0.06em] text-ink-muted">
+          <p className="mt-4 text-[0.75rem] leading-[1.6] font-bold tracking-[0.06em] text-ink-muted">
             판정 근거 문서
           </p>
-          <p className="mt-2 text-[13px] leading-[1.65] text-ink-soft">
+          <p className="mt-2 text-[0.8125rem] leading-[1.65] text-ink-soft">
             피드백에는 아래 문서에서 확인한 내용만 붙습니다. 근거를 찾지 못하면 “공식 지침에서
             근거를 찾지 못했습니다. 담당 간호사 또는 기관에 확인해 주세요.”라고 그대로 말씀드립니다.
           </p>
@@ -349,11 +355,7 @@ export function BriefingPanel({
         </Fold>
       </div>
 
-      <p className="mt-3 text-[11.5px] leading-[1.6] text-ink-faint">
-        마이크가 없어도 버튼만으로 끝까지 할 수 있어요.
-        <br />
-        {FICTION_NOTICE}
-      </p>
+      <p className="mt-3 text-[0.7188rem] leading-[1.6] text-ink-faint">{FICTION_NOTICE}</p>
 
       <InlineDisclaimer size="md" tone="readable" className="mt-5" />
     </div>

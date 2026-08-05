@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { PointerEvent as ReactPointerEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
+import type {
+  PointerEvent as ReactPointerEvent,
+  KeyboardEvent as ReactKeyboardEvent,
+  Ref,
+} from "react";
 import { BigButton, MicButton, StatusDot, WaveBars } from "@/components";
 import { createRecognizer, type Recognizer } from "@/lib/speech";
 import { EXAMPLE_NOTICE, EXAMPLE_PARTIAL, EXAMPLE_WANDERING } from "./examples";
@@ -17,6 +21,11 @@ export interface VoiceInputProps {
    * 소요시간 측정용이며, 여러 번 불려도 안전하도록 호출부에서 최초 1회만 기록합니다.
    */
   onInputStart: () => void;
+  /**
+   * 이 단계의 제목에 붙는 ref — 단계가 바뀔 때 위저드가 여기로 초점을 옮깁니다.
+   * (스크린리더가 새 단계 제목을 읽고, 화면도 맨 위에서 시작합니다.)
+   */
+  headingRef?: Ref<HTMLHeadingElement>;
 }
 
 /** 인식 결과를 기존 내용 뒤에 자연스럽게 이어 붙입니다. */
@@ -34,7 +43,13 @@ function appendUtterance(base: string, added: string): string {
  * 마이크는 **누르고 있는 동안에만** 인식하고, 타이핑 입력은 항상 열려 있습니다.
  * 음성 인식이 되지 않는 환경에서도 타이핑만으로 끝까지 진행할 수 있습니다.
  */
-export function VoiceInput({ value, onChange, onNext, onInputStart }: VoiceInputProps) {
+export function VoiceInput({
+  value,
+  onChange,
+  onNext,
+  onInputStart,
+  headingRef,
+}: VoiceInputProps) {
   const recognizerRef = useRef<Recognizer | null>(null);
   const valueRef = useRef(value);
   const onChangeRef = useRef(onChange);
@@ -133,10 +148,10 @@ export function VoiceInput({ value, onChange, onNext, onInputStart }: VoiceInput
 
   return (
     <div>
-      <h2 className="text-[17px] leading-[1.45] font-bold text-ink">
+      <h2 ref={headingRef} tabIndex={-1} className="text-[1.0625rem] leading-[1.45] font-bold text-ink">
         오늘 있었던 일을 그대로 말씀해 주세요
       </h2>
-      <p className="mt-[6px] text-[12.5px] leading-[1.7] text-ink-muted">
+      <p className="mt-[6px] text-[0.7813rem] leading-[1.7] text-ink-muted">
         정리해서 말하지 않으셔도 됩니다. 기억나는 대로 말씀하시면 기기 안에서 개인정보를 가리고,
         급여제공기록지 5요소로 나눠 드립니다.
       </p>
@@ -150,12 +165,12 @@ export function VoiceInput({ value, onChange, onNext, onInputStart }: VoiceInput
       >
         {listening && (
           <div className="mb-[14px] rounded-[12px] bg-white px-[14px] py-[12px]">
-            <p className="flex items-center gap-[6px] text-[12.5px] leading-[1.4] font-bold text-danger-ink">
+            <p className="flex items-center gap-[6px] text-[0.7813rem] leading-[1.4] font-bold text-danger-ink">
               <StatusDot tone="danger" size={8} />
               듣고 있어요
               <WaveBars count={5} className="ml-[2px]" />
             </p>
-            <p aria-live="polite" className="mt-[6px] text-[14px] leading-[1.6] text-ink">
+            <p aria-live="polite" className="mt-[6px] text-[0.875rem] leading-[1.6] text-ink">
               {interim.length > 0 ? (
                 <>
                   {interim}
@@ -185,7 +200,7 @@ export function VoiceInput({ value, onChange, onNext, onInputStart }: VoiceInput
             onKeyDown={handleKeyDown}
             onKeyUp={handleKeyUp}
           />
-          <p className="text-center text-[12.5px] leading-[1.5] font-semibold text-ink-soft">
+          <p className="text-center text-[0.7813rem] leading-[1.5] font-semibold text-ink-soft">
             {listening
               ? "손을 떼면 받아쓰기가 멈춰요"
               : supported
@@ -197,7 +212,7 @@ export function VoiceInput({ value, onChange, onNext, onInputStart }: VoiceInput
         {notice && (
           <p
             role="status"
-            className="mt-[12px] rounded-[12px] bg-warn-soft px-[14px] py-[10px] text-[12.5px] leading-[1.6] font-semibold text-warn-ink"
+            className="mt-[12px] rounded-[12px] bg-warn-soft px-[14px] py-[10px] text-[0.7813rem] leading-[1.6] font-semibold text-warn-ink"
           >
             {notice}
           </p>
@@ -206,7 +221,7 @@ export function VoiceInput({ value, onChange, onNext, onInputStart }: VoiceInput
 
       {/* 직접 적기 — 마이크가 없어도 여기까지만으로 끝까지 갑니다. */}
       <div className="mt-5">
-        <label htmlFor="report-utterance" className="text-[13px] leading-[1.5] font-bold text-ink">
+        <label htmlFor="report-utterance" className="text-[0.8125rem] leading-[1.5] font-bold text-ink">
           보고 내용 (직접 적으셔도 됩니다)
         </label>
         <textarea
@@ -218,21 +233,21 @@ export function VoiceInput({ value, onChange, onNext, onInputStart }: VoiceInput
           }}
           rows={7}
           placeholder="예) 오후 4시 40분쯤 어르신이 현관 앞에서 집에 가야 한다며 나가려 하셨습니다."
-          className="mt-[6px] w-full rounded-[14px] border border-line-strong bg-white p-[14px] text-[15px] leading-[1.7] text-ink placeholder:text-tertiary focus:border-brand-400 focus:outline-none"
+          className="mt-[6px] w-full rounded-[14px] border border-line-strong bg-white p-[14px] text-[0.9375rem] leading-[1.7] text-ink placeholder:text-tertiary focus:border-brand-400 focus:outline-none"
         />
 
         <div className="mt-[10px] flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => onChange(EXAMPLE_WANDERING)}
-            className="flex min-h-[48px] items-center rounded-[14px] bg-paper-2 px-4 text-[13px] font-semibold text-ink"
+            className="flex min-h-[48px] items-center rounded-[14px] bg-paper-2 px-4 text-[0.8125rem] font-semibold text-ink"
           >
             예시 문장 넣기 (배회 대응 보고)
           </button>
           <button
             type="button"
             onClick={() => onChange(EXAMPLE_PARTIAL)}
-            className="flex min-h-[48px] items-center rounded-[14px] bg-paper-2 px-4 text-[13px] font-semibold text-ink-soft"
+            className="flex min-h-[48px] items-center rounded-[14px] bg-paper-2 px-4 text-[0.8125rem] font-semibold text-ink-soft"
           >
             빈 칸이 있는 예시
           </button>
@@ -240,16 +255,16 @@ export function VoiceInput({ value, onChange, onNext, onInputStart }: VoiceInput
             type="button"
             onClick={() => onChange("")}
             disabled={empty}
-            className="flex min-h-[48px] items-center px-2 text-[13px] font-semibold text-ink-muted disabled:opacity-45"
+            className="flex min-h-[48px] items-center px-2 text-[0.8125rem] font-semibold text-ink-muted disabled:opacity-45"
           >
             지우기
           </button>
         </div>
 
-        <p className="mt-[8px] text-[11.5px] leading-[1.6] text-tertiary">{EXAMPLE_NOTICE}</p>
+        <p className="mt-[8px] text-[0.7188rem] leading-[1.6] text-tertiary">{EXAMPLE_NOTICE}</p>
       </div>
 
-      <p className="mt-5 text-[12.5px] leading-[1.7] text-ink-soft">
+      <p className="mt-5 text-[0.7813rem] leading-[1.7] text-ink-soft">
         음성과 원문은 이 기기 안에서만 다루고 저장하지 않습니다. 다음 화면에서 무엇을 왜 가리는지
         먼저 확인하신 뒤에 진행됩니다.
       </p>
@@ -258,7 +273,7 @@ export function VoiceInput({ value, onChange, onNext, onInputStart }: VoiceInput
         가리기로 넘어가기
       </BigButton>
       {empty && (
-        <p className="mt-[6px] text-center text-[11.5px] leading-[1.5] text-tertiary">
+        <p className="mt-[6px] text-center text-[0.7188rem] leading-[1.5] text-tertiary">
           말씀하시거나 적어 주시면 다음 단계로 넘어갈 수 있습니다
         </p>
       )}

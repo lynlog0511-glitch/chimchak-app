@@ -88,12 +88,12 @@ export function ResumeCard({ scenarios, className }: ResumeCardProps) {
       )}
     >
       <span className="min-w-0 flex-1">
-        <span className="block text-[12px] leading-[1.5] text-ink-muted">하던 훈련</span>
-        <span className="mt-[2px] block text-[14.5px] leading-[1.4] font-bold text-ink">
+        <span className="block text-[0.75rem] leading-[1.5] text-ink-muted">하던 훈련</span>
+        <span className="mt-[2px] block text-[0.9063rem] leading-[1.4] font-bold text-ink">
           {scenario.title} <span className="font-medium text-ink-muted">· {stepLabel}</span>
         </span>
       </span>
-      <span aria-hidden className="flex-none text-[14px] font-bold text-brand-700">
+      <span aria-hidden className="flex-none text-[0.875rem] font-bold text-brand-700">
         이어서 ›
       </span>
     </Link>

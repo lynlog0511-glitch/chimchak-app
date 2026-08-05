@@ -41,12 +41,12 @@ export function DocWhitelist() {
       <ul className="chim-hairline border-y border-line">
         {docs.map((d) => (
           <li key={d.id} className="py-[13px]">
-            <p className="text-[11.5px] leading-[1.4] font-bold tracking-[0.04em] text-brand-700">
+            <p className="text-[0.7188rem] leading-[1.4] font-bold tracking-[0.04em] text-brand-700">
               {d.kind}
             </p>
-            <p className="mt-[2px] text-[14px] leading-[1.45] font-bold text-ink">{d.title}</p>
+            <p className="mt-[2px] text-[0.875rem] leading-[1.45] font-bold text-ink">{d.title}</p>
             {d.note && (
-              <p className="mt-[3px] text-[12.5px] leading-[1.6] text-ink-muted">{d.note}</p>
+              <p className="mt-[3px] text-[0.7813rem] leading-[1.6] text-ink-muted">{d.note}</p>
             )}
           </li>
         ))}
@@ -58,12 +58,12 @@ export function DocWhitelist() {
     <ul className="chim-hairline border-y border-line">
       {FALLBACK_GROUPS.map((g) => (
         <li key={g.kind} className="py-[13px]">
-          <p className="text-[11.5px] leading-[1.4] font-bold tracking-[0.04em] text-brand-700">
+          <p className="text-[0.7188rem] leading-[1.4] font-bold tracking-[0.04em] text-brand-700">
             {g.kind}
           </p>
           <ul className="mt-[6px] space-y-[5px]">
             {g.items.map((it) => (
-              <li key={it} className="flex gap-2 text-[13px] leading-[1.6] text-ink">
+              <li key={it} className="flex gap-2 text-[0.8125rem] leading-[1.6] text-ink">
                 <span
                   aria-hidden="true"
                   className="mt-[9px] h-[3px] w-[3px] flex-none rounded-chip bg-faint"

@@ -18,8 +18,8 @@ export interface ProtocolAddressCardProps {
 export function ProtocolAddressCard({ address, className }: ProtocolAddressCardProps) {
   return (
     <div className={cx("rounded-[14px] bg-paper-2 px-4 py-[14px]", className)}>
-      <p className="text-[12px] leading-[1.5] text-ink-muted">방문지 주소 · 훈련용 더미</p>
-      <p className="mt-[3px] text-[21px] leading-[1.35] font-extrabold tracking-[-0.01em] text-ink">
+      <p className="text-[0.75rem] leading-[1.5] text-ink-muted">방문지 주소 · 훈련용 더미</p>
+      <p className="mt-[3px] text-[1.3125rem] leading-[1.35] font-extrabold tracking-[-0.01em] text-ink">
         {address}
       </p>
     </div>

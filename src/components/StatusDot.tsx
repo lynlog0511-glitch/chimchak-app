@@ -28,7 +28,7 @@ export interface StatusDotProps {
  * 색은 언제나 **옆의 텍스트를 거드는 역할**이고, 색만으로 정보를 전하지 않습니다.
  *
  * @example
- * <span className="flex items-center gap-[5px] text-[12.5px] text-ok-ink">
+ * <span className="flex items-center gap-[5px] text-[0.7813rem] text-ok-ink">
  *   <StatusDot tone="ok" />기기에 저장됨 — 연결이 끊겨도 열립니다
  * </span>
  */

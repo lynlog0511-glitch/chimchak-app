@@ -146,7 +146,7 @@ export function SettingsMenu({ className }: SettingsMenuProps) {
         aria-controls={open ? panelId : undefined}
         onClick={() => (open ? close(true) : setOpen(true))}
         className={cx(
-          "inline-flex min-h-[48px] items-center px-2 text-[13.5px] font-semibold",
+          "inline-flex min-h-[48px] items-center px-2 text-[0.8438rem] font-semibold",
           "transition-colors duration-150",
           open ? "text-brand-800" : "text-ink-muted hover:text-brand-800",
         )}
@@ -178,6 +178,13 @@ export function SettingsMenu({ className }: SettingsMenuProps) {
                 />
               ))}
             </div>
+            {/* 이 한 줄은 **지킬 수 있게 된 뒤에야** 그대로 둡니다.
+                한때는 화면의 글자 크기가 전부 px로 박혀 있어서 「아주 크게」를 눌러도 버튼 라벨
+                하나만 커졌습니다(평가 초보 c20 실측 — 지문·항목·칩·고지·h1 전부 그대로).
+                지금은 src의 크기 지정이 남김없이 rem이라 루트 16→18→20px이 화면 전체에 그대로
+                비례합니다. 예외는 둘뿐이고 둘 다 읽을거리가 아닙니다 —
+                안전 페이지 접이식 흐름도(같은 내용이 바로 위에 텍스트로 있습니다)와
+                루트 레이아웃이 무너졌을 때 뜨는 오류 화면입니다. */}
             <p className="chim-caption mt-2 text-ink-muted">
               화면 전체 글자가 함께 커집니다. 언제든 되돌릴 수 있습니다.
             </p>

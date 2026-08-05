@@ -18,7 +18,7 @@ export function EyebrowLabel({ children, className, id }: EyebrowLabelProps) {
   return (
     <p
       id={id}
-      className={cx("text-[12px] leading-[1.5] font-bold tracking-[0.06em] text-ink-muted", className)}
+      className={cx("text-[0.75rem] leading-[1.5] font-bold tracking-[0.06em] text-ink-muted", className)}
     >
       {children}
     </p>

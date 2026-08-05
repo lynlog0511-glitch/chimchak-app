@@ -37,7 +37,7 @@ export function MarkerSquare({
     <span
       aria-hidden
       className={cx(
-        "flex flex-none items-center justify-center rounded-[12px] text-[16px] leading-none font-extrabold",
+        "flex flex-none items-center justify-center rounded-[12px] text-[1rem] leading-none font-extrabold",
         TONE[tone],
         className,
       )}

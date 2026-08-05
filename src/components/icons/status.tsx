@@ -1,3 +1,4 @@
+import { CHECK_PATH } from "./glyphs";
 import { IconBase, type IconProps } from "./IconBase";
 
 /* ─────────────────────────────────────────────────────────────
@@ -5,11 +6,11 @@ import { IconBase, type IconProps } from "./IconBase";
    판정 마크(StatusMark)는 별도 파일에 있습니다 — 여기는 원자 단위 아이콘입니다.
    ───────────────────────────────────────────────────────────── */
 
-/** 체크 */
+/** 체크 — 기하는 `glyphs.tsx`의 `CHECK_PATH` 하나뿐입니다(텍스트 ✓와 이원화 방지 · 심미 mi45). */
 export function IconCheck({ className, strokeWidth }: IconProps) {
   return (
     <IconBase className={className} strokeWidth={strokeWidth}>
-      <path d="m4.6 12.4 5 5L19.4 6.8" />
+      <path d={CHECK_PATH} />
     </IconBase>
   );
 }

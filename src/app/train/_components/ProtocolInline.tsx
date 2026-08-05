@@ -48,14 +48,14 @@ export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolI
   if (!started) {
     return (
       <div className={cx("animate-fade-up rounded-card bg-danger-soft p-4", className)}>
-        <p className="text-[12px] leading-[1.5] font-bold tracking-[0.06em] text-danger-ink">
+        <p className="text-[0.75rem] leading-[1.5] font-bold tracking-[0.06em] text-danger-ink">
           전환
         </p>
-        <h2 className="mt-1 text-[19px] leading-[1.35] font-extrabold text-danger-ink">
+        <h2 className="mt-1 text-[1.1875rem] leading-[1.35] font-extrabold text-danger-ink">
           {PROTOCOL_HANDOFF_TITLE}
         </h2>
-        <p className="mt-2 text-[15px] leading-[1.6] font-bold text-ink">{PROTOCOL_HANDOFF_BODY}</p>
-        <p className="mt-2 text-[13px] leading-[1.7] text-ink-soft">
+        <p className="mt-2 text-[0.9375rem] leading-[1.6] font-bold text-ink">{PROTOCOL_HANDOFF_BODY}</p>
+        <p className="mt-2 text-[0.8125rem] leading-[1.7] text-ink-soft">
           지금부터는 대화가 아니라 안내입니다. 사전에 검수된 문구를 순서대로 읽어 드리고, 몸으로
           하는 동작은 안내하지 않습니다. 그 부분은 119 상황실이 목소리로 직접 지도합니다.
         </p>
@@ -85,11 +85,11 @@ export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolI
           응급 구간에서 119 버튼은 스크롤과 무관하게 상시 노출됩니다(안전 규칙 §3-5). */}
       <div className="sticky top-0 z-20 -mx-[18px] bg-paper px-[18px] pt-1 pb-3">
         <div className="flex items-center gap-3">
-          <p className="flex-none text-[12px] leading-[1.5] font-bold tracking-[0.06em] text-danger-ink">
+          <p className="flex-none text-[0.75rem] leading-[1.5] font-bold tracking-[0.06em] text-danger-ink">
             L3 · 실전 응급 · 생성 0건
           </p>
           {/* 제목이 길어도 「N / M」은 잘리지 않습니다 — 잘리는 쪽은 언제나 제목입니다. */}
-          <p className="ml-auto flex min-w-0 items-baseline gap-[5px] text-[13px] leading-[1.4] font-bold text-ink-soft">
+          <p className="ml-auto flex min-w-0 items-baseline gap-[5px] text-[0.8125rem] leading-[1.4] font-bold text-ink-soft">
             <span className="min-w-0 truncate">{protocol.title}</span>
             <span className="chim-num flex-none">
               · {index + 1} / {total}
@@ -109,20 +109,20 @@ export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolI
 
         <p
           aria-live="polite"
-          className="mt-3 text-[29px] leading-[1.45] font-extrabold tracking-[-0.015em] text-ink md:text-[40px]"
+          className="mt-3 text-[1.8125rem] leading-[1.45] font-extrabold tracking-[-0.015em] text-ink md:text-[2.5rem]"
         >
           {silent ? "안내를 마쳤습니다. 지금은 말을 걸지 않겠습니다." : step?.voice}
         </p>
 
         {/* 화면 보조 문구 — 데이터의 `screen`은 사용자가 그대로 읽는 문장입니다(레이아웃 지시문 아님). */}
         {step?.screen && (
-          <p className="mt-3 text-[15px] leading-[1.65] text-ink-soft">{step.screen}</p>
+          <p className="mt-3 text-[0.9375rem] leading-[1.65] text-ink-soft">{step.screen}</p>
         )}
 
         {step?.address && <ProtocolAddressCard address={step.address} className="mt-4" />}
 
         {preview && (
-          <p className="mt-4 text-[13.5px] leading-[1.6] text-tertiary">다음 — {preview}</p>
+          <p className="mt-4 text-[0.8438rem] leading-[1.6] text-tertiary">다음 — {preview}</p>
         )}
       </div>
 
@@ -152,11 +152,11 @@ export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolI
       <ProtocolFootnote className="mt-3" />
 
       <details className="group mt-5 border-t border-line">
-        <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 text-[13px] font-semibold text-ink-soft [&::-webkit-details-marker]:hidden">
+        <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 text-[0.8125rem] font-semibold text-ink-soft [&::-webkit-details-marker]:hidden">
           <span>이 앱이 하지 않는 것</span>
           <span
             aria-hidden
-            className="text-[12px] text-faint transition-transform duration-150 group-open:rotate-180"
+            className="text-[0.75rem] text-faint transition-transform duration-150 group-open:rotate-180"
           >
             ⌄
           </span>
@@ -164,9 +164,9 @@ export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolI
         <ul className="chim-hairline pb-2">
           {protocol.notDoing.map((item) => (
             <li key={item.what} className="py-2.5">
-              <p className="text-[14px] leading-[1.5] font-bold text-ink">{item.what}</p>
-              <p className="mt-1 text-[12.5px] leading-[1.65] text-ink-soft">왜 — {item.why}</p>
-              <p className="mt-0.5 text-[12.5px] leading-[1.65] text-brand-800">
+              <p className="text-[0.875rem] leading-[1.5] font-bold text-ink">{item.what}</p>
+              <p className="mt-1 text-[0.7813rem] leading-[1.65] text-ink-soft">왜 — {item.why}</p>
+              <p className="mt-0.5 text-[0.7813rem] leading-[1.65] text-brand-800">
                 대신 — {item.instead}
               </p>
             </li>

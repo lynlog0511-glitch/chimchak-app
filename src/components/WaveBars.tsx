@@ -35,7 +35,7 @@ export interface WaveBarsProps {
  * 색은 `brand-600`과 `brand-400`을 섞어 두 단계로만 씁니다. 게이지가 아니라 **상태 표시**이므로
  * 막대 높이에 값의 의미를 싣지 않습니다.
  *
- * @example <WaveBars count={3} /> <span className="text-[11px] text-brand-600">읽어 주는 중</span>
+ * @example <WaveBars count={3} /> <span className="text-[0.6875rem] text-brand-600">읽어 주는 중</span>
  */
 export function WaveBars({ count = 3, animated = true, label, className }: WaveBarsProps) {
   const bars = count === 5 ? BARS_5 : BARS_3;

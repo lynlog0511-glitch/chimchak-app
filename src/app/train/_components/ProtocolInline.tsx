@@ -83,7 +83,11 @@ export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolI
     <div className={cx("animate-fade-up", className)}>
       {/* 상단 — 계층 표시 + 「{프로토콜명} · N / M」 + danger 진행바 + 119 버튼.
           응급 구간에서 119 버튼은 스크롤과 무관하게 상시 노출됩니다(안전 규칙 §3-5). */}
-      <div className="sticky top-0 z-20 -mx-[18px] bg-paper px-[18px] pt-1 pb-3">
+      {/* 세션 헤더(sticky z-30)가 위에 있으므로 그 실측 높이만큼 내려앉습니다 — 이중 스택. */}
+      <div
+        className="sticky z-20 -mx-[18px] bg-paper px-[18px] pt-1 pb-3"
+        style={{ top: "var(--session-head-h, 0px)" }}
+      >
         <div className="flex items-center gap-3">
           <p className="flex-none text-[0.75rem] leading-[1.5] font-bold tracking-[0.06em] text-danger-ink">
             L3 · 실전 응급 · 생성 0건

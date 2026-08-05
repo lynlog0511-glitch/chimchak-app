@@ -134,6 +134,28 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   /** 엔딩 패널 — 완주 직후 이 자리를 화면 맨 위로 끌어옵니다 */
   const endingRef = useRef<HTMLDivElement | null>(null);
 
+  /**
+   * 모바일 sticky 헤더의 실측 높이를 CSS 변수(--session-head-h)로 흘려 보냅니다.
+   * L3의 sticky 119 바가 이 값만큼 내려앉아 헤더와 겹치지 않습니다 —
+   * 부제 줄바꿈·글자 크기 설정으로 헤더 높이가 변하므로 고정값 대신 실측을 씁니다.
+   */
+  const sessionBoxRef = useRef<HTMLDivElement | null>(null);
+  const headBoxRef = useRef<HTMLDivElement | null>(null);
+  /* 마운트 시점에는 브리핑 화면이라 두 ref가 비어 있습니다 — []로 걸면 영영 실행되지 않습니다.
+     세션 화면이 실제로 렌더된 뒤(atBriefing false) 다시 시도하도록 화면 상태를 의존성에 둡니다. */
+  const inSessionView = state.phase !== "briefing" && !atBriefing;
+  useEffect(() => {
+    if (!inSessionView) return undefined;
+    const head = headBoxRef.current;
+    const box = sessionBoxRef.current;
+    if (!head || !box || typeof ResizeObserver === "undefined") return undefined;
+    const apply = () => box.style.setProperty("--session-head-h", `${head.offsetHeight}px`);
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(head);
+    return () => ro.disconnect();
+  }, [inSessionView]);
+
   const turn = currentTurn(scenario, state.session);
   const cue = state.session.status === "running" ? currentCue(scenario, state.session) : undefined;
   // 설계서 §4.6 우선순위(⚑CF·재훈련 권고 우선)를 반영한 엔딩입니다.
@@ -209,6 +231,9 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   useEffect(() => {
     if (!record) return;
     if (savedIdRef.current === record.id) return;
+    /* 시연 프리셋(?demo=)으로 자동 재생한 세션은 성장 기록에 남기지 않습니다 —
+       자동 재생이 만든 「잘한 것」이 실사용 이력에 섞이면 그 자체가 부정직한 데이터입니다. */
+    if (demoModeRef.current) return;
     savedIdRef.current = record.id;
     saveSession(record);
   }, [record]);
@@ -225,6 +250,9 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
    */
   useEffect(() => {
     if (state.phase === "briefing") return;
+    /* demo 모드에서는 체크포인트를 건드리지 않습니다 — 발표 직전 리허설이
+       발표자(또는 사용자)의 실제 진행 상태를 덮어쓰는 사고를 막습니다. */
+    if (demoModeRef.current) return;
     saveProgress(state.session);
   }, [state.phase, state.session]);
 
@@ -264,6 +292,8 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
    * 재생은 엔진의 `submitResponse`가 그대로 하고, 지나간 구간은 로그 맨 위 배너로 밝힙니다.
    */
   const demoAppliedRef = useRef(false);
+  /** demo 모드 여부 — 켜지면 이 세션은 체크포인트·성장 기록 어디에도 저장되지 않습니다. */
+  const demoModeRef = useRef(false);
 
   useEffect(() => {
     if (demoAppliedRef.current) return;
@@ -271,6 +301,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     if (typeof window === "undefined") return;
     const preset = parseDemoPreset(new URLSearchParams(window.location.search).get("demo"));
     if (!preset) return;
+    demoModeRef.current = true;
     setCheckpoint(null);
     setAtBriefing(false);
     setCriticalScene(null);
@@ -389,6 +420,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
           컴포저만 화면 아래에 도킹합니다 — 내용이 길면 페이지가 늘어나는 것이 정상입니다.
           **md↑**: 시안 7d 그대로 뷰포트에 고정된 2단(대화 + 레일)입니다. */}
       <div
+        ref={sessionBoxRef}
         aria-hidden={interrupted || undefined}
         className={cx(
           "flex min-h-[calc(100dvh_-_var(--chim-safe-t))] flex-col",
@@ -396,7 +428,12 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
           interrupted && "pointer-events-none opacity-30",
         )}
       >
-        <div className="flex-none px-[18px] md:border-b md:border-line md:px-8">
+        {/* 모바일에서 헤더를 상단에 도킹합니다 — 「종료」(이탈 경로)·진행바·계층 상태점은
+            스크롤 중에도 보여야 합니다. L3의 sticky 119 바는 이 아래(top-[3.25rem])에 겹겹이 섭니다. */}
+        <div
+          ref={headBoxRef}
+          className="sticky top-0 z-30 flex-none bg-paper px-[18px] md:static md:border-b md:border-line md:px-8"
+        >
           <SessionHeader
             title={scenario.title}
             status={statusText}

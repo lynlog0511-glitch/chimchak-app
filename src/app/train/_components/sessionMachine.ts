@@ -73,7 +73,8 @@ export function parseDemoPreset(value: string | null | undefined): DemoPreset | 
 }
 
 /** 자동 재생한 구간을 숨기지 않습니다 — 로그 맨 위에 그대로 밝힙니다. */
-export const DEMO_LOG_BANNER = "시연용 빨리감기 — 여기까지 자동 재생했습니다";
+export const DEMO_LOG_BANNER =
+  "시연용 빨리감기 — 여기까지 자동 재생했습니다. 이 시연은 기록에 남지 않습니다";
 
 /** 분기의 루브릭 평균 점수 — 자동 재생은 「잘 대응한 갈래」를 따라갑니다. */
 function branchQuality(branch: BranchDef): number {

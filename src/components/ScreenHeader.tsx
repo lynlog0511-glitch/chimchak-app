@@ -6,7 +6,7 @@ export interface ScreenHeaderProps {
   title: string;
   /**
    * 부제 12.5px — 상태 점을 붙이려면 노드로 넘기세요.
-   * @example subtitle={<span className="flex items-center gap-[5px] text-ok-ink"><StatusDot tone="ok" />기기에 저장됨</span>}
+   * @example subtitle={<span className="flex items-center gap-[4px] text-ok-ink"><StatusDot tone="ok" />기기에 저장됨</span>}
    */
   subtitle?: ReactNode;
   /** 우측 액션 — 홈의 「설정」처럼 조용한 텍스트 버튼만 둡니다. */
@@ -43,7 +43,7 @@ export function ScreenHeader({
           {title}
         </Heading>
         {subtitle && (
-          <div className="mt-[3px] text-[0.7813rem] leading-[1.5] text-ink-muted">{subtitle}</div>
+          <div className="mt-[3px] text-[0.7813rem] leading-[1.45] text-ink-muted">{subtitle}</div>
         )}
       </div>
       {action && <div className="flex-none">{action}</div>}

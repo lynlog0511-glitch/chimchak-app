@@ -37,7 +37,7 @@ const MARK_SIZE: Record<StatusMarkSize, string> = {
 /* 판정어는 UI 크롬입니다 — 13 / 15 / 17px.
    코어 콘텐츠(대사·CUE·응급 자막·CTA)의 18px+ 규칙은 여기에 적용되지 않습니다. */
 const LABEL_SIZE: Record<StatusMarkSize, string> = {
-  sm: "text-[0.8125rem]",
+  sm: "text-[0.8438rem]",
   md: "text-[0.9375rem]",
   lg: "text-[1.0625rem]",
 };

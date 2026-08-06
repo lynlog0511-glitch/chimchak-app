@@ -76,18 +76,18 @@ export function RuleDemoSheet({ prompt, examples, onFill, onClose }: RuleDemoShe
         <div className="flex-none border-b border-line px-5 pb-3">
           <h2
             id="rule-demo-title"
-            className="text-[0.8125rem] leading-[1.4] font-bold text-ink-muted"
+            className="text-[0.8438rem] leading-[1.45] font-bold text-ink-muted"
           >
             {RULE_DEMO_TITLE}
           </h2>
-          <p className="mt-1.5 text-[0.9375rem] leading-[1.5] font-bold text-ink">{prompt}</p>
+          <p className="mt-1.5 text-[0.9375rem] leading-[1.45] font-bold text-ink">{prompt}</p>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-3 pb-3">
-          <p className="text-[0.8125rem] leading-[1.6] font-semibold text-ink-soft">
+          <p className="text-[0.8438rem] leading-[1.6] font-semibold text-ink-soft">
             {RULE_DEMO_NOTE}
           </p>
-          <p className="mt-1 text-[0.8125rem] leading-[1.6] text-ink-muted">{RULE_DEMO_HINT}</p>
+          <p className="mt-1 text-[0.8438rem] leading-[1.6] text-ink-muted">{RULE_DEMO_HINT}</p>
 
           <ul className="mt-3 space-y-2.5">
             {examples.map((example) => (
@@ -97,15 +97,15 @@ export function RuleDemoSheet({ prompt, examples, onFill, onClose }: RuleDemoShe
                   onClick={() => onFill(example)}
                   className="w-full rounded-[14px] bg-paper-2 px-3.5 py-3 text-left transition-colors duration-150 hover:bg-tint"
                 >
-                  <span className="block text-[0.75rem] leading-[1.5] font-bold text-ink-muted">
+                  <span className="block text-[0.7813rem] leading-[1.45] font-bold text-ink-muted">
                     {example.kind === "critical" ? "즉시 중단" : "코칭"} · {example.ruleId} ·{" "}
                     {example.itemId} {example.ruleLabel}
                   </span>
-                  <span className="mt-1 block text-[0.8438rem] leading-[1.55] font-semibold text-ink">
+                  <span className="mt-1 block text-[0.8438rem] leading-[1.6] font-semibold text-ink">
                     “{example.sentence}”
                   </span>
                 </button>
-                <p className="mt-1 px-1 text-[0.8125rem] leading-[1.6] text-ink-muted">
+                <p className="mt-1 px-1 text-[0.8438rem] leading-[1.6] text-ink-muted">
                   {example.expectation}
                 </p>
               </li>
@@ -113,7 +113,7 @@ export function RuleDemoSheet({ prompt, examples, onFill, onClose }: RuleDemoShe
           </ul>
 
           {!examples.some((example) => example.kind === "critical") && (
-            <p className="mt-2.5 rounded-[14px] bg-paper-2 px-3.5 py-2.5 text-[0.8125rem] leading-[1.6] text-ink-muted">
+            <p className="mt-2.5 rounded-[14px] bg-paper-2 px-3.5 py-2.5 text-[0.8438rem] leading-[1.6] text-ink-muted">
               {RULE_DEMO_NO_CRITICAL_NOTE}
             </p>
           )}

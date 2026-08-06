@@ -123,7 +123,7 @@ export function FeedbackCard({
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <StatusMark kind={kind} size="md" />
         <span className={cx("chim-label font-extrabold", HEAD_TEXT[kind])}>{heading}</span>
-        {label && <span className="chim-meta font-semibold text-ink-muted">{label}</span>}
+        {label && <span className="chim-caption font-semibold text-ink-muted">{label}</span>}
       </div>
 
       {/* ② 코칭 문장 — 이 카드의 주인공. 코어 콘텐츠 크기를 지킵니다. */}

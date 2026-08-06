@@ -19,6 +19,25 @@ const SIZE = {
   xl: "min-h-[96px] px-10 text-[2rem] md:text-[2.25rem] gap-4", // 32~36px
 } as const;
 
+/**
+ * 119 버튼 캡션 — **이 앱에 하나뿐인 문구**입니다.
+ *
+ * 한때 이 파일과 `emergency/_components/Call119Bar`가 서로 다른 이야기를 했습니다
+ * (여기 「시연 모드에서는 실제 발신되지 않습니다」 / 저기 「훈련 중에는 누르지 마세요」 — 평가 초보 m35).
+ * 남긴 쪽은 **일어나는 사실 하나만 적는** 문장입니다: `href="tel:119"`는 진짜 전화 앱을 여는 링크라
+ * 「발신되지 않는다」는 없는 안전장치를 있다고 적는 셈이 됩니다.
+ * 두 버튼이 다시 갈라지지 않도록 문구를 여기 한 곳에 두고 양쪽이 같이 씁니다.
+ */
+export const CALL_119_CAPTION = "누르면 전화 앱이 열립니다 — 훈련 중에는 누르지 마세요";
+
+/**
+ * 캡션 크기 — 13.5px 하한.
+ * 「무엇이 일어나는가」를 알리는 문장이라 메타·각주가 아닙니다(평가 초보 m35: 12px → 13.5px↑).
+ * 색은 흰 지면 위 `ink-soft`(8.5:1)로, 빨강 채움 위 흰 글자(4.4:1)를 피해 버튼 밖에 둡니다.
+ */
+export const CALL_119_CAPTION_CLASS =
+  "text-[0.8438rem] leading-[1.45] font-semibold text-ink-soft";
+
 const ICON_SIZE = {
   md: "h-6 w-6",
   lg: "h-7 w-7",
@@ -57,9 +76,7 @@ export function Call119Button({
         <span>119 신고</span>
       </a>
       {caption && (
-        <p className="chim-caption mt-2 text-center leading-snug text-ink-muted">
-          누르면 전화 앱이 열립니다 · 시연 모드에서는 실제 발신되지 않습니다.
-        </p>
+        <p className={cx("mt-2 text-center", CALL_119_CAPTION_CLASS)}>{CALL_119_CAPTION}</p>
       )}
     </div>
   );

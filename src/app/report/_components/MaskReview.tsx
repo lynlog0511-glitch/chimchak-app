@@ -17,6 +17,7 @@ import {
 import { extractDraft } from "@/engine/record";
 import { DraftRows } from "./DraftRows";
 import { PrivacyPath } from "./PrivacyPath";
+import { StickyCtaBar, usePassedBlock } from "./StickyCtaBar";
 
 export interface MaskReviewProps {
   /** 1단계에서 입력한 원문 */
@@ -81,6 +82,8 @@ export function MaskReview({ text, onBack, onNext, headingRef }: MaskReviewProps
   const preview = useMemo(() => extractDraft(result.masked), [result.masked]);
   const foundKinds = KIND_ORDER.filter((kind) => (counts[kind] ?? 0) > 0);
   const total = result.spans.length;
+  /** 가림 결과(문단 + 범례)를 지나셨는지 — 그전까지 도킹한 CTA는 보조 색으로 물러섭니다. */
+  const { markerRef, passed } = usePassedBlock();
 
   return (
     <div>
@@ -125,6 +128,9 @@ export function MaskReview({ text, onBack, onNext, headingRef }: MaskReviewProps
           이름·연락처·기관명·주소·생년이 들어 있다면 「다시 말하기」로 돌아가 확인해 주세요.
         </p>
       )}
+
+      {/* 가림 결과가 끝나는 자리. 여기까지 눈이 닿으면 아래 도킹 CTA가 주 색이 됩니다. */}
+      <div ref={markerRef} aria-hidden className="h-px" />
 
       {/* 다섯 칸 초안 미리보기 — 고치는 것은 다음 화면입니다. */}
       <p className="text-[0.7813rem] leading-[1.5] font-bold text-ink-muted">기록 초안 — 다섯 칸</p>
@@ -190,14 +196,18 @@ export function MaskReview({ text, onBack, onNext, headingRef }: MaskReviewProps
         </details>
       )}
 
-      <PrivacyPath reached={3} className="mt-6" />
+      {/* 전진 CTA는 화면 아래에 도킹합니다 — 가림 결과를 다 읽기 전에는 보조 색으로 물러서 있되
+          누르는 것을 막지는 않습니다. 바 아래에 남는 `PrivacyPath`가 sticky가 움직일 자리입니다. */}
+      <StickyCtaBar>
+        <BigButton size="lg" block variant={passed ? "primary" : "secondary"} onClick={onNext}>
+          확인으로 넘어가기
+        </BigButton>
+        <BigButton variant="ghost" block className="mt-1" onClick={onBack}>
+          다시 말하기
+        </BigButton>
+      </StickyCtaBar>
 
-      <BigButton size="lg" block className="mt-5" onClick={onNext}>
-        확인으로 넘어가기
-      </BigButton>
-      <BigButton variant="secondary" block className="mt-2" onClick={onBack}>
-        다시 말하기
-      </BigButton>
+      <PrivacyPath reached={3} className="mt-6" />
     </div>
   );
 }

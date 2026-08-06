@@ -37,7 +37,9 @@ export function MarkerSquare({
     <span
       aria-hidden
       className={cx(
-        "flex flex-none items-center justify-center rounded-[12px] text-[1rem] leading-none font-extrabold",
+        /* 마커 글자는 옆 행 제목(17px)과 같은 단에 둡니다 — 16·17·17.5가 1.5px 안에
+           셋 다 있던 자리라(심미 재평가 ma1 /emergency 실측) 한 값으로 접었습니다. */
+        "flex flex-none items-center justify-center rounded-[12px] text-[1.0625rem] leading-none font-extrabold",
         TONE[tone],
         className,
       )}

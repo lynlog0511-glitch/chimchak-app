@@ -52,7 +52,7 @@ function collectSpoken() {
     spoken.get(key).push(origin);
   };
 
-  for (const file of ["chk-a01", "chk-b02", "chk-c01"]) {
+  for (const file of ["chk-a01", "chk-a02", "chk-b02", "chk-c01", "chk-c02"]) {
     const mod = loadModule(`src/data/scenarios/${file}.ts`);
     const scenario = Object.values(mod).find((v) => v && typeof v === "object" && v.turns);
     for (const turn of scenario.turns) {

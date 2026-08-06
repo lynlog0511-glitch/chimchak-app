@@ -522,6 +522,9 @@ export const AREA_WEIGHTS: Record<string, Record<RubricArea, number>> = {
   "CHK-A01": { SA: 25, CO: 25, RE: 35, CL: 15 },
   "CHK-B02": { SA: 30, CO: 35, RE: 15, CL: 20 },
   "CHK-C01": { SA: 10, CO: 30, RE: 40, CL: 20 },
+  // 신작 2종(알파 초안)은 소속 유형의 가중치를 그대로 씁니다 — 런타임 산식도 유형 기준입니다.
+  "CHK-A02": { SA: 25, CO: 25, RE: 35, CL: 15 },
+  "CHK-C02": { SA: 10, CO: 30, RE: 40, CL: 20 },
 };
 
 /**

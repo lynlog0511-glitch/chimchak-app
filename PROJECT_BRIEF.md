@@ -81,7 +81,7 @@ AI는 어르신 역만 맡고, 옳고 그름의 판정은 **한국 법령·공�
 - `SourceChip({ docId })` — 근거 출처 칩. `src/data/docs.ts`의 문서 제목 표시, 클릭 시 문서 설명 팝오버/모달
 - `Gauge({ value, max, label })` — 초조도/긴장도 게이지 바
 - `FeedbackCard({ ok, message, docId? })` — 🟢/⚪ 피드백 표시
-- `Call119Button` — 붉은 대형 119 버튼 (tel:119 링크 + "시연 모드에서는 실제 발신되지 않습니다" 캡션)
+- `Call119Button` — 붉은 대형 119 버튼 (tel:119 링크 + 캡션 "누르면 전화 앱이 열립니다 — 훈련 중에는 누르지 마세요". 8/6 교정: tel: 링크는 실제로 전화 앱을 열므로 「발신되지 않습니다」라고 적지 않는다 — 없는 안전장치를 있다고 말하지 않는 원칙)
 - `SwRegister` — 서비스워커 등록 클라이언트 컴포넌트 (design은 no-op 스텁 생성, emergency 에이전트가 실구현으로 교체)
 
 layout.tsx는 `<SwRegister />`를 포함할 것.

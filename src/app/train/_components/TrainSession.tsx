@@ -76,11 +76,11 @@ function ExitConfirm({ onClose }: { onClose: () => void }) {
           id="session-exit-title"
           ref={titleRef}
           tabIndex={-1}
-          className="text-[1.0625rem] leading-[1.4] font-bold text-ink"
+          className="text-[1.0625rem] leading-[1.45] font-bold text-ink"
         >
           훈련을 끝낼까요?
         </h2>
-        <p className="mt-2 text-[0.8125rem] leading-[1.6] text-ink-soft">
+        <p className="mt-2 text-[0.8438rem] leading-[1.6] text-ink-soft">
           지금까지 진행한 자리는 이 기기에 남아 있어, 다음에 이어서 하실 수 있습니다. 말씀하신
           내용은 저장하지 않습니다.
         </p>
@@ -498,7 +498,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
                   type="button"
                   onClick={toggleTts}
                   aria-pressed={ttsOn}
-                  className="flex min-h-[48px] items-center px-2 text-[0.8125rem] font-semibold text-ink-muted"
+                  className="flex min-h-[48px] items-center px-2 text-[0.8438rem] font-semibold text-ink-muted"
                 >
                   {ttsOn ? "소리 끄기" : "소리 켜기"}
                 </button>
@@ -506,7 +506,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
                   <button
                     type="button"
                     onClick={() => setExitOpen(true)}
-                    className="flex min-h-[48px] items-center px-2 text-[0.875rem] font-semibold text-ink-muted"
+                    className="flex min-h-[48px] items-center px-2 text-[0.8438rem] font-semibold text-ink-muted"
                   >
                     종료
                   </button>
@@ -534,7 +534,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
                   {scenario.context}
                 </p>
                 {/* 가상 인물 고지 — 화면마다 한 번은 또렷하게 남습니다(말풍선의 「AI 생성 · 가상 인물」과 별도). */}
-                <p className="mt-1 text-center text-[0.7188rem] leading-[1.6] text-ink-muted">
+                <p className="mt-1 text-center text-[0.6875rem] leading-[1.6] text-ink-muted">
                   {FICTION_NOTICE}
                 </p>
 
@@ -610,7 +610,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
                       <button
                         type="button"
                         onClick={() => scrollToTailRef.current?.()}
-                        className="flex min-h-[48px] w-full items-center justify-center gap-1.5 border-b border-line bg-tint px-[18px] text-[0.8438rem] leading-[1.4] font-bold text-brand-800 md:px-8"
+                        className="flex min-h-[48px] w-full items-center justify-center gap-1.5 border-b border-line bg-tint px-[18px] text-[0.8438rem] leading-[1.45] font-bold text-brand-800 md:px-8"
                       >
                         {TAIL_ANCHOR}
                         <span aria-hidden>↓</span>

@@ -51,7 +51,7 @@ export function Badge({
     <span
       className={cx(
         "inline-flex items-center gap-1.5 rounded-chip font-semibold whitespace-nowrap",
-        size === "sm" ? "chim-caption px-2.5 py-0.5" : "chim-meta px-3 py-1",
+        size === "sm" ? "chim-caption px-2.5 py-0.5" : "chim-caption px-3 py-1",
         variant === "outline" ? OUTLINE[tone] : SOFT[tone],
         className,
       )}

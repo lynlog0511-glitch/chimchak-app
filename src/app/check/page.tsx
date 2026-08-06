@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { InlineDisclaimer, PageShell, ScreenHeader } from "@/components";
 import { CheckClient } from "./_components/CheckClient";
+import { DemoSeedPanel } from "./_components/DemoSeedPanel";
 
 /**
  * 무대 직전 30초 점검 화면 (발표자 전용).
@@ -29,6 +30,9 @@ export default function CheckPage() {
       />
 
       <CheckClient />
+
+      {/* 무대에서 성장 기록·이수 확인서까지 보여 드리기 위한 예시 시드 — 발표자 전용입니다. */}
+      <DemoSeedPanel />
 
       <InlineDisclaimer size="md" tone="readable" className="mt-5 mb-6" />
     </PageShell>

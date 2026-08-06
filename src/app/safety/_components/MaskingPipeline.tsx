@@ -23,6 +23,7 @@ export interface MaskingPipelineProps {
  * 같은 내용을 aria-hidden으로 되풀이할 뿐이었습니다). 내용은 그대로입니다.
  *
  * 형태는 v4 §2 리스트 문법 — 아이콘 없이 [번호 + 단계 이름 + 한 문장], 행 사이 hairline.
+ * 눈금은 이 화면의 것과 같습니다 — 단계 이름 17 · 설명 15 · 번호 15(tabular).
  *
  * @example <MaskingPipeline steps={PRIVACY_STEPS} />
  */
@@ -30,20 +31,20 @@ export function MaskingPipeline({ steps, className }: MaskingPipelineProps) {
   return (
     <ol className={cx("chim-hairline border-y border-line", className)}>
       {steps.map((s, i) => (
-        <li key={s.step} className="flex gap-[10px] py-[13px]">
+        <li key={s.step} className="flex gap-3 py-4">
           <span
             aria-hidden
-            className="chim-num w-[13px] flex-none text-[0.8125rem] leading-[1.5] font-extrabold text-brand-700"
+            className="chim-num w-[1rem] flex-none text-[0.9375rem] leading-[1.4] font-extrabold text-brand-700"
           >
             {i + 1}
           </span>
           <div className="min-w-0">
-            <p className="text-[0.875rem] leading-[1.45] font-bold text-ink">{s.step}</p>
-            <p className="mt-[2px] text-[0.7813rem] leading-[1.6] text-ink-muted">{s.desc}</p>
+            <p className="text-[1.0625rem] leading-[1.4] font-extrabold text-ink">{s.step}</p>
+            <p className="mt-1 text-[0.9375rem] leading-[1.6] text-ink-muted">{s.desc}</p>
             {/* 「지금 되는 것」 아래에 「계획」을 따로 세웁니다 — 같은 문단에 섞으면 구별되지 않습니다. */}
             {s.plan && (
-              <p className="mt-[5px] text-[0.7813rem] leading-[1.6] text-ink-muted">
-                <PlanTag className="mr-[6px]" />
+              <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink-muted">
+                <PlanTag className="mr-2" />
                 {s.plan}
               </p>
             )}

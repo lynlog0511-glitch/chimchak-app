@@ -47,7 +47,7 @@ export function TopNav({ active, className }: TopNavProps) {
                     href={item.href}
                     aria-current={isActive ? "page" : undefined}
                     className={cx(
-                      "flex min-h-[48px] items-center px-[10px] text-[0.875rem] leading-none",
+                      "flex min-h-[48px] items-center px-[10px] text-[0.8438rem] leading-none",
                       "transition-colors duration-150",
                       isActive
                         ? item.danger

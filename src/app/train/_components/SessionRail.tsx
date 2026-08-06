@@ -25,7 +25,7 @@ export interface SessionRailProps {
 /** 레일 섹션 라벨 — 12px w700, ink-muted, +0.05em (가이드 §2). */
 function RailLabel({ children }: { children: string }) {
   return (
-    <p className="mb-2 text-[0.75rem] leading-[1.4] font-bold tracking-[0.05em] text-ink-muted">
+    <p className="mb-2 text-[0.7813rem] leading-[1.45] font-bold tracking-[0.05em] text-ink-muted">
       {children}
     </p>
   );
@@ -78,11 +78,11 @@ export function SessionRail({
       className={cx("w-[270px] flex-none overflow-y-auto bg-paper-rail px-6 py-6", className)}
     >
       <RailLabel>상황</RailLabel>
-      <p className="mb-[18px] text-[0.8125rem] leading-[1.6] text-ink-soft">{scenario.summary}</p>
+      <p className="mb-[18px] text-[0.8438rem] leading-[1.6] text-ink-soft">{scenario.summary}</p>
 
       <RailLabel>{gaugeRailLabel(scenario)}</RailLabel>
       {/* 칸 수는 눈으로만 읽는 신호입니다 — 뜻은 아래 상태어가 전합니다(숫자는 내보내지 않습니다). */}
-      <div aria-hidden className="mb-[5px] flex gap-[3px]">
+      <div aria-hidden className="mb-[4px] flex gap-[3px]">
         {Array.from({ length: gauge.max }, (_, i) => (
           <span
             key={i}
@@ -97,7 +97,7 @@ export function SessionRail({
           />
         ))}
       </div>
-      <p className={cx("mb-[18px] text-[0.7813rem] leading-[1.5] font-semibold", EMOTION_TEXT[emotion.level])}>
+      <p className={cx("mb-[18px] text-[0.7813rem] leading-[1.45] font-semibold", EMOTION_TEXT[emotion.level])}>
         {emotion.word}
         {deltaSentence && ` — ${deltaSentence}`}
       </p>
@@ -108,7 +108,7 @@ export function SessionRail({
           {coachings.map((item) => (
             <li
               key={item.key}
-              className="flex gap-1.5 border-b border-line pt-[9px] pb-[9px] text-[0.7813rem] leading-[1.55] text-ink-soft first:pt-0 last:border-b-0 last:pb-0"
+              className="flex gap-1.5 border-b border-line pt-[8px] pb-[8px] text-[0.7813rem] leading-[1.6] text-ink-soft first:pt-0 last:border-b-0 last:pb-0"
             >
               <span
                 aria-hidden
@@ -128,13 +128,13 @@ export function SessionRail({
           ))}
         </ul>
       ) : (
-        <p className="mb-[18px] text-[0.7813rem] leading-[1.55] text-tertiary">
+        <p className="mb-[18px] text-[0.7813rem] leading-[1.6] text-tertiary">
           아직 판정된 응답이 없습니다.
         </p>
       )}
 
       {docTitles.length > 0 && (
-        <p className="border-t border-line pt-2.5 text-[0.7188rem] leading-[1.6] text-tertiary">
+        <p className="border-t border-line pt-2.5 text-[0.6875rem] leading-[1.6] text-tertiary">
           근거 문서 — {docTitles.join(" · ")}
         </p>
       )}

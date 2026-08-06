@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { cx } from "@/components";
+import { isDemoRecord } from "@/lib/demoSeed";
 import { loadSessions } from "@/lib/storage";
 
 export interface PracticeCountProps {
@@ -22,11 +23,17 @@ export function PracticeCount({ scenarioId, className }: PracticeCountProps) {
 
   useEffect(() => {
     const key = scenarioId.trim().toUpperCase();
-    setCount(loadSessions().filter((record) => record.scenarioId.toUpperCase() === key).length);
+    // 시연용 예시 회차는 세지 않습니다 — 이 조각에는 「예시」 표시를 붙일 자리가 없어서,
+    // 섞이면 진짜 연습 횟수처럼 읽힙니다.
+    setCount(
+      loadSessions().filter(
+        (record) => !isDemoRecord(record) && record.scenarioId.toUpperCase() === key,
+      ).length,
+    );
   }, [scenarioId]);
 
   return (
-    <span className={cx("chim-num text-[0.75rem] leading-[1.5] text-ink-faint", className)}>
+    <span className={cx("chim-num text-[0.7813rem] leading-[1.45] text-ink-faint", className)}>
       {count === null ? "" : count > 0 ? `해 본 횟수 ${count}` : "아직 안 해봄"}
     </span>
   );

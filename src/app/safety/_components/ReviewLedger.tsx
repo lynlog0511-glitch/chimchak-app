@@ -31,7 +31,10 @@ export function ReviewLedger({ className }: ReviewLedgerProps) {
       k: `루브릭 ${RUBRIC.length}항목`,
       v: "1차 감수 완료 — 방문요양 5년 현직 · 2026. 7. 25.",
     },
-    { k: "시나리오 대사", v: "2차 교차 감수 진행 중 — 아직 끝나지 않았습니다." },
+    {
+      k: "시나리오 대사",
+      v: "먼저 연 3종은 2차 교차 감수 진행 중 — 아직 끝나지 않았습니다. 뒤에 더한 2종(A02·C02)은 알파 초안으로, 현직 감수 대기 상태임을 카드에도 그대로 적었습니다.",
+    },
     {
       k: `응급 안내 ${PROTOCOLS.length}종`,
       v:
@@ -44,22 +47,22 @@ export function ReviewLedger({ className }: ReviewLedgerProps) {
   return (
     <section
       aria-labelledby="review-ledger-title"
-      className={cx("rounded-[14px] bg-paper-2 px-[15px] py-[14px]", className)}
+      className={cx("rounded-card bg-paper-2 p-4", className)}
     >
-      <h3 id="review-ledger-title" className="text-[0.875rem] leading-[1.45] font-extrabold text-ink">
+      <h3 id="review-ledger-title" className="text-[1.0625rem] leading-[1.4] font-extrabold text-ink">
         현직 감수 현황
       </h3>
 
-      <dl className="chim-hairline mt-[10px] border-y border-line">
+      <dl className="chim-hairline mt-3 border-y border-line">
         {rows.map((row) => (
-          <div key={row.k} className="py-[11px]">
-            <dt className="text-[0.8438rem] leading-[1.45] font-bold text-ink">{row.k}</dt>
-            <dd className="mt-[2px] text-[0.8125rem] leading-[1.6] text-ink-soft">{row.v}</dd>
+          <div key={row.k} className="py-3">
+            <dt className="text-[0.9375rem] leading-[1.45] font-bold text-ink">{row.k}</dt>
+            <dd className="mt-1 text-[0.9375rem] leading-[1.6] text-ink-soft">{row.v}</dd>
           </div>
         ))}
       </dl>
 
-      <p className="mt-[9px] text-[0.75rem] leading-[1.6] text-ink-soft">
+      <p className="mt-3 text-[0.7813rem] leading-[1.6] text-ink-muted">
         끝난 것과 안 끝난 것을 같이 적습니다. 진행 중인 것을 완료로 적어 두면, 이 화면의 나머지
         기록도 믿을 수 없게 됩니다.
       </p>

@@ -53,8 +53,20 @@ export const NEXT_TRAINING_CANDIDATES: NextTrainingCandidate[] = [
     type: "BPSD",
     typeLabel: "치매 행동심리증상(BPSD)",
   },
+  {
+    id: "CHK-A02",
+    title: "새벽 두 시, 차가 나가야 한대요",
+    type: "BPSD",
+    typeLabel: "치매 행동심리증상(BPSD)",
+  },
   { id: "CHK-B02", title: "점심 식사 중 사레", type: "EMERGENCY", typeLabel: "응급 초기 대응" },
   { id: "CHK-C01", title: "온 김에 반찬 좀", type: "CONFLICT", typeLabel: "이용자·보호자 갈등 화법" },
+  {
+    id: "CHK-C02",
+    title: "어머니 팔에 멍이 있어요",
+    type: "CONFLICT",
+    typeLabel: "이용자·보호자 갈등 화법",
+  },
 ];
 
 /** 추천 이유 문구 — 새 문구는 여기 한 곳에만 둡니다. */

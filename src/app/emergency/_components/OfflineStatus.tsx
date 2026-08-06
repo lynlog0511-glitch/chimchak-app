@@ -122,7 +122,7 @@ export function OfflineStatus() {
   }
 
   return (
-    <span role="status" className={cx("flex items-start gap-[5px] text-[0.7813rem] leading-[1.5]", color)}>
+    <span role="status" className={cx("flex items-start gap-[4px] text-[0.7813rem] leading-[1.45]", color)}>
       <StatusDot tone={tone} className="mt-[6px]" />
       <span>{text}</span>
     </span>

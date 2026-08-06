@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { ScenarioType, SessionRecord } from "@/types";
 import { EyebrowLabel, InlineDisclaimer } from "@/components";
 import { IconClock, IconSprout, StatusMark } from "@/components/icons";
+import { DEMO_SEED_SUMMARY, clearDemoRecords, isDemoRecord } from "@/lib/demoSeed";
 import {
   clearReports,
   clearSessions,
@@ -90,6 +91,20 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
   };
 
   /**
+   * 시연용 예시만 지웁니다 — 같은 기기에 쌓인 진짜 기록과 이수 시수는 건드리지 않습니다.
+   * (예시는 애초에 이수 누계에 들어가 있지 않으므로 시수는 심기 전 값 그대로 남습니다.)
+   */
+  const handleClearDemo = (): void => {
+    clearDemoRecords();
+    setSessions(loadSessions());
+    setReports(loadReports());
+  };
+
+  const demoSessionCount = sessions.filter(isDemoRecord).length;
+  const demoReportCount = reports.filter(isDemoRecord).length;
+  const demoShown = demoSessionCount + demoReportCount > 0;
+
+  /**
    * 다음 훈련 추천 — 성장 기록이 막다른 길로 끝나지 않도록, 여기서 바로 이어 갈 곳을 하나 답니다.
    * 유형 판별은 서버에서 받은 실제 시나리오 표(typeByScenarioId)를 먼저 씁니다.
    */
@@ -108,6 +123,37 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
 
   return (
     <div className="mt-4">
+      {/* 시연용 예시가 섞여 있으면 화면이 먼저 밝힙니다 — 예시가 증빙으로 오인되면 안 됩니다.
+          지우기는 예시만 지우고, 이 기기의 진짜 기록과 이수 시수는 그대로 둡니다. */}
+      {demoShown && (
+        <section
+          aria-labelledby="demo-notice-title"
+          className="mb-4 rounded-[14px] bg-warn-soft px-4 py-[14px]"
+        >
+          <h2
+            id="demo-notice-title"
+            className="text-[0.9375rem] leading-[1.45] font-extrabold text-warn-ink"
+          >
+            시연용 예시 기록이 표시되고 있습니다
+          </h2>
+          <p className="mt-[5px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+            발표 시연을 위해 심어 둔 {DEMO_SEED_SUMMARY}이 아래 목록에 섞여 있습니다. 해당 행에는
+            「예시」 표시가 붙고, 이수 확인서에는 「예시 미리보기」로 인쇄됩니다. 실제 이수 시수
+            누계에는 들어가지 않습니다.
+          </p>
+          <button
+            type="button"
+            onClick={handleClearDemo}
+            className="mt-[10px] flex min-h-[48px] w-full items-center justify-center rounded-[14px] border border-line-strong bg-white text-[0.875rem] font-bold text-ink"
+          >
+            예시 기록 한 번에 지우기
+          </button>
+          <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
+            예시만 지웁니다 — 직접 완주하신 기록과 이수 시수는 그대로 남습니다.
+          </p>
+        </section>
+      )}
+
       {/* 다음엔 이 장면 — 추천 규칙은 그대로, 문장 하나로만 말합니다. */}
       {suggestion && (
         <Link

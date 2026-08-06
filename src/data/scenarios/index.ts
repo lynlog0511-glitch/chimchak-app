@@ -1,8 +1,14 @@
 /**
- * 알파 시나리오 3종 묶음 — 설계서 §2.4 편성.
+ * 열린 시나리오 묶음 — 설계서 §2.4 알파 편성 3종 + §9.1 확장 매트릭스에서 이어 붙인 2종.
  *
- * CHK-A01 BPSD·초급 (L1+L2) / CHK-B02 응급·중급 (L1+L2+L3) / CHK-C01 갈등·중급 (L1+L2)
- * 이 3종만으로 루브릭 30항목이 전수 1회 이상 실행되고, 생성 통제 3계층이 모두 통과됩니다.
+ * 알파 감수 완료분
+ *   CHK-A01 BPSD·초급 (L1+L2) / CHK-B02 응급·중급 (L1+L2+L3) / CHK-C01 갈등·중급 (L1+L2)
+ *   이 3종만으로 루브릭 30항목이 전수 1회 이상 실행되고, 생성 통제 3계층이 모두 통과됩니다.
+ *
+ * 알파 초안 — 현직 감수 대기
+ *   CHK-A02 BPSD·중급 (야간 배회 + 보호자 부재) / CHK-C02 갈등·고급 (사고 책임 추궁·계약 해지 위협)
+ *   루브릭 30항목·규칙 사전·엔진을 그대로 재사용하고 **데이터만** 더한 확장입니다.
+ *   대사 감수가 끝나지 않았다는 사실은 화면(/train 카드 라벨)에 그대로 적습니다.
  */
 
 import type { Scenario, TurnDef } from "@/types";
@@ -10,14 +16,18 @@ import { classifyInput } from "@/engine/classify";
 import { normalize } from "@/engine/rules";
 
 import { CHK_A01 } from "./chk-a01";
+import { CHK_A02 } from "./chk-a02";
 import { CHK_B02 } from "./chk-b02";
 import { CHK_C01 } from "./chk-c01";
+import { CHK_C02 } from "./chk-c02";
 
 export { CHK_A01 } from "./chk-a01";
+export { CHK_A02 } from "./chk-a02";
 export { CHK_B02, B02_PROTOCOL_RESUME_TURN_ID } from "./chk-b02";
 export { CHK_C01 } from "./chk-c01";
+export { CHK_C02 } from "./chk-c02";
 
-export const SCENARIOS: Scenario[] = [CHK_A01, CHK_B02, CHK_C01];
+export const SCENARIOS: Scenario[] = [CHK_A01, CHK_A02, CHK_B02, CHK_C01, CHK_C02];
 
 /** 시나리오 id 로 조회합니다. 대소문자 구분 없이(예: "chk-a01") 찾습니다. */
 export function getScenario(id: string): Scenario | undefined {
@@ -163,7 +173,7 @@ export function validateScenarioGraph(scenario: Scenario): string[] {
   return problems;
 }
 
-/** 3종 전체를 한 번에 검사합니다. */
+/** 열린 시나리오 전체를 한 번에 검사합니다. */
 export function validateAllScenarios(): string[] {
   return SCENARIOS.flatMap((scenario) => validateScenarioGraph(scenario));
 }

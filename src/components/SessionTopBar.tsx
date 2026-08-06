@@ -18,7 +18,7 @@ export interface SessionTopBarProps {
   backLabel?: string;
   /**
    * 우측 액션 — 시안의 「종료」.
-   * 스타일은 이렇게 맞추세요: `className="-mr-2 flex min-h-[48px] items-center px-2 text-[0.875rem] font-semibold text-ink-muted"`
+   * 스타일은 이렇게 맞추세요: `className="-mr-2 flex min-h-[48px] items-center px-2 text-[0.8438rem] font-semibold text-ink-muted"`
    */
   action?: ReactNode;
   className?: string;
@@ -36,7 +36,7 @@ export interface SessionTopBarProps {
  *   title="집에 가야 해요"
  *   status="대화 단계 · AI는 어르신 역만 맡습니다"
  *   backHref="/train"
- *   action={<button type="button" onClick={end} className="-mr-2 flex min-h-[48px] items-center px-2 text-[0.875rem] font-semibold text-ink-muted">종료</button>}
+ *   action={<button type="button" onClick={end} className="-mr-2 flex min-h-[48px] items-center px-2 text-[0.8438rem] font-semibold text-ink-muted">종료</button>}
  * />
  */
 export function SessionTopBar({
@@ -50,7 +50,7 @@ export function SessionTopBar({
   className,
 }: SessionTopBarProps) {
   const backClass =
-    "-ml-[14px] flex h-12 w-12 flex-none items-center justify-center text-[1.375rem] leading-none text-ink-soft";
+    "-ml-[14px] flex h-12 w-12 flex-none items-center justify-center text-[1.0625rem] leading-none text-ink-soft";
 
   return (
     <header className={cx("flex items-center pt-1.5 pb-3", className)}>
@@ -65,11 +65,11 @@ export function SessionTopBar({
       ) : null}
 
       <div className="min-w-0 flex-1">
-        <h1 className="truncate text-[1rem] leading-[1.35] font-bold tracking-[-0.01em] text-ink">
+        <h1 className="truncate text-[1rem] leading-[1.3] font-bold tracking-[-0.01em] text-ink">
           {title}
         </h1>
         {status && (
-          <p className="mt-[1px] flex items-center gap-[5px] text-[0.7813rem] leading-[1.4] text-ink-muted">
+          <p className="mt-[1px] flex items-center gap-[4px] text-[0.7813rem] leading-[1.45] text-ink-muted">
             <StatusDot tone={statusTone} />
             <span className="min-w-0 truncate">{status}</span>
           </p>

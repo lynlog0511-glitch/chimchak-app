@@ -154,6 +154,8 @@ export function CueResponder({
     setNotice(null);
     setFilledExampleId(null);
     setDemoOpen(false);
+    // 마이크 안내는 누르신 그 턴에서만 유효합니다 — 턴이 넘어가면 도크를 다시 비웁니다.
+    setMicIntroOpen(false);
   }, [resetKey]);
 
   /**
@@ -185,21 +187,37 @@ export function CueResponder({
     };
   }, [listening, onListeningChange]);
 
-  /** 세션 최초 1회 마이크 안내 — 기기에 본 적 있음이 남아 있으면 띄우지 않습니다. */
+  /**
+   * 마이크 안내를 이미 보신 적이 있는지 (기기에 남아 있는 표시).
+   *
+   * 읽어 두기만 하고 **여는 것은 마이크 버튼을 처음 누르시는 순간**입니다(아래 `beginPress`).
+   * 세션에 들어오는 것만으로 띄우면 첫 턴 도크가 160px 부풀고 「알겠습니다」 한 번을 먼저
+   * 요구합니다 — 버튼만으로 끝까지 가실 분에게는 존재 자체가 불필요한 관문입니다(평가 초보 mi72).
+   */
+  const micIntroSeenRef = useRef(false);
+  /** 열린 안내 카드 — 도크가 상한에 걸려 스크롤될 때 카드가 접힌 자리에 숨지 않게 붙듭니다. */
+  const micIntroRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!micIntroOpen) return;
+    // 초점은 옮기지 않습니다 — 스페이스/엔터로 마이크를 누르신 경우 그 keyup이 곧바로
+    // 「알겠습니다」를 눌러 버려, 읽기도 전에 안내가 닫힙니다.
+    micIntroRef.current?.scrollIntoView({ block: "nearest" });
+  }, [micIntroOpen]);
+
   useEffect(() => {
     if (!micSupported) return;
-    let seen = false;
     try {
-      seen = window.localStorage.getItem(MIC_INTRO_KEY) === "1";
+      micIntroSeenRef.current = window.localStorage.getItem(MIC_INTRO_KEY) === "1";
     } catch {
-      // 저장소를 쓸 수 없는 환경에서는 매번 안내해 드립니다 (안내가 없는 것보다 안전합니다).
-      seen = false;
+      // 저장소를 쓸 수 없는 환경에서는 누르실 때 한 번 더 안내해 드립니다(안내가 없는 것보다 안전합니다).
+      micIntroSeenRef.current = false;
     }
-    if (!seen) setMicIntroOpen(true);
   }, [micSupported]);
 
   const closeMicIntro = useCallback(() => {
     setMicIntroOpen(false);
+    micIntroSeenRef.current = true;
     try {
       window.localStorage.setItem(MIC_INTRO_KEY, "1");
     } catch {
@@ -301,6 +319,12 @@ export function CueResponder({
   const pressingRef = useRef(false);
 
   const beginPress = useCallback(() => {
+    // 마이크를 처음 누르시는 순간 — 조작법을 먼저 펴 드리고, 이번 누름은 녹음으로 넘기지 않습니다.
+    // 「알겠습니다」를 누르신 뒤 다시 누르시면 그때부터는 바로 녹음으로 들어갑니다.
+    if (!micIntroSeenRef.current) {
+      setMicIntroOpen(true);
+      return;
+    }
     pressingRef.current = true;
     startListening();
   }, [startListening]);
@@ -404,17 +428,17 @@ export function CueResponder({
       <div className="flex-none border-t border-line bg-paper">
         {/* md↑에서는 가운데 대화 폭(560px)에 맞춰 도크 안쪽만 좁힙니다 — 시안 7d */}
         <div className="mx-auto w-full max-w-[624px] px-[18px] pt-3.5 pb-7 md:px-8">
-          <p className="mb-3.5 text-[1.0625rem] leading-[1.5] font-bold text-ink">{cue.prompt}</p>
+          <p className="mb-3.5 text-[1.0625rem] leading-[1.45] font-bold text-ink">{cue.prompt}</p>
 
           <div className="rounded-panel bg-paper-2 px-4 py-3.5">
             <div className="mb-2 flex items-center gap-1.5">
               <StatusDot tone="danger" size={8} />
-              <span className="text-[0.7813rem] leading-[1.4] font-bold text-ink-soft">
+              <span className="text-[0.7813rem] leading-[1.45] font-bold text-ink-soft">
                 듣고 있어요
               </span>
               <WaveBars count={5} className="ml-auto" />
             </div>
-            <p aria-live="polite" className="text-[1.0313rem] leading-[1.55] text-ink">
+            <p aria-live="polite" className="text-[1.0625rem] leading-[1.6] text-ink">
               {text.trim().length > 0 ? (
                 <>
                   <span aria-hidden>“</span>
@@ -449,10 +473,10 @@ export function CueResponder({
             />
           </div>
 
-          <p className="text-center text-[0.8125rem] leading-[1.5] font-semibold text-ink-soft">
+          <p className="text-center text-[0.8438rem] leading-[1.45] font-semibold text-ink-soft">
             손을 떼면 전송돼요
           </p>
-          <p className="mt-1 text-center text-[0.75rem] leading-[1.5] text-tertiary">
+          <p className="mt-1 text-center text-[0.7813rem] leading-[1.45] text-tertiary">
             잘못 들렸다면 보내기 전에 고칠 수 있어요
           </p>
 
@@ -482,7 +506,7 @@ export function CueResponder({
           <h2
             ref={promptRef}
             tabIndex={-1}
-            className="text-[1.0625rem] leading-[1.5] font-bold text-ink"
+            className="text-[1.0625rem] leading-[1.45] font-bold text-ink"
           >
             {cue.prompt}
           </h2>
@@ -500,23 +524,25 @@ export function CueResponder({
                 style={{ width: `${waitLeftPercent}%` }}
               />
             </span>
-            <span className="min-w-0 text-[0.8438rem] leading-[1.5] font-semibold text-ink-soft">
+            <span className="min-w-0 text-[0.8438rem] leading-[1.45] font-semibold text-ink-soft">
               {WAIT_WORD[waitState]}
             </span>
           </div>
-          <p className="mt-1 text-[0.8438rem] leading-[1.5] text-ink-soft">
+          <p className="mt-1 text-[0.8438rem] leading-[1.45] text-ink-soft">
             {WAIT_NO_AUTO_ADVANCE}
           </p>
         </div>
 
-        {/* 마이크 첫 사용 안내 — 세션에서 처음 한 번만 나옵니다 */}
+        {/* 마이크 첫 사용 안내 — 세션 진입이 아니라 **마이크 버튼을 처음 누르시는 순간**에 열립니다.
+            열리면 도크가 상한에 걸려 있어도 이 카드가 보이도록 스스로 화면 안으로 들어옵니다.
+            읽어야 하는 문장이라 15px 아래로 내리지 않습니다(가이드 §7-8). */}
         {micSupported && micIntroOpen && (
-          <div className="mb-2.5 rounded-panel bg-tint px-4 py-3.5">
-            <h3 className="text-[0.8125rem] leading-[1.5] font-bold text-brand-800">
+          <div ref={micIntroRef} role="status" className="mb-2.5 rounded-panel bg-tint px-4 py-3.5">
+            <h3 className="text-[1rem] leading-[1.45] font-bold text-brand-800">
               마이크를 처음 쓰실 때
             </h3>
             {/* 실제 조작은 푸시투토크입니다 — 안내도 그대로 적습니다(평가 초보 m28). */}
-            <p className="mt-1 text-[0.7813rem] leading-[1.6] text-ink-soft">
+            <p className="mt-1 text-[0.9375rem] leading-[1.6] text-ink-soft">
               마이크 버튼을 처음 누르면 브라우저가 마이크 허용을 물어봅니다. ‘허용’을 누르신 뒤,
               버튼을 꾹 누른 채로 말씀하시고 다 말씀하시면 손을 떼세요. 마이크 없이 아래 버튼만으로도
               끝까지 진행됩니다.
@@ -544,7 +570,7 @@ export function CueResponder({
             ⚑CF에서 고르신 대안이 있으면 **맨 위에 같은 문법으로** 다시 세웁니다 —
             대안을 골라 놓고 그 문장을 버튼으로 다시 못 고르면 「버튼만으로 끝까지」가 깨집니다. */}
         {(options.length > 0 || chosenAlternative) && (
-          <ul className="mb-2.5 flex flex-col gap-[7px]">
+          <ul className="mb-2.5 flex flex-col gap-[8px]">
             {chosenAlternative && (
               <li key="cf-alternative">
                 <button
@@ -575,7 +601,7 @@ export function CueResponder({
           <div>
             <label
               htmlFor="cue-utterance"
-              className="block text-[0.75rem] leading-[1.5] font-semibold text-ink-muted"
+              className="block text-[0.7813rem] leading-[1.45] font-semibold text-ink-muted"
             >
               인식된 내용 확인 · 직접 입력
             </label>
@@ -590,7 +616,7 @@ export function CueResponder({
               }}
               rows={3}
               placeholder="여기에 하실 말씀을 적으시거나, 말씀하신 내용을 확인해 주세요."
-              className="mt-1 w-full rounded-panel border border-line-strong bg-white px-3.5 py-3 text-[1.0313rem] leading-[1.55] text-ink placeholder:text-tertiary focus:border-brand-400"
+              className="mt-1 w-full rounded-panel border border-line-strong bg-white px-3.5 py-3 text-[1.0625rem] leading-[1.6] text-ink placeholder:text-tertiary focus:border-brand-400"
             />
 
             {reportMode && text.trim().length > 0 && (
@@ -631,7 +657,7 @@ export function CueResponder({
                   setFilledExampleId(null);
                 }}
                 disabled={text.length === 0}
-                className="min-h-[48px] px-1 text-[0.8125rem] font-semibold text-ink-muted disabled:opacity-45"
+                className="min-h-[48px] px-1 text-[0.8438rem] font-semibold text-ink-muted disabled:opacity-45"
               >
                 지우기
               </button>
@@ -642,7 +668,7 @@ export function CueResponder({
                   setExpanded(false);
                   setFilledExampleId(null);
                 }}
-                className="min-h-[48px] px-1 text-[0.8125rem] font-semibold text-ink-muted"
+                className="min-h-[48px] px-1 text-[0.8438rem] font-semibold text-ink-muted"
               >
                 입력창 접기
               </button>
@@ -656,7 +682,7 @@ export function CueResponder({
             <button
               type="button"
               onClick={openInput}
-              className="h-12 min-w-0 flex-1 rounded-[24px] border border-line-strong bg-paper-2 px-4 text-left text-[0.9063rem] text-ink-muted"
+              className="h-12 min-w-0 flex-1 rounded-[24px] border border-line-strong bg-paper-2 px-4 text-left text-[0.9375rem] text-ink-muted"
             >
               직접 입력…
             </button>
@@ -682,7 +708,7 @@ export function CueResponder({
             (쓸 수 있는 기기의 조작 설명은 첫 회 안내 카드에만 둡니다 — 도크에 상주시키면
              상시 안내문이 도크 141px을 먹고 로그를 몰아냅니다. 평가 UI/UX m1.) */}
         {!micSupported && (
-          <p className="mt-2 text-[0.8125rem] leading-[1.6] text-ink-muted">
+          <p className="mt-2 text-[0.8438rem] leading-[1.6] text-ink-muted">
             이 기기에서는 음성 인식을 쓸 수 없습니다. 위 버튼과 직접 입력만으로 끝까지 진행하실 수
             있습니다.
           </p>
@@ -694,10 +720,10 @@ export function CueResponder({
             type="button"
             onClick={() => setDemoOpen(true)}
             aria-haspopup="dialog"
-            className="mt-2 flex min-h-[48px] w-full items-center justify-between gap-3 rounded-field px-1 text-left text-[0.8125rem] font-semibold text-ink-muted transition-colors duration-150 hover:bg-paper-2"
+            className="mt-2 flex min-h-[48px] w-full items-center justify-between gap-3 rounded-field px-1 text-left text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 hover:bg-paper-2"
           >
             <span>{RULE_DEMO_TITLE}</span>
-            <span aria-hidden className="flex-none text-[0.8125rem] text-ink-ghost">
+            <span aria-hidden className="flex-none text-[0.8438rem] text-ink-ghost">
               ›
             </span>
           </button>
@@ -711,7 +737,7 @@ export function CueResponder({
         {filledExample && (
           <p
             aria-hidden
-            className="mt-2 rounded-[14px] bg-tint px-3.5 py-2.5 text-[0.8125rem] leading-[1.6] font-semibold text-brand-800"
+            className="mt-2 rounded-[14px] bg-tint px-3.5 py-2.5 text-[0.8438rem] leading-[1.6] font-semibold text-brand-800"
           >
             입력창에 채워 드렸습니다. 아직 보내지 않았습니다 — 위의 「이 내용으로 답하기」를 누르시면
             규칙 엔진이 판정합니다.

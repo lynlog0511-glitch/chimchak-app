@@ -15,9 +15,11 @@ export const SESSIONS_KEY = "chimchak.sessions.v1";
 export const REPORTS_KEY = "chimchak.reports.v1";
 export const PROGRESS_KEY = "chimchak.progress.v1";
 export const TALLY_KEY = "chimchak.tally.v1";
+/** 시연용 예시 기록이 심겨 있는지 알리는 플래그(발표자 전용) — 값은 `lib/demoSeed`가 다룬다. */
+export const DEMO_SEED_KEY = "chimchak.demoSeed.v1";
 
 /** 너무 많이 쌓이지 않도록 최근 것만 남긴다 */
-const MAX_ITEMS = 50;
+export const MAX_ITEMS = 50;
 
 /** 확정한 보고 기록 (가명처리 완료본만 저장) */
 export interface StoredReport {
@@ -529,6 +531,104 @@ export function deleteReport(id: string): void {
 /** 보고 기록 전체 삭제 */
 export function clearReports(): void {
   writeList<StoredReport>(REPORTS_KEY, []);
+}
+
+/* ── 시연용 예시 기록 (발표자 전용 시드) ────────────────────── */
+
+/**
+ * 예시 기록을 심었다는 사실만 적어 두는 쪽지.
+ *
+ * **판단 근거로 쓰지 않습니다** — 예시가 남아 있는지는 언제나 저장된 레코드의 id를 보고 정합니다
+ * (`lib/demoSeed.hasDemoRecords`). 사용자가 「이 기기의 기록 지우기」로 전부 지우면 이 쪽지만 남는데,
+ * 그때 화면이 "예시가 있다"고 말하면 거짓이 되기 때문입니다. 여기 담기는 것은 심은 시각과 개수뿐입니다.
+ */
+export interface DemoSeedFlag {
+  /** 심은 시각 (ISO) */
+  seededAt: string;
+  sessionCount: number;
+  reportCount: number;
+}
+
+/** 시드 쪽지를 읽는다. 없거나 훼손되었으면 undefined. */
+export function readDemoSeedFlag(): DemoSeedFlag | undefined {
+  const raw = readValue(DEMO_SEED_KEY);
+  if (!raw || typeof raw !== "object") return undefined;
+  const row = raw as Record<string, unknown>;
+  const seededAt = typeof row.seededAt === "string" ? row.seededAt : "";
+  if (seededAt.length === 0) return undefined;
+  return {
+    seededAt,
+    sessionCount: typeof row.sessionCount === "number" ? Math.max(0, Math.floor(row.sessionCount)) : 0,
+    reportCount: typeof row.reportCount === "number" ? Math.max(0, Math.floor(row.reportCount)) : 0,
+  };
+}
+
+/** 시드 쪽지를 남긴다. */
+export function writeDemoSeedFlag(flag: DemoSeedFlag): void {
+  writeValue(DEMO_SEED_KEY, flag);
+}
+
+/** 시드 쪽지를 지운다. */
+export function clearDemoSeedFlag(): void {
+  const storage = getStorage();
+  if (!storage) return;
+  try {
+    storage.removeItem(DEMO_SEED_KEY);
+  } catch {
+    /* 사생활 보호 모드 — 조용히 무시한다 */
+  }
+}
+
+function timeOf(iso: string): number {
+  const ms = new Date(iso).getTime();
+  return Number.isNaN(ms) ? 0 : ms;
+}
+
+/**
+ * 시연용 예시 회차를 **상세 목록에만** 넣는다.
+ *
+ * `saveSession`과 다른 점이 이 함수의 존재 이유다 — **이수 누계(TALLY_KEY)를 건드리지 않는다.**
+ * 시연 기록이 진짜 이수 시수에 섞이면 확인서가 증빙으로서 무너지므로, 예시는 화면에만 보이고
+ * 누계에는 한 회차도 더하지 않는다. 예시를 지우면 시수는 심기 전 값 그대로 돌아온다.
+ *
+ * 50건 상한을 넘기는 몫은 **예시 쪽에서 덜어 낸다** — 예시를 심었다가 진짜 기록이 밀려나면
+ * 되돌릴 방법이 없기 때문이다. 실제로 저장된 예시 회차만 돌려준다.
+ *
+ * @example
+ * addSessionsWithoutTally(demoRecords); // 이수 누계는 그대로
+ */
+export function addSessionsWithoutTally(records: SessionRecord[]): SessionRecord[] {
+  const incoming = new Set(records.map((r) => r.id));
+  const kept = loadSessions().filter((r) => !incoming.has(r.id));
+  const room = Math.max(0, MAX_ITEMS - kept.length);
+  const seeded = records.slice(0, room);
+  if (seeded.length === 0) return [];
+  const merged = [...seeded, ...kept].sort((a, b) => timeOf(b.endedAt) - timeOf(a.endedAt));
+  writeList(SESSIONS_KEY, merged);
+  return seeded;
+}
+
+/**
+ * id가 접두사로 시작하는 세션 기록만 지운다. 지운 개수를 돌려준다.
+ *
+ * 이수 누계는 손대지 않는다 — 이 경로로 들어온 기록은 애초에 누계에 더해진 적이 없다.
+ * (사용자가 지운 회차를 누계에서 빼는 일은 `deleteSession`이 계속 담당한다.)
+ */
+export function removeSessionsByIdPrefix(prefix: string): number {
+  const list = loadSessions();
+  const kept = list.filter((r) => !r.id.startsWith(prefix));
+  if (kept.length === list.length) return 0;
+  writeList(SESSIONS_KEY, kept);
+  return list.length - kept.length;
+}
+
+/** id가 접두사로 시작하는 보고 기록만 지운다. 지운 개수를 돌려준다. */
+export function removeReportsByIdPrefix(prefix: string): number {
+  const list = loadReports();
+  const kept = list.filter((r) => !r.id.startsWith(prefix));
+  if (kept.length === list.length) return 0;
+  writeList(REPORTS_KEY, kept);
+  return list.length - kept.length;
 }
 
 /* ── 진행 체크포인트 (이어서 하기) ─────────────────────────── */

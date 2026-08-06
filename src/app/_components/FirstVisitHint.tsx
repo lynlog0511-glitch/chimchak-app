@@ -5,14 +5,23 @@ import Link from "next/link";
 import { Card } from "@/components";
 import { IconArrowRight, IconX } from "@/components/icons";
 
+export interface FirstVisitHintProps {
+  /** 카드에 붙는 클래스 — 홈이 위아래 간격을 잡습니다(숨었을 때는 그 간격도 생기지 않습니다). */
+  className?: string;
+}
+
 /**
  * 첫 방문에만 보이는 조용한 안내 카드 — 모달·투어 대신 히어로 CTA 바로 아래 한 줄.
  * v3 §1-2(액센트 바 금지)를 지켜 paper-2 면 하나로만 구분합니다.
  *
  * 서버 컴포넌트인 page.tsx의 첫 렌더와 수화 결과를 맞추기 위해,
  * 마운트 전에는 항상 `null`을 반환하고 `useEffect`에서만 localStorage를 확인합니다.
+ *
+ * 홈(`app/page.tsx`)의 CTA 두 개 아래·「하던 훈련」 위에 한 번만 마운트합니다.
+ * 한동안 어디에도 붙어 있지 않아 「마이크 없이 버튼만으로 4분」이라는 약속이 홈에서
+ * 한 글자도 보이지 않았습니다(평가 초보 mi41 — 죽은 코드).
  */
-export function FirstVisitHint() {
+export function FirstVisitHint({ className }: FirstVisitHintProps) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -40,7 +49,7 @@ export function FirstVisitHint() {
   }
 
   return (
-    <Card tone="quiet" className="mt-6 md:mt-7">
+    <Card tone="quiet" className={className ?? "mt-6 md:mt-7"}>
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           {/* 「마이크 없이 버튼만으로」는 각주가 아니라 이 앱을 처음 여는 사람을 붙잡아 두는

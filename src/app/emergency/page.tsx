@@ -84,7 +84,7 @@ export default function EmergencyPage() {
       </ListRows>
 
       {/* 하단 고지 2줄 — 생성 통제와 술기 경계를 이 화면에서 한 번 더 못박습니다. */}
-      <p className="mt-[10px] text-center text-[0.75rem] leading-[1.6] text-tertiary">
+      <p className="mt-[10px] text-center text-[0.7813rem] leading-[1.6] text-tertiary">
         {PROTOCOL_NOTICE}
         <br />
         신체 술기는 119 상황실이 목소리로 직접 지도합니다

@@ -44,7 +44,7 @@ export function SessionHeader({
   className,
 }: SessionHeaderProps) {
   const backClass =
-    "-ml-[14px] flex h-12 w-12 flex-none items-center justify-center text-[1.375rem] leading-none text-ink-soft md:mr-1 md:text-[1.25rem]";
+    "-ml-[14px] flex h-12 w-12 flex-none items-center justify-center text-[1.0625rem] leading-none text-ink-soft md:mr-1";
 
   return (
     <header className={cx("flex items-start pt-1.5 pb-3 md:items-center md:py-2", className)}>
@@ -59,12 +59,12 @@ export function SessionHeader({
       ) : null}
 
       <div className="min-w-0 flex-1 md:flex md:items-baseline md:gap-2">
-        <h1 className="truncate text-[1rem] leading-[1.35] font-bold tracking-[-0.01em] text-ink md:shrink-0 md:text-[0.9688rem]">
+        <h1 className="truncate text-[1rem] leading-[1.3] font-bold tracking-[-0.01em] text-ink md:shrink-0 md:text-[0.9375rem]">
           {title}
         </h1>
         {/* 「AI는 어르신 역만 맡습니다」는 이 제품의 방어 논리입니다 —
             390px에서 잘리지 않도록 모바일에서는 두 줄까지 허용합니다(md↑ 한 줄 유지). */}
-        <p className="mt-[1px] flex min-w-0 items-start gap-[5px] text-[0.7813rem] leading-[1.4] text-ink-muted md:mt-0 md:items-center">
+        <p className="mt-[1px] flex min-w-0 items-start gap-[4px] text-[0.7813rem] leading-[1.45] text-ink-muted md:mt-0 md:items-center">
           <StatusDot tone={statusTone} className="relative top-[4px] md:top-0" />
           <span className="min-w-0 md:truncate">{status}</span>
         </p>

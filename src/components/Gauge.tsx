@@ -134,7 +134,7 @@ export function Gauge({
       </div>
 
       {segmented ? (
-        <div className="flex gap-[5px]" aria-hidden="true">
+        <div className="flex gap-[4px]" aria-hidden="true">
           {Array.from({ length: safeMax }, (_, i) => (
             <span
               key={i}

@@ -72,12 +72,14 @@ class Voice:
 SUNHI = "ko-KR-SunHiNeural"
 INJOON = "ko-KR-InJoonNeural"
 
-# CHK-A01 박 어르신(여 82세) · CHK-C01 어르신(여, 보호자 김 씨의 어머니)
+# CHK-A01 박 어르신(여 82세) · CHK-C01 어르신(여) · CHK-C02 윤 어르신(여 85세)
 ELDER_F = Voice(SUNHI, "-12%", "-4Hz")
-# CHK-B02 이 어르신(남 79세)
+# CHK-B02 이 어르신(남 79세) · CHK-A02 최 어르신(남 78세)
 ELDER_M = Voice(INJOON, "-12%", "-3Hz")
-# 보호자 — 세 시나리오 모두 딸(여성)입니다
-GUARDIAN = Voice(SUNHI)
+# 보호자 — 딸(여성)
+GUARDIAN_F = Voice(SUNHI)
+# 보호자 — 아들(남성). CHK-C02는 아드님이 상대역이라 어르신(여)과 목소리가 갈려야 합니다.
+GUARDIAN_M = Voice(INJOON)
 # 119 상황실
 DISPATCHER = Voice(INJOON, "-4%")
 # 프로토콜 안내 · 상황 지문(system) · 응급 전환 안내(protocol)
@@ -85,10 +87,23 @@ NARRATION = Voice(SUNHI, "-6%")
 # 설정 예시 문장
 SAMPLE = Voice(SUNHI)
 
+# 시나리오별 어르신 성별 — 인물 프로필(personas)과 맞춥니다.
 ELDER_BY_SCENARIO = {
     "chk-a01": ELDER_F,
+    "chk-a02": ELDER_M,
     "chk-b02": ELDER_M,
     "chk-c01": ELDER_F,
+    "chk-c02": ELDER_F,
+}
+
+# 시나리오별 보호자 구성 — 대사의 호칭(따님/아드님)과 맞춥니다.
+# 여기 없는 시나리오는 기존 팔레트대로 딸(여성)로 떨어집니다.
+GUARDIAN_BY_SCENARIO = {
+    "chk-a01": GUARDIAN_F,  # 따님
+    "chk-a02": GUARDIAN_F,  # 아드님이지만 대사가 없습니다(부재) — 합성 대상 0건
+    "chk-b02": GUARDIAN_F,  # 따님
+    "chk-c01": GUARDIAN_F,  # 보호자 김 씨(딸)
+    "chk-c02": GUARDIAN_M,  # 보호자 아드님
 }
 
 
@@ -97,7 +112,7 @@ def voice_for(scenario_key: str, speaker: str) -> Voice:
     if speaker == "elder":
         return ELDER_BY_SCENARIO.get(scenario_key, ELDER_F)
     if speaker == "guardian":
-        return GUARDIAN
+        return GUARDIAN_BY_SCENARIO.get(scenario_key, GUARDIAN_F)
     if speaker == "dispatcher":
         return DISPATCHER
     # "system"(상황 지문) · "protocol"(응급 전환 안내)

@@ -42,19 +42,23 @@ const VARIANT: Record<BigButtonVariant, string> = {
   ghost: "bg-transparent text-ink-soft hover:bg-neutral-soft hover:text-ink active:bg-neutral-line",
 };
 
-/* 라벨은 코어 콘텐츠(§3)입니다 — 크롬을 16px로 내리는 작업에서도 17~18px을 지킵니다.
+/* 라벨은 코어 콘텐츠(§3)입니다 — 크롬을 16px로 내리는 작업에서도 17px을 지킵니다.
    터치 타겟 48px(md) / 56px(lg)도 불변입니다. */
+/* 2026-08-06 타입 스케일 통합: lg 라벨 18px → 17px.
+   가이드 §2 역할표에 18px 단은 없습니다 — 코어 단은 17px(대사·CUE) 하나이고,
+   md 17 / lg 18은 비율 1.06으로 지각 역치 아래라 위계가 아니라 편차였습니다(심미 재평가 ma1).
+   **하한 17px은 그대로입니다.** 크기 대신 터치 타겟(48/56px)과 여백으로 두 단을 가릅니다. */
 const SIZE: Record<BigButtonSize, string> = {
   md: "min-h-[48px] px-5 py-2.5 text-[1.0625rem]", // 17px
-  lg: "min-h-[56px] px-7 py-3 text-[1.125rem]", // 18px
+  lg: "min-h-[56px] px-7 py-3 text-[1.0625rem]", // 17px
 };
 
 /**
  * 고령 사용자 기준 터치 타겟(48px↑)을 보장하는 공용 버튼.
  * `href`를 주면 링크로, 없으면 버튼으로 렌더링합니다.
  *
- * 접근성 코어 예외(§3): **코어 콘텐츠(대사·CUE·응급 자막·CTA)는 18px+ 유지.**
- * 이 버튼의 라벨은 CTA이므로 17px(md)/18px(lg) semibold가 하한입니다 —
+ * 접근성 코어 예외(§3): **코어 콘텐츠(대사·CUE·응급 자막·CTA)는 코어 단(17px)을 지킵니다.**
+ * 이 버튼의 라벨은 CTA이므로 17px semibold가 하한입니다 —
  * UI 크롬을 줄이는 어떤 작업에서도 이 값 아래로 내리지 마세요.
  *
  * @example <BigButton href="/train" size="lg">훈련 시작하기</BigButton>

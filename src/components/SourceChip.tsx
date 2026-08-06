@@ -85,7 +85,7 @@ export function SourceChip({
      글자는 14px(UI 크롬), 대비는 brand-50 위 brand-800으로 7:1을 넘습니다.
      터치 타겟 48px은 불변이라 높이는 그대로 두고 시각적 무게만 낮췄습니다. */
   const chipClass = cx(
-    "chim-meta inline-flex max-w-full items-center gap-1.5 rounded-chip bg-brand-50 px-3.5 py-1 text-brand-800",
+    "chim-caption inline-flex max-w-full items-center gap-1.5 rounded-chip bg-brand-50 px-3.5 py-1 text-brand-800",
     interactive && "min-h-[48px] hover:bg-brand-100 transition-colors duration-150",
     className,
   );
@@ -122,11 +122,11 @@ export function SourceChip({
             </span>
           )}
           {resolvedNote && (
-            <span className="chim-meta mt-2 block leading-relaxed text-ink-soft">
+            <span className="chim-caption mt-2 block leading-relaxed text-ink-soft">
               {resolvedNote}
             </span>
           )}
-          <span className="chim-meta mt-2 block leading-relaxed text-ink-muted">
+          <span className="chim-caption mt-2 block leading-relaxed text-ink-muted">
             {unresolved
               ? "문서 정보를 불러오지 못해 문서 번호로 표시했습니다. 근거 문서 화이트리스트에서 확인해 주세요."
               : "근거 문서 화이트리스트에 등록된 문서입니다. 목록 밖 문서는 인용하지 않습니다."}
@@ -134,7 +134,7 @@ export function SourceChip({
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="chim-meta mt-3 inline-flex min-h-[48px] items-center rounded-field bg-neutral-soft px-4 font-semibold text-ink-soft hover:bg-neutral-line"
+            className="chim-caption mt-3 inline-flex min-h-[48px] items-center rounded-field bg-neutral-soft px-4 font-semibold text-ink-soft hover:bg-neutral-line"
           >
             닫기
           </button>

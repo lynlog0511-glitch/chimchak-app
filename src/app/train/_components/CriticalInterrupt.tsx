@@ -70,18 +70,18 @@ export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalI
             <span aria-hidden className="h-[10px] w-[10px] flex-none rounded-full bg-danger" />
             <h2
               id="cf-title"
-              className="text-[1.1875rem] leading-[1.35] font-extrabold tracking-[-0.01em] text-ink"
+              className="text-[1.1875rem] leading-[1.3] font-extrabold tracking-[-0.01em] text-ink"
             >
               잠깐, 여기서 멈춥니다
             </h2>
           </div>
 
           {/* 왜 멈췄는지는 코어 콘텐츠입니다. */}
-          <p className="mt-2 text-[0.9688rem] leading-[1.6] text-ink-soft">{feedback.message}</p>
+          <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink-soft">{feedback.message}</p>
 
           {/* 근거 — 판정한 주체까지 한 박스에 적습니다(생성이 아니라 규칙임을 여기서 밝힙니다).
               「(AI 아님)」은 이 화면에서 가장 중요한 사실이라 옅은 회색으로 내리지 않습니다(대비 4.5:1↑). */}
-          <div className="mt-3 rounded-field bg-paper-2 px-[13px] py-[11px] text-[0.8125rem] leading-[1.55] text-ink-soft">
+          <div className="mt-3 rounded-field bg-paper-2 px-[13px] py-[12px] text-[0.8438rem] leading-[1.6] text-ink-soft">
             {doc && <b className="font-bold text-ink">{doc.title}</b>}
             {doc && feedback.trace?.ruleLabel && " — "}
             {feedback.trace?.ruleLabel}
@@ -91,17 +91,17 @@ export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalI
 
           {alternatives.length > 0 && (
             <>
-              <h3 className="mt-3.5 mb-[7px] text-[0.7813rem] leading-[1.4] font-bold text-ink-muted">
+              <h3 className="mt-3.5 mb-[8px] text-[0.7813rem] leading-[1.45] font-bold text-ink-muted">
                 대신 이렇게 말해볼 수 있어요
               </h3>
-              <ul className="flex flex-col gap-[7px]">
+              <ul className="flex flex-col gap-[8px]">
                 {alternatives.map((alternative) => (
                   <li key={alternative}>
                     {/* 고르시면 그 대안을 로그에 적어 두고 같은 장면으로 돌아갑니다(전송은 하지 않습니다). */}
                     <button
                       type="button"
                       onClick={() => onRetry(alternative)}
-                      className="min-h-[48px] w-full rounded-[14px] border border-line-strong bg-white px-[15px] py-2.5 text-left text-[0.9375rem] leading-[1.4] font-medium text-ink transition-colors duration-150 hover:bg-paper-2"
+                      className="min-h-[48px] w-full rounded-[14px] border border-line-strong bg-white px-[15px] py-2.5 text-left text-[0.9375rem] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2"
                     >
                       {alternative}
                     </button>
@@ -110,7 +110,7 @@ export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalI
               </ul>
               {/* 고르신 문장은 같은 장면으로 돌아간 뒤 보기 맨 위에 다시 섭니다 —
                   버튼만으로도 끝까지 가실 수 있어야 하므로 안내도 그 사실대로 적습니다. */}
-              <p className="mt-1.5 text-[0.75rem] leading-[1.6] text-ink-muted">
+              <p className="mt-1.5 text-[0.7813rem] leading-[1.6] text-ink-muted">
                 고르시면 대화 기록에 남기고 같은 장면으로 돌아갑니다. 고르신 문장은 보기 맨 위에 다시
                 놓아 드리니, 말씀하셔도 되고 그 버튼을 누르셔도 됩니다.
               </p>

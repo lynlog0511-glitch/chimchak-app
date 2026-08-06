@@ -4,6 +4,7 @@ import { useId, useState } from "react";
 import Link from "next/link";
 import type { SessionRecord } from "@/types";
 import { cx } from "@/components";
+import { isDemoRecord } from "@/lib/demoSeed";
 import { formatDateTime, formatShortDate, verdictNote } from "./format";
 import { trainHref } from "./nextTraining";
 
@@ -39,6 +40,8 @@ export function TrainingRow({ record, typeLabel }: TrainingRowProps) {
 
   const green = record.greenChecks.length;
   const coaching = record.coachingPoints.length;
+  /** 시연용으로 심어 둔 예시 회차 — 행에서 바로 구분되어야 증빙으로 오인되지 않습니다. */
+  const isExample = isDemoRecord(record);
 
   return (
     <div className="border-b border-line">
@@ -51,6 +54,7 @@ export function TrainingRow({ record, typeLabel }: TrainingRowProps) {
           className="min-h-[48px] min-w-0 flex-1 py-2 text-left"
         >
           <span className="block text-[0.75rem] leading-[1.4] text-tertiary">
+            {isExample && <span className="font-bold text-warn-ink">예시 · </span>}
             {formatShortDate(record.startedAt)} · {typeLabel}
           </span>
           <span className="mt-[2px] block text-[0.9688rem] leading-[1.35] font-bold text-ink">
@@ -76,6 +80,12 @@ export function TrainingRow({ record, typeLabel }: TrainingRowProps) {
 
       {open && (
         <div id={panelId} className="mb-[14px] rounded-[14px] bg-paper-2 px-4 py-[14px]">
+          {isExample && (
+            <p className="mb-[10px] text-[0.7813rem] leading-[1.6] font-bold text-warn-ink">
+              시연용으로 심어 둔 예시 회차입니다 — 실제로 완주하신 기록이 아니고, 이수 시수
+              누계에도 들어가지 않습니다.
+            </p>
+          )}
           <p className="text-[0.8125rem] leading-[1.5] font-bold text-ink">{record.endingTitle}</p>
           <p className="mt-[3px] text-[0.7813rem] leading-[1.6] text-ink-soft">
             {verdictNote(record.verdict)}

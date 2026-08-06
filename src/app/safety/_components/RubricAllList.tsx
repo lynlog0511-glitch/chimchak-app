@@ -31,37 +31,34 @@ export function RubricAllList({ className }: RubricAllListProps) {
   const total = groups.reduce((n, g) => n + g.items.length, 0);
 
   return (
-    <details className={cx("group rounded-[14px] bg-paper-2", className)}>
-      <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-2 px-[15px] py-[12px] [&::-webkit-details-marker]:hidden">
-        <span className="min-w-0 flex-1 text-[0.875rem] leading-[1.45] font-extrabold text-ink">
+    <details className={cx("group rounded-card bg-paper-2", className)}>
+      <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
+        <span className="min-w-0 flex-1 text-[1.0625rem] leading-[1.4] font-extrabold text-ink">
           판정 기준 — 루브릭 {total}항목 전체 보기
         </span>
         <span
           aria-hidden
-          className="flex-none text-[1.0625rem] leading-none text-faint transition-transform duration-150 ease-soft group-open:rotate-90"
+          className="flex-none text-[1.0625rem] leading-none text-ink-ghost transition-transform duration-150 ease-soft group-open:rotate-90"
         >
           ›
         </span>
       </summary>
 
-      <div className="px-[15px] pb-[14px]">
-        <p className="text-[0.7813rem] leading-[1.6] text-ink-muted">
+      <div className="px-4 pb-4">
+        <p className="text-[0.9375rem] leading-[1.6] text-ink-muted">
           점수·등급·앵커는 내부 전용이라 화면에 내지 않습니다. 대신 판정의 기준이 되는 행동지표
           문장은 한 줄도 빼지 않고 그대로 공개합니다.
         </p>
 
-        <div className="mt-[12px] space-y-[16px]">
+        <div className="mt-4 space-y-5">
           {groups.map((group) => (
             <section key={group.area} aria-label={group.label}>
-              <p className="text-[0.75rem] leading-[1.5] font-bold tracking-[0.06em] text-ink-muted">
+              <p className="text-[0.7813rem] leading-[1.5] font-bold tracking-[0.06em] text-ink-muted">
                 {group.label} · {group.items.length}항목
               </p>
-              <ul className="chim-hairline mt-[4px] border-y border-line">
+              <ul className="chim-hairline mt-1 border-y border-line">
                 {group.items.map((item) => (
-                  <li
-                    key={item.id}
-                    className="py-[9px] text-[0.8125rem] leading-[1.6] text-ink"
-                  >
+                  <li key={item.id} className="py-3 text-[0.9375rem] leading-[1.6] text-ink">
                     {item.indicator}
                   </li>
                 ))}

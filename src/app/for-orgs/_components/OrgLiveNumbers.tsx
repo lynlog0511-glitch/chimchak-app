@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { hasDemoRecords } from "@/lib/demoSeed";
 import { buildCompletionSummary, loadReports } from "@/lib/storage";
 import { formatElapsedDuration, isDisplayableElapsed } from "../../history/_components/format";
 
@@ -18,6 +19,8 @@ import { formatElapsedDuration, isDisplayableElapsed } from "../../history/_comp
 const HAND_WRITTEN_TEXT = "20~30분";
 
 interface LiveNumbers {
+  /** 시연용 예시 기록이 섞여 있는가 — 참이면 패널이 그 사실을 함께 적습니다. */
+  demoSeeded: boolean;
   completionCount: number;
   completionSec: number;
   reportCount: number;
@@ -94,6 +97,7 @@ export function OrgLiveNumbers() {
       reportCount: elapsed.length,
       reportMedianSec: elapsed.length > 0 ? median(elapsed) : undefined,
       crossRequests: countCrossOriginRequests(),
+      demoSeeded: hasDemoRecords(),
     });
   }, []);
 
@@ -111,10 +115,16 @@ export function OrgLiveNumbers() {
     reportCount,
     reportMedianSec,
     crossRequests,
+    demoSeeded,
   } = numbers;
 
   return (
     <div>
+      {demoSeeded && (
+        <p className="mt-[8px] text-[0.8438rem] leading-[1.6] font-semibold text-warn-ink">
+          지금은 발표용 예시 기록이 섞여 있는 값입니다 — 무대 점검 화면에서 지우면 실측만 남습니다.
+        </p>
+      )}
       <ul className="chim-hairline mt-[8px] border-y border-line">
         <Row
           label="이수 시수"

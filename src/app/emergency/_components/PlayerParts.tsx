@@ -101,7 +101,7 @@ export function ProtocolReadingLine({
     return (
       <p
         className={cx(
-          "flex items-center gap-[6px] text-[0.7813rem] leading-[1.5] font-bold text-danger-ink",
+          "flex items-center gap-[6px] text-[0.7813rem] leading-[1.45] font-bold text-danger-ink",
           className,
         )}
       >
@@ -112,7 +112,7 @@ export function ProtocolReadingLine({
   }
 
   return (
-    <p className={cx("text-[0.7813rem] leading-[1.5] font-bold text-ink-muted", className)}>
+    <p className={cx("text-[0.7813rem] leading-[1.45] font-bold text-ink-muted", className)}>
       {READING_TEXT[state]}
     </p>
   );
@@ -149,7 +149,7 @@ export const CONTROL_PRIMARY = `${CONTROL_BASE} flex-[1.4] bg-brand-600 font-bol
 
 /** 부수 조작 — 텍스트만. 48px 터치는 지킵니다. */
 export const CONTROL_QUIET =
-  "flex min-h-[48px] flex-1 items-center justify-center rounded-[12px] px-2 text-[0.8125rem] font-semibold " +
+  "flex min-h-[48px] flex-1 items-center justify-center rounded-[12px] px-2 text-[0.8438rem] font-semibold " +
   "text-ink-muted transition-colors duration-150 active:bg-paper-2 disabled:cursor-not-allowed disabled:opacity-45";
 
 /* ── 각주 2줄 (시안 6d 하단 · 가이드 §4.8) ────────────────────

@@ -86,7 +86,7 @@ export function InlineCoaching({ feedback, gaugeLabel, className }: InlineCoachi
     .filter((id, index, all) => all.indexOf(id) === index);
 
   return (
-    <div className={cx("flex gap-[9px] px-1", className)}>
+    <div className={cx("flex gap-[8px] px-1", className)}>
       <span className="relative top-[1px] flex-none">
         <StatusMark kind={kind} size="sm" />
       </span>
@@ -95,13 +95,13 @@ export function InlineCoaching({ feedback, gaugeLabel, className }: InlineCoachi
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
           {/* 판정어는 「충족 / 코칭 / 즉시 중단」 세 낱말을 그대로 씁니다. */}
           <span className="sr-only">{STATUS_MARK_LABEL[kind]} 판정</span>
-          <span className={cx("text-[0.7813rem] leading-[1.4] font-bold", COACH_HEAD_TEXT[kind])}>
+          <span className={cx("text-[0.7813rem] leading-[1.45] font-bold", COACH_HEAD_TEXT[kind])}>
             {COACH_HEAD[kind]}
           </span>
           {chip && (
             <span
               className={cx(
-                "rounded-[5px] px-1.5 py-px text-[0.7188rem] leading-[1.5] font-semibold",
+                "rounded-[5px] px-1.5 py-px text-[0.6875rem] leading-[1.45] font-semibold",
                 gaugeDeltaTone(feedback.gaugeDelta),
               )}
             >
@@ -111,7 +111,7 @@ export function InlineCoaching({ feedback, gaugeLabel, className }: InlineCoachi
         </div>
 
         {/* 코칭 문장 — 이 덩어리의 주인공입니다 (시안 15px). */}
-        <p className="mt-[3px] text-[0.9375rem] leading-[1.55] text-ink-soft">{feedback.message}</p>
+        <p className="mt-[3px] text-[0.9375rem] leading-[1.6] text-ink-soft">{feedback.message}</p>
 
         {/* 근거 문서 라벨과 토글을 한 덩어리로 묶어 **행 전체**를 누를 수 있게 합니다.
             예전에는 밑줄 텍스트만 27px이라, 48px을 지키는 이 앱에서 유일하게 손가락이
@@ -122,7 +122,7 @@ export function InlineCoaching({ feedback, gaugeLabel, className }: InlineCoachi
             onClick={() => setOpen((value) => !value)}
             aria-expanded={open}
             aria-controls={panelId}
-            className="-mx-1.5 mt-1 flex min-h-[48px] w-full flex-wrap items-center gap-x-1.5 gap-y-0.5 rounded-field px-1.5 py-1 text-left text-[0.7813rem] leading-[1.5] text-ink-muted transition-colors duration-150 hover:bg-paper-2"
+            className="-mx-1.5 mt-1 flex min-h-[48px] w-full flex-wrap items-center gap-x-1.5 gap-y-0.5 rounded-field px-1.5 py-1 text-left text-[0.7813rem] leading-[1.45] text-ink-muted transition-colors duration-150 hover:bg-paper-2"
           >
             {doc && (
               <span className="min-w-0">
@@ -146,7 +146,7 @@ export function InlineCoaching({ feedback, gaugeLabel, className }: InlineCoachi
           </button>
         ) : (
           (doc || feedback.branchLabel.length > 0) && (
-            <div className="mt-1 flex flex-wrap items-baseline gap-x-1.5 text-[0.7813rem] leading-[1.5] text-ink-muted">
+            <div className="mt-1 flex flex-wrap items-baseline gap-x-1.5 text-[0.7813rem] leading-[1.45] text-ink-muted">
               {doc ? (
                 <span className="min-w-0">
                   <span aria-hidden>§ </span>
@@ -165,7 +165,7 @@ export function InlineCoaching({ feedback, gaugeLabel, className }: InlineCoachi
             className="mt-2 space-y-2.5 rounded-card bg-paper-2 px-3.5 py-3 text-[0.7813rem] leading-[1.6] text-ink-soft"
           >
             <div>
-              <p className="text-[0.7188rem] font-bold text-ink-muted">판정 경로</p>
+              <p className="text-[0.6875rem] font-bold text-ink-muted">판정 경로</p>
               <p className="mt-0.5 font-bold text-ink">{pathLabel(trace)}</p>
               {trace.ruleLabel && (
                 <p className="mt-0.5">
@@ -184,7 +184,7 @@ export function InlineCoaching({ feedback, gaugeLabel, className }: InlineCoachi
 
             {basis.length > 0 && (
               <div>
-                <p className="text-[0.7188rem] font-bold text-ink-muted">확인한 항목</p>
+                <p className="text-[0.6875rem] font-bold text-ink-muted">확인한 항목</p>
                 <ul className="chim-hairline mt-0.5">
                   {basis.map((entry) => (
                     <li key={entry.itemId} className="flex gap-2 py-1.5 first:pt-0 last:pb-0">
@@ -200,7 +200,7 @@ export function InlineCoaching({ feedback, gaugeLabel, className }: InlineCoachi
 
             {(feedback.docId || extraDocs.length > 0) && (
               <div>
-                <p className="text-[0.7188rem] font-bold text-ink-muted">근거 문서</p>
+                <p className="text-[0.6875rem] font-bold text-ink-muted">근거 문서</p>
                 <p className="mt-0.5">
                   {[doc?.title ?? feedback.docId, ...extraDocs].filter(Boolean).join(" · ")}
                 </p>

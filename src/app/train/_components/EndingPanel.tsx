@@ -118,7 +118,7 @@ function FoldedList({
   const [open, setOpen] = useState(false);
 
   if (items.length === 0) {
-    return <p className="px-0.5 py-2.5 text-[0.9063rem] leading-[1.55] text-ink-soft">{emptyText}</p>;
+    return <p className="px-0.5 py-2.5 text-[0.9375rem] leading-[1.6] text-ink-soft">{emptyText}</p>;
   }
 
   const visible = open ? items : items.slice(0, 3);
@@ -130,14 +130,16 @@ function FoldedList({
         <li
           key={item}
           className={cx(
-            "flex gap-2 border-b border-line px-0.5 py-2.5 text-[0.9063rem] last:border-b-0",
-            withCheck ? "leading-[1.5] text-ink" : "leading-[1.55] text-ink-soft",
+            "flex gap-2 border-b border-line px-0.5 py-2.5 text-[0.9375rem] last:border-b-0",
+            withCheck ? "leading-[1.45] text-ink" : "leading-[1.6] text-ink-soft",
           )}
         >
           {withCheck && (
             <span
               aria-hidden
-              className="relative top-[3px] flex h-[15px] w-[15px] flex-none items-center justify-center rounded-full bg-ok-soft text-[0.5938rem] font-extrabold text-ok-ink"
+              /* 9.5px은 이 앱 어디에도 없는 외톨이 값이었습니다(심미 재평가 ma1의 27종 중 하나).
+                 15px 원 안에서 ✓는 11px까지 넉넉히 들어가므로 메타 단으로 올려 붙였습니다. */
+              className="relative top-[3px] flex h-[15px] w-[15px] flex-none items-center justify-center rounded-full bg-ok-soft text-[0.6875rem] font-extrabold text-ok-ink"
             >
               ✓
             </span>
@@ -180,10 +182,10 @@ function CriticalSceneCard({
 
   return (
     <div className="rounded-card bg-paper-2 px-[15px] py-3.5">
-      <p className="text-[0.7813rem] leading-[1.4] font-bold text-warn-ink">
+      <p className="text-[0.7813rem] leading-[1.45] font-bold text-warn-ink">
         다시 볼 장면{feedback.trace?.ruleLabel ? ` — ${feedback.trace.ruleLabel}` : ""}
       </p>
-      <p className="mt-1.5 text-[0.9063rem] leading-[1.6] text-ink-soft">{lead}</p>
+      <p className="mt-1.5 text-[0.9375rem] leading-[1.6] text-ink-soft">{lead}</p>
       {/* 조문 전문은 접힘 안에 그대로 둡니다 — 지우지 않고, 앞세우지도 않습니다. */}
       {law.length > 0 && (
         <details className="group mt-1.5">
@@ -193,13 +195,13 @@ function CriticalSceneCard({
               ⌄
             </span>
           </summary>
-          <p className="border-t border-line pt-2 pb-1 text-[0.8438rem] leading-[1.65] text-ink-soft">
+          <p className="border-t border-line pt-2 pb-1 text-[0.8438rem] leading-[1.6] text-ink-soft">
             {law}
           </p>
         </details>
       )}
       {/* 근거와 판정 주체 — ⚑CF 시트에서 보여 드린 것과 같은 문장입니다(대비 4.5:1↑ 유지). */}
-      <p className="mt-1.5 text-[0.7813rem] leading-[1.55] text-ink-soft">
+      <p className="mt-1.5 text-[0.7813rem] leading-[1.6] text-ink-soft">
         {doc ? `${doc.title} · ` : ""}
         {cfVerdictSourceLine(feedback)}
       </p>
@@ -216,7 +218,7 @@ function CriticalSceneCard({
             {alternatives.map((alternative) => (
               <li
                 key={alternative}
-                className="border-t border-line py-2 text-[0.8438rem] leading-[1.55] text-ink"
+                className="border-t border-line py-2 text-[0.8438rem] leading-[1.6] text-ink"
               >
                 {alternative}
               </li>
@@ -285,17 +287,17 @@ export function EndingPanel({
           {mark.char}
         </span>
         <span className="sr-only">{mark.label}</span>
-        <p className="text-[0.75rem] leading-[1.5] font-bold tracking-[0.06em] text-ink-muted">
+        <p className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-ink-muted">
           훈련 마침 · {scenario.title}
         </p>
-        <h2 className="mt-1.5 text-[1.375rem] leading-[1.4] font-extrabold tracking-[-0.01em] text-ink">
+        <h2 className="mt-1.5 text-[1.375rem] leading-[1.45] font-extrabold tracking-[-0.01em] text-ink">
           {ending?.title ?? record.endingTitle}
         </h2>
         {/* 회복·완주를 말하는 줄은 제목 바로 아래 15px로 세웁니다 — 각주 크기로 내리지 않습니다. */}
-        <p className="mt-1.5 text-[0.9375rem] leading-[1.55] font-semibold text-ink-soft">
+        <p className="mt-1.5 text-[0.9375rem] leading-[1.6] font-semibold text-ink-soft">
           {leadText(verdict, session)}
         </p>
-        <p className="mt-[5px] text-[0.8438rem] leading-[1.55] text-ink-muted">
+        <p className="mt-[4px] text-[0.8438rem] leading-[1.6] text-ink-muted">
           {spent}
           {shape === "retry" && (
             <>
@@ -315,21 +317,21 @@ export function EndingPanel({
 
       {advisoryEnding && (
         <div className="mt-4 rounded-card bg-paper-2 px-[15px] py-3.5">
-          <p className="text-[0.7813rem] leading-[1.4] font-bold text-warn-ink">
+          <p className="text-[0.7813rem] leading-[1.45] font-bold text-warn-ink">
             {advisoryEnding.title}
           </p>
-          <p className="mt-1.5 text-[0.875rem] leading-[1.6] text-ink-soft">{advisoryEnding.message}</p>
+          <p className="mt-1.5 text-[0.8438rem] leading-[1.6] text-ink-soft">{advisoryEnding.message}</p>
         </div>
       )}
 
       {ending?.message && (
-        <p className="mt-4 text-[0.9063rem] leading-[1.65] text-ink-soft">{ending.message}</p>
+        <p className="mt-4 text-[0.9375rem] leading-[1.6] text-ink-soft">{ending.message}</p>
       )}
 
       <section className="mt-5">
         {/* 개수는 「몇 가지를 보고 계신지」이지 점수가 아닙니다 — 0은 아예 적지 않습니다. */}
         {/* 「그래도」는 양보 부사라 '그럼에도 불구하고 잘한 게 있긴 하다'로 읽힙니다 — 걷어냅니다. */}
-        <h3 className="mb-1 text-[0.7813rem] leading-[1.4] font-bold text-ok-ink">
+        <h3 className="mb-1 text-[0.7813rem] leading-[1.45] font-bold text-ok-ink">
           잘한 것{greens.length > 0 && ` ${greens.length}`}
         </h3>
         <FoldedList
@@ -340,7 +342,7 @@ export function EndingPanel({
       </section>
 
       <section className="mt-4">
-        <h3 className="mb-1 text-[0.7813rem] leading-[1.4] font-bold text-warn-ink">
+        <h3 className="mb-1 text-[0.7813rem] leading-[1.45] font-bold text-warn-ink">
           다시 볼 것{coachings.length > 0 && ` ${coachings.length}`}
         </h3>
         <FoldedList
@@ -372,13 +374,13 @@ export function EndingPanel({
         <div className="mt-2 flex gap-2">
           <Link
             href="/report"
-            className="flex min-h-[48px] min-w-0 flex-1 items-center justify-center rounded-field bg-paper-2 px-3 text-center text-[0.9375rem] leading-[1.35] font-semibold text-ink"
+            className="flex min-h-[48px] min-w-0 flex-1 items-center justify-center rounded-field bg-paper-2 px-3 text-center text-[0.9375rem] leading-[1.3] font-semibold text-ink"
           >
             이 훈련 보고 연습하기
           </Link>
           <Link
             href="/history"
-            className="flex min-h-[48px] min-w-0 flex-1 items-center justify-center rounded-field bg-paper-2 px-3 text-center text-[0.9375rem] leading-[1.35] font-semibold text-ink"
+            className="flex min-h-[48px] min-w-0 flex-1 items-center justify-center rounded-field bg-paper-2 px-3 text-center text-[0.9375rem] leading-[1.3] font-semibold text-ink"
           >
             성장 기록 보기
           </Link>
@@ -387,7 +389,7 @@ export function EndingPanel({
         {shape === "retry" && (
           <Link
             href="/train"
-            className="mt-2 flex min-h-[48px] w-full items-center justify-center rounded-field px-3 text-center text-[0.9375rem] leading-[1.35] font-semibold text-ink-soft"
+            className="mt-2 flex min-h-[48px] w-full items-center justify-center rounded-field px-3 text-center text-[0.9375rem] leading-[1.3] font-semibold text-ink-soft"
           >
             오늘은 여기까지
           </Link>

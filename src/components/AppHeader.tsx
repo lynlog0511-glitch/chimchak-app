@@ -129,7 +129,7 @@ export function AppHeader({ className }: AppHeaderProps) {
               href="/safety"
               aria-current={safetyActive ? "page" : undefined}
               className={cx(
-                "chim-meta inline-flex min-h-[48px] items-center gap-1.5 pl-2 md:hidden",
+                "chim-caption inline-flex min-h-[48px] items-center gap-1.5 pl-2 md:hidden",
                 safetyActive ? "font-extrabold text-brand-800" : "font-semibold text-ink-soft",
               )}
             >

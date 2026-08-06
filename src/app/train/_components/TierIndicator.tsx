@@ -119,7 +119,7 @@ export function TierIndicator({ tiers, status, judgeTick, className }: TierIndic
               )}
             >
               {/* 좁은 화면에서도 접히지 않게 계층 기호와 이름을 두 줄로 나눠 적습니다. */}
-              <span className="chim-meta flex items-center justify-center gap-1.5 leading-tight font-extrabold">
+              <span className="chim-caption flex items-center justify-center gap-1.5 leading-tight font-extrabold">
                 <IconDot className="h-3 w-3" filled={isActive} />
                 {tier}
               </span>

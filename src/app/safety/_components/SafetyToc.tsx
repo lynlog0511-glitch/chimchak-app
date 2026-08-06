@@ -10,9 +10,9 @@ import { cx } from "@/components/utils";
  * 그래서 맨 위에 **가로로 흐르는 칩 한 줄**을 두고, 지금 읽고 있는 항목을 잉크 채움으로 표시합니다.
  * 칩을 누르면 해당 항목으로 이동합니다(앵커 — 스크롤 동작은 브라우저가, reduced-motion도 브라우저가).
  *
- * 시안 px: 칩 12px(활성 700 / 비활성 600) · 패딩 7/12 · pill · 간격 6px ·
- * 활성 `#191f1e` 채움 + 흰 글자 / 비활성 `#f5f6f6` 면 + `#454f4c` 글자.
- * 다만 **터치 영역은 48px**이라, 보이는 알약은 시안 크기 그대로 두고 링크 자체를 48px 높이로 세웠습니다.
+ * 눈금은 이 화면의 메타 단(12.5px · 활성 700 / 비활성 600) · 패딩 8/12 · pill · 간격 8px ·
+ * 활성 잉크 채움 + 흰 글자 / 비활성 paper-2 면 + ink-soft 글자.
+ * 다만 **터치 영역은 48px**이라, 보이는 알약은 그 크기 그대로 두고 링크 자체를 48px 높이로 세웠습니다.
  *
  * 스크롤을 따라 위에 붙습니다(붙었을 때만 아래 헤어라인이 생깁니다) —
  * 붙지 않으면 활성 표시를 볼 일이 없어서, 목차가 목차 구실을 못 합니다.
@@ -102,7 +102,7 @@ export function SafetyToc({ items, className }: SafetyTocProps) {
     <div
       ref={barRef}
       className={cx(
-        "sticky top-0 z-20 -mx-[20px] bg-paper px-[20px] pt-[8px] pb-[8px]",
+        "sticky top-0 z-20 -mx-[20px] bg-paper px-[20px] py-2",
         stuck && "border-b border-line",
         className,
       )}
@@ -110,7 +110,7 @@ export function SafetyToc({ items, className }: SafetyTocProps) {
       <nav aria-label="안전 설계 목차">
         <div
           ref={scrollerRef}
-          className="relative flex gap-[6px] overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="relative flex gap-2 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {items.map((item) => {
             const isActive = item.id === active;
@@ -127,7 +127,7 @@ export function SafetyToc({ items, className }: SafetyTocProps) {
               >
                 <span
                   className={cx(
-                    "rounded-chip px-[12px] py-[7px] text-[0.75rem] leading-[1.4] whitespace-nowrap",
+                    "rounded-chip px-3 py-2 text-[0.7813rem] leading-[1.4] whitespace-nowrap",
                     "transition-colors duration-150 ease-soft",
                     isActive
                       ? "bg-ink font-bold text-white"

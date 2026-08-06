@@ -7,16 +7,16 @@ export type ListRowSize = "md" | "lg";
 /** md — 홈 「세 가지를 합니다」 (제목 16px · 부제 13px) / lg — 응급 5종 (제목 17.5px · 부제 12.5px) */
 const SIZE: Record<ListRowSize, { row: string; title: string; subtitle: string; gap: string }> = {
   md: {
-    row: "py-[15px] px-[2px]",
+    row: "py-[16px] px-[2px]",
     title: "text-[1rem]",
-    subtitle: "text-[0.8125rem]",
+    subtitle: "text-[0.8438rem]",
     gap: "gap-3",
   },
   lg: {
     row: "py-4 px-[2px]",
-    title: "text-[1.0938rem]",
+    title: "text-[1.0625rem]",
     subtitle: "text-[0.7813rem]",
-    gap: "gap-[13px]",
+    gap: "gap-[12px]",
   },
 };
 
@@ -79,7 +79,7 @@ export function ListRow({
       <span className="min-w-0 flex-1">
         <span className={cx("block font-bold text-ink", s.title)}>{title}</span>
         {subtitle && (
-          <span className={cx("mt-[2px] block leading-[1.5] text-ink-muted", s.subtitle)}>
+          <span className={cx("mt-[2px] block leading-[1.45] text-ink-muted", s.subtitle)}>
             {subtitle}
           </span>
         )}

@@ -11,6 +11,7 @@ import {
   SettingsMenu,
 } from "@/components";
 import { SCENARIOS } from "@/data/scenarios";
+import { FirstVisitHint } from "./_components/FirstVisitHint";
 import { ResumeCard, type ResumeScenario } from "./_components/ResumeCard";
 import { SessionPreviewCard } from "./_components/SessionPreviewCard";
 
@@ -167,6 +168,11 @@ export default function Home() {
         {/* 실물 증거 — 훈련 한 턴을 그대로 세워 둡니다. 데스크톱에서만 자리가 납니다. */}
         <SessionPreviewCard className="hidden lg:block" />
       </section>
+
+      {/* 처음 오신 분께만 — 「마이크 없이 버튼만으로 4분」을 시작 버튼 바로 아래에서 알려 드립니다.
+          닫으시면 이 기기에 그 사실만 남고(chimchak.visited.v1) 다시 나타나지 않습니다.
+          두 번째 방문부터는 이 자리가 통째로 비어 위아래 간격도 생기지 않습니다. */}
+      <FirstVisitHint className="mb-3 lg:max-w-[560px]" />
 
       {/* 하던 훈련 — 체크포인트가 있을 때만 나타납니다(없으면 이 자리가 통째로 비어 있습니다). */}
       <ResumeCard scenarios={RESUME_SCENARIOS} className="lg:max-w-[560px]" />

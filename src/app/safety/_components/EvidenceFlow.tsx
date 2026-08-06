@@ -158,6 +158,9 @@ function FlowBox({ x, y, node, tone = "ink" }: { x: number; y: number; node: Flo
  * 720×600 좌표계 위에 선과 상자를 손으로 놓은 그림이라, 글자만 커지면 상자 밖으로 넘칩니다.
  * 대신 같은 내용이 바로 위 `FlowSteps`에 **실제 텍스트**로 먼저 나오고 그쪽은 설정을 그대로 따릅니다 —
  * 확대해서 읽으실 분이 못 읽는 문장은 없습니다.
+ *
+ * 크기는 px이지만 **눈금은 화면과 같습니다** — 15(본문) · 17(상자 제목) · 20(판단·L3 밴드) 셋뿐입니다.
+ * 예전에는 16·19가 섞여 있어 그림 안에서만 다섯 단이 됐습니다.
  */
 function FlowDiagram() {
   return (
@@ -269,7 +272,7 @@ function FlowDiagram() {
         x={DIA_CX}
         y={DIA_CY + 7}
         textAnchor="middle"
-        fontSize={19}
+        fontSize={20}
         fontWeight={800}
         className="fill-brand-800"
       >
@@ -285,7 +288,7 @@ function FlowDiagram() {
         className="stroke-brand-600"
         markerEnd="url(#sfy-arrow-teal)"
       />
-      <text x={372} y={262} fontSize={16} fontWeight={700} className="fill-brand-700">
+      <text x={372} y={262} fontSize={15} fontWeight={700} className="fill-brand-700">
         예
       </text>
 
@@ -309,7 +312,7 @@ function FlowDiagram() {
         className="stroke-warn-ink"
         markerEnd="url(#sfy-arrow-warn)"
       />
-      <text x={244} y={178} textAnchor="end" fontSize={16} fontWeight={700} className="fill-warn-ink">
+      <text x={244} y={178} textAnchor="end" fontSize={15} fontWeight={700} className="fill-warn-ink">
         아니오
       </text>
 
@@ -329,10 +332,10 @@ function FlowDiagram() {
         근거를 찾지 못하면 이렇게 답합니다
       </text>
       <rect x={COL_M} y={428} width={462} height={72} rx={12} className="fill-paper-2" />
-      <text x={COL_M + 18} y={458} fontSize={16} className="fill-ink">
+      <text x={COL_M + 18} y={458} fontSize={15} className="fill-ink">
         {NO_SOURCE_LINES[0]}
       </text>
-      <text x={COL_M + 18} y={482} fontSize={16} className="fill-ink">
+      <text x={COL_M + 18} y={482} fontSize={15} className="fill-ink">
         {NO_SOURCE_LINES[1]}
       </text>
 
@@ -342,7 +345,7 @@ function FlowDiagram() {
         x={DIA_CX}
         y={556}
         textAnchor="middle"
-        fontSize={19}
+        fontSize={20}
         fontWeight={800}
         className="fill-brand-900"
       >
@@ -360,19 +363,19 @@ function FlowDiagram() {
 /** 번호 + 제목 + 한 문장. 아이콘·세로줄 없이 hairline 행으로만 나눕니다(v4 §2). */
 function StepRow({ index, node }: { index: number; node: FlowNode }) {
   return (
-    <li className="flex gap-[10px] border-t border-line py-[13px]">
+    <li className="flex gap-3 border-t border-line py-4">
       <span
         aria-hidden
-        className="chim-num w-[13px] flex-none text-[0.8125rem] leading-[1.5] font-extrabold text-brand-700"
+        className="chim-num w-[1rem] flex-none text-[0.9375rem] leading-[1.4] font-extrabold text-brand-700"
       >
         {index}
       </span>
       <div className="min-w-0">
-        <p className="text-[0.875rem] leading-[1.45] font-bold text-ink">
+        <p className="text-[1.0625rem] leading-[1.4] font-extrabold text-ink">
           {node.title}
-          {node.plan && <PlanTag className="ml-[6px]" />}
+          {node.plan && <PlanTag className="ml-2" />}
         </p>
-        <p className="mt-[2px] text-[0.7813rem] leading-[1.6] text-ink-muted">{node.caption}</p>
+        <p className="mt-1 text-[0.9375rem] leading-[1.6] text-ink-muted">{node.caption}</p>
       </div>
     </li>
   );
@@ -382,8 +385,8 @@ function StepRow({ index, node }: { index: number; node: FlowNode }) {
 function BranchStep({ node }: { node: FlowNode }) {
   return (
     <li>
-      <p className="text-[0.8438rem] leading-[1.45] font-bold text-ink">{node.title}</p>
-      <p className="mt-[2px] text-[0.7813rem] leading-[1.6] text-ink-soft">{node.caption}</p>
+      <p className="text-[0.9375rem] leading-[1.45] font-bold text-ink">{node.title}</p>
+      <p className="mt-1 text-[0.9375rem] leading-[1.6] text-ink-soft">{node.caption}</p>
     </li>
   );
 }
@@ -395,45 +398,45 @@ function FlowSteps() {
         {INPUT_NODES.map((n, i) => (
           <StepRow key={n.key} index={i + 1} node={n} />
         ))}
-        <li className="flex gap-[10px] border-t border-line py-[13px]">
+        <li className="flex gap-3 border-t border-line py-4">
           <span
             aria-hidden
-            className="chim-num w-[13px] flex-none text-[0.8125rem] leading-[1.5] font-extrabold text-brand-700"
+            className="chim-num w-[1rem] flex-none text-[0.9375rem] leading-[1.4] font-extrabold text-brand-700"
           >
             {INPUT_NODES.length + 1}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-[0.875rem] leading-[1.45] font-bold text-brand-800">근거 확인</p>
-            <p className="mt-[2px] text-[0.7813rem] leading-[1.6] text-ink-muted">
+            <p className="text-[1.0625rem] leading-[1.4] font-extrabold text-brand-800">근거 확인</p>
+            <p className="mt-1 text-[0.9375rem] leading-[1.6] text-ink-muted">
               여기서 길이 갈립니다. 근거를 찾았는지에 따라 다음이 달라집니다.
             </p>
 
             {/* 분기 — 라벨 한 줄 + 옅은 면. 아이콘은 쓰지 않습니다. */}
-            <div className="mt-[10px] space-y-[8px]">
-              <div className="rounded-[14px] bg-paper-2 px-[13px] py-[12px]">
-                <p className="text-[0.8438rem] leading-[1.45] font-extrabold text-brand-800">
+            <div className="mt-3 space-y-2">
+              <div className="rounded-card bg-paper-2 p-4">
+                <p className="text-[0.9375rem] leading-[1.45] font-extrabold text-brand-800">
                   예 · 근거를 찾았을 때
                 </p>
-                <ol className="mt-[8px] space-y-[8px]">
+                <ol className="mt-2 space-y-2">
                   {YES_NODES.map((n) => (
                     <BranchStep key={n.key} node={n} />
                   ))}
                 </ol>
               </div>
 
-              <div className="rounded-[14px] bg-warn-soft px-[13px] py-[12px]">
-                <p className="text-[0.8438rem] leading-[1.45] font-extrabold text-warn-ink">
+              <div className="rounded-card bg-warn-soft p-4">
+                <p className="text-[0.9375rem] leading-[1.45] font-extrabold text-warn-ink">
                   아니오 · 근거가 화이트리스트 밖일 때
                 </p>
-                <ol className="mt-[8px] space-y-[8px]">
+                <ol className="mt-2 space-y-2">
                   {NO_NODES.map((n) => (
                     <BranchStep key={n.key} node={n} />
                   ))}
                 </ol>
-                <p className="mt-[10px] text-[0.8125rem] leading-[1.6] font-bold text-ink">
+                <p className="mt-3 text-[0.9375rem] leading-[1.6] font-bold text-ink">
                   「공식 지침에서 근거를 찾지 못했습니다. 담당 간호사 또는 기관에 확인해 주세요.」
                 </p>
-                <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
+                <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink-soft">
                   알파도 이 갈래를 실제로 들고 있습니다 — 판정에 붙은 근거 문서 id가 목록 밖이면
                   엔진이 점수를 매기지 않고 이 문장만 내보냅니다. /check의 「규칙 엔진 경계
                   케이스」 검사가 매번 이 동작을 확인합니다.
@@ -444,9 +447,9 @@ function FlowSteps() {
         </li>
       </ol>
 
-      <div className="mt-4 rounded-[14px] bg-tint px-[15px] py-[14px]">
-        <p className="text-[0.875rem] leading-[1.45] font-extrabold text-brand-900">{L3_TITLE}</p>
-        <p className="mt-[4px] text-[0.7813rem] leading-[1.6] text-ink-soft">{L3_SUB}</p>
+      <div className="mt-5 rounded-card bg-brand-tint p-4">
+        <p className="text-[1.0625rem] leading-[1.4] font-extrabold text-brand-900">{L3_TITLE}</p>
+        <p className="mt-1 text-[0.9375rem] leading-[1.6] text-ink-soft">{L3_SUB}</p>
       </div>
     </div>
   );
@@ -469,25 +472,25 @@ export function EvidenceFlow() {
     <figure className="m-0">
       <FlowSteps />
 
-      <details className="group mt-4 rounded-[14px] bg-paper-2">
-        <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-2 px-[15px] py-[12px] [&::-webkit-details-marker]:hidden">
-          <span className="min-w-0 flex-1 text-[0.8438rem] leading-[1.45] font-bold text-ink">
+      <details className="group mt-5 rounded-card bg-paper-2">
+        <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
+          <span className="min-w-0 flex-1 text-[1.0625rem] leading-[1.4] font-extrabold text-ink">
             같은 내용을 흐름도 한 장으로 보기
           </span>
           <span
             aria-hidden
-            className="flex-none text-[1.0625rem] leading-none text-faint transition-transform duration-150 ease-soft group-open:rotate-90"
+            className="flex-none text-[1.0625rem] leading-none text-ink-ghost transition-transform duration-150 ease-soft group-open:rotate-90"
           >
             ›
           </span>
         </summary>
         {/* 가로 스크롤은 이 상자 안에서만 — 지면은 밀리지 않습니다. */}
-        <div className="overflow-x-auto px-[15px] pb-[14px]">
+        <div className="overflow-x-auto px-4 pb-4">
           <FlowDiagram />
         </div>
       </details>
 
-      <figcaption className="mt-[10px] text-[0.7188rem] leading-[1.6] text-tertiary">
+      <figcaption className="mt-3 text-[0.7813rem] leading-[1.6] text-ink-faint">
         그림 · 근거가 확인된 범위 안에서만 피드백이 나갑니다. 근거 문서가 화이트리스트 밖이면
         판정을 멈추고 확인 안내로 넘어갑니다.
       </figcaption>

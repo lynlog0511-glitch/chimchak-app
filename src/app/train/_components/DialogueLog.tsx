@@ -112,7 +112,7 @@ function SpeakerAvatar({
     return (
       <span
         aria-hidden
-        className="flex h-[38px] w-[38px] flex-none items-center justify-center rounded-full bg-danger-soft text-[0.875rem] font-bold text-danger-ink"
+        className="flex h-[38px] w-[38px] flex-none items-center justify-center rounded-full bg-danger-soft text-[0.8438rem] font-bold text-danger-ink"
       >
         안
       </span>
@@ -123,7 +123,7 @@ function SpeakerAvatar({
     <span
       aria-hidden
       style={ring ? { boxShadow: ring } : undefined}
-      className="flex h-[38px] w-[38px] flex-none items-center justify-center rounded-full bg-paper-out text-[0.875rem] font-bold text-ink-soft"
+      className="flex h-[38px] w-[38px] flex-none items-center justify-center rounded-full bg-paper-out text-[0.8438rem] font-bold text-ink-soft"
     >
       {initialOf(name)}
     </span>
@@ -156,7 +156,7 @@ function LineBubble({
   const note = item.note ? stripInternalIds(item.note) : undefined;
 
   const trigger = item.triggerName ? (
-    <p className="mb-2 text-center text-[0.75rem] leading-[1.5] font-bold text-warn-ink">
+    <p className="mb-2 text-center text-[0.7813rem] leading-[1.45] font-bold text-warn-ink">
       돌발 변수 · {item.triggerName}
     </p>
   ) : null;
@@ -167,7 +167,7 @@ function LineBubble({
       <div className="animate-fade-up">
         {trigger}
         <p className="text-center text-[0.7813rem] leading-[1.6] text-tertiary">{text}</p>
-        {note && <p className="mt-1 text-center text-[0.75rem] leading-[1.6] text-ink-faint">{note}</p>}
+        {note && <p className="mt-1 text-center text-[0.7813rem] leading-[1.6] text-ink-faint">{note}</p>}
       </div>
     );
   }
@@ -186,7 +186,7 @@ function LineBubble({
         />
 
         <div className="min-w-0 max-w-[85%]">
-          <div className="mb-[5px] flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-[0.7813rem] leading-[1.4] text-ink-muted">
+          <div className="mb-[4px] flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-[0.7813rem] leading-[1.45] text-ink-muted">
             <span>{item.speakerName}</span>
             {showEmotion && (
               <>
@@ -213,19 +213,19 @@ function LineBubble({
           {/* 대사는 이 화면의 주인공입니다 — 17px/1.6, 꼬리는 왼쪽 위 한 모서리만. */}
           <div
             className={cx(
-              "rounded-[4px_18px_18px_18px] px-[15px] py-[13px] text-[1.0625rem] leading-[1.6]",
+              "rounded-[4px_18px_18px_18px] px-[15px] py-[12px] text-[1.0625rem] leading-[1.6]",
               protocol ? "bg-danger-soft text-ink" : "bg-paper-2 text-ink",
             )}
           >
             {text}
             {note && (
-              <span className="mt-1.5 block text-[0.8438rem] leading-[1.55] text-ink-muted italic">
+              <span className="mt-1.5 block text-[0.8438rem] leading-[1.6] text-ink-muted italic">
                 {note}
               </span>
             )}
           </div>
 
-          <p className="mt-1 text-[0.6875rem] leading-[1.5] text-ink-faint">
+          <p className="mt-1 text-[0.6875rem] leading-[1.45] text-ink-faint">
             {protocol
               ? "검수된 고정 안내 · AI 생성 아님"
               : character
@@ -243,11 +243,11 @@ function LearnerBubble({ item }: { item: Extract<LogItem, { kind: "learner" }> }
     <div className="animate-fade-up flex justify-end">
       <div className="min-w-0 max-w-[85%]">
         <div
-          className="rounded-[18px_4px_18px_18px] bg-tint px-[15px] py-[13px] text-[1.0625rem] leading-[1.6] text-deep"
+          className="rounded-[18px_4px_18px_18px] bg-tint px-[15px] py-[12px] text-[1.0625rem] leading-[1.6] text-deep"
         >
           {item.text}
         </div>
-        <p className="mt-1 text-right text-[0.6875rem] leading-[1.5] text-ink-faint">
+        <p className="mt-1 text-right text-[0.6875rem] leading-[1.45] text-ink-faint">
           내 응답 · {item.viaButton ? "버튼 선택" : "말하기·직접 입력"}
         </p>
       </div>
@@ -423,7 +423,7 @@ export function DialogueLog({
               <div
                 key={item.key}
                 className={cx(
-                  "animate-fade-up rounded-card px-4 py-3 text-[0.8125rem] leading-[1.6] font-bold",
+                  "animate-fade-up rounded-card px-4 py-3 text-[0.8438rem] leading-[1.6] font-bold",
                   item.tone === "danger"
                     ? "bg-danger-soft text-danger-ink"
                     : "bg-tint text-brand-800",

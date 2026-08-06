@@ -185,7 +185,10 @@ export function SettingsMenu({ className }: SettingsMenuProps) {
                 비례합니다. 예외는 둘뿐이고 둘 다 읽을거리가 아닙니다 —
                 안전 페이지 접이식 흐름도(같은 내용이 바로 위에 텍스트로 있습니다)와
                 루트 레이아웃이 무너졌을 때 뜨는 오류 화면입니다. */}
-            <p className="chim-caption mt-2 text-ink-muted">
+            {/* 「언제든 되돌릴 수 있습니다」는 각주가 아니라 안심 문구입니다 —
+                글자를 키우려다 화면을 망칠까 봐 손을 못 대는 분께 하는 약속이라
+                13px(chim-caption)이 아니라 안심 문구 규격 15px + ink-soft로 둡니다(가이드 §7-8). */}
+            <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink-soft">
               화면 전체 글자가 함께 커집니다. 언제든 되돌릴 수 있습니다.
             </p>
           </div>
@@ -204,14 +207,14 @@ export function SettingsMenu({ className }: SettingsMenuProps) {
                 />
               ))}
             </div>
-            <p className="chim-caption mt-2 text-ink-muted">
+            <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink-soft">
               {voiceSupported
                 ? "누르시면 예시 문장을 한 번 읽어 드립니다. 훈련 대사와 응급 안내 낭독에 함께 적용됩니다."
                 : "이 기기에서는 음성 낭독을 지원하지 않습니다. 안내 문구는 화면 자막으로 그대로 보실 수 있습니다."}
             </p>
           </div>
 
-          <p className="chim-caption mt-5 rounded-field bg-paper-2 px-3 py-2 text-ink-muted">
+          <p className="mt-5 rounded-field bg-paper-2 px-3 py-2 text-[0.9375rem] leading-[1.6] text-ink-soft">
             설정은 이 기기에만 저장됩니다.
           </p>
         </div>

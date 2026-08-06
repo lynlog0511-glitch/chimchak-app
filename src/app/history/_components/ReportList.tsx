@@ -3,6 +3,7 @@
 import { useId, useState } from "react";
 import { cx } from "@/components";
 import { RECORD_SLOT_LABELS, type RecordSlot } from "@/engine/record";
+import { isDemoRecord } from "@/lib/demoSeed";
 import type { StoredReport } from "@/lib/storage";
 import {
   MASK_TOKEN_SPLIT,
@@ -61,6 +62,8 @@ function ReportRow({ report }: { report: StoredReport }) {
   const counts = Object.entries(report.maskedCounts ?? {}).filter(([, value]) => value > 0);
   const maskedTotal = counts.reduce((sum, [, value]) => sum + value, 0);
   const filled = SLOT_ORDER.filter((slot) => report.draft[slot].trim().length > 0).length;
+  /** 시연용으로 심어 둔 예시 보고 — 행에서 바로 구분되어야 증빙으로 오인되지 않습니다. */
+  const isExample = isDemoRecord(report);
 
   return (
     <div className="border-b border-line">
@@ -73,6 +76,7 @@ function ReportRow({ report }: { report: StoredReport }) {
       >
         <span className="min-w-0 flex-1">
           <span className="block text-[0.75rem] leading-[1.4] text-tertiary">
+            {isExample && <span className="font-bold text-warn-ink">예시 · </span>}
             {formatShortDate(report.createdAt)} · 가명처리 2단 통과
             {isDisplayableElapsed(report.elapsedSec) &&
               ` · ${formatElapsedDuration(report.elapsedSec)} 만에 작성`}
@@ -97,6 +101,11 @@ function ReportRow({ report }: { report: StoredReport }) {
 
       {open && (
         <div id={panelId} className="mb-[14px] rounded-[14px] bg-paper-2 px-4 py-[14px]">
+          {isExample && (
+            <p className="mb-[10px] text-[0.7813rem] leading-[1.6] font-bold text-warn-ink">
+              시연용으로 심어 둔 예시 기록입니다 — 실제로 확정하신 보고가 아닙니다.
+            </p>
+          )}
           <p className="text-[0.75rem] leading-[1.5] font-bold tracking-[0.06em] text-ink-muted">
             확정한 본문
           </p>

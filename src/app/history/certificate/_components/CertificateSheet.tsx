@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { BigButton, InlineDisclaimer, cx } from "@/components";
+import { countDemoRecords } from "@/lib/demoSeed";
 import { buildCompletionCsv, buildCompletionSummary, type CompletionSummary } from "@/lib/storage";
 import { formatDate, formatDateTime } from "../../_components/format";
 
@@ -26,6 +27,12 @@ const PRINT_CSS = `
     border: 0 !important;
     border-radius: 0 !important;
     padding: 0 !important;
+  }
+  /* 예시 표시는 종이에도 반드시 남아야 합니다 — 브라우저가 배경·연한 색을 지우지 못하게 못 박습니다. */
+  [data-demo-watermark] {
+    display: flex !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 }
 `;
@@ -107,13 +114,20 @@ export function CertificateSheet() {
   /** 인쇄에만 실리는 값 — 저장하지 않습니다. */
   const [learnerName, setLearnerName] = useState("");
   const [learnerOrg, setLearnerOrg] = useState("");
+  /**
+   * 시연용 예시가 섞여 있는 동안에는 확인서가 **발급물이 아니라 미리보기**가 됩니다.
+   * 여기서 켜지는 것: 워터마크(인쇄물 포함) · 「예시 — 발급되지 않음」 · 파일 내려받기 잠금.
+   */
+  const [demoCount, setDemoCount] = useState(0);
 
   useEffect(() => {
     setSummary(buildCompletionSummary());
     setIssuedAt(new Date().toISOString());
+    setDemoCount(countDemoRecords().sessions);
     setLoaded(true);
   }, []);
 
+  const isPreview = demoCount > 0;
   const lines = summary?.lines ?? [];
   const total = summary?.totalCount ?? 0;
   const totalSec = summary?.totalSec ?? 0;
@@ -201,8 +215,33 @@ export function CertificateSheet() {
           <section
             data-print-sheet
             aria-labelledby="certificate-title"
-            className="mt-4 rounded-[14px] border border-line-strong px-4 py-[18px]"
+            className={cx(
+              "mt-4 rounded-[14px] border border-line-strong px-4 py-[18px]",
+              isPreview && "relative overflow-hidden",
+            )}
           >
+            {/* 종이만 따로 돌아다녀도 예시인 줄 알아볼 수 있게 지면 자체에 표시를 얹습니다.
+                읽어야 하는 문장은 아래 안내줄이 담당하므로 이 층은 장식으로 숨깁니다. */}
+            {isPreview && (
+              <div
+                aria-hidden
+                data-demo-watermark
+                className="pointer-events-none absolute inset-0 flex items-center justify-center"
+              >
+                <span className="rotate-[-24deg] text-[1.75rem] leading-none font-extrabold whitespace-nowrap text-warn-ink opacity-[0.16] md:text-[2.5rem]">
+                  예시 — 발급되지 않음
+                </span>
+              </div>
+            )}
+
+            {isPreview && (
+              <p className="mb-[12px] rounded-[12px] bg-warn-soft px-[12px] py-[10px] text-[0.875rem] leading-[1.7] font-bold text-warn-ink">
+                예시 미리보기 — 시연용 예시 기록 {demoCount}회가 섞여 있습니다. 이 문서는 발급되지
+                않았으며 증빙으로 쓸 수 없습니다. 성장 기록 위쪽 안내줄에서 예시를 지우시면 실제
+                이수 사실로 다시 만들어집니다.
+              </p>
+            )}
+
             <h2 id="certificate-title" className="text-[1.125rem] leading-[1.35] font-extrabold text-ink">
               침착 훈련 이수 확인서
             </h2>
@@ -213,11 +252,17 @@ export function CertificateSheet() {
             {/* 자료철에 끼우는 문서라 번호와 발급주체가 있어야 대조·문의가 가능합니다.
                 번호는 기록 집합에서 계산한 값이라 서버 없이도 재인쇄 시 같은 값이 나옵니다. */}
             <p className="mt-[8px] text-[0.8125rem] leading-[1.5] font-bold text-ink">
-              발급번호 <span className="chim-num text-brand-800">{summary?.number ?? ""}</span>
+              발급번호{" "}
+              {isPreview ? (
+                <span className="text-warn-ink">예시 — 발급되지 않음</span>
+              ) : (
+                <span className="chim-num text-brand-800">{summary?.number ?? ""}</span>
+              )}
             </p>
             <p className="mt-[3px] text-[0.7813rem] leading-[1.6] text-ink-soft">
-              같은 기록 집합에서는 언제 다시 인쇄해도 같은 번호가 나옵니다 — 중복 제출 확인에
-              쓰실 수 있습니다.
+              {isPreview
+                ? "예시 기록이 섞여 있는 동안에는 발급번호를 만들지 않습니다 — 대조할 원본이 실제 이수 사실이 아니기 때문입니다."
+                : "같은 기록 집합에서는 언제 다시 인쇄해도 같은 번호가 나옵니다 — 중복 제출 확인에 쓰실 수 있습니다."}
             </p>
             <p className="mt-[3px] text-[0.7813rem] leading-[1.6] text-ink-soft">
               발급: 침착(ChimChak) 훈련 앱 · 문의: 기관 도입 담당자 — 앱 안 「기관 도입 안내」
@@ -249,6 +294,14 @@ export function CertificateSheet() {
                 <>총 이수 시수는 이 기기에 남은 시각으로는 계산되지 않았습니다.</>
               )}
             </p>
+            {/* 합계에 예시가 섞였다는 사실을 합계 바로 아래에서 밝힙니다 — 이 줄이 없으면
+                숫자만 옮겨 적히고 예시라는 사실은 종이에서 사라집니다. */}
+            {isPreview && (
+              <p className="mt-[6px] text-[0.7813rem] leading-[1.7] font-bold text-warn-ink">
+                이 합계에는 시연용 예시 <span className="chim-num">{demoCount}</span>회가 포함되어
+                있습니다 — 이 기기의 실제 이수 시수 누계에는 반영되지 않은 회차입니다.
+              </p>
+            )}
             {/* 상세는 최근 50회까지만 남지만 합계·시수는 별도 누계로 세므로 줄지 않습니다.
                 그 차이를 감추면 「목록을 세어 보니 합계와 다르다」가 됩니다. */}
             {hiddenCount > 0 && (
@@ -318,16 +371,30 @@ export function CertificateSheet() {
             <BigButton onClick={() => window.print()} size="lg" block className="mt-4">
               인쇄하기 · PDF로 저장
             </BigButton>
-            <BigButton
-              variant="secondary"
-              block
-              className="mt-2"
-              onClick={() => {
-                if (summary) downloadCsv(summary, issuedAt);
-              }}
-            >
-              이수 사실만 담긴 파일 내려받기
-            </BigButton>
+            {/* 예시가 섞인 파일은 화면 표시를 잃은 채 자료철로 흘러갈 수 있어 내려받기를 잠급니다.
+                인쇄물에는 워터마크가 남지만, CSV 한 장에는 남길 자리가 없습니다. */}
+            {isPreview ? (
+              <div className="mt-2 rounded-[14px] bg-paper-2 px-4 py-[14px]">
+                <p className="text-[0.875rem] leading-[1.5] font-bold text-ink">
+                  이수 사실 파일 내려받기는 잠겨 있습니다
+                </p>
+                <p className="mt-[4px] text-[0.8125rem] leading-[1.7] text-ink-soft">
+                  예시가 섞인 파일이 증빙으로 돌아다니지 않도록 막아 두었습니다. 성장 기록 위쪽
+                  안내줄에서 예시를 지우시면 다시 열립니다.
+                </p>
+              </div>
+            ) : (
+              <BigButton
+                variant="secondary"
+                block
+                className="mt-2"
+                onClick={() => {
+                  if (summary) downloadCsv(summary, issuedAt);
+                }}
+              >
+                이수 사실만 담긴 파일 내려받기
+              </BigButton>
+            )}
             <BigButton href="/history" variant="secondary" block className="mt-2">
               성장 기록으로 돌아가기
             </BigButton>
@@ -335,10 +402,12 @@ export function CertificateSheet() {
               성명·소속을 채우신 뒤 위 버튼을 누르시면 인쇄 창이 열립니다. 적으신 내용은 저장되지
               않습니다.
             </p>
-            <p className="mt-[6px] text-center text-[0.8125rem] leading-[1.6] text-ink-soft">
-              내려받는 파일에는 발급번호·시나리오·이수 횟수·이수 시수만 담깁니다 — 성명·소속과
-              대화 내용은 들어가지 않습니다. 기기를 바꾸실 때 옮겨 두시면 됩니다.
-            </p>
+            {!isPreview && (
+              <p className="mt-[6px] text-center text-[0.8125rem] leading-[1.6] text-ink-soft">
+                내려받는 파일에는 발급번호·시나리오·이수 횟수·이수 시수만 담깁니다 — 성명·소속과
+                대화 내용은 들어가지 않습니다. 기기를 바꾸실 때 옮겨 두시면 됩니다.
+              </p>
+            )}
             <p className="mt-4 text-center">
               <Link
                 href="/for-orgs"

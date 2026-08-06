@@ -6,6 +6,7 @@ import { BigButton, SourceChip, cx } from "@/components";
 import { RECORD_SLOT_LABELS, recomputeMissing, type RecordSlot } from "@/engine/record";
 import { SLOT_PROMPTS } from "./DraftRows";
 import { PrivacyPath } from "./PrivacyPath";
+import { StickyCtaBar, usePassedBlock } from "./StickyCtaBar";
 
 export interface DraftFormProps {
   draft: RecordDraft;
@@ -57,6 +58,12 @@ export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: Dr
 
   const missingCount = draft.missing.length;
   const allEmpty = missingCount === SLOTS.length;
+  /**
+   * 다섯 칸과 「확정은 사용자가 누릅니다」까지 지나셨는지.
+   * 2단계에서 가림 결과가 하는 역할을 이 화면에서는 이 두 블록이 합니다 —
+   * 확정이 무엇을 하는지 읽기 전에는 도킹한 CTA가 보조 색으로 물러섭니다.
+   */
+  const { markerRef, passed } = usePassedBlock();
 
   return (
     <div>
@@ -131,8 +138,6 @@ export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: Dr
         })}
       </div>
 
-      <PrivacyPath reached={4} className="mt-6" />
-
       <div className="mt-6 rounded-[14px] bg-paper-2 px-4 py-[14px]">
         <p className="text-[0.875rem] leading-[1.5] font-bold text-ink">확정은 사용자가 누릅니다</p>
         <p className="mt-[6px] text-[0.7813rem] leading-[1.7] text-ink-soft">
@@ -150,17 +155,32 @@ export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: Dr
         </p>
       </div>
 
-      <BigButton size="lg" block className="mt-4" onClick={onConfirm} disabled={allEmpty}>
-        이대로 확정하기
-      </BigButton>
-      {allEmpty && (
-        <p className="mt-[6px] text-center text-[0.7188rem] leading-[1.5] text-tertiary">
-          5요소가 모두 비어 있어 아직 확정할 수 없습니다. 한 칸이라도 채워 주세요
-        </p>
-      )}
-      <BigButton variant="secondary" block className="mt-2" onClick={onBack}>
-        가리기 화면으로 돌아가기
-      </BigButton>
+      {/* 확정이 무엇을 하는지 다 읽은 자리. 여기까지 눈이 닿으면 아래 도킹 CTA가 주 색이 됩니다. */}
+      <div ref={markerRef} aria-hidden className="h-px" />
+
+      {/* 전진 CTA 도킹 — 엔딩 패널과 같은 문법입니다. 바 아래에 남는 `PrivacyPath`가
+          sticky가 움직일 자리이자, 확정 뒤에도 경로를 다시 확인할 수 있는 자리입니다. */}
+      <StickyCtaBar>
+        <BigButton
+          size="lg"
+          block
+          variant={passed ? "primary" : "secondary"}
+          onClick={onConfirm}
+          disabled={allEmpty}
+        >
+          이대로 확정하기
+        </BigButton>
+        {allEmpty && (
+          <p className="mt-[6px] text-center text-[0.8438rem] leading-[1.5] text-ink-muted">
+            5요소가 모두 비어 있어 아직 확정할 수 없습니다. 한 칸이라도 채워 주세요
+          </p>
+        )}
+        <BigButton variant="ghost" block className="mt-1" onClick={onBack}>
+          가리기 화면으로 돌아가기
+        </BigButton>
+      </StickyCtaBar>
+
+      <PrivacyPath reached={4} className="mt-6" />
     </div>
   );
 }

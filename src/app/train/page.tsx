@@ -15,8 +15,9 @@ import { FICTION_NOTICE, scenarioHref } from "./_components/constants";
 import { PracticeCount } from "./_components/PracticeCount";
 
 /* ── 훈련 목록 = 시안 7a ───────────────────────────────────────
-   위에서부터: 헤더(훈련 + 한 줄) → 활성 3종 카드 → 「전체 12종 편성표 ⌄」 접힘 행
+   위에서부터: 헤더(훈련 + 한 줄) → 열린 시나리오 카드 → 「전체 12종 편성표 ⌄」 접힘 행
    → 가상 인물 고지 한 줄 → 인라인 고지.
+   카드 수는 데이터(getActiveScenarios)에서 옵니다 — 시나리오가 늘면 카드도 함께 늡니다.
 
    카드는 시안의 인라인 값 그대로입니다 — paper-2 면 radius 14, 15/16px 안쪽 여백,
    eyebrow 12/700 muted · 제목 17/700 · 한 줄 요약 13.5 ink-soft · 하단 [해 본 횟수 | 연습하기 ›].
@@ -27,7 +28,7 @@ import { PracticeCount } from "./_components/PracticeCount";
 export const metadata: Metadata = {
   title: "훈련",
   description:
-    "치매 행동·응급 판단·갈등 대응 3종을 말로 연습합니다. 정답 시험이 아니라 말이 나오게 만드는 연습입니다.",
+    "치매 행동·응급 판단·갈등 대응을 말로 연습합니다. 정답 시험이 아니라 말이 나오게 만드는 연습입니다.",
 };
 
 /** 카드 eyebrow의 유형 낱말 — 시안 7a의 표기입니다(데이터의 긴 유형명 대신 목록용 짧은 말). */
@@ -53,12 +54,24 @@ const MATRIX_TYPE_SHORT: Record<string, string> = {
  */
 const CARD_SUMMARY: Record<string, string> = {
   "CHK-A01": "저녁마다 집에 가겠다는 어르신 — 막지 않고 말로 방향 바꾸기",
+  "CHK-A02": "새벽에 출근하시겠다는 어르신 — 다른 분들을 깨우지 않고 원인 찾기",
   "CHK-B02": "기침이 멎는 순간을 알아채기 — 진짜 응급이 되면 AI가 빠집니다",
   "CHK-C01": "해 드릴 수 없는 일을 관계를 지키며 거절하기",
+  "CHK-C02": "원인을 모르는 멍 앞에서 — 단정하지 않고 기록으로 답하기",
 };
 
 /** 첫 카드에만 붙는 안내 — 어디부터 해야 할지 묻지 않게 합니다(시안 7a). */
 const FIRST_CARD_HINT = "처음이라면 여기부터";
+
+/**
+ * 대사 감수가 끝나지 않은 시나리오 — eyebrow 끝에 상태를 그대로 적습니다.
+ *
+ * 「열렸다」와 「감수까지 끝났다」는 다른 말입니다. 둘을 같은 얼굴로 두면 나머지 표기의
+ * 신뢰도 함께 떨어지므로, 감수 대기 상태를 카드에서 먼저 밝힙니다.
+ * (/safety 「현직 감수 현황」의 시나리오 대사 줄과 같은 사실을 가리킵니다.)
+ */
+const REVIEW_PENDING_LABEL = "알파 초안 — 현직 감수 대기";
+const REVIEW_PENDING_IDS: string[] = ["CHK-A02", "CHK-C02"];
 
 /** 베타로 이연한 유형 — 「준비 중」으로만 두면 이유를 알 수 없어 편성표 아래 한 줄로 적습니다. */
 const DEFERRED_TYPE_LABEL = "④ 위험 판단";
@@ -71,18 +84,23 @@ export default function TrainIndexPage() {
   const scenarios = getActiveScenarios();
   const openCount = SCENARIO_MATRIX.filter((cell) => cell.scenarioId).length;
   const lockedCount = SCENARIO_MATRIX.length - openCount;
+  /** 열린 칸 중 대사 감수까지 끝난 종수 — 손으로 적지 않고 감수 대기 목록에서 빼서 셉니다. */
+  const reviewedCount = SCENARIO_MATRIX.filter(
+    (cell) => cell.scenarioId && !REVIEW_PENDING_IDS.includes(cell.scenarioId),
+  ).length;
 
   return (
     <PageShell sourceDocs={SOURCE_DOCS}>
       <ScreenHeader title="훈련" subtitle="정답 시험이 아닙니다 — 말이 나오게 만드는 연습" />
 
-      {/* 활성 3종 — 이 화면에서 면(paper-2)을 쓰는 곳은 이 카드들뿐입니다. */}
+      {/* 열린 시나리오 카드 — 이 화면에서 면(paper-2)을 쓰는 곳은 이 카드들뿐입니다. */}
       <section className="mt-4 space-y-[10px]" aria-label="지금 연습할 수 있는 상황">
         {scenarios.map((scenario, index) => {
           const eyebrow = [
             TYPE_SHORT[scenario.type],
             `약 ${scenario.durationMin}분`,
             index === 0 ? FIRST_CARD_HINT : null,
+            REVIEW_PENDING_IDS.includes(scenario.id) ? REVIEW_PENDING_LABEL : null,
           ]
             .filter((part): part is string => Boolean(part))
             .join(" · ");
@@ -165,8 +183,10 @@ export default function TrainIndexPage() {
           ))}
 
           <p className="mt-[10px] text-[0.7188rem] leading-[1.6] text-ink-faint">
-            열린 {openCount}종만으로 루브릭 30항목이 한 번씩 실행되고, 생성 통제 3계층(L1·L2·L3)이 모두
-            지나갑니다. 잠긴 칸은 같은 루브릭 30항목을 그대로 재사용합니다.
+            감수를 마친 {reviewedCount}종만으로 루브릭 30항목이 한 번씩 실행되고, 생성 통제 3계층(L1·L2·L3)이
+            모두 지나갑니다. 뒤에 더한 {REVIEW_PENDING_IDS.length}종은 같은 30항목과 같은 규칙 사전을 그대로
+            쓰고 데이터만 더한 것이며, 대사는 {REVIEW_PENDING_LABEL} 상태입니다. 잠긴 칸도 같은 방식으로
+            늘립니다.
             <br />
             {MATRIX_TYPE_SHORT[DEFERRED_TYPE_LABEL]} 유형은 {MATRIX_TYPE_NOTES[DEFERRED_TYPE_LABEL]}
           </p>

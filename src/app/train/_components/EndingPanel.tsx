@@ -393,10 +393,10 @@ export function EndingPanel({
           </Link>
         )}
 
-        <p className="mt-2.5 text-center text-[0.6875rem] leading-[1.6] text-ink-muted">
+        <p className="mt-2.5 text-center text-[1rem] leading-[1.6] text-ink-soft">
           점수가 아닙니다 — 다음에 볼 지점 안내예요
         </p>
-        <p className="mt-1 text-center text-[0.6875rem] leading-[1.6] text-ink-muted">
+        <p className="mt-1 text-center text-[0.9375rem] leading-[1.6] text-ink-soft">
           이 기록은 기기 안에만 남습니다 · 말씀하신 원문은 저장하지 않습니다
         </p>
       </div>

@@ -14,8 +14,9 @@ export interface InlineDisclaimerProps {
   /** sm 10.5px(세션 도크) · md 11.5px(목록 화면 하단) */
   size?: "sm" | "md";
   /**
-   * faint = 시안 값 `#b6bcb9` · readable = `ink-muted`(#8a918e).
-   * 흰 배경에서 faint는 대비가 낮습니다 — 이 문구가 그 화면의 **유일한** 고지라면 readable을 쓰세요.
+   * readable = `ink-muted`(2.54:1이던 시안 톤을 6.27:1로 올린 값) · faint = `extra-faint`(2.54:1).
+   * 고지는 "읽어야 하는 문장"이라 기본값이 readable입니다.
+   * faint는 같은 뜻의 고지가 그 화면에 이미 읽히는 크기로 한 번 더 있을 때만 쓰세요.
    */
   tone?: "faint" | "readable";
   className?: string;
@@ -32,7 +33,7 @@ export interface InlineDisclaimerProps {
 export function InlineDisclaimer({
   text = INLINE_DISCLAIMER_TEXT,
   size = "sm",
-  tone = "faint",
+  tone = "readable",
   className,
 }: InlineDisclaimerProps) {
   return (

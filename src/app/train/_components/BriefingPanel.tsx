@@ -123,15 +123,17 @@ function formatSavedAt(iso: string): string {
 /**
  * 「이어서 하기」 — 진행하던 훈련이 남아 있을 때만 맨 위에 섭니다.
  * 조용한 안내라 면 하나(`#f5f6f6`)에 얹고 배지도 액센트도 쓰지 않습니다.
+ *
+ * 「처음부터」는 여기에 두지 않습니다 — 같은 동작을 하는 버튼이 화면에 둘이면
+ * 그중 가장 크고 채워진 버튼이 이어하기를 조용히 날립니다(평가 UI/UX m6 실측).
+ * 다시 시작하는 길은 아래 주 버튼 한 곳으로 모읍니다.
  */
 function ResumeBlock({
   progress,
   onResume,
-  onRestart,
 }: {
   progress: SessionProgress;
   onResume: () => void;
-  onRestart: () => void;
 }) {
   const savedAt = formatSavedAt(progress.savedAt);
   const step = progressStepCount(progress);
@@ -145,12 +147,9 @@ function ResumeBlock({
         저장해 둔 것은 어느 갈래를 고르셨는지와 진행 위치뿐입니다. 말씀하신 내용은 기기에도 남기지
         않았습니다.
       </p>
-      <div className="mt-3 space-y-2">
+      <div className="mt-3">
         <BigButton onClick={onResume} block>
           이어서 하기
-        </BigButton>
-        <BigButton onClick={onRestart} variant="secondary" block>
-          처음부터 하기
         </BigButton>
       </div>
     </div>
@@ -182,6 +181,8 @@ export function BriefingPanel({
     .join(" · ");
 
   const cast = castLine(scenario.personas);
+  /** 이어할 진행이 남아 있는 화면인지 — 아래 주 버튼의 뜻이 「처음부터」로 바뀝니다. */
+  const resuming = Boolean(checkpoint && onResume);
 
   /* 고정 문구는 한 글자도 바꾸지 않고, 시안처럼 가운데 한 마디만 굵게 둡니다.
      문구가 바뀌어 갈라지지 않으면 그대로 한 덩어리로 나갑니다. */
@@ -207,7 +208,7 @@ export function BriefingPanel({
       {/* 진행하던 훈련이 있으면 브리핑보다 먼저 보여 드립니다 — 「처음부터」는 새로 시작하는 것과 같습니다. */}
       {checkpoint && onResume && (
         <div className="mb-5">
-          <ResumeBlock progress={checkpoint} onResume={onResume} onRestart={onStart} />
+          <ResumeBlock progress={checkpoint} onResume={onResume} />
         </div>
       )}
 
@@ -240,15 +241,23 @@ export function BriefingPanel({
 
       {/* 겁을 없애는 문장은 **결정하는 자리 바로 위**에 둡니다 —
           화면 맨 아래 11.5px 각주로는 시작 버튼을 누르는 순간 눈에 들어오지 않았습니다. */}
-      <p className="mt-[14px] text-[0.8438rem] leading-[1.6] font-semibold text-ink-soft">
+      <p className="mt-[14px] text-[1rem] leading-[1.6] font-semibold text-ink-soft">
         마이크가 없어도 버튼만으로 끝까지 할 수 있어요.
       </p>
 
-      {/* 시작 버튼은 접힘보다 위, 첫 화면 안에 있습니다(시안 6f의 핵심). */}
+      {/* 시작 버튼은 접힘보다 위, 첫 화면 안에 있습니다(시안 6f의 핵심).
+          진행하던 훈련이 남아 있을 때는 이 버튼이 곧 「처음부터」입니다 —
+          라벨을 그대로 두면 화면에서 가장 큰 버튼이 위의 이어하기를 조용히 지웁니다. */}
       <div className="mt-2">
         <BigButton onClick={onStart} size="lg" block className="font-bold">
-          훈련 시작하기
+          {resuming ? "처음부터 다시 시작" : "훈련 시작하기"}
         </BigButton>
+        {resuming && (
+          <p className="mt-2 text-[0.8438rem] leading-[1.6] text-ink-soft">
+            누르시면 위에 남아 있는 진행은 지워집니다. 이어서 하시려면 위의 「이어서 하기」를 눌러
+            주세요.
+          </p>
+        )}
       </div>
 
       <div className="mt-4 border-b border-line">

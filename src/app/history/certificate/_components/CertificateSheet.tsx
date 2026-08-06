@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { SessionRecord } from "@/types";
+import Link from "next/link";
 import { BigButton, InlineDisclaimer, cx } from "@/components";
-import { loadSessions } from "@/lib/storage";
+import { buildCompletionCsv, buildCompletionSummary, type CompletionSummary } from "@/lib/storage";
 import { formatDate, formatDateTime } from "../../_components/format";
 
 /**
@@ -30,37 +30,6 @@ const PRINT_CSS = `
 }
 `;
 
-/** 한 회차를 이수 시간으로 셀 때의 상한 — 자리를 비우고 방치한 회차가 시수를 부풀리지 않게 합니다. */
-const MAX_SESSION_SEC = 30 * 60;
-
-/** 확인서 한 줄 — 시나리오 하나에 대한 이수 사실입니다(판정·대화는 담지 않습니다). */
-interface CertificateLine {
-  scenarioId: string;
-  title: string;
-  typeLabel: string;
-  count: number;
-  /** 가장 최근에 마친 시각 (ISO) */
-  lastEndedAt: string;
-}
-
-/**
- * 회차 하나의 이수 시간(초).
- *
- * `endedAt − startedAt`이고, 회차당 30분을 넘으면 30분까지만 셉니다 —
- * 화면을 열어 둔 채 자리를 비운 회차가 「시수」를 부풀리는 것을 막기 위해서입니다.
- * 시각이 없거나 거꾸로면 0으로 둡니다.
- *
- * @example sessionSeconds({ startedAt: "...T10:00:00Z", endedAt: "...T10:04:00Z" }) // 240
- */
-function sessionSeconds(record: SessionRecord): number {
-  const start = new Date(record.startedAt).getTime();
-  const end = new Date(record.endedAt).getTime();
-  if (Number.isNaN(start) || Number.isNaN(end)) return 0;
-  const sec = Math.round((end - start) / 1000);
-  if (sec <= 0) return 0;
-  return Math.min(sec, MAX_SESSION_SEC);
-}
-
 /**
  * 총 이수 시수 표기 — 「약 N시간 N분」.
  *
@@ -79,35 +48,20 @@ function formatTotalDuration(totalSec: number): string {
 }
 
 /**
- * 회차 기록을 시나리오별 이수 사실로 접습니다.
+ * 이수 사실 파일을 이 기기에 내려받습니다.
  *
- * 남기는 것은 **시나리오·완료일·횟수** 세 가지뿐입니다 —
- * 판정(verdict)·엔딩·충족/코칭 문장·대화 내용은 어떤 형태로도 옮기지 않습니다.
+ * 파일을 만드는 곳은 브라우저 안이고 주소도 `blob:`이라 **외부로 나가는 요청이 없습니다**.
+ * 담기는 것은 이수 사실뿐이며, 화면에 적으신 성명·소속은 파일에 넣지 않습니다(개인정보 최소).
  */
-function buildLines(records: SessionRecord[]): CertificateLine[] {
-  const map = new Map<string, CertificateLine>();
-  for (const record of records) {
-    const key = record.scenarioId.trim().toUpperCase();
-    const at = record.endedAt || record.startedAt;
-    const found = map.get(key);
-    if (found) {
-      found.count += 1;
-      if (new Date(at).getTime() > new Date(found.lastEndedAt).getTime()) {
-        found.lastEndedAt = at;
-      }
-      continue;
-    }
-    map.set(key, {
-      scenarioId: key,
-      title: record.scenarioTitle,
-      typeLabel: record.typeLabel,
-      count: 1,
-      lastEndedAt: at,
-    });
-  }
-  return [...map.values()].sort(
-    (a, b) => new Date(b.lastEndedAt).getTime() - new Date(a.lastEndedAt).getTime(),
-  );
+function downloadCsv(summary: CompletionSummary, issuedAt: string): void {
+  const csv = buildCompletionCsv(summary, issuedAt);
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `chimchak-completion-${summary.number}.csv`;
+  anchor.click();
+  URL.revokeObjectURL(url);
 }
 
 /**
@@ -148,22 +102,22 @@ function FillField({
  */
 export function CertificateSheet() {
   const [loaded, setLoaded] = useState(false);
-  const [lines, setLines] = useState<CertificateLine[]>([]);
+  const [summary, setSummary] = useState<CompletionSummary | null>(null);
   const [issuedAt, setIssuedAt] = useState("");
-  const [totalSec, setTotalSec] = useState(0);
   /** 인쇄에만 실리는 값 — 저장하지 않습니다. */
   const [learnerName, setLearnerName] = useState("");
   const [learnerOrg, setLearnerOrg] = useState("");
 
   useEffect(() => {
-    const records = loadSessions();
-    setLines(buildLines(records));
-    setTotalSec(records.reduce((sum, record) => sum + sessionSeconds(record), 0));
+    setSummary(buildCompletionSummary());
     setIssuedAt(new Date().toISOString());
     setLoaded(true);
   }, []);
 
-  const total = lines.reduce((sum, line) => sum + line.count, 0);
+  const lines = summary?.lines ?? [];
+  const total = summary?.totalCount ?? 0;
+  const totalSec = summary?.totalSec ?? 0;
+  const hiddenCount = summary?.hiddenCount ?? 0;
 
   return (
     <>
@@ -256,6 +210,20 @@ export function CertificateSheet() {
               발급일 {formatDate(issuedAt)} · 이 기기에 저장된 기록으로 만들었습니다
             </p>
 
+            {/* 자료철에 끼우는 문서라 번호와 발급주체가 있어야 대조·문의가 가능합니다.
+                번호는 기록 집합에서 계산한 값이라 서버 없이도 재인쇄 시 같은 값이 나옵니다. */}
+            <p className="mt-[8px] text-[0.8125rem] leading-[1.5] font-bold text-ink">
+              발급번호 <span className="chim-num text-brand-800">{summary?.number ?? ""}</span>
+            </p>
+            <p className="mt-[3px] text-[0.7813rem] leading-[1.6] text-ink-soft">
+              같은 기록 집합에서는 언제 다시 인쇄해도 같은 번호가 나옵니다 — 중복 제출 확인에
+              쓰실 수 있습니다.
+            </p>
+            <p className="mt-[3px] text-[0.7813rem] leading-[1.6] text-ink-soft">
+              발급: 침착(ChimChak) 훈련 앱 · 문의: 기관 도입 담당자 — 앱 안 「기관 도입 안내」
+              화면에 절차를 적어 두었습니다.
+            </p>
+
             {/* 누가 이수했는지 — 이 두 칸이 없으면 자료철에 끼울 수 없는 무기명 인쇄물이 됩니다. */}
             <div className="mt-[14px] flex flex-col gap-[12px] border-t border-line pt-[14px] sm:flex-row sm:gap-[20px]">
               <FillField label="성명" value={learnerName} className="flex-1" />
@@ -281,6 +249,15 @@ export function CertificateSheet() {
                 <>총 이수 시수는 이 기기에 남은 시각으로는 계산되지 않았습니다.</>
               )}
             </p>
+            {/* 상세는 최근 50회까지만 남지만 합계·시수는 별도 누계로 세므로 줄지 않습니다.
+                그 차이를 감추면 「목록을 세어 보니 합계와 다르다」가 됩니다. */}
+            {hiddenCount > 0 && (
+              <p className="mt-[6px] text-[0.7813rem] leading-[1.7] text-ink-soft">
+                이 가운데 <span className="chim-num font-bold">{hiddenCount}</span>회는 상세가 이
+                기기에 남아 있지 않습니다 — 최근 50회까지만 상세를 보관하고, 합계와 이수 시수는
+                따로 누계로 세기 때문에 줄지 않습니다.
+              </p>
+            )}
 
             <ul className="chim-hairline mt-[14px] border-t border-line">
               {lines.map((line) => (
@@ -303,6 +280,12 @@ export function CertificateSheet() {
             <div className="mt-[16px] border-t border-line pt-[14px]">
               <p className="text-[0.8125rem] leading-[1.5] font-bold text-ink">
                 위 이수 사실을 확인합니다
+              </p>
+              {/* 검증 책임이 어디에 있는지 문서 스스로 밝혀 둡니다 — 서버도 서명도 없는 문서라
+                  「무엇을 근거로 확인하는가」에 종이 자체가 답해야 합니다. */}
+              <p className="mt-[6px] text-[0.7813rem] leading-[1.7] text-ink-soft">
+                이 확인서는 이수자 본인 기기에 남은 기록으로 만들어졌으며, 기관 확인자의 서명으로
+                효력이 생깁니다.
               </p>
               <div className="mt-[12px] flex flex-col gap-[14px] sm:flex-row sm:gap-[20px]">
                 <FillField label="확인자 서명" className="flex-1" />
@@ -335,12 +318,34 @@ export function CertificateSheet() {
             <BigButton onClick={() => window.print()} size="lg" block className="mt-4">
               인쇄하기 · PDF로 저장
             </BigButton>
+            <BigButton
+              variant="secondary"
+              block
+              className="mt-2"
+              onClick={() => {
+                if (summary) downloadCsv(summary, issuedAt);
+              }}
+            >
+              이수 사실만 담긴 파일 내려받기
+            </BigButton>
             <BigButton href="/history" variant="secondary" block className="mt-2">
               성장 기록으로 돌아가기
             </BigButton>
             <p className="mt-[10px] text-center text-[0.8125rem] leading-[1.6] text-ink-soft">
               성명·소속을 채우신 뒤 위 버튼을 누르시면 인쇄 창이 열립니다. 적으신 내용은 저장되지
               않습니다.
+            </p>
+            <p className="mt-[6px] text-center text-[0.8125rem] leading-[1.6] text-ink-soft">
+              내려받는 파일에는 발급번호·시나리오·이수 횟수·이수 시수만 담깁니다 — 성명·소속과
+              대화 내용은 들어가지 않습니다. 기기를 바꾸실 때 옮겨 두시면 됩니다.
+            </p>
+            <p className="mt-4 text-center">
+              <Link
+                href="/for-orgs"
+                className="inline-flex min-h-[48px] items-center text-[0.8438rem] font-bold text-brand-700"
+              >
+                기관 담당자용 안내 보기 ›
+              </Link>
             </p>
           </div>
         </div>

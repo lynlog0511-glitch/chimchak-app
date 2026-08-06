@@ -24,6 +24,7 @@ npm run dev        # 개발: http://localhost:3000
 
 ```bash
 npm run build && npm start
+npm run verify      # 게이트 3종: 타입 · 엔진 회귀 테스트 · 오디오 매니페스트 적중률
 ```
 
 주의: 빌드 전에 떠 있는 dev 서버(포트 3000)를 먼저 종료하세요. dev 서버가 `.next`를 공유하며 프로덕션 산출물을 오염시킵니다.

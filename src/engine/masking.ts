@@ -55,6 +55,15 @@ const CHARACTER_TITLES = "어르신|할머님|할아버님|할머니|할아버�
 /** 성씨+이름 뒤에 붙어 사람임을 드러내는 표지 */
 const NAME_MARKERS = "님|씨|어르신|할머님|할아버님|할머니|할아버지|보호자|선생님|께서|에게|한테|께";
 
+/**
+ * "씨"/"여사" 바로 뒤에 붙어도 사람 지칭을 깨지 않는 조사의 첫 글자.
+ * ("김 씨가 오셨습니다"는 가려야 하고 "박 씨앗을 심었습니다"는 남겨야 한다.
+ *  다음 글자가 조사면 지칭, 아니면 다른 낱말의 일부로 본다 — 과하게 가리는 쪽이 안전.)
+ */
+const TITLE_JOSA = new Set([
+  "가", "는", "도", "를", "만", "와", "과", "께", "랑", "에", "한", "의", "보", "부", "까", "조", "마", "처",
+]);
+
 /** 성씨로 시작하지만 사람 이름이 아닌 말 — 성명 휴리스틱에서 제외 */
 const NAME_STOPWORDS = new Set([
   "이모",
@@ -242,8 +251,14 @@ const MASK_RULES: MaskRule[] = [
     priority: 8,
     accept: (matched, text, start, end) => {
       if (isHangulAt(text, start - 1)) return false;
-      // "씨"/"여사"로 끝나면 뒤에 다른 글자가 이어지지 않아야 한다 ("박 씨앗" 오탐 방지)
-      if ((matched.endsWith("씨") || matched.endsWith("여사")) && isHangulAt(text, end)) return false;
+      // "씨"/"여사" 뒤에 다른 글자가 이어지면 오탐 후보("박 씨앗")지만,
+      // 조사("김 씨가/는/를")까지 거르면 정상 지칭이 통째로 새므로 조사만 통과시킨다.
+      if (
+        (matched.endsWith("씨") || matched.endsWith("여사")) &&
+        isHangulAt(text, end) &&
+        !TITLE_JOSA.has(text[end] ?? "")
+      )
+        return false;
       return true;
     },
   },
@@ -256,7 +271,11 @@ const MASK_RULES: MaskRule[] = [
     priority: 9,
     accept: (matched, text, start) => {
       if (isHangulAt(text, start - 1)) return false;
-      return !NAME_STOPWORDS.has(matched);
+      if (NAME_STOPWORDS.has(matched)) return false;
+      // 탐욕적 {1,3}이 존칭 "님"까지 삼키면 예외어를 비켜 간다("원장님께" → 캡처 "원장님").
+      // 존칭을 벗긴 형태도 예외어와 대조해 직함 호칭이 성명으로 오인되지 않게 한다.
+      if (matched.endsWith("님") && NAME_STOPWORDS.has(matched.slice(0, -1))) return false;
+      return true;
     },
   },
 ];

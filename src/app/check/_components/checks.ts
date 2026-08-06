@@ -8,6 +8,14 @@
  * 않습니다(읽기 전용 점검 + localStorage 쓰기 테스트 키 하나만 예외).
  */
 
+import { runEngineSelfCheck } from "@/engine";
+import { EVIDENCE_GUARD } from "@/data/evidenceGuard";
+import {
+  CALL_DELAY_BOUNDARY_CASES,
+  EVIDENCE_BOUNDARY_CASES,
+  RULE_BOUNDARY_CASES,
+} from "@/data/ruleBoundaryCases";
+
 /** 개별 항목 상태. ok=정상, fail=확인 필요, unknown=확인 불가(참고용), loading=검사 중 */
 export type CheckStatus = "ok" | "fail" | "unknown" | "loading";
 
@@ -240,7 +248,38 @@ export async function checkLocalStorage(): Promise<CheckResult> {
   }
 }
 
-/** 7. 네트워크 상태 — 참고용. 오프라인이어도 응급 화면은 정상 동작하므로 실패로 다루지 않습니다. */
+/**
+ * 7. 규칙 엔진 경계 케이스 — **지금 이 브라우저에서** 돌려 통과 건수와 판정 지연을 잽니다.
+ *
+ * 다른 항목들은 환경을 봅니다. 이 항목만 제품의 주장을 봅니다 — 「경계 케이스 전수 통과」와
+ * 「119 지연은 규칙 엔진이 판정」과 「근거가 목록 밖이면 멈춘다」가 지금 이 빌드에서도 참인지,
+ * 무대에 올라가기 전에 한 번 확인합니다. 케이스는 저장소에 있고(src/data/ruleBoundaryCases.ts)
+ * 러너는 순수 함수라(engine/boundaryCheck.ts) 앱 상태를 바꾸지 않습니다.
+ */
+export async function checkRuleEngine(): Promise<CheckResult> {
+  const id = "rules";
+  const title = "규칙 엔진 경계 케이스";
+  const result = runEngineSelfCheck({
+    ruleCases: RULE_BOUNDARY_CASES,
+    callDelayCases: CALL_DELAY_BOUNDARY_CASES,
+    evidenceCases: EVIDENCE_BOUNDARY_CASES,
+    evidenceGuard: EVIDENCE_GUARD,
+  });
+  const allPassed = result.passed === result.total;
+  const groups = result.groups.map((g) => `${g.label} ${g.passed}/${g.total}`).join(" · ");
+  const p95 = result.p95Ms >= 0.005 ? `${result.p95Ms.toFixed(2)} ms` : "0.01 ms 미만";
+  return {
+    id,
+    title,
+    status: allPassed ? "ok" : "fail",
+    detail: `${result.passed} / ${result.total}건 통과 (${groups}) · 판정 지연 p95 ${p95}`,
+    fix: allPassed
+      ? undefined
+      : `기대와 다르게 판정된 케이스: ${result.groups.flatMap((g) => g.failures).join(" / ")}`,
+  };
+}
+
+/** 8. 네트워크 상태 — 참고용. 오프라인이어도 응급 화면은 정상 동작하므로 실패로 다루지 않습니다. */
 export async function checkNetwork(): Promise<CheckResult> {
   const id = "net";
   const title = "네트워크 상태 (참고용)";
@@ -266,6 +305,7 @@ export const CHECK_RUNNERS: Array<() => Promise<CheckResult>> = [
   checkTtsVoices,
   checkSttSupport,
   checkLocalStorage,
+  checkRuleEngine,
   checkNetwork,
 ];
 
@@ -282,6 +322,7 @@ export function loadingResults(): CheckResult[] {
     loadingResult("tts", "한국어 음성(TTS) 보이스"),
     loadingResult("stt", "음성 인식(마이크) 지원"),
     loadingResult("storage", "기기 저장소(localStorage) 쓰기"),
+    loadingResult("rules", "규칙 엔진 경계 케이스"),
     loadingResult("net", "네트워크 상태 (참고용)"),
   ];
 }

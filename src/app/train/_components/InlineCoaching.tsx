@@ -113,27 +113,51 @@ export function InlineCoaching({ feedback, gaugeLabel, className }: InlineCoachi
         {/* 코칭 문장 — 이 덩어리의 주인공입니다 (시안 15px). */}
         <p className="mt-[3px] text-[0.9375rem] leading-[1.55] text-ink-soft">{feedback.message}</p>
 
-        <div className="mt-1 flex flex-wrap items-baseline gap-x-1.5 text-[0.7813rem] leading-[1.5] text-ink-muted">
-          {doc && (
-            <span className="min-w-0">
-              <span aria-hidden>§ </span>
-              {doc.title}
-            </span>
-          )}
-          {doc && trace && <span aria-hidden>·</span>}
-          {trace && (
-            <button
-              type="button"
-              onClick={() => setOpen((value) => !value)}
-              aria-expanded={open}
-              aria-controls={panelId}
-              className="min-h-[24px] py-1 underline decoration-1 underline-offset-[3px] hover:text-ink-soft"
-            >
+        {/* 근거 문서 라벨과 토글을 한 덩어리로 묶어 **행 전체**를 누를 수 있게 합니다.
+            예전에는 밑줄 텍스트만 27px이라, 48px을 지키는 이 앱에서 유일하게 손가락이
+            미끄러지는 컨트롤이었습니다(평가 UI/UX mi9 실측 · 완주 한 회에 7개 노출). */}
+        {trace ? (
+          <button
+            type="button"
+            onClick={() => setOpen((value) => !value)}
+            aria-expanded={open}
+            aria-controls={panelId}
+            className="-mx-1.5 mt-1 flex min-h-[48px] w-full flex-wrap items-center gap-x-1.5 gap-y-0.5 rounded-field px-1.5 py-1 text-left text-[0.7813rem] leading-[1.5] text-ink-muted transition-colors duration-150 hover:bg-paper-2"
+          >
+            {doc && (
+              <span className="min-w-0">
+                <span aria-hidden>§ </span>
+                {doc.title}
+              </span>
+            )}
+            {doc && <span aria-hidden>·</span>}
+            <span className="font-semibold underline decoration-1 underline-offset-[3px]">
               왜 이 판정인가요?
-            </button>
-          )}
-          {!doc && !trace && feedback.branchLabel.length > 0 && <span>{feedback.branchLabel}</span>}
-        </div>
+            </span>
+            <span
+              aria-hidden
+              className={cx(
+                "ml-auto flex-none text-ink-ghost transition-transform duration-150",
+                open && "rotate-180",
+              )}
+            >
+              ⌄
+            </span>
+          </button>
+        ) : (
+          (doc || feedback.branchLabel.length > 0) && (
+            <div className="mt-1 flex flex-wrap items-baseline gap-x-1.5 text-[0.7813rem] leading-[1.5] text-ink-muted">
+              {doc ? (
+                <span className="min-w-0">
+                  <span aria-hidden>§ </span>
+                  {doc.title}
+                </span>
+              ) : (
+                <span>{feedback.branchLabel}</span>
+              )}
+            </div>
+          )
+        )}
 
         {trace && open && (
           <div

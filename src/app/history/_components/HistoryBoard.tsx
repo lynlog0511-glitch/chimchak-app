@@ -177,6 +177,15 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
       <p className="mt-[8px] text-center text-[0.8438rem] leading-[1.6] text-ink-soft">
         확인서에는 이수 사실만 담깁니다 — 판정·대화 내용 없음
       </p>
+      {/* 기관 담당자는 이 화면까지 따라오는 일이 잦습니다 — 탭바에는 두지 않고 여기서만 엽니다. */}
+      <p className="mt-[6px] text-center">
+        <Link
+          href="/for-orgs"
+          className="inline-flex min-h-[48px] items-center text-[0.8438rem] font-bold text-brand-700"
+        >
+          기관 담당자용 안내 보기 ›
+        </Link>
+      </p>
 
       {/* 확정한 기록 — 최근 훈련과 같은 리스트 문법입니다. */}
       <EyebrowLabel className="mt-7 mb-[2px]">확정한 기록</EyebrowLabel>
@@ -224,6 +233,11 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
             <div>
               <p className="text-[0.7813rem] leading-[1.6] font-bold text-danger-ink">
                 이 기기에 저장된 훈련 이력과 확정 기록을 모두 지울까요? 되돌릴 수 없습니다.
+              </p>
+              {/* 증빙 원본이 이 기기 한 벌뿐이라, 지우기 전에 남길 방법을 먼저 알려 드립니다. */}
+              <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
+                이수 횟수와 이수 시수 누계도 함께 지워집니다. 확인서로 인쇄하거나 파일로 내려받아
+                두지 않은 이수 사실은 되살릴 수 없습니다.
               </p>
               <div className="mt-[10px] flex gap-2">
                 <button

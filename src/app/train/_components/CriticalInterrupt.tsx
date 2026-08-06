@@ -5,6 +5,7 @@ import { InlineDisclaimer, useSourceDoc } from "@/components";
 import { cx } from "@/components/utils";
 import type { TracedFeedback } from "@/engine";
 import { cfVerdictSourceLine } from "./constants";
+import { useModalDismiss } from "./useModalDismiss";
 
 export interface CriticalInterruptProps {
   feedback: TracedFeedback;
@@ -31,42 +32,14 @@ export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalI
 
   const doc = useSourceDoc(feedback.docId);
 
+  // 마운트 초점(스크롤 없이) · Esc = 다시 해보기 · Tab 가두기.
+  // 세 가지는 종료 확인 모달과 규칙 엔진 시연 시트도 같은 훅으로 씁니다.
+  useModalDismiss({ panelRef, initialFocusRef: retryRef, onDismiss: onRetry });
+
   useEffect(() => {
-    // 시트가 아직 화면 아래에 있는 동안 포커스를 주므로 스크롤은 막습니다(문서가 튀지 않게).
-    retryRef.current?.focus({ preventScroll: true });
     const frame = window.requestAnimationFrame(() => setEntered(true));
     return () => window.cancelAnimationFrame(frame);
   }, []);
-
-  // Esc로 닫기(= 다시 해보기)와 Tab 포커스 가두기.
-  // 전면 인터럽트에서 포커스가 배경으로 빠지면 키보드 사용자가 모달 밖을 조작하게 됩니다.
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onRetry();
-        return;
-      }
-      if (event.key !== "Tab") return;
-      const panel = panelRef.current;
-      if (!panel) return;
-      const focusables = panel.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])',
-      );
-      const first = focusables[0];
-      const last = focusables[focusables.length - 1];
-      if (!first || !last) return;
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [onRetry]);
 
   return (
     <div

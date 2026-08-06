@@ -19,9 +19,18 @@ import {
   startSession,
   submitResponse,
 } from "@/engine";
-import type { TracedFeedback } from "@/engine";
+import type { SubmitOptions, TracedFeedback } from "@/engine";
+import { EVIDENCE_GUARD } from "@/data/evidenceGuard";
 import type { SessionProgress } from "@/lib/storage";
 import { PROTOCOL_HANDOFF_BODY, PROTOCOL_HANDOFF_TITLE } from "./constants";
+
+/**
+ * 판정에 붙는 근거는 화이트리스트 안에서만 나옵니다.
+ * 목록 밖 문서 id를 만나면 엔진이 판정을 멈추고 「공식 지침에서 근거를 찾지 못했습니다…」를
+ * 그대로 띄웁니다(engine/evidence.ts). 알파 데이터는 전부 목록 안이라 지금은 발동하지 않고,
+ * 새 분기·새 규칙이 목록 밖 문서를 들고 들어오는 순간에만 걸립니다.
+ */
+const SUBMIT_OPTIONS: SubmitOptions = { evidence: EVIDENCE_GUARD };
 
 /* ── 이어서 하기 문구 ──────────────────────────────────────── */
 
@@ -351,7 +360,7 @@ export function makeTrainReducer(scenario: Scenario) {
         const cue = turn?.cue;
         if (!turn || !cue) return state;
 
-        const result = submitResponse(scenario, state.session, action.input);
+        const result = submitResponse(scenario, state.session, action.input, SUBMIT_OPTIONS);
         const branch = findBranch(cue, result.feedback.branchId);
 
         let seq = state.seq;
@@ -539,6 +548,9 @@ export function makeTrainReducer(scenario: Scenario) {
        * 이어서 하기 — 저장해 둔 결정 목록을 엔진에 순서대로 다시 넣습니다.
        *
        * 판정은 그대로 엔진이 다시 합니다(화면이 결과를 지어내지 않습니다).
+       * 시간으로 내리는 판정(CO-03 119 지연)은 되짚는 속도로 다시 재므로 항상 충족이 됩니다 —
+       * 저장하는 것이 분기 id뿐이라 그때 흐른 초를 되살릴 수 없고, 없는 지연을 지어내는 것보다
+       * 재시작한 세션에서 다시 재는 편이 정직합니다.
        * 다만 규칙 사전이 단독으로 잡았던 ⚑CF처럼 시나리오 분기로 되돌릴 수 없는 결정은
        * 되살리지 못합니다 — 그 턴은 건너뛰고, 로그 맨 위에 그 사실을 밝힙니다.
        * (⚑CF 인터럽트는 같은 CUE에 머무르므로 건너뛰어도 이후 순서는 어긋나지 않습니다.

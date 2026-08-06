@@ -10,8 +10,14 @@
  * 2) classify로 분기 결정 (버튼 선택은 그 분기를 그대로 사용)
  * 3) 분기가 ⚑CF면 인터럽트
  * 4) 게이지 반영 (0~max 클램프) → 위기치 도달 시 위기 엔딩
- * 5) 루브릭 누적 (항목별 낮은 점수 우선)
+ * 5) 루브릭 누적 (항목별 낮은 점수 우선). 여기서 CO-03(119 지연)만은 문장이 아니라
+ *    **경과 시간**으로 판정한다(timing.ts) — 시계는 이 턴에 들어온 시각부터 흐른다.
+ *    누적 직전에 근거 가드(evidence.ts)를 지난다: 근거 문서가 화이트리스트 밖이면
+ *    점수를 매기지 않고 「공식 지침에서 근거를 찾지 못했습니다…」만 내보낸다.
  * 6) next 처리 — "end:"면 엔딩, "protocol:"이면 status='protocol'
+ *
+ * 판정 우선순위는 이 파일에서 바뀌지 않는다: ⚑CF → 재훈련 고정 → 재훈련 권고 → 턴 그래프
+ * 엔딩 → 내부 산식(§4.6). 위 두 장치는 5)의 점수 누적에만 관여한다.
  */
 
 import type {
@@ -27,8 +33,10 @@ import type {
   TurnFeedback,
 } from "@/types";
 import { classifyInput, defaultBranch, findBranch, type ClassifySource } from "./classify";
+import { checkEvidence, type EvidenceGuard } from "./evidence";
 import { advisoryHits, checkAdvisory, checkCritical, getRule } from "./rules";
 import { collectCoaching, collectGreenChecks, judgeInternal, lowestScore, mergeHits, isMet } from "./scoring";
+import { currentTurnEnteredAt, isCallHandoff, judgeCallDelay } from "./timing";
 
 const END_PREFIX = "end:";
 const PROTOCOL_PREFIX = "protocol:";
@@ -44,6 +52,14 @@ export interface SubmitInput {
   branchId?: string;
   /** 버튼으로 입력했는지 */
   viaButton: boolean;
+}
+
+export interface SubmitOptions {
+  /**
+   * 근거 문서 화이트리스트 가드. 넘기지 않으면 아무것도 막지 않는다(기존 동작 그대로).
+   * 넘기면 목록 밖 문서를 근거로 든 판정은 **중단**되고 고정 문구만 나간다(evidence.ts).
+   */
+  evidence?: EvidenceGuard;
 }
 
 /* ── 판정 경로 흔적 (「이 판정이 나온 이유」 화면용) ───────── */
@@ -77,6 +93,13 @@ export interface FeedbackTrace {
   itemIds?: string[];
   /** 함께 적용된 코칭 규칙 이름 목록 (⚑CF 아님) */
   advisoryLabels?: string[];
+  /**
+   * CO-03 시간 규칙이 실제로 잰 초 — 응급 신호가 뜬 순간부터 119 연결까지(timing.ts).
+   * 이 값이 있으면 「119 지연은 규칙 엔진이 시간으로 판정했다」는 뜻이다.
+   */
+  callDelaySec?: number;
+  /** 근거 문서가 화이트리스트 밖이라 판정을 멈췄다 (evidence.ts) */
+  evidenceBlocked?: boolean;
 }
 
 /** 판정 근거를 함께 실어 나르는 TurnFeedback (계약은 그대로, 필드만 옵셔널로 확장) */
@@ -239,7 +262,12 @@ export function advanceAuto(s: Scenario, state: SessionState): SessionState {
  * cf.state.status;            // "interrupted"
  * cf.state.currentTurnId;     // 그대로 — 같은 CUE를 다시 시도할 수 있다
  */
-export function submitResponse(s: Scenario, state: SessionState, input: SubmitInput): SubmitResult {
+export function submitResponse(
+  s: Scenario,
+  state: SessionState,
+  input: SubmitInput,
+  options: SubmitOptions = {},
+): SubmitResult {
   const turn = currentTurn(s, state);
   const cue = turn?.cue;
   if (!turn || !cue || state.status !== "running") {
@@ -267,13 +295,16 @@ export function submitResponse(s: Scenario, state: SessionState, input: SubmitIn
           )
         : undefined;
       const hits: RubricHit[] = critical.itemId ? [{ itemId: critical.itemId, score: 1 }] : [];
+      // ⚑CF 문구는 검수된 고정 문구라 근거 검색과 무관하다. 다만 **인용**은 가드를 지나야
+      // 하므로, 화이트리스트 밖 문서 id는 칩으로 내보내지 않는다(문구는 그대로 남긴다).
+      const cfEvidence = checkEvidence(dataBranch?.docId ?? critical.docId, options.evidence);
       const feedback: TracedFeedback = {
         branchId: dataBranch?.id ?? `rule:${critical.ruleId ?? "CF"}`,
         branchLabel: dataBranch?.label ?? critical.label ?? "치명적 실패",
         ok: false,
         criticalFail: true,
         message: dataBranch?.cfMessage ?? critical.reason ?? "",
-        docId: dataBranch?.docId ?? critical.docId,
+        docId: cfEvidence.docId,
         gaugeDelta: 0,
         rubricHits: hits,
         // 규칙 사전이 단독으로 잡은 판정 — 분기 데이터를 거치지 않았음을 화면이 그대로 밝힌다.
@@ -283,6 +314,7 @@ export function submitResponse(s: Scenario, state: SessionState, input: SubmitIn
           ruleLabel: critical.label,
           matchedPattern: critical.matched,
           itemIds: uniqueItemIds(hits),
+          evidenceBlocked: cfEvidence.allowed ? undefined : true,
         },
       };
       const event: SessionEvent = {
@@ -313,19 +345,21 @@ export function submitResponse(s: Scenario, state: SessionState, input: SubmitIn
   // 3) 분기 자체가 ⚑CF
   if (branch.criticalFail) {
     const hits = branch.rubricHits.length > 0 ? branch.rubricHits : [];
+    const branchEvidence = checkEvidence(branch.docId, options.evidence);
     const feedback: TracedFeedback = {
       branchId: branch.id,
       branchLabel: branch.label,
       ok: false,
       criticalFail: true,
       message: branch.cfMessage ?? branch.coaching ?? "잠시 멈추겠습니다. 지금 선택은 허용되지 않는 행동입니다.",
-      docId: branch.docId,
+      docId: branchEvidence.docId,
       gaugeDelta: 0,
       rubricHits: hits,
       trace: {
         source: classified.source,
         matchedPattern: classified.matchedPattern,
         itemIds: uniqueItemIds(hits),
+        evidenceBlocked: branchEvidence.allowed ? undefined : true,
       },
     };
     const event: SessionEvent = {
@@ -349,7 +383,7 @@ export function submitResponse(s: Scenario, state: SessionState, input: SubmitIn
   // 4) 게이지 반영 (0~max 클램프)
   const gauge = clampGauge(s, state.gauge + branch.gaugeDelta);
 
-  // 5) 루브릭 누적 — 분기 판정 + 규칙 코칭(자유 발화에만)
+  // 5) 루브릭 누적 — 분기 판정 + 규칙 코칭(자유 발화에만) + 119 지연(시간 규칙)
   const advisories =
     utterance.length > 0 && !input.branchId
       ? checkAdvisory(utterance, {
@@ -358,15 +392,35 @@ export function submitResponse(s: Scenario, state: SessionState, input: SubmitIn
           appliedRubric: s.appliedRubric,
         })
       : [];
-  const hits: RubricHit[] = [...branch.rubricHits, ...advisoryHits(advisories)];
-  const scores = mergeHits(state.scores, hits);
+  // CO-03은 문장이 아니라 **시간**으로 판정한다(timing.ts). 이 분기를 고른 순간이
+  // 「119 연결」이고, 시계는 응급 신호가 뜬 순간 — 이 턴에 들어온 시각 — 부터 흐른다.
+  const callDelay = isCallHandoff(branch.rubricHits)
+    ? judgeCallDelay(at - currentTurnEnteredAt(state.events, turn.id, state.startedAt))
+    : undefined;
 
-  const low = lowestScore(hits);
-  const ok = low === undefined ? branch.gaugeDelta <= 0 && !branch.coaching : isMet(low);
+  const judged: RubricHit[] = [
+    ...branch.rubricHits,
+    ...advisoryHits(advisories),
+    ...(callDelay ? [{ itemId: callDelay.itemId, score: callDelay.score }] : []),
+  ];
+
+  const low = lowestScore(judged);
+  const judgedOk = low === undefined ? branch.gaugeDelta <= 0 && !branch.coaching : isMet(low);
   const advisoryMessage = advisories[0]?.message;
-  const message = ok
+  const judgedMessage = judgedOk
     ? branch.praise ?? DEFAULT_PRAISE
-    : branch.coaching ?? advisoryMessage ?? DEFAULT_COACHING;
+    : branch.coaching ?? callDelay?.message ?? advisoryMessage ?? DEFAULT_COACHING;
+
+  // 근거 가드 — 목록 밖 문서를 근거로 든 판정은 **여기서 멈춘다**. 점수는 누적하지 않고
+  // (판정 자체가 없었던 것으로 둔다) 고정 문구만 내보낸다.
+  const evidence = checkEvidence(
+    branch.docId ?? (judgedOk ? undefined : advisories[0]?.docId),
+    options.evidence,
+  );
+  const hits: RubricHit[] = evidence.allowed ? judged : [];
+  const ok = evidence.allowed ? judgedOk : false;
+  const message = evidence.allowed ? judgedMessage : (evidence.notice ?? judgedMessage);
+  const scores = mergeHits(state.scores, hits);
 
   const advisoryLabels = advisories
     .map((finding) => finding.label)
@@ -377,7 +431,7 @@ export function submitResponse(s: Scenario, state: SessionState, input: SubmitIn
     ok,
     criticalFail: false,
     message,
-    docId: branch.docId ?? (ok ? undefined : advisories[0]?.docId),
+    docId: evidence.docId,
     gaugeDelta: branch.gaugeDelta,
     rubricHits: hits,
     trace: {
@@ -385,6 +439,8 @@ export function submitResponse(s: Scenario, state: SessionState, input: SubmitIn
       matchedPattern: classified.matchedPattern,
       itemIds: uniqueItemIds(hits),
       advisoryLabels: advisoryLabels.length > 0 ? advisoryLabels : undefined,
+      callDelaySec: callDelay?.elapsedSec,
+      evidenceBlocked: evidence.allowed ? undefined : true,
     },
   };
 

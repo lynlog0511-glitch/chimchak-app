@@ -57,19 +57,39 @@
   --color-deep: #0f3f3a; /* 딥 텍스트 (= brand-900) */
 
   /* 잉크 — v4 §1
-     ink 본문 · ink-soft 보조 본문 · ink-muted 부제 · tertiary 캡션 · faint ›·미실시 · extra-faint 고지 */
-  --color-ink: #191f1e;
-  --color-ink-soft: #454f4c;
-  --color-ink-muted: #8a918e;
-  --color-tertiary: #9aa5a2;
-  --color-faint: #c2c8c5;
-  --color-extra-faint: #b6bcb9;
+     ink 본문 · ink-soft 보조 본문 · ink-muted 부제·고지 · tertiary 캡션 · faint ›·미실시 · extra-faint 비활성
+
+     ※ 이 사다리는 시안(v4 §1)의 hex를 **한 단씩 아래로 밀어** 다시 잡은 값입니다.
+       시안 값 그대로는 읽어야 하는 글자가 흰 지면에서 AA(4.5:1)를 넘지 못했습니다 —
+       ink-muted #8a918e 3.22:1 · tertiary #9aa5a2 2.54:1 · extra-faint #b6bcb9 1.93:1 ·
+       faint #c2c8c5 1.70:1. 지문·감정 라벨·캡션·고지가 전부 이 네 단에 걸려 있어
+       (PROJECT_BRIEF §4 「명도 대비 WCAG AA」 위반 37건) 값만 갱신했습니다.
+       새로 만든 색은 위 두 단뿐이고 아래 두 단은 시안 팔레트의 기존 값을 재사용하므로,
+       색상(무채에 가까운 녹회색) 인상은 그대로이고 밝기만 한 단 내려앉습니다.
+
+     흰 지면 대비 — 앞이 시안 값, 뒤가 현재 값:
+       ink          #191f1e  16.72:1 → 그대로
+       ink-soft     #454f4c   8.48:1 → 그대로
+       ink-muted    #8a918e   3.22:1 → #5a625f  6.27:1  (paper-2 5.79 · tint 5.56)
+       tertiary     #9aa5a2   2.54:1 → #69716e  5.01:1  (paper-2 4.63 · tint 4.45)
+       faint        #c2c8c5   1.70:1 → #8a918e  3.22:1  (도형 기준 3:1 충족)
+       extra-faint  #b6bcb9   1.93:1 → #9aa5a2  2.54:1
+
+     이름-밝기도 이 기회에 바로 세웠습니다 — 예전에는 `extra-faint`(1.93)가 `faint`(1.70)보다
+     **진해서** 이름 순서와 반대였습니다. 지금은 위 목록 순서가 곧 어두운→밝은 순서입니다.
+     (이름은 다른 팀 코드가 참조 중이라 건드리지 않았습니다. 값만 정렬했습니다.) */
+  --color-ink: #191f1e; /* 16.72:1 */
+  --color-ink-soft: #454f4c; /* 8.48:1 */
+  --color-ink-muted: #5a625f; /* 6.27:1 — 부제·보조 본문. 어느 면 위에서도 AA */
+  --color-tertiary: #69716e; /* 5.01:1 — 캡션·지문 */
+  --color-faint: #8a918e; /* 3.22:1 — 셰브론·미실시「—」 등 도형/장식 전용 */
+  --color-extra-faint: #9aa5a2; /* 2.54:1 — 비활성 전용. 읽어야 하는 고지에는 쓰지 마세요 */
 
   /* 가이드 v4 §1의 ★ 이름 — 위 세 값의 별칭입니다(역할이 이름에 있습니다).
      tertiary/faint/extra-faint는 기존 화면이 참조 중이라 그대로 두고, 새 화면은 이쪽을 씁니다. */
-  --color-ink-faint: #9aa5a2; /* ★ 지문·캡션 (= tertiary) */
-  --color-ink-disabled: #b6bcb9; /* ★ 고지·비활성 (= extra-faint) */
-  --color-ink-ghost: #c2c8c5; /* ★ 셰브론·타임스탬프 (= faint) */
+  --color-ink-faint: #69716e; /* ★ 지문·캡션 (= tertiary) — 5.01:1 */
+  --color-ink-disabled: #9aa5a2; /* ★ 비활성 (= extra-faint) — 2.54:1, 글자를 읽힐 자리가 아닙니다 */
+  --color-ink-ghost: #8a918e; /* ★ 셰브론·타임스탬프 (= faint) — 3.22:1 */
 
   /* 지면 — 화면 안은 흰색, 면 카드는 #f5f6f6, 컬럼 밖 지면은 #f1f2f0 */
   --color-paper: #ffffff; /* 화면 배경 */

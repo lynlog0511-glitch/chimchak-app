@@ -1,0 +1,38 @@
+# 배포를 막는 3게이트 — 타입 · 엔진 회귀 · 사전 합성 오디오 매니페스트.
+#
+# 오디오 검사를 게이트에 넣는 이유: 발화되는 고정 문구는 매니페스트의 키다.
+# 대사를 한 글자 고치면 그 문장만 폴백 목소리로 튀는데, 화면으로는 알아챌 수 없고
+# 발표장에서야 드러난다. 세 게이트 모두 외부 서비스·비밀값 없이 저장소 안에서 끝난다.
+#
+# 빌드(next build)는 넣지 않는다 — 시연 준비 중 리드가 직접 돌리는 절차이고,
+# 여기서 겹쳐 돌리면 .next 산출물 관리가 두 갈래로 갈린다.
+
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: 의존성 설치
+        run: npm ci
+
+      - name: 게이트 1 — 타입 검사
+        run: npm run typecheck
+
+      - name: 게이트 2 — 엔진·데이터 회귀 검사
+        run: npm test
+
+      - name: 게이트 3 — 오디오 매니페스트 적중률
+        run: npm run audio:verify

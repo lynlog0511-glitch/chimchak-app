@@ -84,7 +84,7 @@ export function toDisplay(score: ScoreValue): { ok: boolean; mark: "🟢" | "⚪
  * 정규화점수 = Σ(항목점수 × 영역가중치) ÷ (4 × Σ영역가중치) × 100
  *
  * @example
- * normalizedScore({ "RE-01": 4, "CO-07": 3 }, "BPSD"); // 87.5
+ * normalizedScore({ "RE-01": 4, "CO-07": 3 }, "BPSD"); // 89.6 — BPSD 가중치(RE 0.35·CO 0.25) 반영값
  */
 export function normalizedScore(scores: ScoreMap, type: ScenarioType): number {
   const weights = AREA_WEIGHTS[type];

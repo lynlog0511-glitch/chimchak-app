@@ -74,7 +74,7 @@ export function CoverageGrid({
               <p
                 className={cx(
                   "chim-num text-[1.1875rem] leading-[1.2] font-extrabold",
-                  done > 0 ? "text-brand-800" : "text-faint",
+                  done > 0 ? "text-brand-800" : "text-ink-faint",
                 )}
               >
                 {done > 0 ? (
@@ -92,7 +92,7 @@ export function CoverageGrid({
               <p
                 className={cx(
                   "mt-[1px] text-[0.7188rem] leading-[1.4]",
-                  done > 0 ? "text-ink-muted" : "text-faint",
+                  done > 0 ? "text-ink-muted" : "text-ink-faint",
                 )}
               >
                 {TYPE_SHORT_LABELS[type]}

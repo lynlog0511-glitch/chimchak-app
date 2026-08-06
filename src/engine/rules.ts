@@ -88,7 +88,9 @@ export function isNegated(normalized: string, start: number, end: number): boole
  */
 export function indexOfPattern(haystack: string, needle: string, from = 0): number {
   if (needle.length === 0) return -1;
-  if (!needle.endsWith("시")) return haystack.indexOf(needle, from);
+  // 한 글자 "시"는 어간이 빈 문자열이 되어 모든 위치에 걸린다(전 발화를 삼킴).
+  // 사전에 그런 항목이 들어오는 사고를 막기 위해 확장 없이 그대로 찾는다.
+  if (!needle.endsWith("시") || needle.length === 1) return haystack.indexOf(needle, from);
   const stem = needle.slice(0, -1);
   const tails = "시신실셨셔세";
   for (let i = Math.max(0, from); i + needle.length <= haystack.length; i += 1) {
@@ -567,6 +569,20 @@ const BANMAL_ENDINGS = [
 ];
 
 const ALL_RULES: RuleDef[] = [...CRITICAL_RULES, ...COACHING_RULES];
+
+/**
+ * 이 사전이 **실제로** 판정하는 루브릭 항목 id.
+ *
+ * 화면(/safety)이 「규칙 엔진이 단독 판정하는 N항목」이라고 적을 때 세는 곳을 여기 하나로
+ * 둔다. 설계 배정표(src/data/rubric.ts의 RULE_JUDGED_ITEM_IDS 12항목)는 **목표**이고,
+ * 이 배열은 **지금 코드가 하는 일**이다 — 둘을 같은 문장에 섞으면 단언이 코드를 앞선다.
+ *
+ * @example RULE_DICTIONARY_ITEM_IDS.includes("CO-02"); // true
+ */
+export const RULE_DICTIONARY_ITEM_IDS: string[] = ALL_RULES.reduce<string[]>((acc, rule) => {
+  if (!acc.includes(rule.itemId)) acc.push(rule.itemId);
+  return acc;
+}, []);
 
 /**
  * 규칙 id로 규칙 정의를 찾는다. ⚑CF 인터럽트 화면에서 대안 3개를 꺼낼 때 쓴다.

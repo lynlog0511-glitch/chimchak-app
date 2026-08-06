@@ -153,16 +153,43 @@ export function sessionSubtitle(scenario: Scenario, index: number): string {
 }
 
 /**
- * 컴포저 위 회수 앵커 — 새 대사가 화면 밖에 있을 때 한 줄로 부릅니다.
- * 「판정을 받아도 판정을 볼 수 없는」 일이 없도록 남기는 길입니다(평가 UX c1).
+ * 컴포저 위 회수 앵커 — **로그 아래쪽**에 아직 안 보이는 내용이 남아 있을 때 한 줄로 부릅니다.
+ *
+ * 예전에는 새 대사가 화면 위로 밀려나 「새로 말씀하셨어요 ↑」로 되불렀습니다.
+ * 지금은 제출 직후 새 대사를 띠 맨 위에 세우므로(DialogueLog), 화면 밖에 남는 것은
+ * 그 아래로 이어지는 코칭·돌발 변수입니다 — 앵커의 역할이 ↑ 회수에서 ↓ 안내로 바뀌었습니다.
  */
-export const NEW_LINE_ANCHOR: Record<TurnDef["speaker"], string> = {
-  elder: "어르신이 새로 말씀하셨어요",
-  guardian: "보호자가 새로 말씀하셨어요",
-  dispatcher: "119 상황실이 새로 안내했어요",
-  protocol: "새 안내가 올라왔어요",
-  system: "새 내용이 올라왔어요",
+export const TAIL_ANCHOR = "이어지는 코칭 보기";
+
+/* ── 응답 여유 (시안 4a — 숫자 초읽기 대신 상태어) ─────────── */
+
+export type WaitLevel = "plenty" | "half" | "over";
+
+/**
+ * 지금 여유가 어느 단계인지.
+ * 게이지와 같은 원칙입니다 — 숫자는 화면에 내지 않고 낱말 하나로만 전합니다.
+ *
+ * @example waitLevel(7, 8) // "plenty"
+ * @example waitLevel(0, 8) // "over"
+ */
+export function waitLevel(secondsLeft: number, total: number): WaitLevel {
+  if (!Number.isFinite(secondsLeft) || secondsLeft <= 0) return "over";
+  const span = Math.max(1, Math.round(total));
+  return secondsLeft > span / 2 ? "plenty" : "half";
+}
+
+/**
+ * 여유 상태어 — 재촉 어휘는 쓰지 않습니다(가이드 §4.5 「'남은 시간' 대신 '여유'」).
+ * 시간이 다 지나도 넘어가지 않으므로, 마지막 단계도 기다린다는 말로 끝냅니다.
+ */
+export const WAIT_WORD: Record<WaitLevel, string> = {
+  plenty: "여유 있어요",
+  half: "천천히 하셔도 됩니다",
+  over: "기다리고 있어요",
 };
+
+/** 여유 표시 옆에 항상 붙는 한 줄 — 얼어붙는 몇 초 동안 같은 자리에 있어야 하는 사실입니다. */
+export const WAIT_NO_AUTO_ADVANCE = "시간이 지나도 자동으로 넘어가지 않습니다";
 
 /* ── 감정 상태 (시안 4a③ — 게이지가 숫자 막대 대신 인물에 붙습니다) ── */
 

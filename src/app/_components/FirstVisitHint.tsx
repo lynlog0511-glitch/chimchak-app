@@ -43,7 +43,9 @@ export function FirstVisitHint() {
     <Card tone="quiet" className="mt-6 md:mt-7">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <p className="chim-meta text-ink-soft">
+          {/* 「마이크 없이 버튼만으로」는 각주가 아니라 이 앱을 처음 여는 사람을 붙잡아 두는
+              약속입니다 — 가이드 §7-8의 가독 하한(15.75px)을 넘겨 chim-body(16px)로 둡니다. */}
+          <p className="chim-body text-ink-soft">
             처음이시라면 훈련 모드의 「현관 앞, 집에 가야 해요」부터 시작해 보세요. 마이크 없이
             버튼만으로 4분이면 끝납니다.
           </p>

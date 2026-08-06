@@ -12,7 +12,7 @@ import {
   saveSession,
   type SessionProgress,
 } from "@/lib/storage";
-import type { EmergencyProtocol, Scenario, TurnDef } from "@/types";
+import type { EmergencyProtocol, Scenario } from "@/types";
 import { BriefingPanel } from "./BriefingPanel";
 import { CriticalInterrupt } from "./CriticalInterrupt";
 import { CueResponder } from "./CueResponder";
@@ -26,12 +26,13 @@ import {
   EMOTION_WORD,
   emotionLevel,
   FICTION_NOTICE,
-  NEW_LINE_ANCHOR,
   SESSION_STATUS_ENDED,
   SESSION_STATUS_PROTOCOL,
   sessionSubtitle,
+  TAIL_ANCHOR,
 } from "./constants";
 import { cueProgress } from "./sessionProgress";
+import { useModalDismiss } from "./useModalDismiss";
 import {
   initialTrainState,
   makeTrainReducer,
@@ -39,6 +40,62 @@ import {
   type CriticalInterruptState,
   type LogItem,
 } from "./sessionMachine";
+
+/**
+ * 「종료」 확인 모달.
+ *
+ * 예전에는 `role="dialog"`만 선언해 두고 초점 이동·Esc·Tab 트랩·배경 비활성이 전부 없었습니다 —
+ * 바로 옆 ⚑CF 시트는 셋 다 갖추고 있어 같은 화면 안에서 모달 문법이 두 종류로 갈렸습니다
+ * (평가 UI/UX m5 실측: 열린 직후 activeElement=BODY, Esc 후에도 dialog 잔존).
+ * 지금은 같은 `useModalDismiss` 훅을 쓰고, 배경 세션 박스에는 여는 쪽에서 `aria-hidden`을 겁니다.
+ */
+function ExitConfirm({ onClose }: { onClose: () => void }) {
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const titleRef = useRef<HTMLHeadingElement | null>(null);
+
+  useModalDismiss({ panelRef, initialFocusRef: titleRef, onDismiss: onClose });
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="session-exit-title"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-ink/55 p-4 sm:items-center"
+    >
+      <button
+        type="button"
+        aria-label="닫기"
+        onClick={onClose}
+        className="absolute inset-0 cursor-default"
+      />
+      <div
+        ref={panelRef}
+        className="animate-fade-up relative w-full max-w-[380px] rounded-panel bg-white p-5 shadow-panel"
+      >
+        <h2
+          id="session-exit-title"
+          ref={titleRef}
+          tabIndex={-1}
+          className="text-[1.0625rem] leading-[1.4] font-bold text-ink"
+        >
+          훈련을 끝낼까요?
+        </h2>
+        <p className="mt-2 text-[0.8125rem] leading-[1.6] text-ink-soft">
+          지금까지 진행한 자리는 이 기기에 남아 있어, 다음에 이어서 하실 수 있습니다. 말씀하신
+          내용은 저장하지 않습니다.
+        </p>
+        <div className="mt-4 space-y-2">
+          <BigButton onClick={onClose} size="lg" block>
+            계속하기
+          </BigButton>
+          <BigButton href="/train" variant="secondary" block>
+            끝내고 훈련 목록으로
+          </BigButton>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export interface TrainSessionProps {
   scenario: Scenario;
@@ -115,21 +172,9 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     };
   }, [dockNode]);
 
-  /** 새로 등장한 인물 대사가 화면 밖일 때 컴포저 위에 뜨는 앵커 */
-  const [newLine, setNewLine] = useState<{ offscreen: boolean; speaker: TurnDef["speaker"] }>({
-    offscreen: false,
-    speaker: "system",
-  });
-  const scrollToLatestLineRef = useRef<(() => void) | null>(null);
-
-  const handleLatestLineOffscreen = useCallback(
-    (offscreen: boolean, speaker: TurnDef["speaker"]) => {
-      setNewLine((prev) =>
-        prev.offscreen === offscreen && prev.speaker === speaker ? prev : { offscreen, speaker },
-      );
-    },
-    [],
-  );
+  /** 새 대사 아래로 이어지는 코칭이 화면 밖일 때 컴포저 위에 뜨는 앵커 */
+  const [tailOffscreen, setTailOffscreen] = useState(false);
+  const scrollToTailRef = useRef<(() => void) | null>(null);
 
   /** 엔딩 패널 — 완주 직후 이 자리를 화면 맨 위로 끌어옵니다 */
   const endingRef = useRef<HTMLDivElement | null>(null);
@@ -267,6 +312,8 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     },
     [],
   );
+
+  const closeExit = useCallback(() => setExitOpen(false), []);
 
   /** 화면이 바뀔 때 페이지 맨 위부터 읽으실 수 있게 합니다. */
   const scrollToTop = useCallback(() => {
@@ -411,6 +458,9 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
 
   const interrupted = state.critical !== null;
   const composing = Boolean(cue && turn && !ended && !inProtocol);
+  /* 전면 모달이 떠 있는 동안 배경 세션은 보조기술에서도 물러납니다 —
+     그러지 않으면 Tab이 뒤쪽 세션으로 빠져나갑니다(⚑CF만 걸려 있던 규칙을 종료 모달까지 넓힙니다). */
+  const behindModal = interrupted || exitOpen;
 
   return (
     <>
@@ -421,7 +471,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
           **md↑**: 시안 7d 그대로 뷰포트에 고정된 2단(대화 + 레일)입니다. */}
       <div
         ref={sessionBoxRef}
-        aria-hidden={interrupted || undefined}
+        aria-hidden={behindModal || undefined}
         className={cx(
           "flex min-h-[calc(100dvh_-_var(--chim-safe-t))] flex-col",
           "md:h-[calc(100dvh_-_var(--chim-safe-t))] md:min-h-0 md:overflow-hidden",
@@ -484,9 +534,13 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
                   {scenario.context}
                 </p>
                 {/* 가상 인물 고지 — 화면마다 한 번은 또렷하게 남습니다(말풍선의 「AI 생성 · 가상 인물」과 별도). */}
-                <p className="mt-1 mb-4 text-center text-[0.7188rem] leading-[1.6] text-ink-muted">
+                <p className="mt-1 text-center text-[0.7188rem] leading-[1.6] text-ink-muted">
                   {FICTION_NOTICE}
                 </p>
+
+                {/* 고지는 로그 위에 한 번 둡니다 — 예전에는 입력 도크 안에 상주해
+                    상시 안내문 넉 줄(141px)의 한 몫을 하고 있었습니다(평가 UI/UX m1). */}
+                <InlineDisclaimer tone="readable" className="mt-1 mb-4" />
 
                 <DialogueLog
                   items={state.log}
@@ -495,8 +549,8 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
                   speaking={speakingKey.length > 0}
                   bottomInset={dockHeight}
                   autoScroll={!ended}
-                  onLatestLineOffscreen={composing ? handleLatestLineOffscreen : undefined}
-                  scrollToLatestLineRef={scrollToLatestLineRef}
+                  onTailOffscreen={composing ? setTailOffscreen : undefined}
+                  scrollToTailRef={scrollToTailRef}
                 />
 
                 {ended && record ? (
@@ -552,14 +606,14 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
                   micSupported={micSupported}
                   chosenAlternative={chosenAlternative || undefined}
                   anchor={
-                    newLine.offscreen ? (
+                    tailOffscreen ? (
                       <button
                         type="button"
-                        onClick={() => scrollToLatestLineRef.current?.()}
+                        onClick={() => scrollToTailRef.current?.()}
                         className="flex min-h-[48px] w-full items-center justify-center gap-1.5 border-b border-line bg-tint px-[18px] text-[0.8438rem] leading-[1.4] font-bold text-brand-800 md:px-8"
                       >
-                        {NEW_LINE_ANCHOR[newLine.speaker]}
-                        <span aria-hidden>↑</span>
+                        {TAIL_ANCHOR}
+                        <span aria-hidden>↓</span>
                       </button>
                     ) : null
                   }
@@ -585,39 +639,8 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
         </div>
       </div>
 
-      {/* 종료 확인 */}
-      {exitOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="session-exit-title"
-          className="fixed inset-0 z-50 flex items-end justify-center bg-ink/55 p-4 sm:items-center"
-        >
-          <button
-            type="button"
-            aria-label="닫기"
-            onClick={() => setExitOpen(false)}
-            className="absolute inset-0 cursor-default"
-          />
-          <div className="animate-fade-up relative w-full max-w-[380px] rounded-panel bg-white p-5 shadow-panel">
-            <h2 id="session-exit-title" className="text-[1.0625rem] leading-[1.4] font-bold text-ink">
-              훈련을 끝낼까요?
-            </h2>
-            <p className="mt-2 text-[0.8125rem] leading-[1.6] text-ink-soft">
-              지금까지 진행한 자리는 이 기기에 남아 있어, 다음에 이어서 하실 수 있습니다. 말씀하신
-              내용은 저장하지 않습니다.
-            </p>
-            <div className="mt-4 space-y-2">
-              <BigButton onClick={() => setExitOpen(false)} size="lg" block>
-                계속하기
-              </BigButton>
-              <BigButton href="/train" variant="secondary" block>
-                끝내고 훈련 목록으로
-              </BigButton>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 종료 확인 — ⚑CF 시트와 같은 훅으로 초점·Esc·Tab을 다룹니다(모달 문법 하나로 통일) */}
+      {exitOpen && <ExitConfirm onClose={closeExit} />}
 
       {/* ⚑CF 즉시 중단 — 바텀시트 (시안 6c) */}
       {state.critical && (

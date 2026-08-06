@@ -172,8 +172,16 @@ export function ReportWizard() {
             이 기기에만 저장
           </p>
           <p className="mt-[10px] text-[0.875rem] leading-[1.75] text-ink">
-            사용자가 확정한 뒤에만 기관 시스템으로 전달됩니다. 지금 남은 것은 가명처리 2단을 통과한
-            텍스트뿐이며, 말씀하신 음성과 원문은 저장하지 않았습니다.
+            지금 남은 것은 가명처리 2단을 통과한 텍스트뿐이며, 말씀하신 음성과 원문은 저장하지
+            않았습니다.
+          </p>
+          {/* 「전달됩니다」를 현재형으로 쓰면 없는 연동을 있다고 적는 셈이 됩니다(/safety와 같은 표기). */}
+          <p className="mt-[8px] text-[0.8125rem] leading-[1.7] text-ink-soft">
+            <span className="mr-[6px] inline-flex items-center rounded-chip border border-line-strong px-[7px] py-[1px] align-[2px] text-[0.7188rem] leading-[1.5] font-bold whitespace-nowrap text-ink-soft">
+              계획
+            </span>
+            기관 시스템 연동은 설계까지 마쳤고 아직 구현하지 않았습니다. 연동하게 되더라도 확정
+            버튼을 누르신 뒤에만 전달되도록 설계했습니다.
           </p>
           <p className="mt-[8px] text-[0.7813rem] leading-[1.7] text-ink-soft">
             {secondPassCount > 0

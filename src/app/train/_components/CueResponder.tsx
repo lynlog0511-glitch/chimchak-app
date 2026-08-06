@@ -7,15 +7,10 @@ import { cueOptions } from "@/engine";
 import { getSettings, subscribeSettings, type FontScale } from "@/lib/settings";
 import { createRecognizer, stopSpeaking, type Recognizer } from "@/lib/speech";
 import type { CueDef, Scenario, SessionState } from "@/types";
+import { WAIT_NO_AUTO_ADVANCE, WAIT_WORD, waitLevel } from "./constants";
 import { RecordDraftPreview } from "./RecordDraftPreview";
-import {
-  RULE_DEMO_HINT,
-  RULE_DEMO_NO_CRITICAL_NOTE,
-  RULE_DEMO_NOTE,
-  RULE_DEMO_TITLE,
-  ruleDemoExamplesFor,
-  type RuleDemoExample,
-} from "./ruleDemoExamples";
+import { RuleDemoSheet } from "./RuleDemoSheet";
+import { ruleDemoExamplesFor, RULE_DEMO_TITLE, type RuleDemoExample } from "./ruleDemoExamples";
 import { isReportCue } from "./sessionMachine";
 
 export interface CueResponderProps {
@@ -45,21 +40,21 @@ const MIC_INTRO_KEY = "chimchak.micIntro.v1";
 type MicPermission = "unknown" | "prompt" | "granted" | "denied";
 
 /**
- * md↑ 2단 화면에서 도크(컴포저)가 가져갈 수 있는 세로 상한.
+ * 도크(컴포저)가 가져갈 수 있는 세로 상한 — **전 뷰포트 공통**입니다.
  *
- * 데스크톱 세션은 뷰포트 높이 안에 갇혀 있고, 대화 로그가 남는 자리를 나눠 씁니다.
- * 글자 크기를 키우면 CUE 질문·제안 버튼·입력바가 함께 커져 도크가 두꺼워지는데,
- * 상한을 62dvh로 고정해 두면 그만큼 로그가 깎입니다 —
- * **접근성 설정을 켤수록 읽을 면적이 줄어드는 역전**이 생깁니다(평가 UI/UX m7 실측).
- * 그래서 글자가 커질수록 도크 상한을 한 단계씩 내려 로그 면적을 지킵니다.
- * 도크 안쪽은 스크롤되므로 상한을 내려도 보기·입력은 전부 닿습니다.
+ * 예전에는 `md:` 전용이었습니다. 그래서 모바일에서는 도크가 뷰포트의 60%(표준 504/844),
+ * 「아주 크게」에서 75%(633/844)까지 부풀어 대화 로그 가시 띠가 262px·114px로 고정됐습니다 —
+ * **접근성 설정을 켤수록 읽을 면적이 줄어드는 역전**입니다(평가 UI/UX m1·초보 c2 실측).
  *
- * 모바일에는 상한이 없습니다 — 페이지 스크롤 하나로 흐르기 때문입니다(가이드 §5).
+ * 그래서 글자가 커질수록 상한을 한 단계씩 내립니다. 헤더가 함께 커지는 것까지 셈에 넣으면
+ * 어느 설정에서도 로그 가시 영역이 45dvh 이상 남습니다
+ * (표준 100−9.4−45 ≈ 46 · 크게 100−10.4−42 ≈ 48 · 아주 크게 100−11.5−40 ≈ 49dvh).
+ * 상한을 넘는 만큼은 도크 안쪽에서 스크롤되므로 보기·입력은 전부 닿습니다.
  */
 const DOCK_MAX_H: Record<FontScale, string> = {
-  standard: "md:max-h-[62dvh]",
-  large: "md:max-h-[54dvh]",
-  xlarge: "md:max-h-[48dvh]",
+  standard: "max-h-[45dvh]",
+  large: "max-h-[42dvh]",
+  xlarge: "max-h-[40dvh]",
 };
 
 /**
@@ -121,12 +116,18 @@ export function CueResponder({
   const [micPermission, setMicPermission] = useState<MicPermission>("unknown");
   /** 규칙 엔진 예시 문장을 방금 채워 넣었는지 (전송은 사용자가 직접 하십니다) */
   const [filledExampleId, setFilledExampleId] = useState<string | null>(null);
+  /** 규칙 엔진 시연 시트 — 도크 밖 바텀시트입니다(도크를 부풀리지 않습니다) */
+  const [demoOpen, setDemoOpen] = useState(false);
   /** 글자 크기 — 도크 상한을 여기에 맞춰 내립니다(로그 면적 역전 방지) */
   const fontScale = useFontScale();
   const recognizerRef = useRef<Recognizer | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   /** 권한 팝업이 떠 있는 첫 회에만 인식을 끊지 않고 안내로 대신합니다 */
   const micGraceUsedRef = useRef(false);
+  /** 지금 화면의 CUE 지시문 — 턴이 넘어가면 여기로 초점을 옮깁니다 */
+  const promptRef = useRef<HTMLHeadingElement | null>(null);
+  /** 마지막으로 초점을 옮긴 CUE. 첫 렌더에서는 초점을 건드리지 않습니다. */
+  const focusedCueRef = useRef<string | null>(null);
 
   const options = useMemo(() => cueOptions(scenario, session), [scenario, session]);
   const reportMode = useMemo(() => isReportCue(scenario, cue), [scenario, cue]);
@@ -138,7 +139,12 @@ export function CueResponder({
   const filledExample = demoExamples.find((example) => example.id === filledExampleId);
   const resetKey = `${cue.id}-${attempt}`;
   const secondsLeft = useCountdown(cue.waitSec, resetKey);
-  const timeUp = secondsLeft <= 0;
+  const waitState = waitLevel(secondsLeft, cue.waitSec);
+  /** 여유 띠가 남긴 비율 — 숫자로는 적지 않고 띠 길이로만 전합니다. */
+  const waitLeftPercent = Math.max(
+    0,
+    Math.min(100, Math.round((secondsLeft / Math.max(1, cue.waitSec)) * 100)),
+  );
   /** 입력창이 열려 있는 상태 — 인식 결과가 들어오면 저절로 열립니다(전송 전 확인). */
   const composing = expanded || text.trim().length > 0;
 
@@ -147,6 +153,22 @@ export function CueResponder({
     setExpanded(false);
     setNotice(null);
     setFilledExampleId(null);
+    setDemoOpen(false);
+  }, [resetKey]);
+
+  /**
+   * 턴이 넘어가면 새 CUE 지시문으로 초점을 옮깁니다 (/report 위저드의 headingRef와 같은 규칙).
+   *
+   * 누른 보기 버튼이 언마운트되면서 초점이 BODY로 떨어지면, 다음 보기까지 가려고
+   * 스킵 링크·‹·소리 끄기·종료·로그 전체를 매 턴 다시 Tab으로 지나야 합니다(평가 UI/UX m4 실측).
+   * 스크롤은 로그가 따로 잡으므로 여기서는 움직이지 않습니다.
+   */
+  useEffect(() => {
+    if (focusedCueRef.current === resetKey) return;
+    const first = focusedCueRef.current === null;
+    focusedCueRef.current = resetKey;
+    if (first) return;
+    promptRef.current?.focus({ preventScroll: true });
   }, [resetKey]);
 
   useEffect(() => {
@@ -355,6 +377,7 @@ export function CueResponder({
     (example: RuleDemoExample) => {
       stopListening();
       setNotice(null);
+      setDemoOpen(false);
       setExpanded(true);
       setText(example.sentence);
       setFilledExampleId(example.id);
@@ -442,35 +465,48 @@ export function CueResponder({
   /* ── 기본 (시안 4a) ──────────────────────────────────────── */
 
   return (
-    <div className="flex-none border-t border-line bg-paper">
-      {anchor}
-      {/* 모바일에서는 페이지 스크롤 하나입니다 — 도크 안에서 따로 스크롤하지 않습니다(가이드 §5).
-          md↑ 2단 화면만 뷰포트에 고정되므로 거기서만 도크 높이에 상한을 둡니다.
-          상한은 글자 크기를 따라 내려갑니다 — 62 / 54 / 48dvh (DOCK_MAX_H). */}
-      <div
-        className={cx(
-          "mx-auto w-full max-w-[624px] px-[18px] pt-3.5 pb-[calc(28px_+_var(--chim-safe-b))] md:overflow-y-auto md:px-8",
-          DOCK_MAX_H[fontScale],
-        )}
-      >
-        <div className="mb-3 flex items-baseline gap-2">
-          {/* 지시문은 코어 콘텐츠입니다 — 17px w700 (§3). */}
-          <h2 className="min-w-0 flex-1 text-[1.0625rem] leading-[1.5] font-bold text-ink">
+    <div
+      className={cx(
+        "flex flex-none flex-col border-t border-line bg-paper",
+        // 앵커까지 포함한 도크 전체에 상한을 겁니다 — 로그가 남는 자리를 지키는 값입니다.
+        DOCK_MAX_H[fontScale],
+      )}
+    >
+      {anchor && <div className="flex-none">{anchor}</div>}
+      {/* 상한을 넘는 만큼은 여기서 스크롤됩니다(전 뷰포트 공통).
+          도크가 화면을 몰아내지 않으면서도 보기·입력·시연 진입은 전부 닿습니다. */}
+      <div className="mx-auto min-h-0 w-full max-w-[624px] flex-1 overflow-y-auto px-[18px] pt-3.5 pb-[calc(28px_+_var(--chim-safe-b))] md:px-8">
+        <div className="mb-3">
+          {/* 지시문은 코어 콘텐츠입니다 — 17px w700 (§3).
+              턴이 넘어가면 초점이 여기로 옵니다(tabIndex={-1}). */}
+          <h2
+            ref={promptRef}
+            tabIndex={-1}
+            className="text-[1.0625rem] leading-[1.5] font-bold text-ink"
+          >
             {cue.prompt}
           </h2>
-          {/* 재촉하지 않는 어휘의 카운트다운 — 안심 문구를 처음부터 나란히 둡니다.
-              (예전에는 시간이 다 지난 뒤에야 「천천히」가 나와, 얼어붙는 그 몇 초 동안
-               자동으로 넘어가지 않는다는 사실을 알 길이 없었습니다 — 평가 초보 m27.) */}
-          <span className="flex-none text-right">
-            {!timeUp && (
-              <span className="chim-num block text-[0.75rem] leading-[1.5] font-semibold text-ink-muted">
-                여유 {secondsLeft}초
-              </span>
-            )}
-            <span className="block text-[0.75rem] leading-[1.5] font-semibold text-ink-soft">
-              천천히 하셔도 됩니다
+          {/* 여유 표시 — 숫자 초읽기를 걷어냈습니다.
+              「여유 1초」까지 줄어드는 숫자는 벌점을 겁내는 분을 그 자리에서 얼어붙게 만듭니다
+              (평가 초보 m4). 게이지와 같은 원칙으로 띠 하나와 상태어 한 낱말만 남기고,
+              「자동으로 넘어가지 않습니다」를 그 옆 같은 자리에 붙였습니다. */}
+          <div className="mt-1.5 flex items-center gap-2">
+            <span
+              aria-hidden
+              className="h-[3px] w-[56px] flex-none overflow-hidden rounded-[2px] bg-line"
+            >
+              <span
+                className="block h-full rounded-[2px] bg-brand-600 transition-[width] duration-1000 ease-linear"
+                style={{ width: `${waitLeftPercent}%` }}
+              />
             </span>
-          </span>
+            <span className="min-w-0 text-[0.8438rem] leading-[1.5] font-semibold text-ink-soft">
+              {WAIT_WORD[waitState]}
+            </span>
+          </div>
+          <p className="mt-1 text-[0.8438rem] leading-[1.5] text-ink-soft">
+            {WAIT_NO_AUTO_ADVANCE}
+          </p>
         </div>
 
         {/* 마이크 첫 사용 안내 — 세션에서 처음 한 번만 나옵니다 */}
@@ -642,94 +678,55 @@ export function CueResponder({
           </div>
         )}
 
-        {micSupported ? (
-          /* 마이크 조작을 글자로도 적어 둡니다 — 아이콘만으로는 「눌렀다 떼기」로 읽힙니다. */
-          <p className="mt-2 text-[0.75rem] leading-[1.6] text-ink-soft">
-            마이크는 꾹 누르고 계신 동안만 듣습니다 — 손을 떼면 보내기 전에 고치실 수 있어요.
-          </p>
-        ) : (
-          <p className="mt-2 text-[0.75rem] leading-[1.6] text-ink-muted">
+        {/* 마이크를 못 쓰는 기기에서는 비활성 마이크 버튼의 까닭을 그 자리에서 적어 둡니다.
+            (쓸 수 있는 기기의 조작 설명은 첫 회 안내 카드에만 둡니다 — 도크에 상주시키면
+             상시 안내문이 도크 141px을 먹고 로그를 몰아냅니다. 평가 UI/UX m1.) */}
+        {!micSupported && (
+          <p className="mt-2 text-[0.8125rem] leading-[1.6] text-ink-muted">
             이 기기에서는 음성 인식을 쓸 수 없습니다. 위 버튼과 직접 입력만으로 끝까지 진행하실 수
             있습니다.
           </p>
         )}
 
-        {/* 규칙 엔진 시연 장치 — 채우기만 하고 전송은 사용자가 직접 하십니다 */}
+        {/* 규칙 엔진 시연 — 도크에는 진입 한 줄만 두고 내용은 바텀시트로 뺐습니다. */}
         {demoExamples.length > 0 && (
-          <details className="group mt-2.5">
-            <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 text-[0.7813rem] font-semibold text-ink-muted [&::-webkit-details-marker]:hidden">
-              <span>{RULE_DEMO_TITLE}</span>
-              <span
-                aria-hidden
-                className="text-[0.75rem] text-faint transition-transform duration-150 group-open:rotate-180"
-              >
-                ⌄
-              </span>
-            </summary>
-
-            <div className="border-t border-line pt-3 pb-1">
-              <p className="text-[0.75rem] leading-[1.6] font-semibold text-ink-soft">
-                {RULE_DEMO_NOTE}
-              </p>
-              <p className="mt-1 text-[0.75rem] leading-[1.6] text-ink-muted">{RULE_DEMO_HINT}</p>
-
-              <ul className="mt-2.5 space-y-2.5">
-                {demoExamples.map((example) => (
-                  <li key={example.id}>
-                    <button
-                      type="button"
-                      onClick={() => fillExample(example)}
-                      className={cx(
-                        "w-full rounded-[14px] px-3.5 py-3 text-left transition-colors duration-150",
-                        filledExampleId === example.id ? "bg-tint" : "bg-paper-2 hover:bg-tint",
-                      )}
-                    >
-                      <span className="block text-[0.7188rem] leading-[1.5] font-bold text-ink-muted">
-                        {example.kind === "critical" ? "즉시 중단" : "코칭"} · {example.ruleId} ·{" "}
-                        {example.itemId} {example.ruleLabel}
-                      </span>
-                      <span className="mt-1 block text-[0.8438rem] leading-[1.55] font-semibold text-ink">
-                        “{example.sentence}”
-                      </span>
-                    </button>
-                    <p className="mt-1 px-1 text-[0.75rem] leading-[1.6] text-ink-muted">
-                      {example.expectation}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-
-              {!demoExamples.some((example) => example.kind === "critical") && (
-                <p className="mt-2.5 rounded-[14px] bg-paper-2 px-3.5 py-2.5 text-[0.75rem] leading-[1.6] text-ink-muted">
-                  {RULE_DEMO_NO_CRITICAL_NOTE}
-                </p>
-              )}
-
-              <p role="status" className="sr-only">
-                {filledExample
-                  ? `${filledExample.ruleLabel} 예시 문장을 입력창에 채웠습니다. 보내시려면 이 내용으로 답하기 버튼을 눌러 주세요.`
-                  : ""}
-              </p>
-              {filledExample && (
-                <p
-                  aria-hidden
-                  className="mt-2.5 rounded-[14px] bg-tint px-3.5 py-2.5 text-[0.75rem] leading-[1.6] font-semibold text-brand-800"
-                >
-                  입력창에 채워 드렸습니다. 아직 보내지 않았습니다 — 위의 「이 내용으로 답하기」를
-                  누르시면 규칙 엔진이 판정합니다.
-                </p>
-              )}
-            </div>
-          </details>
+          <button
+            type="button"
+            onClick={() => setDemoOpen(true)}
+            aria-haspopup="dialog"
+            className="mt-2 flex min-h-[48px] w-full items-center justify-between gap-3 rounded-field px-1 text-left text-[0.8125rem] font-semibold text-ink-muted transition-colors duration-150 hover:bg-paper-2"
+          >
+            <span>{RULE_DEMO_TITLE}</span>
+            <span aria-hidden className="flex-none text-[0.8125rem] text-ink-ghost">
+              ›
+            </span>
+          </button>
         )}
 
-        {/* 압박이 가장 큰 첫 몇 초에도 같은 자리에 있어야 하는 문장입니다 — 조건을 걷어냈습니다. */}
-        <p className="mt-2 text-[0.75rem] leading-[1.6] text-ink-soft">
-          시간이 지나도 자동으로 넘어가지 않습니다. 천천히 고르시거나 직접 답해 주세요.
+        <p role="status" className="sr-only">
+          {filledExample
+            ? `${filledExample.ruleLabel} 예시 문장을 입력창에 채웠습니다. 보내시려면 이 내용으로 답하기 버튼을 눌러 주세요.`
+            : ""}
         </p>
-
-        <InlineDisclaimer tone="readable" className="mt-2.5" />
+        {filledExample && (
+          <p
+            aria-hidden
+            className="mt-2 rounded-[14px] bg-tint px-3.5 py-2.5 text-[0.8125rem] leading-[1.6] font-semibold text-brand-800"
+          >
+            입력창에 채워 드렸습니다. 아직 보내지 않았습니다 — 위의 「이 내용으로 답하기」를 누르시면
+            규칙 엔진이 판정합니다.
+          </p>
+        )}
       </div>
+
+      {demoOpen && demoExamples.length > 0 && (
+        <RuleDemoSheet
+          prompt={cue.prompt}
+          examples={demoExamples}
+          onFill={fillExample}
+          onClose={() => setDemoOpen(false)}
+        />
+      )}
     </div>
   );
 }

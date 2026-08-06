@@ -14,6 +14,7 @@ import type { RecordDraft, SessionEvent, SessionRecord, SessionState, SessionSta
 export const SESSIONS_KEY = "chimchak.sessions.v1";
 export const REPORTS_KEY = "chimchak.reports.v1";
 export const PROGRESS_KEY = "chimchak.progress.v1";
+export const TALLY_KEY = "chimchak.tally.v1";
 
 /** 너무 많이 쌓이지 않도록 최근 것만 남긴다 */
 const MAX_ITEMS = 50;
@@ -70,6 +71,28 @@ function writeList<T>(key: string, list: T[]): void {
   }
 }
 
+function readValue(key: string): unknown {
+  const storage = getStorage();
+  if (!storage) return undefined;
+  try {
+    const raw = storage.getItem(key);
+    if (!raw) return undefined;
+    return JSON.parse(raw) as unknown;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeValue(key: string, value: unknown): void {
+  const storage = getStorage();
+  if (!storage) return;
+  try {
+    storage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* 저장 공간 부족·사생활 보호 모드 — 조용히 무시한다 */
+  }
+}
+
 function makeId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -85,6 +108,8 @@ function makeId(prefix: string): string {
 export function saveSession(record: SessionRecord): void {
   const list = loadSessions().filter((r) => r.id !== record.id);
   writeList(SESSIONS_KEY, [record, ...list]);
+  // 상세는 50건 상한에 걸려 밀려나지만 「이수 사실」은 밀려나면 안 된다(아래 이수 누계).
+  addToTally(record);
 }
 
 /**
@@ -106,15 +131,353 @@ export function loadSessions(): SessionRecord[] {
  * deleteSession("CHK-A01-1700000000000-0");
  */
 export function deleteSession(id: string): void {
+  const list = loadSessions();
   writeList(
     SESSIONS_KEY,
-    loadSessions().filter((r) => r.id !== id),
+    list.filter((r) => r.id !== id),
   );
+  // 사용자가 지운 회차가 이수 누계에만 남아 있으면 「지웠는데 합계에 남아 있다」가 된다.
+  const removed = list.find((r) => r.id === id);
+  if (removed) removeFromTally(removed);
 }
 
-/** 세션 기록 전체 삭제 */
+/** 세션 기록 전체 삭제 — 이수 누계도 함께 지웁니다(화면에 없는 합계를 남기지 않는다). */
 export function clearSessions(): void {
   writeList<SessionRecord>(SESSIONS_KEY, []);
+  clearCompletionTally();
+}
+
+/* ── 이수 누계 (확인서 증빙용) ─────────────────────────────── */
+
+/**
+ * 한 회차를 이수 시간으로 셀 때의 상한 — 자리를 비우고 방치한 회차가 시수를 부풀리지 않게 한다.
+ * 확인서 각주가 이 값을 「30분」이라고 문장으로 적고 있으므로 함께 고친다.
+ */
+export const MAX_SESSION_SEC = 30 * 60;
+
+/** 이수 누계에 기억해 두는 회차 id 최대 개수 — 같은 회차를 두 번 세지 않기 위한 목록이다. */
+const MAX_COUNTED_IDS = 300;
+
+/**
+ * 회차 하나의 이수 시간(초).
+ *
+ * `endedAt − startedAt`이고, 회차당 30분을 넘으면 30분까지만 센다.
+ * 시각이 없거나 거꾸로면 0으로 둔다.
+ *
+ * @example sessionSeconds({ startedAt: "...T10:00:00Z", endedAt: "...T10:04:00Z" }) // 240
+ */
+export function sessionSeconds(record: Pick<SessionRecord, "startedAt" | "endedAt">): number {
+  const start = new Date(record.startedAt).getTime();
+  const end = new Date(record.endedAt).getTime();
+  if (Number.isNaN(start) || Number.isNaN(end)) return 0;
+  const sec = Math.round((end - start) / 1000);
+  if (sec <= 0) return 0;
+  return Math.min(sec, MAX_SESSION_SEC);
+}
+
+/** 이수 누계 한 줄 — 시나리오 하나에 대한 이수 사실뿐이다(판정·대화는 담지 않는다). */
+export interface CompletionTallyLine {
+  scenarioId: string;
+  title: string;
+  typeLabel: string;
+  count: number;
+  seconds: number;
+  /** 가장 최근에 마친 시각 (ISO) */
+  lastEndedAt: string;
+}
+
+/**
+ * 이수 누계 — **상세 기록과 별도로** 쌓는 이수 사실 집계다.
+ *
+ * 세션 기록은 50건 상한이라 51회차부터 첫 회차가 조용히 밀려난다. 확인서의 「합계 N회」와
+ * 「총 이수 시수」가 그 상한 때문에 시간이 갈수록 줄어드는 것을 막으려고 이 누계를 따로 둔다.
+ * 담기는 것은 시나리오·횟수·시수·최근 완료일뿐이고, 판정·대화·발화는 어떤 형태로도 넣지 않는다.
+ */
+export interface CompletionTally {
+  count: number;
+  seconds: number;
+  lines: CompletionTallyLine[];
+  /** 이미 센 회차 id — 같은 회차를 다시 저장해도 두 번 세지 않는다 */
+  countedIds: string[];
+  updatedAt: string;
+}
+
+function emptyTally(): CompletionTally {
+  return { count: 0, seconds: 0, lines: [], countedIds: [], updatedAt: "" };
+}
+
+/** 저장된 값이 훼손되었거나 옛 형식이어도 화면이 깨지지 않게 필요한 항목만 골라 담는다. */
+function sanitizeTallyLine(value: unknown): CompletionTallyLine | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const row = value as Record<string, unknown>;
+  const scenarioId = typeof row.scenarioId === "string" ? row.scenarioId : "";
+  if (scenarioId.length === 0) return undefined;
+  return {
+    scenarioId,
+    title: typeof row.title === "string" ? row.title : scenarioId,
+    typeLabel: typeof row.typeLabel === "string" ? row.typeLabel : "",
+    count: typeof row.count === "number" && row.count > 0 ? Math.floor(row.count) : 0,
+    seconds: typeof row.seconds === "number" && row.seconds > 0 ? Math.round(row.seconds) : 0,
+    lastEndedAt: typeof row.lastEndedAt === "string" ? row.lastEndedAt : "",
+  };
+}
+
+/**
+ * 이수 누계를 읽는다. 값이 없거나 훼손되었으면 빈 누계를 돌려준다.
+ *
+ * @example
+ * loadCompletionTally().count; // 12
+ */
+export function loadCompletionTally(): CompletionTally {
+  const raw = readValue(TALLY_KEY);
+  if (!raw || typeof raw !== "object") return emptyTally();
+  const row = raw as Record<string, unknown>;
+  const lines: CompletionTallyLine[] = [];
+  for (const item of Array.isArray(row.lines) ? row.lines : []) {
+    const line = sanitizeTallyLine(item);
+    if (line && line.count > 0) lines.push(line);
+  }
+  const countedIds: string[] = [];
+  for (const item of Array.isArray(row.countedIds) ? row.countedIds : []) {
+    if (typeof item === "string" && item.length > 0) countedIds.push(item);
+  }
+  return {
+    count: typeof row.count === "number" && row.count > 0 ? Math.floor(row.count) : 0,
+    seconds: typeof row.seconds === "number" && row.seconds > 0 ? Math.round(row.seconds) : 0,
+    lines,
+    countedIds,
+    updatedAt: typeof row.updatedAt === "string" ? row.updatedAt : "",
+  };
+}
+
+/** 이수 누계 전체 삭제 */
+export function clearCompletionTally(): void {
+  writeValue(TALLY_KEY, emptyTally());
+}
+
+function laterIso(a: string, b: string): string {
+  const ta = new Date(a).getTime();
+  const tb = new Date(b).getTime();
+  if (Number.isNaN(ta)) return b;
+  if (Number.isNaN(tb)) return a;
+  return tb > ta ? b : a;
+}
+
+/** 완주한 회차 하나를 누계에 더한다. 같은 id가 이미 반영돼 있으면 아무 일도 하지 않는다. */
+function addToTally(record: SessionRecord): void {
+  const tally = loadCompletionTally();
+  if (tally.countedIds.includes(record.id)) return;
+
+  const key = record.scenarioId.trim().toUpperCase();
+  const at = record.endedAt || record.startedAt;
+  const seconds = sessionSeconds(record);
+  const found = tally.lines.find((line) => line.scenarioId === key);
+  if (found) {
+    found.count += 1;
+    found.seconds += seconds;
+    found.lastEndedAt = laterIso(found.lastEndedAt, at);
+    if (record.scenarioTitle) found.title = record.scenarioTitle;
+    if (record.typeLabel) found.typeLabel = record.typeLabel;
+  } else {
+    tally.lines.push({
+      scenarioId: key,
+      title: record.scenarioTitle || key,
+      typeLabel: record.typeLabel,
+      count: 1,
+      seconds,
+      lastEndedAt: at,
+    });
+  }
+
+  tally.count += 1;
+  tally.seconds += seconds;
+  tally.countedIds = [record.id, ...tally.countedIds].slice(0, MAX_COUNTED_IDS);
+  tally.updatedAt = new Date().toISOString();
+  writeValue(TALLY_KEY, tally);
+}
+
+/** 회차 하나를 누계에서 뺀다(사용자가 그 기록을 지운 경우). */
+function removeFromTally(record: SessionRecord): void {
+  const tally = loadCompletionTally();
+  if (!tally.countedIds.includes(record.id)) return;
+
+  const key = record.scenarioId.trim().toUpperCase();
+  const seconds = sessionSeconds(record);
+  const found = tally.lines.find((line) => line.scenarioId === key);
+  if (found) {
+    found.count -= 1;
+    found.seconds = Math.max(0, found.seconds - seconds);
+  }
+  tally.lines = tally.lines.filter((line) => line.count > 0);
+  tally.count = Math.max(0, tally.count - 1);
+  tally.seconds = Math.max(0, tally.seconds - seconds);
+  tally.countedIds = tally.countedIds.filter((id) => id !== record.id);
+  tally.updatedAt = new Date().toISOString();
+  writeValue(TALLY_KEY, tally);
+}
+
+/* ── 이수 사실 요약 · 발급번호 · 내보내기 ────────────────────── */
+
+/** 확인서·기관 안내가 함께 쓰는 한 줄 — 이수 사실만 담는다. */
+export interface CompletionLine {
+  scenarioId: string;
+  title: string;
+  typeLabel: string;
+  count: number;
+  /** 가장 최근에 마친 시각 (ISO) */
+  lastEndedAt: string;
+}
+
+export interface CompletionSummary {
+  /** 발급번호 — 같은 기록 집합이면 언제 다시 만들어도 같은 값이 나온다 */
+  number: string;
+  /** 이수 회차 합계 */
+  totalCount: number;
+  /** 총 이수 시수(초) */
+  totalSec: number;
+  lines: CompletionLine[];
+  /** 상세가 이 기기에 남아 있지 않은 회차 수(50건 상한으로 밀려난 분) */
+  hiddenCount: number;
+}
+
+/**
+ * 32비트 FNV-1a 해시. 발급번호를 서버 없이 결정론으로 만들기 위한 것이고,
+ * 암호학적 용도가 아니다(위조 방지가 아니라 같은 기록 집합의 대조용 번호다).
+ */
+function fnv1a(input: string): number {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
+}
+
+/** 「CHK-3F7A-9C21」 — 기록 집합에서 계산한 발급번호. */
+function issueNumberFor(lines: CompletionLine[], totalCount: number, totalSec: number): string {
+  const seed = [
+    ...lines.map((line) => `${line.scenarioId}:${line.count}:${line.lastEndedAt}`),
+    `#${totalCount}:${totalSec}`,
+  ].join("|");
+  const hex = fnv1a(seed).toString(16).toUpperCase().padStart(8, "0");
+  return `CHK-${hex.slice(0, 4)}-${hex.slice(4)}`;
+}
+
+/**
+ * 이 기기에 남은 **이수 사실**을 한 덩어리로 요약한다.
+ *
+ * 상세 기록(50건 상한)과 이수 누계를 겹쳐 큰 쪽을 쓴다 — 상한에 밀려 상세가 사라져도
+ * 합계와 시수는 줄지 않는다. 옛 사용자처럼 누계가 비어 있으면 상세만으로 계산한다.
+ *
+ * @example
+ * const summary = buildCompletionSummary(); // { number: "CHK-3F7A-9C21", totalCount: 4, ... }
+ */
+export function buildCompletionSummary(): CompletionSummary {
+  const records = loadSessions();
+  const tally = loadCompletionTally();
+
+  const map = new Map<string, CompletionLine>();
+  let visibleCount = 0;
+  let visibleSec = 0;
+
+  for (const record of records) {
+    const key = record.scenarioId.trim().toUpperCase();
+    const at = record.endedAt || record.startedAt;
+    visibleCount += 1;
+    visibleSec += sessionSeconds(record);
+    const found = map.get(key);
+    if (found) {
+      found.count += 1;
+      found.lastEndedAt = laterIso(found.lastEndedAt, at);
+      continue;
+    }
+    map.set(key, {
+      scenarioId: key,
+      title: record.scenarioTitle,
+      typeLabel: record.typeLabel,
+      count: 1,
+      lastEndedAt: at,
+    });
+  }
+
+  for (const line of tally.lines) {
+    const found = map.get(line.scenarioId);
+    if (found) {
+      found.count = Math.max(found.count, line.count);
+      found.lastEndedAt = laterIso(found.lastEndedAt, line.lastEndedAt);
+      continue;
+    }
+    map.set(line.scenarioId, {
+      scenarioId: line.scenarioId,
+      title: line.title,
+      typeLabel: line.typeLabel,
+      count: line.count,
+      lastEndedAt: line.lastEndedAt,
+    });
+  }
+
+  const lines = [...map.values()].sort(
+    (a, b) => new Date(b.lastEndedAt).getTime() - new Date(a.lastEndedAt).getTime(),
+  );
+  const totalCount = Math.max(visibleCount, tally.count);
+  const totalSec = Math.max(visibleSec, tally.seconds);
+
+  return {
+    number: issueNumberFor(lines, totalCount, totalSec),
+    totalCount,
+    totalSec,
+    lines,
+    hiddenCount: Math.max(0, totalCount - visibleCount),
+  };
+}
+
+/** CSV 한 칸 — 쉼표·따옴표·줄바꿈이 들어가면 따옴표로 감싼다. */
+function csvCell(value: string | number): string {
+  const text = String(value);
+  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+/** 파일 안에서 쓰는 시각 표기 — 로케일에 흔들리지 않게 직접 조립한다(현지 시각). */
+function csvDateTime(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  const p = (n: number): string => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())} ${p(date.getHours())}:${p(date.getMinutes())}`;
+}
+
+/**
+ * 이수 사실만 담은 CSV 문자열을 만든다.
+ *
+ * **담기는 것**: 발급번호·만든 날짜·합계·시수·시나리오별 이수 횟수와 최근 완료 시각.
+ * **담기지 않는 것**: 발화 원문·대화 내용·판정 결과·성명·소속 — 개인정보는 한 칸도 넣지 않는다.
+ * 엑셀에서 한글이 깨지지 않도록 앞에 BOM을 붙인다.
+ *
+ * @example
+ * const csv = buildCompletionCsv(buildCompletionSummary(), new Date().toISOString());
+ */
+export function buildCompletionCsv(summary: CompletionSummary, issuedAt: string): string {
+  const minutes = Math.round(summary.totalSec / 60);
+  const rows: string[][] = [
+    ["항목", "값"],
+    ["발급번호", summary.number],
+    ["만든 시각", csvDateTime(issuedAt)],
+    ["합계 이수 회차", String(summary.totalCount)],
+    ["총 이수 시수(분)", String(minutes)],
+    ["담긴 내용", "이수 사실만 — 판정·대화·발화 원문·성명·소속 없음"],
+    [],
+    ["시나리오 번호", "시나리오", "유형", "이수 횟수", "최근 완료"],
+  ];
+  for (const line of summary.lines) {
+    rows.push([
+      line.scenarioId,
+      line.title,
+      line.typeLabel,
+      String(line.count),
+      csvDateTime(line.lastEndedAt),
+    ]);
+  }
+  const body = rows.map((row) => row.map(csvCell).join(",")).join("\r\n");
+  return `\uFEFF${body}\r\n`;
 }
 
 /* ── 보고 기록 ─────────────────────────────────────────── */

@@ -16,6 +16,8 @@
  *  - 애니메이션 없음.
  */
 
+import { PlanTag } from "./PlanTag";
+
 /* ── 내용 ──────────────────────────────────────────────────── */
 
 interface FlowNode {
@@ -25,6 +27,8 @@ interface FlowNode {
   caption: string;
   /** 다이어그램 안 두 줄 — 한 줄 11자 안쪽으로 유지합니다(상자 안쪽 폭 192). */
   lines: readonly [string, string];
+  /** 알파에 없는 단계 — 제목 옆에 「계획」을 답니다 */
+  plan?: boolean;
 }
 
 const INPUT_NODES: readonly FlowNode[] = [
@@ -43,8 +47,12 @@ const INPUT_NODES: readonly FlowNode[] = [
   {
     key: "search",
     title: "근거 검색",
-    caption: "화이트리스트에 등재된 문서 안에서만 근거를 찾습니다.",
-    lines: ["화이트리스트 문서에서", "근거를 찾습니다"],
+    // 알파에는 검색(retrieval)이 없습니다 — 분기·규칙이 사전 매핑된 문서 id를 들고 있습니다.
+    // 그 사실을 「계획」 배지와 함께 이 자리에서 먼저 밝힙니다.
+    caption:
+      "알파는 분기·규칙에 사전 매핑된 근거를 씁니다. 화이트리스트를 실제로 검색하는 단계는 베타에서 붙입니다.",
+    lines: ["알파는 사전 매핑", "베타는 목록 검색"],
+    plan: true,
   },
 ];
 
@@ -66,9 +74,10 @@ const YES_NODES: readonly FlowNode[] = [
 const NO_NODES: readonly FlowNode[] = [
   {
     key: "halt",
-    title: "생성 중단",
-    caption: "근거 없는 답은 만들지 않습니다.",
-    lines: ["근거 없는 답은", "만들지 않습니다"],
+    title: "판정 중단",
+    // 알파에서 실제로 걸리는 조건을 그대로 적습니다(engine/evidence.ts의 화이트리스트 가드).
+    caption: "근거 문서가 화이트리스트 밖이면 그 판정을 내지 않습니다.",
+    lines: ["목록 밖 근거는", "판정하지 않습니다"],
   },
   {
     key: "ask",
@@ -89,8 +98,9 @@ const L3_SUB = "검수된 고정 스크립트만 재생하고, 119 안내를 가
 
 const FLOW_DESC =
   "사용자 대응, 음성 인식, 근거 검색을 거쳐 근거 확인 단계에 이릅니다. " +
-  "근거를 찾으면 루브릭 판정과 피드백·출처 표시로 이어지고, " +
-  "찾지 못하면 생성을 중단하고 담당 간호사·기관 확인 안내로 넘어갑니다. " +
+  "근거 검색은 알파에서는 사전 매핑이고 화이트리스트 검색은 베타 계획입니다. " +
+  "근거가 화이트리스트 안이면 루브릭 판정과 피드백·출처 표시로 이어지고, " +
+  "목록 밖이면 판정을 중단하고 담당 간호사·기관 확인 안내로 넘어갑니다. " +
   "L3 실제 응급 구간은 생성을 거치지 않습니다.";
 
 /* ── 다이어그램 기하 ───────────────────────────────────────── */
@@ -358,7 +368,10 @@ function StepRow({ index, node }: { index: number; node: FlowNode }) {
         {index}
       </span>
       <div className="min-w-0">
-        <p className="text-[0.875rem] leading-[1.45] font-bold text-ink">{node.title}</p>
+        <p className="text-[0.875rem] leading-[1.45] font-bold text-ink">
+          {node.title}
+          {node.plan && <PlanTag className="ml-[6px]" />}
+        </p>
         <p className="mt-[2px] text-[0.7813rem] leading-[1.6] text-ink-muted">{node.caption}</p>
       </div>
     </li>
@@ -410,7 +423,7 @@ function FlowSteps() {
 
               <div className="rounded-[14px] bg-warn-soft px-[13px] py-[12px]">
                 <p className="text-[0.8438rem] leading-[1.45] font-extrabold text-warn-ink">
-                  아니오 · 근거를 찾지 못했을 때
+                  아니오 · 근거가 화이트리스트 밖일 때
                 </p>
                 <ol className="mt-[8px] space-y-[8px]">
                   {NO_NODES.map((n) => (
@@ -419,6 +432,11 @@ function FlowSteps() {
                 </ol>
                 <p className="mt-[10px] text-[0.8125rem] leading-[1.6] font-bold text-ink">
                   「공식 지침에서 근거를 찾지 못했습니다. 담당 간호사 또는 기관에 확인해 주세요.」
+                </p>
+                <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
+                  알파도 이 갈래를 실제로 들고 있습니다 — 판정에 붙은 근거 문서 id가 목록 밖이면
+                  엔진이 점수를 매기지 않고 이 문장만 내보냅니다. /check의 「규칙 엔진 경계
+                  케이스」 검사가 매번 이 동작을 확인합니다.
                 </p>
               </div>
             </div>
@@ -470,8 +488,8 @@ export function EvidenceFlow() {
       </details>
 
       <figcaption className="mt-[10px] text-[0.7188rem] leading-[1.6] text-tertiary">
-        그림 · 근거가 확인된 범위 안에서만 피드백이 나갑니다. 근거를 찾지 못하면 생성을 멈추고
-        확인 안내로 넘어갑니다.
+        그림 · 근거가 확인된 범위 안에서만 피드백이 나갑니다. 근거 문서가 화이트리스트 밖이면
+        판정을 멈추고 확인 안내로 넘어갑니다.
       </figcaption>
     </figure>
   );

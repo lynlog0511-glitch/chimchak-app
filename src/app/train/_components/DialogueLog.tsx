@@ -33,15 +33,15 @@ export interface DialogueLogProps {
    * 모바일에서는 컴포저가 화면 아래에 붙어 있으므로, 그 높이만큼 여백을 두고 스크롤합니다.
    */
   bottomInset?: number;
-  /** 새 내용이 쌓일 때 자동으로 바닥까지 내려갈지 (엔딩에서는 화면이 직접 자리를 잡습니다) */
+  /** 새 내용이 쌓일 때 자동으로 자리를 잡을지 (엔딩에서는 화면이 직접 자리를 잡습니다) */
   autoScroll?: boolean;
   /**
-   * 최신 인물 대사가 화면 밖에 있는지 알려 줍니다 — 컴포저 위 「새로 말씀하셨어요」 앵커용.
-   * 두 번째 인자는 그 대사의 화자입니다.
+   * 로그 끝(새 대사 아래로 이어지는 코칭·돌발 변수)이 화면 밖에 있는지 알려 줍니다 —
+   * 컴포저 위 「이어지는 코칭 보기 ↓」 앵커용입니다.
    */
-  onLatestLineOffscreen?: (offscreen: boolean, speaker: Speaker) => void;
-  /** 「새로 말씀하셨어요」를 누르셨을 때 그 대사로 데려갈 함수를 담아 둘 자리 */
-  scrollToLatestLineRef?: RefObject<(() => void) | null>;
+  onTailOffscreen?: (offscreen: boolean) => void;
+  /** 「이어지는 코칭 보기」를 누르셨을 때 로그 끝으로 데려갈 함수를 담아 둘 자리 */
+  scrollToTailRef?: RefObject<(() => void) | null>;
   className?: string;
 }
 
@@ -167,7 +167,7 @@ function LineBubble({
       <div className="animate-fade-up">
         {trigger}
         <p className="text-center text-[0.7813rem] leading-[1.6] text-tertiary">{text}</p>
-        {note && <p className="mt-1 text-center text-[0.75rem] leading-[1.6] text-faint">{note}</p>}
+        {note && <p className="mt-1 text-center text-[0.75rem] leading-[1.6] text-ink-faint">{note}</p>}
       </div>
     );
   }
@@ -225,7 +225,7 @@ function LineBubble({
             )}
           </div>
 
-          <p className="mt-1 text-[0.6875rem] leading-[1.5] text-faint">
+          <p className="mt-1 text-[0.6875rem] leading-[1.5] text-ink-faint">
             {protocol
               ? "검수된 고정 안내 · AI 생성 아님"
               : character
@@ -247,7 +247,7 @@ function LearnerBubble({ item }: { item: Extract<LogItem, { kind: "learner" }> }
         >
           {item.text}
         </div>
-        <p className="mt-1 text-right text-[0.6875rem] leading-[1.5] text-faint">
+        <p className="mt-1 text-right text-[0.6875rem] leading-[1.5] text-ink-faint">
           내 응답 · {item.viaButton ? "버튼 선택" : "말하기·직접 입력"}
         </p>
       </div>
@@ -270,21 +270,12 @@ function latestLineKey(items: LogItem[]): string {
   return "";
 }
 
-/** 마지막 대사의 화자 — 앵커 문구(「어르신이 새로 말씀하셨어요」)를 고르는 데 씁니다. */
-function latestLineSpeaker(items: LogItem[]): Speaker {
-  for (let i = items.length - 1; i >= 0; i -= 1) {
-    const item = items[i];
-    if (item && item.kind === "line") return item.speaker;
-  }
-  return "system";
-}
-
 /**
  * 대화 — 메신저 문법으로 쌓입니다 (시안 3a·4a).
  * 지문 → AI 말풍선 → 내 말풍선 → 인라인 코칭 순서로 흐르고, 카드는 쓰지 않습니다.
  *
- * 스크롤은 바깥(모바일은 페이지, md↑는 세션 본문)이 담당합니다. 새 내용이 쌓이면 언제나
- * **로그 바닥**까지 내려 드리고, 하단에 도킹된 컴포저 높이만큼은 여백으로 비워 둡니다.
+ * 스크롤은 바깥(모바일은 페이지, md↑는 세션 본문)이 담당합니다. 새 인물 대사가 붙으면
+ * **그 대사를 가시 띠 맨 위**에 세우고, 아래로 이어지는 코칭·돌발 변수는 앵커로 부릅니다.
  */
 export function DialogueLog({
   items,
@@ -293,53 +284,72 @@ export function DialogueLog({
   speaking = false,
   bottomInset = 0,
   autoScroll = true,
-  onLatestLineOffscreen,
-  scrollToLatestLineRef,
+  onTailOffscreen,
+  scrollToTailRef,
   className,
 }: DialogueLogProps) {
   const endRef = useRef<HTMLDivElement | null>(null);
   const latestLineRef = useRef<HTMLDivElement | null>(null);
+  /** 이미 자리를 잡아 드린 로그 끝 — 새 내용 없이 도크 높이만 바뀌었을 때 다시 움직이지 않게 합니다. */
+  const settledTailRef = useRef<string | null>(null);
+  /** 이미 맨 위에 세워 드린 대사 — 같은 턴 안에서 두 번 끌어당기지 않습니다. */
+  const settledLineRef = useRef<string | null>(null);
 
   const lineKey = latestLineKey(items);
-  const lineSpeaker = latestLineSpeaker(items);
+  /* 로그 끝을 가리키는 표 — 개수까지 넣어 「처음부터 다시」로 로그가 줄어든 경우도 새 상태로 봅니다. */
+  const tailKey = `${items.length}:${items[items.length - 1]?.key ?? ""}`;
 
-  /** 최신 인물 대사로 데려갑니다 — 컴포저 위 앵커가 부릅니다. */
-  const goToLatestLine = useCallback(() => {
-    latestLineRef.current?.scrollIntoView({ block: "start", behavior: scrollBehavior() });
+  /** 로그 끝(이어지는 코칭)까지 데려갑니다 — 컴포저 위 앵커가 부릅니다. */
+  const goToTail = useCallback(() => {
+    endRef.current?.scrollIntoView({ block: "end", behavior: scrollBehavior() });
   }, []);
 
   useEffect(() => {
-    if (!scrollToLatestLineRef) return undefined;
-    scrollToLatestLineRef.current = goToLatestLine;
+    if (!scrollToTailRef) return undefined;
+    scrollToTailRef.current = goToTail;
     return () => {
-      scrollToLatestLineRef.current = null;
+      scrollToTailRef.current = null;
     };
-  }, [goToLatestLine, scrollToLatestLineRef]);
+  }, [goToTail, scrollToTailRef]);
 
   /**
-   * 응답을 보내신 직후에는 **로그 바닥**까지 내려 드립니다.
-   * 이전에는 「직전 코칭 행」을 화면 가운데로 끌어왔는데, 그 뒤에 붙은 새 대사·돌발 변수 안내가
-   * 창 밖에 남아 못 본 내용에 답하게 되는 일이 있었습니다(가이드 §5 · 평가 c1).
-   * 하단 도킹된 컴포저 높이만큼은 `scroll-margin`으로 비워 둡니다.
+   * 응답을 보내신 직후에는 **이번 턴에 새로 붙은 인물 대사**를 가시 띠 맨 위에 세웁니다.
+   *
+   * 로그 바닥(`block:'end'`)에 맞추면, 한 턴이 만드는 증분(실측 450px)이 가시 띠(262px)보다
+   * 커서 정작 답해야 할 새 대사가 매 턴 띠 위로 밀려났습니다(평가 UI/UX m2 실측).
+   * 대사를 맨 위에 세우면 코칭·돌발 변수는 그 아래로 이어지므로 스크롤로 자연히 닿고,
+   * 화면 밖에 남는 동안에는 「이어지는 코칭 보기 ↓」 앵커가 길을 남깁니다.
+   * 새 대사가 없는 갱신(내 말풍선·초안 미리보기 등)에서는 예전처럼 바닥에 맞춥니다.
    */
   useEffect(() => {
     if (!autoScroll) return undefined;
+    /* 새 내용이 없으면 자리를 건드리지 않습니다. 앵커가 뜨면 도크가 두꺼워져 `bottomInset`이
+       바뀌는데, 그때 다시 스크롤하면 방금 맨 위에 세운 대사를 도로 바닥으로 끌어내립니다. */
+    if (settledTailRef.current === tailKey) return undefined;
+    settledTailRef.current = tailKey;
     const behavior = scrollBehavior();
+    const fresh = lineKey.length > 0 && settledLineRef.current !== lineKey;
+    settledLineRef.current = lineKey;
     const frame = window.requestAnimationFrame(() => {
+      const line = fresh ? latestLineRef.current : null;
+      if (line) {
+        line.scrollIntoView({ block: "start", behavior });
+        return;
+      }
       endRef.current?.scrollIntoView({ block: "end", behavior });
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [items, autoScroll, bottomInset]);
+  }, [autoScroll, bottomInset, lineKey, tailKey]);
 
   /**
-   * 새로 등장한 인물 대사가 화면 밖에 있으면 회수 경로(앵커)를 남깁니다.
+   * 로그 끝이 화면 밖이면 아래로 이어지는 내용이 남아 있다는 뜻입니다 — 앵커를 띄웁니다.
    * 도킹된 컴포저에 가려진 부분은 보이지 않는 것으로 셉니다.
    */
   useEffect(() => {
-    if (!onLatestLineOffscreen) return undefined;
-    const node = latestLineRef.current;
+    if (!onTailOffscreen) return undefined;
+    const node = endRef.current;
     if (!node || typeof IntersectionObserver === "undefined") {
-      onLatestLineOffscreen(false, lineSpeaker);
+      onTailOffscreen(false);
       return undefined;
     }
     // 자동 스크롤이 흘러가는 동안 앵커가 깜빡이지 않도록, 「안 보인다」는 잠시 기다렸다 알립니다.
@@ -350,10 +360,10 @@ export function DialogueLog({
         if (!entry) return;
         window.clearTimeout(timer);
         if (entry.isIntersecting) {
-          onLatestLineOffscreen(false, lineSpeaker);
+          onTailOffscreen(false);
           return;
         }
-        timer = window.setTimeout(() => onLatestLineOffscreen(true, lineSpeaker), 600);
+        timer = window.setTimeout(() => onTailOffscreen(true), 600);
       },
       { rootMargin: `0px 0px -${Math.max(0, Math.round(bottomInset))}px 0px`, threshold: 0 },
     );
@@ -361,9 +371,9 @@ export function DialogueLog({
     return () => {
       window.clearTimeout(timer);
       observer.disconnect();
-      onLatestLineOffscreen(false, lineSpeaker);
+      onTailOffscreen(false);
     };
-  }, [lineKey, lineSpeaker, bottomInset, onLatestLineOffscreen]);
+  }, [bottomInset, onTailOffscreen]);
 
   return (
     <div
@@ -379,7 +389,10 @@ export function DialogueLog({
               <div
                 key={item.key}
                 ref={item.key === lineKey ? latestLineRef : undefined}
-                className="scroll-mt-3"
+                /* 모바일에서는 페이지가 스크롤되고 헤더가 위에 도킹돼 있습니다 —
+                   그 실측 높이(--session-head-h)만큼 비워야 대사가 헤더 밑에 깔리지 않습니다.
+                   md↑에서는 본문 상자가 따로 스크롤하므로 헤더를 셈에 넣지 않습니다. */
+                className="scroll-mt-[calc(var(--session-head-h,0px)_+_12px)] md:scroll-mt-3"
               >
                 <LineBubble
                   item={item}

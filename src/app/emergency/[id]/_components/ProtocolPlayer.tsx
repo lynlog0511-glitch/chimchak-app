@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { ProtocolStep } from "@/types";
 import { EyebrowLabel, cx } from "@/components";
-import { isSpeechSynthesisSupported, primeVoices, stopSpeaking } from "@/lib/speech";
+import { isSpeechPlaybackSupported, primeVoices, stopSpeaking } from "@/lib/speech";
 import { Call119Bar } from "../../_components/Call119Bar";
 import {
   CONTROL_OUTLINE,
@@ -51,7 +51,7 @@ export function ProtocolPlayer({ title, steps, backHref }: ProtocolPlayerProps) 
 
   useEffect(() => {
     primeVoices();
-    setTtsSupported(isSpeechSynthesisSupported());
+    setTtsSupported(isSpeechPlaybackSupported());
   }, []);
 
   /* 상태줄은 지금 실제로 일어나는 일만 말합니다 — 소리가 없는데 「읽어 주는 중」이라고 하지 않습니다. */

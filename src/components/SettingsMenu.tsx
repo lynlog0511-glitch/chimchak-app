@@ -13,7 +13,7 @@ import {
   type FontScale,
   type SpeechRate,
 } from "@/lib/settings";
-import { isSpeechSynthesisSupported, speak, stopSpeaking } from "@/lib/speech";
+import { isSpeechPlaybackSupported, speak, stopSpeaking } from "@/lib/speech";
 import { cx } from "./utils";
 
 /** 「음성 빠르기」를 고르면 곧바로 이 한 문장을 읽어 줍니다 — 귀로 확인하고 고르시라고요. */
@@ -89,7 +89,7 @@ export function SettingsMenu({ className }: SettingsMenuProps) {
   // 저장된 값은 마운트 뒤에 읽습니다(서버 렌더 결과와 어긋나지 않게).
   useEffect(() => {
     setSettingsState(getSettings());
-    setVoiceSupported(isSpeechSynthesisSupported());
+    setVoiceSupported(isSpeechPlaybackSupported());
     return subscribeSettings(setSettingsState);
   }, []);
 

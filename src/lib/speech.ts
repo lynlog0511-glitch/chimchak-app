@@ -1,8 +1,8 @@
 /**
- * 침착(ChimChak) 음성 라이브러리 — Web Speech API 얇은 래퍼.
+ * 침착(ChimChak) 음성 라이브러리 — 사전 합성 오디오 + Web Speech API 얇은 래퍼.
  *
  * 원칙
- * - 브라우저 내장 API만 쓴다. **침착 서버로는 아무것도 보내지 않는다.**
+ * - 브라우저 내장 API와 **앱에 동봉한 오디오 파일**만 쓴다. **침착 서버로는 아무것도 보내지 않는다.**
  *   다만 음성 인식(STT)은 브라우저 내장 기능이며, 브라우저·기기에 따라 인식 처리가
  *   제조사 서버를 경유할 수 있다(webkitSpeechRecognition 계열). 이 파일은 그 사실을 숨기지 않고,
  *   타이핑 입력만으로도 전 구간을 완주할 수 있게 두는 것으로 경계를 지킨다.
@@ -12,9 +12,24 @@
  * - SSR 가드: 서버 렌더링 중에는 window가 없으므로 전부 안전하게 빠져나간다.
  * - 낭독 속도는 사용자 설정(설정 메뉴 「음성 빠르기」)을 따른다. 호출부는 아무것도 바꾸지 않아도 되고,
  *   특정 문장만 다른 속도로 읽어야 할 때만 opts.rate로 덮어쓴다.
+ *
+ * ── 사전 합성 오디오 ──────────────────────────────────────────────
+ * 이 앱의 대사는 **전부 사전 검수된 고정 문구**다. 런타임에 지어내는 문장이 없으므로,
+ * 빌드 전에 미리 합성해 `/audio/*.mp3`로 동봉해 두었다(`scripts/synthesize-audio.py`).
+ * speak()는 문장을 먼저 매니페스트에서 찾아 그 파일을 재생하고, 없을 때만 브라우저 TTS로 간다.
+ *
+ * - 런타임 외부 호출은 여전히 0건이다. 재생하는 것은 같은 출처의 정적 파일뿐이다.
+ * - 서비스워커가 응급 프로토콜 음성을 사전 캐시하므로 **비행기 모드에서도 소리가 난다**
+ *   (브라우저 TTS의 네트워크 보이스는 오프라인에서 무음이 되는 기기가 있다).
+ * - **speechSynthesis가 아예 없는 기기(구형 웹뷰·일부 안드로이드)에서도 오디오 경로는 그대로 동작한다.**
+ *   그래서 `isSpeechSynthesisSupported()`가 false여도 speak()는 소리를 낼 수 있다 —
+ *   이 함수는 「브라우저 TTS 폴백을 쓸 수 있는가」를 뜻할 뿐이다.
+ * - 매니페스트는 정적 import다(약 10KB). 첫 발화 전에 fetch를 기다리지 않아,
+ *   L3 프로토콜의 자동 진행이 네트워크 상태와 무관하게 같은 박자로 흐른다.
  */
 
-import { getSpeechRateValue } from "./settings";
+import manifestJson from "../../public/audio/manifest.json";
+import { getSettings, getSpeechRateValue, type SpeechRate } from "./settings";
 
 /* ── 브라우저 타입 (lib.dom 유무와 무관하게 쓰기 위해 지역 정의) ── */
 
@@ -98,6 +113,21 @@ export function isRecognitionSupported(): boolean {
 export function isSpeechSynthesisSupported(): boolean {
   const w = getWindow();
   return Boolean(w?.speechSynthesis);
+}
+
+/**
+ * 이 기기에서 **낭독 소리를 낼 수 있는지** — 동봉 오디오와 브라우저 TTS 중 하나라도 되면 true.
+ *
+ * 화면에 「음성을 지원하지 않습니다」라고 알릴지는 이 함수로 판단한다.
+ * `isSpeechSynthesisSupported()`는 브라우저 TTS 하나만 보므로, speechSynthesis가 없는
+ * 구형 웹뷰에서 **실제로는 동봉 오디오로 소리가 나는데도** 안 난다고 말하게 된다.
+ *
+ * @example
+ * setVoiceSupported(isSpeechPlaybackSupported());
+ */
+export function isSpeechPlaybackSupported(): boolean {
+  if (isSpeechSynthesisSupported()) return true;
+  return typeof Audio !== "undefined" && Object.keys(AUDIO_MANIFEST).length > 0;
 }
 
 /* ── 인식(STT) ─────────────────────────────────────────── */
@@ -226,12 +256,126 @@ export interface SpeakOptions {
   /**
    * 기본 0.95 — 고령 사용자를 위해 조금 느리게.
    * 값을 주지 않으면 사용자 설정을 따른다(느리게 0.8 · 표준 0.95 · 빠르게 1.1).
+   *
+   * **브라우저 TTS 경로에만 적용된다.** 사전 합성 오디오는 이미 화자별 속도로 합성돼 있고,
+   * 사용자 설정만 재생 배속으로 반영한다(아래 AUDIO_PLAYBACK_RATE).
    */
   rate?: number;
   pitch?: number;
   volume?: number;
   lang?: string;
 }
+
+/* ── 사전 합성 오디오 ───────────────────────────────────── */
+
+/** 매니페스트 한 줄 — f: 파일명, e: 1이면 응급 프로토콜(서비스워커 사전 캐시 대상) */
+interface AudioEntry {
+  f: string;
+  e?: number;
+}
+
+/**
+ * 문장 → 동봉 오디오 파일. 키는 **speak()에 실제로 들어오는 문자열(trim 후)** 그대로다.
+ * `scripts/synthesize-audio.py`가 데이터 파일에서 뽑아 만든다.
+ */
+const AUDIO_MANIFEST = manifestJson as Record<string, AudioEntry>;
+
+const AUDIO_DIR = "/audio/";
+
+/**
+ * 「음성 빠르기」 설정 → 오디오 재생 배속.
+ * 합성 시점에 이미 화자별로 느리게 잡아 두었으므로, 설정은 그 위에 얹는 미세 조정이다.
+ * (SpeechSynthesis의 0.8/0.95/1.1보다 폭이 좁다 — 배속을 크게 흔들면 뉴럴 음성이 상한다.)
+ * preservesPitch는 건드리지 않는다(기본값 유지 — 배속을 바꿔도 목소리 높이는 그대로).
+ */
+const AUDIO_PLAYBACK_RATE: Record<SpeechRate, number> = {
+  slow: 0.85,
+  standard: 1,
+  fast: 1.15,
+};
+
+/** 지금 재생 중인 동봉 오디오와, 그 재생을 기다리는 쪽을 매듭지을 손잡이. */
+let currentAudio: HTMLAudioElement | null = null;
+let settleCurrentAudio: ((played: boolean) => void) | null = null;
+
+/**
+ * 재생 중인 동봉 오디오를 즉시 멈춘다.
+ * 기다리던 speak()는 「재생을 마친 것」으로 매듭짓는다 — 중단됐다고 폴백으로 넘어가면
+ * 멈추라고 했는데 브라우저 TTS가 대신 읽기 시작하는 사고가 난다.
+ */
+function stopAudio(): void {
+  const audio = currentAudio;
+  const settle = settleCurrentAudio;
+  currentAudio = null;
+  settleCurrentAudio = null;
+  if (audio) {
+    audio.onended = null;
+    audio.onerror = null;
+    try {
+      audio.pause();
+      audio.currentTime = 0;
+    } catch {
+      /* 무시 */
+    }
+  }
+  settle?.(true);
+}
+
+/**
+ * 동봉 오디오를 끝까지 재생한다.
+ * @returns 재생을 맡았으면 true(끝까지 재생 또는 중간에 중단됨), 재생하지 못했으면 false(폴백해야 함)
+ */
+function playPrepared(file: string): Promise<boolean> {
+  if (typeof Audio === "undefined") return Promise.resolve(false);
+
+  return new Promise<boolean>((resolve) => {
+    let settled = false;
+    const settle = (played: boolean): void => {
+      if (settled) return;
+      settled = true;
+      resolve(played);
+    };
+
+    let audio: HTMLAudioElement;
+    try {
+      audio = new Audio(AUDIO_DIR + file);
+    } catch {
+      settle(false);
+      return;
+    }
+
+    audio.preload = "auto";
+    audio.playbackRate = AUDIO_PLAYBACK_RATE[getSettings().speechRate];
+
+    currentAudio = audio;
+    settleCurrentAudio = settle;
+
+    const finish = (played: boolean): void => {
+      if (currentAudio === audio) {
+        currentAudio = null;
+        settleCurrentAudio = null;
+      }
+      audio.onended = null;
+      audio.onerror = null;
+      settle(played);
+    };
+
+    audio.onended = () => finish(true);
+    // 파일이 없거나(404) 디코딩에 실패하면 조용히 브라우저 TTS로 넘긴다.
+    audio.onerror = () => finish(false);
+
+    try {
+      const started = audio.play();
+      // 자동재생 차단 등으로 시작하지 못하면 폴백한다.
+      // 중단(stopAudio)으로 인한 거부는 이미 settled 상태라 아무 일도 일어나지 않는다.
+      if (started && typeof started.catch === "function") started.catch(() => finish(false));
+    } catch {
+      finish(false);
+    }
+  });
+}
+
+/* ── 브라우저 TTS ──────────────────────────────────────── */
 
 let voicesCache: SpeechSynthesisVoice[] = [];
 
@@ -314,17 +458,9 @@ export function primeVoices(): void {
   }
 }
 
-/**
- * 진행 중인 발화를 멈춘다.
- *
- * @example
- * stopSpeaking();
- */
-export function stopSpeaking(): void {
-  // 아직 재생되지 않은 예약분까지 무효로 만든다.
-  speakGeneration += 1;
-  const w = getWindow();
-  const synth = w?.speechSynthesis;
+/** 브라우저 TTS 큐를 비운다(예약분 포함). */
+function cancelSynthesis(): void {
+  const synth = getWindow()?.speechSynthesis;
   if (!synth) return;
   try {
     synth.cancel();
@@ -334,28 +470,64 @@ export function stopSpeaking(): void {
 }
 
 /**
+ * 진행 중인 발화를 멈춘다 — 동봉 오디오와 브라우저 TTS 양쪽 다.
+ *
+ * @example
+ * stopSpeaking();
+ */
+export function stopSpeaking(): void {
+  // 아직 재생되지 않은 예약분까지 무효로 만든다.
+  speakGeneration += 1;
+  stopAudio();
+  cancelSynthesis();
+}
+
+/**
  * 문장을 읽어 준다. 진행 중인 발화는 취소하고 새로 재생한다.
- * 미지원 환경에서는 즉시 resolve하는 no-op이다(자막은 화면에 그대로 남는다).
+ *
+ * 같은 문장의 사전 합성 오디오가 동봉돼 있으면 그것을 재생하고, 없거나 재생에 실패하면
+ * 조용히 브라우저 TTS로 넘어간다. 둘 다 쓸 수 없는 환경에서는 즉시 resolve하는 no-op이다
+ * (자막은 화면에 그대로 남는다).
+ *
+ * 어느 경로든 **재생이 끝나야 resolve한다** — L3 응급 프로토콜의 자동 진행이 이 약속에 기대고 있다.
+ * 중간에 새 speak()나 stopSpeaking()이 들어오면 그 자리에서 멈추고 resolve한다.
  *
  * @example
  * await speak("어르신, 지금 어디 가시려고요?");
  */
 export function speak(text: string, opts: SpeakOptions = {}): Promise<void> {
-  const w = getWindow();
-  const synth = w?.speechSynthesis;
-  if (!synth || typeof SpeechSynthesisUtterance === "undefined") return Promise.resolve();
   const content = (text ?? "").trim();
   if (content.length === 0) return Promise.resolve();
 
   const generation = (speakGeneration += 1);
+  // 진행 중이던 소리는 경로를 가리지 않고 먼저 끊는다.
+  stopAudio();
+  cancelSynthesis();
+
+  const entry = AUDIO_MANIFEST[content];
+  if (!entry) return speakWithSynthesis(content, opts, generation);
+
+  return playPrepared(entry.f).then((played) => {
+    if (played) return undefined;
+    // 재생에 실패한 사이에 다음 발화가 들어왔으면 조용히 물러난다.
+    if (generation !== speakGeneration) return undefined;
+    return speakWithSynthesis(content, opts, generation);
+  });
+}
+
+/**
+ * 브라우저 TTS로 읽는다(동봉 오디오가 없거나 재생하지 못했을 때의 폴백).
+ * 호출 전에 이미 cancel()이 끝나 있다고 전제한다.
+ */
+function speakWithSynthesis(
+  content: string,
+  opts: SpeakOptions,
+  generation: number,
+): Promise<void> {
+  const synth = getWindow()?.speechSynthesis;
+  if (!synth || typeof SpeechSynthesisUtterance === "undefined") return Promise.resolve();
 
   return new Promise<void>((resolve) => {
-    try {
-      synth.cancel();
-    } catch {
-      /* 무시 */
-    }
-
     const utterance = new SpeechSynthesisUtterance(content);
     utterance.lang = opts.lang ?? LANG;
     // rate를 주지 않으면 사용자가 고른 「음성 빠르기」를 쓴다(설정이 없으면 표준 0.95).

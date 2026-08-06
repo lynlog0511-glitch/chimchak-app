@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "audio": "python scripts/synthesize-audio.py",
+    "audio:verify": "node scripts/verify-audio-manifest.mjs"
   },
   "dependencies": {
     "next": "^15.5.0",

@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { ChevronGlyph } from "@/components/icons";
 import Link from "next/link";
 import { BigButton, InlineDisclaimer, SourceChip } from "@/components";
 import { progressStepCount, type SessionProgress } from "@/lib/storage";
@@ -88,12 +89,7 @@ function Fold({ title, children }: { title: string; children: ReactNode }) {
     <details className="group border-t border-line">
       <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 px-[2px] py-[12px] text-[0.9375rem] leading-[1.45] font-semibold text-ink [&::-webkit-details-marker]:hidden">
         <span>{title}</span>
-        <span
-          aria-hidden
-          className="flex-none text-[0.8438rem] leading-none text-ink-ghost transition-transform duration-150 group-open:rotate-180"
-        >
-          ⌄
-        </span>
+        <ChevronGlyph size="sm" className="flex-none text-ink-ghost group-open:rotate-180" />
       </summary>
       <div className="px-[2px] pb-5">{children}</div>
     </details>
@@ -243,6 +239,13 @@ export function BriefingPanel({
           화면 맨 아래 11.5px 각주로는 시작 버튼을 누르는 순간 눈에 들어오지 않았습니다. */}
       <p className="mt-[14px] text-[1rem] leading-[1.6] font-semibold text-ink-soft">
         마이크가 없어도 버튼만으로 끝까지 할 수 있어요.
+      </p>
+
+      {/* 소리 예고 — 시작 버튼을 누르는 순간 대사가 그대로 재생됩니다(TrainSession의 ttsOn 기본값).
+          어르신 댁이나 대중교통에서 누르는 분께는 이 사실이 먼저 필요합니다(평가 초보 m4).
+          끄는 자리(세션 헤더의 「소리 끄기」)까지 같은 줄에 알려 드립니다. */}
+      <p className="mt-1.5 text-[0.9375rem] leading-[1.6] text-ink-soft">
+        시작하면 어르신 목소리가 나옵니다 — 소리 끄기는 화면 위에 있어요.
       </p>
 
       {/* 시작 버튼은 접힘보다 위, 첫 화면 안에 있습니다(시안 6f의 핵심).

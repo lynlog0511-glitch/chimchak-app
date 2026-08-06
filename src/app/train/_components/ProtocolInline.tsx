@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronGlyph } from "@/components/icons";
 import { BigButton } from "@/components";
 import { cx } from "@/components/utils";
 import { Call119Bar } from "@/app/emergency/_components/Call119Bar";
@@ -158,12 +159,7 @@ export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolI
       <details className="group mt-5 border-t border-line">
         <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 text-[0.8438rem] font-semibold text-ink-soft [&::-webkit-details-marker]:hidden">
           <span>이 앱이 하지 않는 것</span>
-          <span
-            aria-hidden
-            className="text-[0.7813rem] text-faint transition-transform duration-150 group-open:rotate-180"
-          >
-            ⌄
-          </span>
+          <ChevronGlyph size="sm" className="text-faint group-open:rotate-180" />
         </summary>
         <ul className="chim-hairline pb-2">
           {protocol.notDoing.map((item) => (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { BigButton, InlineDisclaimer } from "@/components";
+import { BigButton, InlineDisclaimer, SettingsMenu } from "@/components";
 import { cx } from "@/components/utils";
 import { buildRecord, currentCue, currentTurn, protocolIdOf, resolveEnding } from "@/engine";
 import { isRecognitionSupported, primeVoices, speak, stopSpeaking } from "@/lib/speech";
@@ -15,7 +15,7 @@ import {
 import type { EmergencyProtocol, Scenario } from "@/types";
 import { BriefingPanel } from "./BriefingPanel";
 import { CriticalInterrupt } from "./CriticalInterrupt";
-import { CueResponder } from "./CueResponder";
+import { CueResponder, DOCK_MAX_RATIO } from "./CueResponder";
 import { DialogueLog } from "./DialogueLog";
 import { EndingPanel } from "./EndingPanel";
 import { ProtocolInline } from "./ProtocolInline";
@@ -149,15 +149,32 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
      md↑ 2단에서는 도크가 대화 아래 자기 자리에 서므로 가리는 것이 없어 0입니다. */
   const [dockNode, setDockNode] = useState<HTMLDivElement | null>(null);
   const [dockHeight, setDockHeight] = useState(0);
+  /**
+   * 로그 꼬리가 가려졌는지 재는 데 쓰는 **고정** 도크 높이 — 앵커가 없을 때의 값입니다.
+   *
+   * 앵커는 도크 안에 렌더되므로 앵커가 뜨면 도크가 두꺼워집니다. 그 값을 그대로 관찰자에 물리면
+   * 「앵커가 뜬다 → 도크가 커진다 → 관찰자가 다시 만들어진다 → 앵커가 꺼진다」가 됩니다
+   * (평가 UI/UX m2의 자기취소 루프). 그래서 앵커가 떠 있는 동안에는 이 값을 갱신하지 않습니다 —
+   * 앵커가 스스로의 판단 근거를 바꾸지 못합니다.
+   */
+  const [dockLimit, setDockLimit] = useState(0);
+  /** 지금 앵커가 떠 있는지 — 위 값의 갱신을 멈추는 표시(효과를 다시 돌리지 않으려고 ref로 둡니다) */
+  const anchorShownRef = useRef(false);
 
   useEffect(() => {
     if (!dockNode) {
       setDockHeight(0);
+      setDockLimit(0);
       return undefined;
     }
     const desktop = window.matchMedia("(min-width: 768px)");
     const measure = () => {
-      setDockHeight(desktop.matches ? 0 : Math.round(dockNode.getBoundingClientRect().height));
+      const height = desktop.matches ? 0 : Math.round(dockNode.getBoundingClientRect().height);
+      setDockHeight(height);
+      if (anchorShownRef.current) return;
+      /* 도크는 CSS로도 45dvh를 넘지 않지만, 관찰자 쪽 상한을 한 번 더 걸어 둡니다 —
+         이 값이 커질수록 「가려졌다」고 보는 띠가 넓어집니다. */
+      setDockLimit(Math.min(height, Math.round(window.innerHeight * DOCK_MAX_RATIO)));
     };
     measure();
     const observer =
@@ -175,6 +192,11 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   /** 새 대사 아래로 이어지는 코칭이 화면 밖일 때 컴포저 위에 뜨는 앵커 */
   const [tailOffscreen, setTailOffscreen] = useState(false);
   const scrollToTailRef = useRef<(() => void) | null>(null);
+  /** 앵커가 뜨고 지는 순간 도크 높이 갱신을 멈추도록, 상태보다 **먼저** 표시를 바꿔 둡니다. */
+  const handleTailOffscreen = useCallback((offscreen: boolean) => {
+    anchorShownRef.current = offscreen;
+    setTailOffscreen(offscreen);
+  }, []);
 
   /** 엔딩 패널 — 완주 직후 이 자리를 화면 맨 위로 끌어옵니다 */
   const endingRef = useRef<HTMLDivElement | null>(null);
@@ -494,6 +516,10 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
             progress={progress}
             action={
               <div className="-mr-2 flex items-center">
+                {/* 글자 크기 — 세션 안에는 진입점이 0건이라, 대사가 작다고 느낀 분이 훈련을 나갔다가
+                    홈까지 가서 설정하고 돌아와야 했습니다(평가 UI/UX mi5 · 초보 m2).
+                    「소리 끄기」와 같은 문법의 텍스트 버튼 하나로 같은 팝오버를 엽니다. */}
+                <SettingsMenu label="글자 크기" align="screen" />
                 <button
                   type="button"
                   onClick={toggleTts}
@@ -548,13 +574,20 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
                   emotion={emotion}
                   speaking={speakingKey.length > 0}
                   bottomInset={dockHeight}
+                  tailInset={dockLimit}
                   autoScroll={!ended}
-                  onTailOffscreen={composing ? setTailOffscreen : undefined}
+                  onTailOffscreen={composing ? handleTailOffscreen : undefined}
                   scrollToTailRef={scrollToTailRef}
                 />
 
                 {ended && record ? (
-                  <div ref={endingRef} className="scroll-mt-3">
+                  /* 대사 줄과 같은 규칙으로 헤더 실측 높이를 비웁니다 —
+                     `scroll-mt-3`만 두면 완주 직후 ✓ 54px 마크의 87%가 sticky 헤더에 깔립니다
+                     (「아주 크게」에서는 제목 줄까지 통째로 — 평가 UI/UX mi3 실측). */
+                  <div
+                    ref={endingRef}
+                    className="scroll-mt-[calc(var(--session-head-h,0px)_+_12px)] md:scroll-mt-3"
+                  >
                     <EndingPanel
                       scenario={scenario}
                       session={state.session}

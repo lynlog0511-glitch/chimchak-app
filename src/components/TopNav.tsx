@@ -33,7 +33,7 @@ export function TopNav({ active, className }: TopNavProps) {
     <div className={cx("chim-topnav", className)}>
       <div className="flex items-center px-10 py-[3px]">
         {/* 워드마크는 링크가 아닙니다 — 바로 옆이 「홈」이라 같은 곳으로 가는 문이 둘일 필요가 없습니다. */}
-        <span className="mr-[18px] flex min-h-[48px] flex-none items-center text-[1.125rem] leading-none font-extrabold tracking-[-0.01em] text-brand-800">
+        <span className="mr-[18px] flex min-h-[48px] flex-none items-center text-[1.125rem] leading-[1.3] font-extrabold tracking-[-0.01em] text-brand-800">
           침착
         </span>
 
@@ -47,7 +47,7 @@ export function TopNav({ active, className }: TopNavProps) {
                     href={item.href}
                     aria-current={isActive ? "page" : undefined}
                     className={cx(
-                      "flex min-h-[48px] items-center px-[10px] text-[0.8438rem] leading-none",
+                      "flex min-h-[48px] items-center px-[10px] text-[0.8438rem] leading-[1.3]",
                       "transition-colors duration-150",
                       isActive
                         ? item.danger

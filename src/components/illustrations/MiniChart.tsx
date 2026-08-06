@@ -140,7 +140,7 @@ export function ShareBarChart({
 
       <ChartAxis ticks={ticks.map((t) => ({ pos: t, label: String(t) }))} unit="%" />
 
-      <p className="chim-caption mt-1 leading-relaxed text-ink-muted">{baseNote}</p>
+      <p className="chim-caption mt-1 leading-[1.6] text-ink-muted">{baseNote}</p>
     </div>
   );
 }
@@ -221,7 +221,7 @@ export function ScaleBarChart({
         unit={unit}
       />
 
-      <p className="chim-caption mt-1 leading-relaxed text-ink-muted">{baseNote}</p>
+      <p className="chim-caption mt-1 leading-[1.6] text-ink-muted">{baseNote}</p>
     </div>
   );
 }

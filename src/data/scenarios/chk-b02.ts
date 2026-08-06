@@ -367,7 +367,10 @@ export const CHK_B02: Scenario = {
               "응급",
             ],
             fallbackOption: "119! 지금 신고하겠습니다. 소리를 못 내십니다.",
-            gaugeDelta: 0,
+            // 게이지는 학습자 수행이 아니라 **어르신 상태**를 나타냅니다. 돌발 변수 T-1에서
+            // 부분 폐쇄가 완전 폐쇄로 바뀌었으므로, 판단이 옳았더라도 긴장도는 올라갑니다.
+            // (여기가 0이면 완전 기도폐쇄 구간 내내 지표가 멈춰 있습니다.)
+            gaugeDelta: 1,
             aiReaction: "(무음)",
             aiReactionNote:
               "여기서부터 화면이 응급 음성 가이드로 전환됩니다. 생성 호출이 없는 고정 스크립트 구간입니다.",
@@ -386,6 +389,8 @@ export const CHK_B02: Scenario = {
             // "어르신"은 호칭일 뿐이라 신고 지연 신호가 될 수 없어 뺐습니다.
             patterns: ["괜찮으세요", "정신 차리", "등을 두드", "두드리", "말을 걸", "이름을 부르"],
             fallbackOption: "어르신! 괜찮으세요? 어르신!",
+            // 전환(+1)에 더해 지연분을 더 올리지 않습니다 — D1-b·D1-f로 이미 한 칸 올라온
+            // 경로에서 여기가 2가 되면 위기치(5)에 닿아 P-02 인계 전에 세션이 끊깁니다.
             gaugeDelta: 1,
             aiReaction: "(무음)",
             aiReactionNote: "4초가 지나 시스템이 자동으로 개입합니다. 신고 지연이 기록됩니다.",
@@ -546,7 +551,10 @@ export const CHK_B02: Scenario = {
             ],
             fallbackOption:
               "12시 20분 점심 식사 중 사레, 12시 22분 소리 나오지 않음. 뇌졸중 후 편마비, 연하 저하로 죽식 중이셨습니다. 기침 소실, 목 움켜쥠, 입술 청색, 119 신고 12시 22분입니다. 이송 후 기관과 보호자께 연락 부탁드립니다.",
-            gaugeDelta: 0,
+            // 구급대 인계로 상황이 응급팀에게 넘어갑니다 — T-1에서 올라간 긴장도가 내려오는
+            // 자리입니다. 인계가 이루어지면 어느 분기든 한 칸 내려가고, 4요소를 갖춘 인계는
+            // 한 칸 더 내려갑니다(하강 값은 위기치 계산에 들어가지 않습니다).
+            gaugeDelta: -2,
             aiReaction: "확인했습니다. 인계 받겠습니다.",
             rubricHits: [
               { itemId: "CL-01", score: 4 },
@@ -569,7 +577,7 @@ export const CHK_B02: Scenario = {
               "보호자",
             ],
             fallbackOption: "식사 중에 사레가 들려서 소리가 안 나셔서 신고했습니다",
-            gaugeDelta: 0,
+            gaugeDelta: -1,
             aiReaction: "확인했습니다. 인계 받겠습니다.",
             rubricHits: [
               { itemId: "CL-01", score: 2 },
@@ -585,7 +593,7 @@ export const CHK_B02: Scenario = {
             label: "감정·추정 위주 인계",
             patterns: ["갑자기", "너무 놀랐", "정신이 없", "제 잘못", "무서웠"],
             fallbackOption: "갑자기 그러셔서 너무 놀랐습니다",
-            gaugeDelta: 0,
+            gaugeDelta: -1,
             aiReaction: "확인했습니다. 인계 받겠습니다.",
             rubricHits: [
               { itemId: "CL-02", score: 1 },
@@ -599,7 +607,8 @@ export const CHK_B02: Scenario = {
             id: "S-d",
             label: "인계 없음",
             patterns: [],
-            gaugeDelta: 0,
+            // 인계 문장이 없어도 구급대가 자체 확인 후 이송하므로 상황 자체는 넘어갑니다.
+            gaugeDelta: -1,
             aiReaction: "구급대가 자체 확인 후 이송합니다.",
             rubricHits: [{ itemId: "CL-01", score: 1 }],
             coaching: "인계 한 문장이 병원에서의 첫 판단을 바꿉니다. 시각부터 말씀해 보세요.",
@@ -673,8 +682,13 @@ export const CHK_B02: Scenario = {
             label: "감정 맞대응",
             patterns: ["그렇게 말씀하시면", "저도 사람", "말씀이 심하", "왜 저한테"],
             fallbackOption: "그렇게 말씀하시면 저도 곤란합니다",
-            // 게이지 변동 0 — 설계서는 B02에 ▲를 정의하지 않습니다. 긴장도 상승은 이상징후 방치(D1-b·D1-f)와
-            // 신고 지연(D3-b)에만 두어, 보고·기록 CUE 전에 위기 엔딩으로 끊기지 않도록 했습니다.
+            // 게이지 변동 0 — 이송이 끝난 뒤의 통화이므로 어르신 상태와는 무관합니다.
+            //
+            // B02 긴장도 배선 (시작 2 · 위기치 5)
+            //   ▲ 이상징후 방치(D1-b·D1-f) +1 / 완전 폐쇄 전환(D3-a·D3-b) +1
+            //   ▼ 구급대 인계(S-a −2 · S-b·S-c·S-d −1)
+            //   상승 합은 최대 2(=4)라 위기치에 닿지 않습니다 — 보고·기록 CUE 전에 위기 엔딩으로
+            //   끊기면 안 되기 때문입니다. 상승 값을 올리실 때는 이 합을 먼저 확인해 주세요.
             gaugeDelta: 0,
             aiReaction: "지금 저한테 화내시는 거예요?",
             rubricHits: [{ itemId: "RE-06", score: 1 }],

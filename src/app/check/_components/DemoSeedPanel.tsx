@@ -11,6 +11,7 @@ import {
   seedDemoRecords,
 } from "@/lib/demoSeed";
 import { formatDateTime } from "@/app/history/_components/format";
+import { DemoJumpPanel } from "./DemoJumpPanel";
 
 interface SeedState {
   sessions: number;
@@ -64,60 +65,66 @@ export function DemoSeedPanel() {
   const seeded = mounted && state.sessions + state.reports > 0;
 
   return (
-    <section aria-labelledby="demo-seed-title" className="mt-[18px] rounded-[14px] bg-paper-2 px-4 py-[14px]">
-      <h2 id="demo-seed-title" className="text-[0.875rem] leading-[1.45] font-extrabold text-ink">
-        시연용 예시 기록
-      </h2>
+    <>
+      <section aria-labelledby="demo-seed-title" className="mt-[18px] rounded-[14px] bg-paper-2 px-4 py-[14px]">
+        <h2 id="demo-seed-title" className="text-[0.8438rem] leading-[1.45] font-extrabold text-ink">
+          시연용 예시 기록
+        </h2>
 
-      <p aria-live="polite" className="mt-[5px] text-[0.7813rem] leading-[1.6] text-ink-soft">
-        {!mounted
-          ? "이 기기의 상태를 확인하는 중입니다…"
-          : seeded
-            ? `예시 훈련 ${state.sessions}회 · 예시 보고 ${state.reports}건이 심겨 있습니다.${
-                state.seededAt ? ` 심은 시각 ${formatDateTime(state.seededAt)}.` : ""
-              }`
-            : "지금은 심겨 있지 않습니다. 깨끗한 기기에서는 성장 기록과 이수 확인서가 빈 화면입니다."}
-      </p>
-
-      <div className="mt-[12px] flex flex-wrap gap-2">
-        <BigButton onClick={handleSeed} variant="secondary" disabled={!mounted}>
-          예시 기록 심기
-        </BigButton>
-        <BigButton onClick={handleClear} variant="secondary" disabled={!mounted || !seeded}>
-          예시 기록 지우기
-        </BigButton>
-      </div>
-
-      {notice.length > 0 && (
-        <p aria-live="polite" className="mt-[10px] text-[0.7813rem] leading-[1.6] font-semibold text-ink">
-          {notice}
+        <p aria-live="polite" className="mt-[5px] text-[0.7813rem] leading-[1.6] text-ink-soft">
+          {!mounted
+            ? "이 기기의 상태를 확인하는 중입니다…"
+            : seeded
+              ? `예시 훈련 ${state.sessions}회 · 예시 보고 ${state.reports}건이 심겨 있습니다.${
+                  state.seededAt ? ` 심은 시각 ${formatDateTime(state.seededAt)}.` : ""
+                }`
+              : "지금은 심겨 있지 않습니다. 깨끗한 기기에서는 성장 기록과 이수 확인서가 빈 화면입니다."}
         </p>
-      )}
 
-      <p className="mt-[12px] text-[0.7813rem] leading-[1.6] text-ink-soft">
-        심는 것: {DEMO_SEED_SUMMARY}. 화면에는 전부 「예시」로 표시되고, 이수 확인서는 「예시
-        미리보기」가 되어 발급번호 자리에 「예시 — 발급되지 않음」이 인쇄됩니다.
-      </p>
-      <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
-        이수 시수 누계에는 넣지 않습니다 — 지우시면 이 기기의 이수 회차와 시수는 심기 전 값으로
-        그대로 돌아옵니다. 지우기는 예시만 지우고 진짜 기록은 남깁니다.
-      </p>
+        <div className="mt-[12px] flex flex-wrap gap-2">
+          <BigButton onClick={handleSeed} variant="secondary" disabled={!mounted}>
+            예시 기록 심기
+          </BigButton>
+          <BigButton onClick={handleClear} variant="secondary" disabled={!mounted || !seeded}>
+            예시 기록 지우기
+          </BigButton>
+        </div>
 
-      <div className="mt-[10px] flex flex-wrap gap-x-4">
-        <Link
-          href="/history"
-          className="inline-flex min-h-[48px] items-center text-[0.8125rem] font-bold text-brand-700"
-        >
-          성장 기록 열기 ›
-        </Link>
-        <Link
-          href="/history/certificate"
-          className="inline-flex min-h-[48px] items-center text-[0.8125rem] font-bold text-brand-700"
-        >
-          이수 확인서 열기 ›
-        </Link>
-      </div>
-    </section>
+        {notice.length > 0 && (
+          <p aria-live="polite" className="mt-[10px] text-[0.7813rem] leading-[1.6] font-semibold text-ink">
+            {notice}
+          </p>
+        )}
+
+        <p className="mt-[12px] text-[0.7813rem] leading-[1.6] text-ink-soft">
+          심는 것: {DEMO_SEED_SUMMARY}. 화면에는 전부 「예시」로 표시되고, 이수 확인서는 「예시
+          미리보기」가 되어 발급번호 자리에 「예시 — 발급되지 않음」이 인쇄됩니다.
+        </p>
+        <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
+          이수 시수 누계에는 넣지 않습니다 — 지우시면 이 기기의 이수 회차와 시수는 심기 전 값으로
+          그대로 돌아옵니다. 지우기는 예시만 지우고 진짜 기록은 남깁니다.
+        </p>
+
+        <div className="mt-[10px] flex flex-wrap gap-x-4">
+          <Link
+            href="/history"
+            className="inline-flex min-h-[48px] items-center text-[0.8438rem] font-bold text-brand-700"
+          >
+            성장 기록 열기 ›
+          </Link>
+          <Link
+            href="/history/certificate"
+            className="inline-flex min-h-[48px] items-center text-[0.8438rem] font-bold text-brand-700"
+          >
+            이수 확인서 열기 ›
+          </Link>
+        </div>
+      </section>
+
+      {/* 시연 프리셋(?demo=) 진입점 — 예시 시드 바로 아래가 발표자 도구의 자리입니다.
+          (/check/page.tsx는 다른 구역 파일이라 건드리지 않고 여기서 이어 붙입니다.) */}
+      <DemoJumpPanel />
+    </>
   );
 }
 

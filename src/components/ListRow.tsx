@@ -85,7 +85,7 @@ export function ListRow({
         )}
       </span>
       {trailing ?? (
-        <span aria-hidden className="flex-none text-[1.0625rem] leading-none text-faint">
+        <span aria-hidden className="flex-none text-[1.0625rem] leading-[1.3] text-faint">
           ›
         </span>
       )}

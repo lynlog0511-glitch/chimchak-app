@@ -33,6 +33,14 @@ export interface DialogueLogProps {
    * 모바일에서는 컴포저가 화면 아래에 붙어 있으므로, 그 높이만큼 여백을 두고 스크롤합니다.
    */
   bottomInset?: number;
+  /**
+   * 로그 꼬리가 도크에 가려졌는지 볼 때 쓰는 **고정** 하단 여백(px) — 도크 상한(45dvh)입니다.
+   *
+   * 실제 도크 높이(`bottomInset`)를 쓰면 앵커가 뜨는 순간 도크가 두꺼워지고, 그 값이 바뀌어
+   * 관찰자가 다시 만들어지며, 정리 단계가 방금 켠 앵커를 도로 끕니다(자기취소 루프 · 평가 UI/UX m2).
+   * 이 값은 뷰포트 크기와 화면 폭에만 반응하므로 앵커가 떠도 흔들리지 않습니다.
+   */
+  tailInset?: number;
   /** 새 내용이 쌓일 때 자동으로 자리를 잡을지 (엔딩에서는 화면이 직접 자리를 잡습니다) */
   autoScroll?: boolean;
   /**
@@ -283,6 +291,7 @@ export function DialogueLog({
   emotion,
   speaking = false,
   bottomInset = 0,
+  tailInset = 0,
   autoScroll = true,
   onTailOffscreen,
   scrollToTailRef,
@@ -344,7 +353,16 @@ export function DialogueLog({
   /**
    * 로그 끝이 화면 밖이면 아래로 이어지는 내용이 남아 있다는 뜻입니다 — 앵커를 띄웁니다.
    * 도킹된 컴포저에 가려진 부분은 보이지 않는 것으로 셉니다.
+   *
+   * 가림 폭은 **도크 상한(`tailInset`)** 하나로 고정합니다. 예전에는 실측 도크 높이를 썼는데,
+   * 앵커가 도크 안에 렌더되므로 앵커가 뜨는 순간 도크가 두꺼워지고 → 이 효과가 다시 돌고 →
+   * 정리 단계의 `onTailOffscreen(false)`가 방금 켠 앵커를 껐습니다. 꼬리가 확실히 접힘 아래인
+   * 상태에서 3초를 재도 앵커가 DOM에 한 번도 뜨지 않던 자리입니다(평가 UI/UX m2 실측).
+   *
+   * 12px은 되돌아올 여지입니다 — 앵커를 눌러 꼬리를 도크 바로 위까지 끌어왔을 때
+   * 경계에 딱 걸려 앵커가 그대로 남는 것을 막습니다.
    */
+  const observersRef = useRef(0);
   useEffect(() => {
     if (!onTailOffscreen) return undefined;
     const node = endRef.current;
@@ -354,6 +372,7 @@ export function DialogueLog({
     }
     // 자동 스크롤이 흘러가는 동안 앵커가 깜빡이지 않도록, 「안 보인다」는 잠시 기다렸다 알립니다.
     let timer = 0;
+    const margin = Math.max(0, Math.round(tailInset) - 12);
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries[entries.length - 1];
@@ -365,15 +384,21 @@ export function DialogueLog({
         }
         timer = window.setTimeout(() => onTailOffscreen(true), 600);
       },
-      { rootMargin: `0px 0px -${Math.max(0, Math.round(bottomInset))}px 0px`, threshold: 0 },
+      { rootMargin: `0px 0px -${margin}px 0px`, threshold: 0 },
     );
+    observersRef.current += 1;
     observer.observe(node);
     return () => {
       window.clearTimeout(timer);
       observer.disconnect();
-      onTailOffscreen(false);
+      observersRef.current -= 1;
+      /* 앵커 상태를 끄는 것은 **관찰자가 아예 사라졌을 때(언마운트·대화 종료)** 뿐입니다.
+         다음 틱에 확인해, 곧바로 새 관찰자가 붙는 재실행에서는 켜 둔 상태를 건드리지 않습니다. */
+      window.setTimeout(() => {
+        if (observersRef.current === 0) onTailOffscreen(false);
+      }, 0);
     };
-  }, [bottomInset, onTailOffscreen]);
+  }, [onTailOffscreen, tailInset]);
 
   return (
     <div
@@ -436,12 +461,16 @@ export function DialogueLog({
             return null;
         }
       })}
-      {/* 스크롤 바닥 — 하단에 도킹된 컴포저 높이만큼 여백을 두고 멈춥니다. */}
+      {/* 스크롤 바닥 — 하단에 도킹된 컴포저 높이만큼 여백을 두고 멈춥니다.
+          앵커를 눌러 여기까지 왔을 때는 「가려졌다」고 보는 띠(`tailInset`)도 반드시 넘어서야
+          앵커가 제 할 일을 마치고 사라집니다 — 그래서 둘 중 큰 값을 씁니다. */}
       <div
         ref={endRef}
         aria-hidden
         className="h-px"
-        style={{ scrollMarginBottom: `${Math.max(0, Math.round(bottomInset))}px` }}
+        style={{
+          scrollMarginBottom: `${Math.max(0, Math.round(bottomInset), Math.round(tailInset))}px`,
+        }}
       />
     </div>
   );

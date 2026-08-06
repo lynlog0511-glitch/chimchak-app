@@ -29,10 +29,10 @@ export default function ReportPage() {
 
       {/* 고지는 존재하되 조용히. 첫 문장만 보이고 나머지는 펼쳐서 봅니다. */}
       <details className="group mt-6 border-y border-line">
-        <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-2 px-[2px] text-[0.7813rem] leading-[1.5] font-bold text-ink-soft [&::-webkit-details-marker]:hidden">
+        <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-2 px-[2px] text-[0.7813rem] leading-[1.45] font-bold text-ink-soft [&::-webkit-details-marker]:hidden">
           <span
             aria-hidden
-            className="text-[0.9375rem] leading-none text-faint transition-transform duration-150 group-open:rotate-90"
+            className="text-[0.9375rem] leading-[1.3] text-faint transition-transform duration-150 group-open:rotate-90"
           >
             ›
           </span>
@@ -40,7 +40,7 @@ export default function ReportPage() {
         </summary>
 
         <div className="pb-4 pl-[22px]">
-          <p className="text-[0.75rem] leading-[1.7] text-ink-muted">
+          <p className="text-[0.7813rem] leading-[1.6] text-ink-muted">
             가명처리와 초안 만들기는 기기 안에서 일어나고, 확정한 가명처리 텍스트만 이 기기에
             남습니다. 음성 인식은 브라우저 내장 기능을 쓰므로 브라우저·기기에 따라 인식 처리가
             제조사 서버를 경유할 수 있으며, 타이핑 입력은 네트워크 없이 동작합니다.

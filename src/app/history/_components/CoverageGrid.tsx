@@ -20,7 +20,8 @@ const ORDER: ScenarioType[] = ["BPSD", "EMERGENCY", "CONFLICT", "RISK"];
  *
  * 어떤 유형을 얼마나 연습했는지 **완료 횟수만** 보여 주고, 점수·등급·순위는 만들지 않습니다.
  * 형태는 시안 그대로입니다 — 보더 1px `line`(#eef0ef) r14 한 덩어리, 칸 사이는 세로 hairline,
- * 숫자 19px w800 tabular `brand-800`(#14665f), 라벨 11.5px `ink-muted`, 미실시는 「—」 `faint`.
+ * 숫자 17px w800 tabular `brand-800`(#14665f), 라벨 12.5px `ink-muted`, 미실시는 「—」 `faint`.
+ * (19px·11.5px은 가이드 §2 눈금 밖 값이라 11 / 12.5 / 13.5 / 15 / 17 안으로 들여 놓았습니다.)
  *
  * 라벨 아래 「최근 8.5」 한 줄은 기간 축입니다 — 횟수만으로는 「최근에도 했는가」를 알 수 없어
  * 정기평가·직무교육 실적처럼 기간으로 묻는 자리에서 이 표를 쓸 수 없기 때문입니다.
@@ -73,7 +74,7 @@ export function CoverageGrid({
             >
               <p
                 className={cx(
-                  "chim-num text-[1.1875rem] leading-[1.2] font-extrabold",
+                  "chim-num text-[1.0625rem] leading-[1.2] font-extrabold",
                   done > 0 ? "text-brand-800" : "text-ink-faint",
                 )}
               >
@@ -91,7 +92,7 @@ export function CoverageGrid({
               </p>
               <p
                 className={cx(
-                  "mt-[1px] text-[0.7188rem] leading-[1.4]",
+                  "mt-[1px] text-[0.7813rem] leading-[1.4]",
                   done > 0 ? "text-ink-muted" : "text-ink-faint",
                 )}
               >
@@ -117,7 +118,7 @@ export function CoverageGrid({
 
       {/* 베타 이연 유형은 「—」로만 두면 이유를 알 수 없어, 아래 한 줄로 조용히 적어 둡니다. */}
       {pending.length > 0 && (
-        <p className="mt-[6px] text-[0.7188rem] leading-[1.5] text-tertiary">
+        <p className="mt-[6px] text-[0.8438rem] leading-[1.5] text-tertiary">
           {pending.map((type) => TYPE_SHORT_LABELS[type]).join(" · ")}은 베타 편성 예정입니다
         </p>
       )}

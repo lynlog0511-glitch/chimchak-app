@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { ChevronGlyph } from "@/components/icons";
 import Link from "next/link";
 import { BigButton, useSourceDoc } from "@/components";
 import { cx } from "@/components/utils";
@@ -8,6 +9,7 @@ import type { TracedFeedback } from "@/engine";
 import { loadSessions } from "@/lib/storage";
 import type { EndingDef, Scenario, SessionRecord, SessionState } from "@/types";
 import { pickNextTraining, type NextTrainingPick } from "@/app/history/_components/HistoryBoard";
+import { splitLawSentences } from "./constants";
 import { cfVerdictSourceLine, durationText, scenarioHref } from "./constants";
 
 export interface EndingPanelProps {
@@ -53,13 +55,31 @@ const VERDICT_MARK: Record<EndingDef["verdict"], { char: string; circle: string;
 };
 
 /**
+ * 화면에서 가장 큰 글자(22px)에 서는 문장 — **끝까지 갔다는 사실**입니다.
+ *
+ * 여기에 시나리오 결과 제목을 세우면 4분을 버틴 분이 처음 읽는 가장 큰 문장이
+ * 「경계가 무너졌습니다」·「안전은 확보했지만 원인은 남았습니다」 같은 결핍 선언이 됩니다.
+ * 결과 제목은 검수된 고정 문구라 한 글자도 고치지 않고, 아래 15px 부제로 자리만 옮깁니다
+ * (CriticalSceneCard가 splitLawSentences로 조문을 접힘에 내리는 것과 같은 수법입니다).
+ *
+ * 다시 보기 문법(↺)에서도 문장은 같습니다 — 멈춘 지점이 있어도 완주는 완주이고,
+ * 벌점이 아니라는 프레임이 여기서 먼저 서야 합니다.
+ */
+function completionHeadline(verdict: EndingDef["verdict"], session: SessionState): string {
+  if (verdict === "충족" && session.retriesUsed === 0) return "재시도 없이 끝까지 가셨어요";
+  return "끝까지 가셨어요";
+}
+
+/**
  * 제목 아래 한 줄 — 어떤 마무리든 **벌점이 아니라 안내**라는 것을 같은 문법으로 말합니다.
  * (⚑CF 시트의 문장과는 반드시 다르게 적습니다 — 가이드 §4.7.)
+ *
+ * 「끝까지 가셨어요」는 위 22px 줄이 맡으므로, 여기서는 같은 말을 되풀이하지 않습니다.
  */
 function leadText(verdict: EndingDef["verdict"], session: SessionState): string {
   switch (verdict) {
     case "충족":
-      return session.retriesUsed > 0 ? "끝까지 가셨어요" : "재시도 없이 끝까지 가셨어요";
+      return "핵심 대응을 지키며 진행하셨어요";
     case "부분 충족":
       return "안전은 지켰습니다 — 한 가지만 더 챙기면 다음이 달라집니다";
     case "재시도":
@@ -76,30 +96,6 @@ function leadText(verdict: EndingDef["verdict"], session: SessionState): string 
 
 /** 다시 보기 문법에서만 붙는 두 번째 줄 — 표시의 뜻을 먼저 풀어 드립니다. */
 const RETRY_NOTE = "이 표시는 벌점이 아니라 다시 볼 지점 안내입니다.";
-
-/**
- * ⚑CF 문구에서 **법령 조문을 인용한 문장만** 갈라냅니다.
- *
- * 문구 자체는 검수된 고정 문장이라 한 글자도 고치지 않고, 자리만 옮깁니다 —
- * 첫 완주 화면의 주인공이 「당신은 법을 어겼습니다」가 되지 않도록 조문은 접힘 안으로 내립니다.
- *
- * @example splitLawSentences("잠시 멈추겠습니다. …노인복지법 제39조의9가… 다시 해보시겠어요?")
- * // { lead: "잠시 멈추겠습니다. 다시 해보시겠어요?", law: "…노인복지법 제39조의9가…" }
- */
-function splitLawSentences(message: string): { lead: string; law: string } {
-  const sentences = message.match(/[^.]+\.?/g);
-  if (!sentences) return { lead: message, law: "" };
-  const lead: string[] = [];
-  const law: string[] = [];
-  for (const raw of sentences) {
-    const sentence = raw.trim();
-    if (sentence.length === 0) continue;
-    if (/(?:법|고시|지침|규칙)\s*제\s*\d+조/.test(sentence)) law.push(sentence);
-    else lead.push(sentence);
-  }
-  if (law.length === 0 || lead.length === 0) return { lead: message, law: "" };
-  return { lead: lead.join(" "), law: law.join(" ") };
-}
 
 /**
  * 헤어라인 목록 — 3개까지 펴 두고 나머지는 「외 N개 ⌄」로 접습니다 (시안 6a).
@@ -156,9 +152,7 @@ function FoldedList({
             className="flex min-h-[48px] w-full items-center justify-between px-0.5 text-[0.7813rem] font-semibold text-ink-muted"
           >
             {open ? "접기" : `외 ${rest}개 더 보기`}
-            <span aria-hidden className={cx("text-faint", open && "rotate-180")}>
-              ⌄
-            </span>
+            <ChevronGlyph size="sm" className={cx("text-ink-ghost", open && "rotate-180")} />
           </button>
         </li>
       )}
@@ -191,9 +185,7 @@ function CriticalSceneCard({
         <details className="group mt-1.5">
           <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-1.5 text-[0.7813rem] font-semibold text-ink-muted [&::-webkit-details-marker]:hidden">
             <span className="underline decoration-1 underline-offset-[3px]">근거 조문 보기</span>
-            <span aria-hidden className="text-faint group-open:rotate-180">
-              ⌄
-            </span>
+            <ChevronGlyph size="sm" className="text-faint group-open:rotate-180" />
           </summary>
           <p className="border-t border-line pt-2 pb-1 text-[0.8438rem] leading-[1.6] text-ink-soft">
             {law}
@@ -210,9 +202,7 @@ function CriticalSceneCard({
         <details className="group mt-1">
           <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-1.5 text-[0.7813rem] font-semibold text-ink-muted [&::-webkit-details-marker]:hidden">
             <span className="underline decoration-1 underline-offset-[3px]">대안 다시 보기</span>
-            <span aria-hidden className="text-faint group-open:rotate-180">
-              ⌄
-            </span>
+            <ChevronGlyph size="sm" className="text-faint group-open:rotate-180" />
           </summary>
           <ul className="pb-1">
             {alternatives.map((alternative) => (
@@ -291,10 +281,14 @@ export function EndingPanel({
           훈련 마침 · {scenario.title}
         </p>
         <h2 className="mt-1.5 text-[1.375rem] leading-[1.45] font-extrabold tracking-[-0.01em] text-ink">
-          {ending?.title ?? record.endingTitle}
+          {completionHeadline(verdict, session)}
         </h2>
-        {/* 회복·완주를 말하는 줄은 제목 바로 아래 15px로 세웁니다 — 각주 크기로 내리지 않습니다. */}
-        <p className="mt-1.5 text-[0.9375rem] leading-[1.6] font-semibold text-ink-soft">
+        {/* 시나리오 결과 제목 — 검수 문구 그대로, 크기만 15px 부제로 내려 둡니다. */}
+        <p className="mt-1.5 text-[0.9375rem] leading-[1.45] font-semibold text-ink">
+          {ending?.title ?? record.endingTitle}
+        </p>
+        {/* 회복·완주를 말하는 줄은 부제 바로 아래 15px로 세웁니다 — 각주 크기로 내리지 않습니다. */}
+        <p className="mt-1.5 text-[0.9375rem] leading-[1.6] text-ink-soft">
           {leadText(verdict, session)}
         </p>
         <p className="mt-[4px] text-[0.8438rem] leading-[1.6] text-ink-muted">
@@ -331,7 +325,9 @@ export function EndingPanel({
       <section className="mt-5">
         {/* 개수는 「몇 가지를 보고 계신지」이지 점수가 아닙니다 — 0은 아예 적지 않습니다. */}
         {/* 「그래도」는 양보 부사라 '그럼에도 불구하고 잘한 게 있긴 하다'로 읽힙니다 — 걷어냅니다. */}
-        <h3 className="mb-1 text-[0.7813rem] leading-[1.45] font-bold text-ok-ink">
+        {/* 이 줄만 15px입니다 — 「다시 볼 것」(12.5px)보다 먼저·크게 읽혀야 하는 자리라,
+            같은 h3라고 해서 같은 크기로 통일하지 않습니다. */}
+        <h3 className="mb-1.5 text-[0.9375rem] leading-[1.45] font-bold text-ok-ink">
           잘한 것{greens.length > 0 && ` ${greens.length}`}
         </h3>
         <FoldedList
@@ -395,7 +391,8 @@ export function EndingPanel({
           </Link>
         )}
 
-        <p className="mt-2.5 text-center text-[1rem] leading-[1.6] text-ink-soft">
+        {/* 16px은 §2 눈금에 없는 값이었습니다 — 바로 아래 줄과 같은 15px으로 맞춥니다(대비·색은 유지). */}
+        <p className="mt-2.5 text-center text-[0.9375rem] leading-[1.6] text-ink-soft">
           점수가 아닙니다 — 다음에 볼 지점 안내예요
         </p>
         <p className="mt-1 text-center text-[0.9375rem] leading-[1.6] text-ink-soft">

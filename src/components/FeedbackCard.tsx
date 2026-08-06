@@ -150,21 +150,21 @@ export function FeedbackCard({
             {/* 판정 경로 */}
             <div>
               <p className="chim-caption font-bold text-ink-muted">판정 경로</p>
-              <p className="chim-label mt-1 leading-relaxed font-bold text-ink">
+              <p className="chim-label mt-1 leading-[1.6] font-bold text-ink">
                 {pathLabel(trace)}
               </p>
               {trace.ruleLabel && (
-                <p className="chim-label mt-1 leading-relaxed font-normal text-ink-soft">
+                <p className="chim-label mt-1 leading-[1.6] font-normal text-ink-soft">
                   규칙: {trace.ruleLabel}
                   {trace.ruleId ? ` (${trace.ruleId})` : ""}
                   {trace.matchedPattern ? ` · 걸린 표현 「${trace.matchedPattern}」` : ""}
                 </p>
               )}
-              <p className="chim-label mt-1 leading-relaxed font-normal text-ink-soft">
+              <p className="chim-label mt-1 leading-[1.6] font-normal text-ink-soft">
                 {pathNote(trace)}
               </p>
               {trace.advisoryLabels && trace.advisoryLabels.length > 0 && (
-                <p className="chim-label mt-1 leading-relaxed font-normal text-ink-soft">
+                <p className="chim-label mt-1 leading-[1.6] font-normal text-ink-soft">
                   규칙 사전 코칭도 함께 적용되었습니다 — {trace.advisoryLabels.join(" · ")}
                 </p>
               )}
@@ -184,7 +184,7 @@ export function FeedbackCard({
                       <span className="chim-num chim-caption shrink-0 font-extrabold text-ink-muted">
                         {entry.itemId}
                       </span>
-                      <span className="chim-label min-w-[12rem] flex-1 leading-relaxed font-normal text-ink">
+                      <span className="chim-label min-w-[12rem] flex-1 leading-[1.6] font-normal text-ink">
                         {entry.indicator}
                       </span>
                     </li>
@@ -205,7 +205,7 @@ export function FeedbackCard({
               </div>
             )}
 
-            <p className="chim-caption border-t border-line pt-2 leading-relaxed font-semibold text-ink-muted">
+            <p className="chim-caption border-t border-line pt-2 leading-[1.6] font-semibold text-ink-muted">
               이 판정은 이 기기 안에서 끝났습니다 · 외부로 나간 요청 0건
             </p>
           </div>

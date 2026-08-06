@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { RecordDraft } from "@/types";
-import { BigButton } from "@/components";
+import { BigButton, EyebrowLabel } from "@/components";
 import { maskText } from "@/engine/masking";
 import { extractDraft, recomputeMissing } from "@/engine/record";
 import { saveReport, type StoredReport } from "@/lib/storage";
@@ -164,26 +164,24 @@ export function ReportWizard() {
           <h2
             ref={headingRef}
             tabIndex={-1}
-            className="text-[1.1875rem] leading-[1.4] font-extrabold text-ok-ink"
+            className="text-[1.1875rem] leading-[1.45] font-extrabold text-ok-ink"
           >
             확정했습니다
           </h2>
-          <p className="mt-[3px] text-[0.75rem] leading-[1.5] font-bold text-ok-ink">
-            이 기기에만 저장
-          </p>
-          <p className="mt-[10px] text-[0.875rem] leading-[1.75] text-ink">
+          <EyebrowLabel className="mt-[3px] text-ok-ink">이 기기에만 저장</EyebrowLabel>
+          <p className="mt-[10px] text-[0.8438rem] leading-[1.6] text-ink">
             지금 남은 것은 가명처리 2단을 통과한 텍스트뿐이며, 말씀하신 음성과 원문은 저장하지
             않았습니다.
           </p>
           {/* 「전달됩니다」를 현재형으로 쓰면 없는 연동을 있다고 적는 셈이 됩니다(/safety와 같은 표기). */}
-          <p className="mt-[8px] text-[0.8125rem] leading-[1.7] text-ink-soft">
-            <span className="mr-[6px] inline-flex items-center rounded-chip border border-line-strong px-[7px] py-[1px] align-[2px] text-[0.7188rem] leading-[1.5] font-bold whitespace-nowrap text-ink-soft">
+          <p className="mt-[8px] text-[0.8438rem] leading-[1.6] text-ink-soft">
+            <span className="mr-[6px] inline-flex items-center rounded-chip border border-line-strong px-[7px] py-[1px] align-[2px] text-[0.6875rem] leading-[1.45] font-bold whitespace-nowrap text-ink-soft">
               계획
             </span>
             기관 시스템 연동은 설계까지 마쳤고 아직 구현하지 않았습니다. 연동하게 되더라도 확정
             버튼을 누르신 뒤에만 전달되도록 설계했습니다.
           </p>
-          <p className="mt-[8px] text-[0.7813rem] leading-[1.7] text-ink-soft">
+          <p className="mt-[8px] text-[0.7813rem] leading-[1.6] text-ink-soft">
             {secondPassCount > 0
               ? `저장 직전 2차 검사에서 ${secondPassCount}곳을 더 가렸습니다.`
               : "저장 직전 2차 검사에서 추가로 가릴 항목은 나오지 않았습니다."}
@@ -196,10 +194,8 @@ export function ReportWizard() {
           비교 기준(손으로 쓰면 20~30분)은 항상 두고, 실측이 있을 때만 앞에 병기합니다.
         */}
         <div className="mt-[14px] rounded-[14px] bg-paper-2 px-4 py-[14px]">
-          <p className="text-[0.75rem] leading-[1.5] font-bold tracking-[0.06em] text-ink-muted">
-            걸린 시간
-          </p>
-          <p className="mt-[6px] text-[0.9375rem] leading-[1.55] font-bold text-ink">
+          <EyebrowLabel>걸린 시간</EyebrowLabel>
+          <p className="mt-[6px] text-[0.9375rem] leading-[1.6] font-bold text-ink">
             {showElapsed && (
               <>
                 이번 기록{" "}
@@ -211,7 +207,7 @@ export function ReportWizard() {
             )}
             손으로 쓰면 <span className="chim-num text-brand-800">20~30분</span>
           </p>
-          <p className="mt-[6px] text-[0.7813rem] leading-[1.7] text-ink-soft">
+          <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
             20~30분은 현직 인터뷰 실측입니다.{" "}
             {showElapsed
               ? "이번 기록 시간은 처음 적기 시작한 순간부터 확정까지를 이 기기에서 잰 값입니다."
@@ -219,9 +215,7 @@ export function ReportWizard() {
           </p>
         </div>
 
-        <p className="mt-6 text-[0.7813rem] leading-[1.5] font-bold text-ink-muted">
-          확정한 기록 초안 — 다섯 칸
-        </p>
+        <EyebrowLabel className="mt-6">확정한 기록 초안 — 다섯 칸</EyebrowLabel>
         <DraftRows draft={saved.draft} empty="confirmed" className="mt-[2px]" />
 
         {/* 저장까지 끝났으므로 5단계 전부 완료 표시 */}

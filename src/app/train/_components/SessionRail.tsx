@@ -81,6 +81,11 @@ export function SessionRail({
       <p className="mb-[18px] text-[0.8438rem] leading-[1.6] text-ink-soft">{scenario.summary}</p>
 
       <RailLabel>{gaugeRailLabel(scenario)}</RailLabel>
+      {/* B02처럼 상황 자체가 악화하는 시나리오에서는 대응이 옳아도 게이지가 오릅니다 —
+          「잘했는데 왜 올라가지」 오독을 이 한 줄이 막습니다(평가 심사 렌즈 지적). */}
+      <p className="mb-[6px] text-[0.7813rem] leading-[1.45] text-ink-faint">
+        어르신 상태예요 — 대응 평가가 아닙니다
+      </p>
       {/* 칸 수는 눈으로만 읽는 신호입니다 — 뜻은 아래 상태어가 전합니다(숫자는 내보내지 않습니다). */}
       <div aria-hidden className="mb-[4px] flex gap-[3px]">
         {Array.from({ length: gauge.max }, (_, i) => (

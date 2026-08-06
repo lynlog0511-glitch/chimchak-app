@@ -315,6 +315,32 @@ export function cfVerdictSourceLine(feedback: TracedFeedback): string {
   return `판정: 시나리오 규칙표 ${itemId ?? feedback.branchId} (AI 아님)`;
 }
 
+/**
+ * ⚑CF 문구에서 **법령 조문을 인용한 문장만** 갈라냅니다.
+ *
+ * 문구 자체는 검수된 고정 문장이라 한 글자도 고치지 않고, 자리만 옮깁니다 —
+ * 얼어붙은 사람이 두 번째 줄에서 읽는 것이 「당신은 법을 어겼습니다」가 되지 않도록
+ * 조문은 접힘 안으로 내리고, 할 수 있는 말(대안)을 먼저 세웁니다.
+ * (⚑CF 시트와 엔딩의 「다시 볼 장면」 카드가 같은 규칙을 씁니다.)
+ *
+ * @example splitLawSentences("잠시 멈추겠습니다. …노인복지법 제39조의9가… 다시 해보시겠어요?")
+ * // { lead: "잠시 멈추겠습니다. 다시 해보시겠어요?", law: "…노인복지법 제39조의9가…" }
+ */
+export function splitLawSentences(message: string): { lead: string; law: string } {
+  const sentences = message.match(/[^.]+\.?/g);
+  if (!sentences) return { lead: message, law: "" };
+  const lead: string[] = [];
+  const law: string[] = [];
+  for (const raw of sentences) {
+    const sentence = raw.trim();
+    if (sentence.length === 0) continue;
+    if (/(?:법|고시|지침|규칙)\s*제\s*\d+조/.test(sentence)) law.push(sentence);
+    else lead.push(sentence);
+  }
+  if (law.length === 0 || lead.length === 0) return { lead: message, law: "" };
+  return { lead: lead.join(" "), law: law.join(" ") };
+}
+
 /* ── 소요 시간 (시안 6a 「약 4분 12초」) ────────────────────── */
 
 /**

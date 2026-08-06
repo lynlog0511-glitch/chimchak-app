@@ -35,7 +35,7 @@ export function DisclaimerBar({ className, fixed = true }: DisclaimerBarProps) {
     >
       <div className="chim-container py-2">
         {/* UI 크롬 최하단 위계 — 13px. ink-muted(#5a625f)는 paper-2 위에서 5.79:1로 AA를 넘습니다. */}
-        <p className="chim-caption text-center leading-snug text-ink-muted">{DISCLAIMER_TEXT}</p>
+        <p className="chim-caption text-center leading-[1.45] text-ink-muted">{DISCLAIMER_TEXT}</p>
       </div>
     </div>
   );

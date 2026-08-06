@@ -50,7 +50,7 @@ export function SessionTopBar({
   className,
 }: SessionTopBarProps) {
   const backClass =
-    "-ml-[14px] flex h-12 w-12 flex-none items-center justify-center text-[1.0625rem] leading-none text-ink-soft";
+    "-ml-[14px] flex h-12 w-12 flex-none items-center justify-center text-[1.0625rem] leading-[1.3] text-ink-soft";
 
   return (
     <header className={cx("flex items-center pt-1.5 pb-3", className)}>

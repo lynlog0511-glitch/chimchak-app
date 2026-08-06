@@ -122,11 +122,11 @@ export function SourceChip({
             </span>
           )}
           {resolvedNote && (
-            <span className="chim-caption mt-2 block leading-relaxed text-ink-soft">
+            <span className="chim-caption mt-2 block leading-[1.6] text-ink-soft">
               {resolvedNote}
             </span>
           )}
-          <span className="chim-caption mt-2 block leading-relaxed text-ink-muted">
+          <span className="chim-caption mt-2 block leading-[1.6] text-ink-muted">
             {unresolved
               ? "문서 정보를 불러오지 못해 문서 번호로 표시했습니다. 근거 문서 화이트리스트에서 확인해 주세요."
               : "근거 문서 화이트리스트에 등록된 문서입니다. 목록 밖 문서는 인용하지 않습니다."}

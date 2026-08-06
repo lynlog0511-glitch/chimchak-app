@@ -185,11 +185,19 @@ export function createRecognizer(handlers: RecognizerHandlers): Recognizer {
 
   let recognition: SpeechRecognitionLike | null = null;
   let running = false;
+  /**
+   * 사용자가 stop()을 부르기 전까지 참.
+   *
+   * 브라우저 인식기는 continuous=true여도 **말 고르는 침묵**에 스스로 끝나 버린다
+   * (숨만 쉬어도 꺼진다는 제보가 정확히 이 동작이다). 마이크를 누르고 있는 동안은
+   * 브라우저가 몇 번을 끝내든 다시 이어 붙이고, onEnd는 사용자가 멈췄을 때만 전달한다.
+   */
+  let active = false;
 
   const build = (): SpeechRecognitionLike => {
     const instance = new Ctor();
     instance.lang = LANG;
-    instance.continuous = false;
+    instance.continuous = true;
     instance.interimResults = true;
     instance.maxAlternatives = 1;
 
@@ -215,11 +223,25 @@ export function createRecognizer(handlers: RecognizerHandlers): Recognizer {
 
     instance.onerror = (event) => {
       running = false;
+      // 누르고 있는 동안의 「말소리 없음」은 오류가 아니라 침묵이다 — onend의 재시작에 맡긴다.
+      if (active && event.error === "no-speech") return;
+      // 그 밖의 오류(권한 거부·마이크 없음 등)는 재시작하면 무한 반복이 되므로 여기서 멈춘다.
+      active = false;
       handlers.onError?.(messageFor(event.error), event.error);
     };
 
     instance.onend = () => {
       running = false;
+      if (active) {
+        // 침묵·내부 타임아웃으로 브라우저가 끝낸 것 — 손을 떼기 전까지 조용히 다시 잇는다.
+        try {
+          recognition = build();
+          recognition.start();
+          return;
+        } catch {
+          active = false;
+        }
+      }
       handlers.onEnd?.();
     };
 
@@ -231,14 +253,17 @@ export function createRecognizer(handlers: RecognizerHandlers): Recognizer {
     start: () => {
       try {
         if (running && recognition) return;
+        active = true;
         recognition = build();
         recognition.start();
       } catch {
+        active = false;
         running = false;
         handlers.onError?.("음성 인식을 시작하지 못했습니다. 아래 버튼으로 진행해 주세요.");
       }
     },
     stop: () => {
+      active = false;
       try {
         recognition?.stop();
       } catch {

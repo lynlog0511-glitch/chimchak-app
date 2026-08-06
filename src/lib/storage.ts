@@ -252,9 +252,15 @@ export function loadCompletionTally(): CompletionTally {
   };
 }
 
-/** 이수 누계 전체 삭제 */
+/**
+ * 이수 누계 전체 삭제.
+ *
+ * 가져오기 기록도 함께 지운다 — 누계가 0으로 돌아갔는데 「이미 가져온 발급번호」만 남아 있으면
+ * 같은 파일을 다시 넣을 길이 막힌다.
+ */
 export function clearCompletionTally(): void {
   writeValue(TALLY_KEY, emptyTally());
+  clearCompletionImports();
 }
 
 function laterIso(a: string, b: string): string {
@@ -326,6 +332,11 @@ export interface CompletionLine {
   title: string;
   typeLabel: string;
   count: number;
+  /**
+   * 이 시나리오로 쌓인 이수 시수(초). 회차당 30분 상한을 적용한 값의 합이다.
+   * 이수 사실 파일이 한 행에 실어 나르는 값이라, 행 단위로 합칠 수 있으려면 줄마다 있어야 한다.
+   */
+  seconds: number;
   /** 가장 최근에 마친 시각 (ISO) */
   lastEndedAt: string;
 }
@@ -340,6 +351,10 @@ export interface CompletionSummary {
   lines: CompletionLine[];
   /** 상세가 이 기기에 남아 있지 않은 회차 수(50건 상한으로 밀려난 분) */
   hiddenCount: number;
+  /** 다른 기기의 이수 사실 파일에서 가져온 회차 수 — 합계 안에 들어 있다 */
+  importedCount: number;
+  /** 가져온 회차의 이수 시수(초) */
+  importedSec: number;
 }
 
 /**
@@ -385,11 +400,13 @@ export function buildCompletionSummary(): CompletionSummary {
   for (const record of records) {
     const key = record.scenarioId.trim().toUpperCase();
     const at = record.endedAt || record.startedAt;
+    const sec = sessionSeconds(record);
     visibleCount += 1;
-    visibleSec += sessionSeconds(record);
+    visibleSec += sec;
     const found = map.get(key);
     if (found) {
       found.count += 1;
+      found.seconds += sec;
       found.lastEndedAt = laterIso(found.lastEndedAt, at);
       continue;
     }
@@ -398,6 +415,7 @@ export function buildCompletionSummary(): CompletionSummary {
       title: record.scenarioTitle,
       typeLabel: record.typeLabel,
       count: 1,
+      seconds: sec,
       lastEndedAt: at,
     });
   }
@@ -406,6 +424,7 @@ export function buildCompletionSummary(): CompletionSummary {
     const found = map.get(line.scenarioId);
     if (found) {
       found.count = Math.max(found.count, line.count);
+      found.seconds = Math.max(found.seconds, line.seconds);
       found.lastEndedAt = laterIso(found.lastEndedAt, line.lastEndedAt);
       continue;
     }
@@ -414,6 +433,7 @@ export function buildCompletionSummary(): CompletionSummary {
       title: line.title,
       typeLabel: line.typeLabel,
       count: line.count,
+      seconds: line.seconds,
       lastEndedAt: line.lastEndedAt,
     });
   }
@@ -424,12 +444,23 @@ export function buildCompletionSummary(): CompletionSummary {
   const totalCount = Math.max(visibleCount, tally.count);
   const totalSec = Math.max(visibleSec, tally.seconds);
 
+  // 가져온 회차는 상세가 이 기기에 없지만 「50건 상한에 밀려난 것」과는 사유가 다르다 —
+  // 확인서가 두 사유를 다른 문장으로 적을 수 있게 따로 세어 넘긴다.
+  let importedCount = 0;
+  let importedSec = 0;
+  for (const entry of loadCompletionImports()) {
+    importedCount += entry.count;
+    importedSec += entry.seconds;
+  }
+
   return {
     number: issueNumberFor(lines, totalCount, totalSec),
     totalCount,
     totalSec,
     lines,
-    hiddenCount: Math.max(0, totalCount - visibleCount),
+    hiddenCount: Math.max(0, totalCount - visibleCount - importedCount),
+    importedCount,
+    importedSec,
   };
 }
 
@@ -447,10 +478,46 @@ function csvDateTime(iso: string): string {
   return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())} ${p(date.getHours())}:${p(date.getMinutes())}`;
 }
 
+/** 파일 안의 「YYYY-MM-DD HH:mm」을 다시 ISO로 되돌린다(현지 시각 기준). 읽지 못하면 빈 문자열. */
+function csvDateTimeToIso(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed.length === 0) return "";
+  const date = new Date(trimmed.replace(" ", "T"));
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString();
+}
+
+/**
+ * 이수 사실 파일의 열 이름 — **이 배열이 곧 서식 계약**이다.
+ *
+ * 한 행이 시나리오 하나이고 모든 행의 열 수가 같은 평평한 표라, 25명분을 그대로 이어 붙여도
+ * 표가 깨지지 않는다(예전 서식은 머리블록 + 빈 행 + 본표로 나뉜 비직사각형이라 엑셀에서
+ * 합칠 수 없었다). 맨 앞의 발급번호가 사람 대신 기록 집합을 가리키는 구분자다.
+ *
+ * 합계 두 열은 행마다 같은 값이 반복된다 — 일부러 둔 중복이다. 줄 값의 합과 대조해 고쳐 쓴
+ * 파일을 걸러 낼 수 있고, 피벗 표에서 합계를 다시 세지 않아도 된다.
+ */
+export const COMPLETION_CSV_HEADERS = [
+  "발급번호",
+  "만든 시각",
+  "시나리오 번호",
+  "시나리오",
+  "유형",
+  "이수 횟수",
+  "이수 시수(분)",
+  "최근 완료",
+  "합계 이수 회차",
+  "총 이수 시수(분)",
+  "담긴 내용",
+] as const;
+
+/** 파일이 혼자 돌아다닐 때도 무엇이 안 담겼는지 함께 가도록 마지막 열에 싣는 문장. */
+export const COMPLETION_CSV_NOTE = "이수 사실만 — 판정·대화·발화 원문·성명·소속 없음";
+
 /**
  * 이수 사실만 담은 CSV 문자열을 만든다.
  *
- * **담기는 것**: 발급번호·만든 날짜·합계·시수·시나리오별 이수 횟수와 최근 완료 시각.
+ * **담기는 것**: 발급번호·만든 시각·시나리오별 이수 횟수와 시수·최근 완료 시각·합계.
  * **담기지 않는 것**: 발화 원문·대화 내용·판정 결과·성명·소속 — 개인정보는 한 칸도 넣지 않는다.
  * 엑셀에서 한글이 깨지지 않도록 앞에 BOM을 붙인다.
  *
@@ -458,28 +525,334 @@ function csvDateTime(iso: string): string {
  * const csv = buildCompletionCsv(buildCompletionSummary(), new Date().toISOString());
  */
 export function buildCompletionCsv(summary: CompletionSummary, issuedAt: string): string {
-  const minutes = Math.round(summary.totalSec / 60);
-  const rows: string[][] = [
-    ["항목", "값"],
-    ["발급번호", summary.number],
-    ["만든 시각", csvDateTime(issuedAt)],
-    ["합계 이수 회차", String(summary.totalCount)],
-    ["총 이수 시수(분)", String(minutes)],
-    ["담긴 내용", "이수 사실만 — 판정·대화·발화 원문·성명·소속 없음"],
-    [],
-    ["시나리오 번호", "시나리오", "유형", "이수 횟수", "최근 완료"],
-  ];
+  const totalMinutes = Math.round(summary.totalSec / 60);
+  const madeAt = csvDateTime(issuedAt);
+  const rows: string[][] = [[...COMPLETION_CSV_HEADERS]];
   for (const line of summary.lines) {
     rows.push([
+      summary.number,
+      madeAt,
       line.scenarioId,
       line.title,
       line.typeLabel,
       String(line.count),
+      String(Math.round(line.seconds / 60)),
       csvDateTime(line.lastEndedAt),
+      String(summary.totalCount),
+      String(totalMinutes),
+      COMPLETION_CSV_NOTE,
     ]);
   }
   const body = rows.map((row) => row.map(csvCell).join(",")).join("\r\n");
   return `\uFEFF${body}\r\n`;
+}
+
+/* ── 이수 사실 파일 가져오기 ──────────────────────────────── */
+
+/** 이미 가져온 파일 목록 — 같은 발급번호를 두 번 더하지 않기 위한 기록이다. */
+export const IMPORTS_KEY = "chimchak.imports.v1";
+
+/** 가져온 이수 사실 한 건 — 담기는 것은 발급번호와 합계뿐이고, 사람을 가리키는 값은 없다. */
+export interface CompletionImport {
+  /** 파일에 적혀 있던 발급번호 */
+  number: string;
+  /** 가져온 시각 (ISO) */
+  importedAt: string;
+  /** 이 파일로 더해진 회차 수 */
+  count: number;
+  /** 이 파일로 더해진 이수 시수(초) */
+  seconds: number;
+}
+
+function sanitizeImport(value: unknown): CompletionImport | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const row = value as Record<string, unknown>;
+  const number = typeof row.number === "string" ? row.number : "";
+  if (number.length === 0) return undefined;
+  return {
+    number,
+    importedAt: typeof row.importedAt === "string" ? row.importedAt : "",
+    count: typeof row.count === "number" && row.count > 0 ? Math.floor(row.count) : 0,
+    seconds: typeof row.seconds === "number" && row.seconds > 0 ? Math.round(row.seconds) : 0,
+  };
+}
+
+/**
+ * 이 기기가 가져온 이수 사실 파일 목록(최근 것이 앞).
+ *
+ * @example
+ * loadCompletionImports().map((row) => row.number); // ["CHK-3F7A-9C21"]
+ */
+export function loadCompletionImports(): CompletionImport[] {
+  const out: CompletionImport[] = [];
+  for (const raw of readList<unknown>(IMPORTS_KEY)) {
+    const row = sanitizeImport(raw);
+    if (row) out.push(row);
+  }
+  return out;
+}
+
+/** 가져오기 기록 전체 삭제 — 누계가 0인데 「이미 가져왔다」만 남는 상태를 만들지 않는다. */
+export function clearCompletionImports(): void {
+  writeList<CompletionImport>(IMPORTS_KEY, []);
+}
+
+/** 가져오기가 막힌 사유 — 화면 문구는 `completionImportMessage`가 만든다. */
+export type CompletionImportError =
+  | "empty"
+  | "format"
+  | "number"
+  | "row"
+  | "total"
+  | "same-device"
+  | "duplicate";
+
+/** 사유별 안내 문장 — 무엇이 어긋났는지 사실대로 적고, 되는 척하지 않는다. */
+export function completionImportMessage(reason: CompletionImportError): string {
+  switch (reason) {
+    case "empty":
+      return "파일이 비어 있거나 표가 들어 있지 않습니다.";
+    case "format":
+      return "이 앱에서 내려받은 이수 사실 파일이 아닙니다 — 머리글 줄이 서식과 다릅니다.";
+    case "number":
+      return "발급번호 칸이 비었거나 서식과 다릅니다. 한 파일에는 한 발급번호만 담깁니다.";
+    case "row":
+      return "이수 횟수·이수 시수 칸에 숫자가 아닌 값이 들어 있습니다.";
+    case "total":
+      return "파일 안의 합계가 줄 값과 맞지 않습니다 — 고쳐 쓴 파일은 가져오지 않습니다.";
+    case "same-device":
+      return "이 기기에서 만든 파일입니다 — 같은 이수 사실을 두 번 세지 않습니다.";
+    default:
+      return "이미 가져온 발급번호입니다 — 같은 파일을 두 번 더하지 않습니다.";
+  }
+}
+
+/** 파일에서 읽어 낸 이수 사실 한 벌. */
+export interface ParsedCompletionFile {
+  number: string;
+  /** 파일에 적혀 있던 「만든 시각」 표기 그대로 */
+  issuedAt: string;
+  totalCount: number;
+  totalMinutes: number;
+  lines: CompletionLine[];
+}
+
+export type CompletionParseResult =
+  | { ok: true; file: ParsedCompletionFile }
+  | { ok: false; reason: CompletionImportError };
+
+/** 따옴표·줄바꿈이 든 칸을 포함해 CSV 한 판을 행 배열로 읽는다. 빈 줄은 버린다. */
+function parseCsvRows(text: string): string[][] {
+  const body = text.replace(/^﻿/, "");
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let quoted = false;
+  for (let i = 0; i < body.length; i += 1) {
+    const ch = body[i];
+    if (quoted) {
+      if (ch === '"') {
+        if (body[i + 1] === '"') {
+          cell += '"';
+          i += 1;
+        } else {
+          quoted = false;
+        }
+      } else {
+        cell += ch;
+      }
+      continue;
+    }
+    if (ch === '"') {
+      quoted = true;
+      continue;
+    }
+    if (ch === ",") {
+      row.push(cell);
+      cell = "";
+      continue;
+    }
+    if (ch === "\r") continue;
+    if (ch === "\n") {
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = "";
+      continue;
+    }
+    cell += ch;
+  }
+  row.push(cell);
+  rows.push(row);
+  return rows.filter((cells) => cells.some((value) => value.trim().length > 0));
+}
+
+/** 「CHK-3F7A-9C21」 서식인지 — 발급번호는 이 모양 하나뿐이다. */
+const ISSUE_NUMBER_RE = /^CHK-[0-9A-F]{4}-[0-9A-F]{4}$/;
+
+function parseWhole(text: string): number | undefined {
+  const trimmed = text.trim();
+  if (!/^\d+$/.test(trimmed)) return undefined;
+  return Number.parseInt(trimmed, 10);
+}
+
+/**
+ * 이수 사실 파일을 읽어 검증한다. **저장은 하지 않는다.**
+ *
+ * 통과 조건: 머리글이 서식과 같고, 모든 행의 발급번호가 하나이며, 줄 값의 합이 파일에 적힌
+ * 합계와 맞을 것. 시수는 줄마다 분으로 반올림해 적히므로 줄 수만큼의 오차까지 허용한다.
+ *
+ * @example
+ * const read = parseCompletionCsv(text);
+ * if (read.ok) read.file.totalCount; // 4
+ */
+export function parseCompletionCsv(text: string): CompletionParseResult {
+  const rows = parseCsvRows(text ?? "");
+  if (rows.length < 2) return { ok: false, reason: "empty" };
+
+  const header = (rows[0] as string[]).map((cell) => cell.trim());
+  if (header.length !== COMPLETION_CSV_HEADERS.length) return { ok: false, reason: "format" };
+  for (let i = 0; i < COMPLETION_CSV_HEADERS.length; i += 1) {
+    if (header[i] !== COMPLETION_CSV_HEADERS[i]) return { ok: false, reason: "format" };
+  }
+
+  let number = "";
+  let issuedAt = "";
+  let totalCount: number | undefined;
+  let totalMinutes: number | undefined;
+  let sumCount = 0;
+  let sumMinutes = 0;
+  const lines: CompletionLine[] = [];
+
+  for (const raw of rows.slice(1)) {
+    if (raw.length !== COMPLETION_CSV_HEADERS.length) return { ok: false, reason: "format" };
+    const cells = raw.map((cell) => cell.trim());
+    const rowNumber = cells[0] as string;
+    if (!ISSUE_NUMBER_RE.test(rowNumber)) return { ok: false, reason: "number" };
+    if (number.length === 0) {
+      number = rowNumber;
+      issuedAt = cells[1] as string;
+    } else if (rowNumber !== number) {
+      return { ok: false, reason: "number" };
+    }
+
+    const scenarioId = (cells[2] as string).toUpperCase();
+    if (scenarioId.length === 0) return { ok: false, reason: "row" };
+    const count = parseWhole(cells[5] as string);
+    const minutes = parseWhole(cells[6] as string);
+    if (count === undefined || count < 1 || minutes === undefined) return { ok: false, reason: "row" };
+    const rowTotalCount = parseWhole(cells[8] as string);
+    const rowTotalMinutes = parseWhole(cells[9] as string);
+    if (rowTotalCount === undefined || rowTotalMinutes === undefined) {
+      return { ok: false, reason: "row" };
+    }
+    if (totalCount === undefined) {
+      totalCount = rowTotalCount;
+      totalMinutes = rowTotalMinutes;
+    } else if (rowTotalCount !== totalCount || rowTotalMinutes !== totalMinutes) {
+      return { ok: false, reason: "total" };
+    }
+
+    sumCount += count;
+    sumMinutes += minutes;
+    lines.push({
+      scenarioId,
+      title: (cells[3] as string).length > 0 ? (cells[3] as string) : scenarioId,
+      typeLabel: cells[4] as string,
+      count,
+      seconds: minutes * 60,
+      lastEndedAt: csvDateTimeToIso(cells[7] as string),
+    });
+  }
+
+  if (lines.length === 0 || totalCount === undefined || totalMinutes === undefined) {
+    return { ok: false, reason: "empty" };
+  }
+  if (sumCount !== totalCount) return { ok: false, reason: "total" };
+  if (Math.abs(sumMinutes - totalMinutes) > lines.length) return { ok: false, reason: "total" };
+
+  return { ok: true, file: { number, issuedAt, totalCount, totalMinutes, lines } };
+}
+
+export type CompletionImportResult =
+  | { ok: true; number: string; addedCount: number; addedSec: number; lineCount: number }
+  | { ok: false; reason: CompletionImportError; message: string };
+
+/** 가져온 줄을 이수 누계에 더한다. 상세 목록에는 넣지 않는다 — 파일에 대화도 판정도 없다. */
+function addImportedLines(lines: CompletionLine[]): { count: number; seconds: number } {
+  const tally = loadCompletionTally();
+  let count = 0;
+  let seconds = 0;
+  for (const line of lines) {
+    const key = line.scenarioId.trim().toUpperCase();
+    const found = tally.lines.find((row) => row.scenarioId === key);
+    if (found) {
+      found.count += line.count;
+      found.seconds += line.seconds;
+      found.lastEndedAt = laterIso(found.lastEndedAt, line.lastEndedAt);
+      if (found.title.length === 0) found.title = line.title;
+      if (found.typeLabel.length === 0) found.typeLabel = line.typeLabel;
+    } else {
+      tally.lines.push({
+        scenarioId: key,
+        title: line.title,
+        typeLabel: line.typeLabel,
+        count: line.count,
+        seconds: line.seconds,
+        lastEndedAt: line.lastEndedAt,
+      });
+    }
+    count += line.count;
+    seconds += line.seconds;
+  }
+  tally.count += count;
+  tally.seconds += seconds;
+  tally.updatedAt = new Date().toISOString();
+  writeValue(TALLY_KEY, tally);
+  return { count, seconds };
+}
+
+/**
+ * 다른 기기에서 내려받은 이수 사실 파일을 이 기기의 이수 누계에 합친다.
+ *
+ * 막는 것 둘 — 이 기기가 방금 만든 파일(발급번호가 같다)과 이미 가져온 발급번호다.
+ * 더해지는 것은 시나리오별 이수 횟수·시수뿐이고, 상세 기록·판정·대화는 파일에 애초에 없다.
+ * 시연용 예시가 섞인 기기인지는 화면 쪽에서 먼저 가린다(저장소는 예시 개념을 알지 못한다).
+ *
+ * @example
+ * const merged = importCompletionCsv(text);
+ * if (merged.ok) merged.addedCount; // 4
+ */
+export function importCompletionCsv(text: string): CompletionImportResult {
+  const read = parseCompletionCsv(text);
+  if (!read.ok) {
+    return { ok: false, reason: read.reason, message: completionImportMessage(read.reason) };
+  }
+
+  const { file } = read;
+  if (file.number === buildCompletionSummary().number) {
+    return { ok: false, reason: "same-device", message: completionImportMessage("same-device") };
+  }
+  if (loadCompletionImports().some((row) => row.number === file.number)) {
+    return { ok: false, reason: "duplicate", message: completionImportMessage("duplicate") };
+  }
+
+  const added = addImportedLines(file.lines);
+  const entry: CompletionImport = {
+    number: file.number,
+    importedAt: new Date().toISOString(),
+    count: added.count,
+    seconds: added.seconds,
+  };
+  writeList(IMPORTS_KEY, [entry, ...loadCompletionImports()]);
+
+  return {
+    ok: true,
+    number: file.number,
+    addedCount: added.count,
+    addedSec: added.seconds,
+    lineCount: file.lines.length,
+  };
 }
 
 /* ── 보고 기록 ─────────────────────────────────────────── */

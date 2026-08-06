@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { InlineDisclaimer, useSourceDoc } from "@/components";
+import { ChevronGlyph } from "@/components/icons";
 import { cx } from "@/components/utils";
 import type { TracedFeedback } from "@/engine";
-import { cfVerdictSourceLine } from "./constants";
+import { cfVerdictSourceLine, splitLawSentences } from "./constants";
 import { useModalDismiss } from "./useModalDismiss";
 
 export interface CriticalInterruptProps {
@@ -31,6 +32,8 @@ export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalI
   const [entered, setEntered] = useState(false);
 
   const doc = useSourceDoc(feedback.docId);
+  /** 검수 문구는 그대로 두고, 조문 문장만 아래 접힘으로 내립니다. */
+  const { lead, law } = splitLawSentences(feedback.message);
 
   // 마운트 초점(스크롤 없이) · Esc = 다시 해보기 · Tab 가두기.
   // 세 가지는 종료 확인 모달과 규칙 엔진 시연 시트도 같은 훅으로 씁니다.
@@ -76,18 +79,12 @@ export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalI
             </h2>
           </div>
 
-          {/* 왜 멈췄는지는 코어 콘텐츠입니다. */}
-          <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink-soft">{feedback.message}</p>
-
-          {/* 근거 — 판정한 주체까지 한 박스에 적습니다(생성이 아니라 규칙임을 여기서 밝힙니다).
-              「(AI 아님)」은 이 화면에서 가장 중요한 사실이라 옅은 회색으로 내리지 않습니다(대비 4.5:1↑). */}
-          <div className="mt-3 rounded-field bg-paper-2 px-[13px] py-[12px] text-[0.8438rem] leading-[1.6] text-ink-soft">
-            {doc && <b className="font-bold text-ink">{doc.title}</b>}
-            {doc && feedback.trace?.ruleLabel && " — "}
-            {feedback.trace?.ruleLabel}
-            {(doc || feedback.trace?.ruleLabel) && " · "}
-            {cfVerdictSourceLine(feedback)}
-          </div>
+          {/* 왜 멈췄는지는 코어 콘텐츠입니다.
+              조문을 인용한 문장은 아래 「법 근거 보기」 접힘으로 내립니다 — 문구는 검수된
+              고정 문장이라 한 글자도 고치지 않고 자리만 옮깁니다(엔딩의 「다시 볼 장면」과 같은 규칙).
+              얼어붙은 그 순간에 두 번째 줄로 읽히는 것이 「법 위반」이면, 다음 말이 나오지 않습니다
+              (평가 초보 m5). */}
+          <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink-soft">{lead}</p>
 
           {alternatives.length > 0 && (
             <>
@@ -97,11 +94,12 @@ export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalI
               <ul className="flex flex-col gap-[8px]">
                 {alternatives.map((alternative) => (
                   <li key={alternative}>
-                    {/* 고르시면 그 대안을 로그에 적어 두고 같은 장면으로 돌아갑니다(전송은 하지 않습니다). */}
+                    {/* 고르시면 그 대안을 로그에 적어 두고 같은 장면으로 돌아갑니다(전송은 하지 않습니다).
+                        라벨은 제안 버튼과 같은 17px입니다 — 골라서 눌러야 하는 문장입니다(가이드 §4.6). */}
                     <button
                       type="button"
                       onClick={() => onRetry(alternative)}
-                      className="min-h-[48px] w-full rounded-[14px] border border-line-strong bg-white px-[15px] py-2.5 text-left text-[0.9375rem] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2"
+                      className="min-h-[48px] w-full rounded-[14px] border border-line-strong bg-white px-[15px] py-2.5 text-left text-[1.0625rem] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2"
                     >
                       {alternative}
                     </button>
@@ -116,6 +114,29 @@ export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalI
               </p>
             </>
           )}
+
+          {/* 판정 주체는 접지 않습니다 — 「생성이 아니라 규칙」은 이 시트의 안전 증거라(가이드 §4.6,
+              보안성 심사 대응) 한 번의 탭 뒤로 보내지 않습니다. 겁을 주는 것은 조문이지 판정 주체가
+              아니므로, 조문 전문·문서 상세만 접습니다. */}
+          <p className="mt-3.5 text-[0.8438rem] leading-[1.6] font-semibold text-ink">
+            {cfVerdictSourceLine(feedback)}
+          </p>
+          <details className="group mt-1">
+            <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-1.5 text-[0.8438rem] font-semibold text-ink-muted [&::-webkit-details-marker]:hidden">
+              <span className="underline decoration-1 underline-offset-[3px]">법 근거 보기</span>
+              {/* 동봉 폰트에 `⌄`(U+2304)가 없어 OS 심볼 폰트로 떨어집니다 — SVG 대체 글리프를 씁니다. */}
+              <ChevronGlyph size="sm" className="text-ink-ghost group-open:rotate-180" />
+            </summary>
+            {law.length > 0 && (
+              <p className="text-[0.9375rem] leading-[1.6] text-ink-soft">{law}</p>
+            )}
+            {/* 문서·규칙 상세 — 판정 주체 줄은 위에 상시 노출돼 있으므로 여기서는 반복하지 않습니다. */}
+            <div className="mt-2 rounded-field bg-paper-2 px-[13px] py-[12px] text-[0.8438rem] leading-[1.6] text-ink-soft">
+              {doc && <b className="font-bold text-ink">{doc.title}</b>}
+              {doc && feedback.trace?.ruleLabel && " — "}
+              {feedback.trace?.ruleLabel}
+            </div>
+          </details>
         </div>
 
         {/* 주 CTA — 내용이 아무리 길어도 여기 남습니다.

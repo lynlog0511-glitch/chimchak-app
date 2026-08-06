@@ -229,7 +229,7 @@
   h2,
   h3,
   h4 {
-    line-height: 1.25;
+    line-height: 1.3;
     letter-spacing: -0.02em;
     text-wrap: balance;
   }
@@ -396,32 +396,37 @@
 
      2026-08-06 정리: `.chim-meta`(14px)를 폐기하고 `.chim-caption`으로 합쳤습니다.
      13과 14는 비율 1.08로 지각 역치 아래라 위계를 만들지 못하고 편차만 만들었습니다
-     (심미 재평가 ma1 — 한 화면에 13종이 공존). 눈금은 11 / 12.5 / 13.5 / 15 / 17 입니다. */
+     (심미 재평가 ma1 — 한 화면에 13종이 공존). 눈금은 11 / 12.5 / 13.5 / 15 / 17 입니다.
+
+     행간도 같은 이유로 **1.3(제목) · 1.45(밀집) · 1.6(본문)** 3단만 씁니다(가이드 §2 8/6 교정).
+     예외는 둘뿐입니다 — `/report` 가림 결과 문단 1.85와 아래 `.chim-stat` 1.05(40px 숫자).
+     0.05 차이는 지각 역치 아래라 위계를 만들지 못하고 화면 간 편차만 만듭니다.
+     새 값을 여기에 더하지 마세요. */
 
   .chim-display {
     font-size: 2.75rem; /* 44px */
-    line-height: 1.15;
+    line-height: 1.3;
     letter-spacing: -0.03em;
     font-weight: 800;
   }
 
   .chim-h1 {
     font-size: 2rem; /* 32px */
-    line-height: 1.18;
+    line-height: 1.3;
     letter-spacing: -0.025em;
     font-weight: 800;
   }
 
   .chim-h2 {
     font-size: 1.5rem; /* 24px */
-    line-height: 1.25;
+    line-height: 1.3;
     letter-spacing: -0.02em;
     font-weight: 700;
   }
 
   .chim-h3 {
     font-size: 1.25rem; /* 20px */
-    line-height: 1.35;
+    line-height: 1.3;
     letter-spacing: -0.015em;
     font-weight: 700;
   }
@@ -433,12 +438,12 @@
 
   .chim-body {
     font-size: 1rem; /* 16px */
-    line-height: 1.65;
+    line-height: 1.6;
   }
 
   .chim-label {
     font-size: 0.9375rem; /* 15px */
-    line-height: 1.4;
+    line-height: 1.45;
     font-weight: 600;
   }
 

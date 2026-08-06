@@ -76,7 +76,7 @@ export function DraftRows({ draft, empty = "prompt", className }: DraftRowsProps
         const value = draft[slot];
         const isEmpty = value.trim().length === 0;
         return (
-          <div key={slot} className="flex gap-[10px] px-[2px] py-[11px] text-[0.9063rem] leading-[1.6]">
+          <div key={slot} className="flex gap-[10px] px-[2px] py-[11px] text-[0.9375rem] leading-[1.6]">
             <dt className="w-[64px] flex-none whitespace-nowrap text-ink-muted">
               {RECORD_SLOT_LABELS[slot]}
             </dt>

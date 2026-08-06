@@ -47,8 +47,8 @@ function CheckRow({ result }: { result: CheckResult }) {
     >
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <StatusMark kind={STATUS_MARK[result.status]} size="sm" />
-        <span className="text-[0.875rem] leading-[1.45] font-bold text-ink">{result.title}</span>
-        <span className={cx("text-[0.75rem] leading-[1.4] font-bold", STATUS_TEXT[result.status])}>
+        <span className="text-[0.8438rem] leading-[1.45] font-bold text-ink">{result.title}</span>
+        <span className={cx("text-[0.7813rem] leading-[1.45] font-bold", STATUS_TEXT[result.status])}>
           {STATUS_LABEL[result.status]}
         </span>
       </div>
@@ -108,7 +108,7 @@ export function CheckClient() {
         <p className="text-[0.8438rem] leading-[1.45] font-extrabold text-warn-ink">
           발표자 전용 점검 화면입니다 · 심사 화면 아님
         </p>
-        <p className="mt-[5px] text-[0.75rem] leading-[1.6] text-ink-soft">
+        <p className="mt-[5px] text-[0.7813rem] leading-[1.6] text-ink-soft">
           무대에 올라가시기 전, 오프라인 시연에 필요한 조건과 규칙 엔진 경계 케이스를 한 번에
           훑어보는 화면입니다. 「다시 검사」를 누르면 경계 케이스도 그 자리에서 다시 돌아갑니다.
           이 화면 자체는 어디에도 링크되어 있지 않습니다.
@@ -116,7 +116,7 @@ export function CheckClient() {
       </div>
 
       <div className="mt-[16px] flex items-center gap-3">
-        <p aria-live="polite" className="min-w-0 flex-1 text-[0.8438rem] leading-[1.5] text-ink">
+        <p aria-live="polite" className="min-w-0 flex-1 text-[0.8438rem] leading-[1.45] text-ink">
           {!mounted || checking
             ? "확인하는 중입니다…"
             : allOk

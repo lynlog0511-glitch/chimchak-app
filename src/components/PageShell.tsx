@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { SourceDoc } from "@/types";
+import { EyebrowLabel } from "./EyebrowLabel";
 import { SourceDocsProvider } from "./SourceDocsContext";
 import { TabBar } from "./TabBar";
 import { TopNav } from "./TopNav";
@@ -134,11 +135,7 @@ export function PageShell({
           >
             {hasLegacyHead && (
               <header className="pt-2 pb-4">
-                {eyebrow && (
-                  <p className="mb-1 text-[0.7813rem] font-bold tracking-[0.06em] text-ink-muted">
-                    {eyebrow}
-                  </p>
-                )}
+                {eyebrow && <EyebrowLabel className="mb-1">{eyebrow}</EyebrowLabel>}
                 {title && (
                   <h1 className="text-[1.375rem] leading-[1.3] font-extrabold tracking-[-0.01em] text-ink">
                     {title}

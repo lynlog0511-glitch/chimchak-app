@@ -7,7 +7,7 @@ import { cx } from "../utils";
    왜 필요한가 — 동봉 폰트에 **없는 글자**를 화면에 쓰고 있었습니다.
    public/fonts/PretendardVariable.woff2 의 cmap을 fontTools로 열어 재확인한 결과:
 
-     U+2304 '⌄' (펼침 마커)  → MISSING   ← 11곳에서 렌더 중
+     U+2304 '⌄' (펼침 마커)  → MISSING   ← 8/6 전 렌더 지점 ChevronGlyph로 배선 완료
      U+2691 '⚑' (CF 깃발)    → MISSING
      U+21BA '↺' (재훈련)     → PRESENT
      U+2713 '✓' (충족)       → PRESENT

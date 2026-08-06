@@ -2,8 +2,8 @@
 
 import { useId, useState } from "react";
 import Link from "next/link";
-import type { SessionRecord } from "@/types";
-import { cx } from "@/components";
+import type { EndingDef, SessionRecord } from "@/types";
+import { EyebrowLabel } from "@/components";
 import { isDemoRecord } from "@/lib/demoSeed";
 import { formatDateTime, formatShortDate, verdictNote } from "./format";
 import { trainHref } from "./nextTraining";
@@ -14,21 +14,45 @@ export interface TrainingRowProps {
   typeLabel: string;
 }
 
+/** 앞으로 나아가는 마무리 — 이때만 「다시 볼 것 없이 마치셨어요」로 접어도 사실과 어긋나지 않습니다. */
+const FORWARD_VERDICTS: readonly EndingDef["verdict"][] = ["충족", "부분 충족"];
+
+/** 옛 기록에는 없을 수 있는 값이라 읽는 쪽에서 막아 둡니다(하위 호환 — 없으면 표시를 생략). */
+function cfCountOf(record: SessionRecord): number {
+  return typeof record.cfCount === "number" && record.cfCount > 0 ? record.cfCount : 0;
+}
+
+function endingTitleOf(record: SessionRecord): string {
+  return typeof record.endingTitle === "string" ? record.endingTitle.trim() : "";
+}
+
 /**
  * 회차 한 줄의 요약 — 「잘한 것 5 · 다시 볼 것 1 — 감정 인정 먼저」 (시안 5c).
  * 개수 표기는 사용자가 확정한 예외이고(§4), 그 밖의 점수·등급·순위는 만들지 않습니다.
+ *
+ * ⚑CF로 멈춘 회차는 코칭 문구 목록이 비어 있어도 「다시 볼 것 없이 마치셨어요」로 접히면 안 됩니다 —
+ * 접힌 줄만 보고 지나가는 사람에게 그 한 줄이 회차의 전부이기 때문입니다.
+ * 그래서 멈춘 회차는 **그날의 마무리 제목**(검수된 고정 문구)을 그대로 싣습니다.
  */
 function summaryTail(record: SessionRecord): string {
+  const ending = endingTitleOf(record);
+  if (cfCountOf(record) > 0 && ending.length > 0) return ending;
+
   const first = record.coachingPoints[0];
   if (first && first.trim().length > 0) return first.trim();
+
+  // 다시 보기 문법으로 끝난 회차(재시도·재훈련 권고 등)도 「없이 마치셨어요」로 요약하지 않습니다.
+  if (!FORWARD_VERDICTS.includes(record.verdict) && ending.length > 0) return ending;
   return "다시 볼 것 없이 마치셨어요";
 }
 
 /**
  * 최근 훈련 행 (시안 5c).
  *
- * 행은 [날짜·유형 12px / 제목 15.5px w700 / 잘한 것·다시 볼 것 요약 12.5px] + 우측 「다시 ›」이고,
+ * 행은 [날짜·유형 12.5px / 제목 17px w700 / 요약 13.5px] + 우측 「다시 ›」이고,
  * 행 아래는 hairline 1px입니다. 카드로 감싸지 않습니다.
+ * 크기는 가이드 §2 눈금(11 / 12.5 / 13.5 / 15 / 17)에서만 고릅니다 — 12·13·15.5px 같은
+ * 중간값은 위계를 만들지 못하고 편차만 남기므로 쓰지 않습니다.
  *
  * 왼쪽을 누르면 그 회차에서 **충족한 것과 다음에 살려 볼 것 문장**이 면 카드로 펼쳐집니다 —
  * 시안의 줄 문법을 지키면서도 회차 내용이 사라지지 않게 둔 자리입니다.
@@ -40,6 +64,8 @@ export function TrainingRow({ record, typeLabel }: TrainingRowProps) {
 
   const green = record.greenChecks.length;
   const coaching = record.coachingPoints.length;
+  /** ⚑CF로 멈춘 지점 수 — 숫자로만 두지 않고 「다시 볼 장면 N곳」 문장으로 적습니다(등급이 아닙니다). */
+  const cfScenes = cfCountOf(record);
   /** 시연용으로 심어 둔 예시 회차 — 행에서 바로 구분되어야 증빙으로 오인되지 않습니다. */
   const isExample = isDemoRecord(record);
 
@@ -53,18 +79,23 @@ export function TrainingRow({ record, typeLabel }: TrainingRowProps) {
           aria-controls={panelId}
           className="min-h-[48px] min-w-0 flex-1 py-2 text-left"
         >
-          <span className="block text-[0.75rem] leading-[1.4] text-tertiary">
+          <span className="block text-[0.7813rem] leading-[1.4] text-tertiary">
             {isExample && <span className="font-bold text-warn-ink">예시 · </span>}
             {formatShortDate(record.startedAt)} · {typeLabel}
           </span>
-          <span className="mt-[2px] block text-[0.9688rem] leading-[1.35] font-bold text-ink">
+          <span className="mt-[2px] block text-[1.0625rem] leading-[1.35] font-bold text-ink">
             {record.scenarioTitle}
           </span>
-          <span className="mt-[3px] line-clamp-2 block text-[0.7813rem] leading-[1.5] text-ink-soft">
-            <span className="font-bold text-ok-ink">잘한 것 {green}</span> · 다시 볼 것 {coaching} —{" "}
-            {summaryTail(record)}
+          {/* 접힌 줄이 회차의 전부입니다 — 멈춘 지점과 마무리 제목이 여기서 빠지면 요약이 사실과 어긋납니다.
+              0인 항목은 아예 적지 않습니다(「다시 볼 것 0」이 「없었다」로 읽히지 않도록). */}
+          <span className="mt-[3px] line-clamp-2 block text-[0.8438rem] leading-[1.5] text-ink-soft">
+            <span className="font-bold text-ok-ink">잘한 것 {green}</span>
+            {cfScenes > 0 && (
+              <span className="font-bold text-warn-ink"> · 다시 볼 장면 {cfScenes}곳</span>
+            )}
+            {coaching > 0 && ` · 다시 볼 것 ${coaching}`} — {summaryTail(record)}
           </span>
-          <span className="mt-[3px] block text-[0.7188rem] leading-[1.4] text-tertiary">
+          <span className="mt-[3px] block text-[0.7813rem] leading-[1.4] text-tertiary">
             {open ? "접기" : "자세히 보기"}
           </span>
         </button>
@@ -72,7 +103,7 @@ export function TrainingRow({ record, typeLabel }: TrainingRowProps) {
         <Link
           href={trainHref(record.scenarioId)}
           aria-label={`${record.scenarioTitle} 다시 연습하기`}
-          className="flex min-h-[48px] flex-none items-center px-2 text-[0.8125rem] font-bold whitespace-nowrap text-brand-700"
+          className="flex min-h-[48px] flex-none items-center px-2 text-[0.9375rem] font-bold whitespace-nowrap text-brand-700"
         >
           다시 ›
         </Link>
@@ -86,7 +117,7 @@ export function TrainingRow({ record, typeLabel }: TrainingRowProps) {
               누계에도 들어가지 않습니다.
             </p>
           )}
-          <p className="text-[0.8125rem] leading-[1.5] font-bold text-ink">{record.endingTitle}</p>
+          <p className="text-[0.9375rem] leading-[1.5] font-bold text-ink">{record.endingTitle}</p>
           <p className="mt-[3px] text-[0.7813rem] leading-[1.6] text-ink-soft">
             {verdictNote(record.verdict)}
           </p>
@@ -104,14 +135,14 @@ export function TrainingRow({ record, typeLabel }: TrainingRowProps) {
             empty="따로 남은 것이 없습니다. 흐름을 잘 지키셨습니다."
           />
 
-          {record.cfCount > 0 && (
+          {cfScenes > 0 && (
             <p className="mt-[14px] rounded-[12px] bg-danger-soft px-3 py-[10px] text-[0.7813rem] leading-[1.6] font-semibold text-danger-ink">
               안전과 직결된 구간에서 즉시 중단 안내를 받으셨습니다. 대안 행동을 확인하신 뒤 같은
               상황을 다시 연습해 보세요.
             </p>
           )}
 
-          <p className="mt-[12px] text-[0.7188rem] leading-[1.5] text-tertiary">
+          <p className="mt-[12px] text-[0.7813rem] leading-[1.5] text-tertiary">
             대화 <span className="chim-num">{record.turnCount}</span>턴
             {record.retriesUsed > 0 && " · 다시 해보기 사용"} · 마친 시각{" "}
             {formatDateTime(record.endedAt)}
@@ -139,18 +170,12 @@ function RowList({
 }) {
   return (
     <div className="mt-[14px]">
-      <p
-        className={cx(
-          "text-[0.75rem] leading-[1.5] font-bold tracking-[0.06em]",
-          labelClass,
-        )}
-      >
-        {label}
-      </p>
+      {/* 아이브로는 손으로 짓지 않고 규격 컴포넌트를 씁니다 — 색만 className으로 덮습니다. */}
+      <EyebrowLabel className={labelClass}>{label}</EyebrowLabel>
       {items.length > 0 ? (
         <ul className="chim-hairline mt-[4px] border-t border-line">
           {items.map((item, index) => (
-            <li key={index} className="py-[8px] text-[0.8125rem] leading-[1.6] text-ink">
+            <li key={index} className="py-[8px] text-[0.8438rem] leading-[1.6] text-ink">
               {item}
             </li>
           ))}

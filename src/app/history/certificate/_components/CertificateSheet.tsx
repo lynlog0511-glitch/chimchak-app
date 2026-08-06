@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { BigButton, InlineDisclaimer, cx } from "@/components";
 import { countDemoRecords } from "@/lib/demoSeed";
 import { buildCompletionCsv, buildCompletionSummary, type CompletionSummary } from "@/lib/storage";
 import { formatDate, formatDateTime } from "../../_components/format";
+import { CompletionImportPanel } from "./CompletionImportPanel";
 
 /**
  * 인쇄 전용 규칙 — 화면 껍데기(버튼·상단 바)를 빼고 확인서만 종이에 남깁니다.
@@ -127,11 +128,18 @@ export function CertificateSheet() {
     setLoaded(true);
   }, []);
 
+  /** 이수 사실 파일을 합친 직후 — 합계·시수·발급번호가 모두 달라지므로 요약을 다시 읽습니다. */
+  const handleImported = useCallback(() => {
+    setSummary(buildCompletionSummary());
+    setIssuedAt(new Date().toISOString());
+  }, []);
+
   const isPreview = demoCount > 0;
   const lines = summary?.lines ?? [];
   const total = summary?.totalCount ?? 0;
   const totalSec = summary?.totalSec ?? 0;
   const hiddenCount = summary?.hiddenCount ?? 0;
+  const importedCount = summary?.importedCount ?? 0;
 
   return (
     <>
@@ -158,6 +166,9 @@ export function CertificateSheet() {
           <BigButton href="/history" variant="secondary" block className="mt-2">
             성장 기록으로 돌아가기
           </BigButton>
+          {/* 기기를 바꾸신 직후가 바로 이 빈 화면입니다 — 되돌려 넣는 칸이 여기 없으면
+              「옮겨 두시면 됩니다」가 빈말이 됩니다. */}
+          <CompletionImportPanel onImported={handleImported} />
           <InlineDisclaimer size="md" tone="readable" className="mt-6 mb-3" />
         </div>
       ) : (
@@ -259,10 +270,12 @@ export function CertificateSheet() {
                 <span className="chim-num text-brand-800">{summary?.number ?? ""}</span>
               )}
             </p>
+            {/* 번호가 무엇을 할 수 있고 무엇을 못 하는지 문서 스스로 적습니다 —
+                자료철에 들어갈 종이가 자기 한계를 감추면, 감사에서 그 한계가 대신 발견됩니다. */}
             <p className="mt-[3px] text-[0.7813rem] leading-[1.6] text-ink-soft">
               {isPreview
                 ? "예시 기록이 섞여 있는 동안에는 발급번호를 만들지 않습니다 — 대조할 원본이 실제 이수 사실이 아니기 때문입니다."
-                : "같은 기록 집합에서는 언제 다시 인쇄해도 같은 번호가 나옵니다 — 중복 제출 확인에 쓰실 수 있습니다."}
+                : "같은 기록이면 재인쇄에도 같은 값이라 중복 제출 확인에 쓰실 수 있습니다. 다만 위조를 막는 장치는 아니며, 확인자 서명이 효력을 만듭니다."}
             </p>
             <p className="mt-[3px] text-[0.7813rem] leading-[1.6] text-ink-soft">
               발급: 침착(ChimChak) 훈련 앱 · 문의: 기관 도입 담당자 — 앱 안 「기관 도입 안내」
@@ -300,6 +313,15 @@ export function CertificateSheet() {
               <p className="mt-[6px] text-[0.7813rem] leading-[1.7] font-bold text-warn-ink">
                 이 합계에는 시연용 예시 <span className="chim-num">{demoCount}</span>회가 포함되어
                 있습니다 — 이 기기의 실제 이수 시수 누계에는 반영되지 않은 회차입니다.
+              </p>
+            )}
+            {/* 가져온 회차는 상세가 이 기기에 없지만 사유가 「50건 상한」과 다릅니다 —
+                두 사유를 한 문장으로 뭉치면 종이가 사실과 다른 이유를 대게 됩니다. */}
+            {importedCount > 0 && (
+              <p className="mt-[6px] text-[0.7813rem] leading-[1.7] text-ink-soft">
+                이 가운데 <span className="chim-num font-bold">{importedCount}</span>회는 다른
+                기기의 이수 사실 파일에서 가져온 회차입니다 — 발급번호로 대조해 합쳤고, 같은
+                번호는 두 번 더하지 않습니다. 가져온 회차의 상세는 이 기기에 남지 않습니다.
               </p>
             )}
             {/* 상세는 최근 50회까지만 남지만 합계·시수는 별도 누계로 세므로 줄지 않습니다.
@@ -405,9 +427,12 @@ export function CertificateSheet() {
             {!isPreview && (
               <p className="mt-[6px] text-center text-[0.8125rem] leading-[1.6] text-ink-soft">
                 내려받는 파일에는 발급번호·시나리오·이수 횟수·이수 시수만 담깁니다 — 성명·소속과
-                대화 내용은 들어가지 않습니다. 기기를 바꾸실 때 옮겨 두시면 됩니다.
+                대화 내용은 들어가지 않습니다. 기기를 바꾸실 때 옮겨 두셨다가, 새 기기의 이 화면에서
+                아래 칸으로 되돌려 넣으시면 됩니다.
               </p>
             )}
+
+            <CompletionImportPanel onImported={handleImported} />
             <p className="mt-4 text-center">
               <Link
                 href="/for-orgs"

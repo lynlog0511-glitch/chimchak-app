@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ChevronGlyph } from "@/components/icons";
 import Link from "next/link";
 import type { ScenarioType } from "@/types";
 import { EyebrowLabel, InlineDisclaimer, PageShell, ScreenHeader } from "@/components";
@@ -142,12 +143,7 @@ export default function TrainIndexPage() {
               — {openCount}종 열림 · {lockedCount}종 준비 중
             </span>
           </span>
-          <span
-            aria-hidden
-            className="flex-none text-[0.8125rem] leading-none text-ink-ghost transition-transform duration-150 group-open:rotate-180"
-          >
-            ⌄
-          </span>
+          <ChevronGlyph size="sm" className="flex-none text-ink-ghost group-open:rotate-180" />
         </summary>
 
         <div className="pb-2">

@@ -70,7 +70,7 @@ export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: Dr
       <h2 ref={headingRef} tabIndex={-1} className="text-[1.0625rem] leading-[1.45] font-bold text-ink">
         급여제공기록지 초안을 확인하고 고쳐 주세요
       </h2>
-      <p className="mt-[6px] text-[0.7813rem] leading-[1.7] text-ink-muted">
+      <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-muted">
         가명처리를 마친 문장에서 5요소를 나눠 담았습니다. 기기 안의 규칙으로 나눈 초안이라 어색한
         곳이 있을 수 있습니다. 사실과 다르면 바로 고쳐 주세요.
       </p>
@@ -79,7 +79,7 @@ export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: Dr
       </div>
 
       {missingCount > 0 && (
-        <p role="status" className="mt-4 text-[0.8125rem] leading-[1.6] font-bold text-warn-ink">
+        <p role="status" className="mt-4 text-[0.8438rem] leading-[1.6] font-bold text-warn-ink">
           비어 있는 칸이 <span className="chim-num">{missingCount}</span>곳 있습니다 —{" "}
           {draft.missing.join(" · ")}. 아래에서 채워 주세요.
         </p>
@@ -93,7 +93,7 @@ export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: Dr
           const fieldId = `draft-${slot.key}`;
           const hintId = `${fieldId}-hint`;
           const shared = cx(
-            "mt-[6px] w-full rounded-[14px] border bg-white p-[13px] text-[0.9375rem] leading-[1.7] text-ink placeholder:text-tertiary focus:outline-none",
+            "mt-[6px] w-full rounded-[14px] border bg-white p-[13px] text-[0.9375rem] leading-[1.6] text-ink placeholder:text-tertiary focus:outline-none",
             empty
               ? "border-warn-line focus:border-warn-ink"
               : "border-line-strong focus:border-brand-400",
@@ -102,11 +102,11 @@ export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: Dr
           return (
             <div key={slot.key}>
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                <label htmlFor={fieldId} className="text-[0.8125rem] leading-[1.5] font-bold text-ink">
+                <label htmlFor={fieldId} className="text-[0.8438rem] leading-[1.45] font-bold text-ink">
                   {label}
                 </label>
                 {empty && (
-                  <span id={hintId} className="text-[0.75rem] leading-[1.5] font-bold text-warn-ink">
+                  <span id={hintId} className="text-[0.7813rem] leading-[1.45] font-bold text-warn-ink">
                     채워 주세요 — {SLOT_PROMPTS[slot.key]}
                   </span>
                 )}
@@ -139,15 +139,15 @@ export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: Dr
       </div>
 
       <div className="mt-6 rounded-[14px] bg-paper-2 px-4 py-[14px]">
-        <p className="text-[0.875rem] leading-[1.5] font-bold text-ink">확정은 사용자가 누릅니다</p>
-        <p className="mt-[6px] text-[0.7813rem] leading-[1.7] text-ink-soft">
+        <p className="text-[0.8438rem] leading-[1.45] font-bold text-ink">확정은 사용자가 누릅니다</p>
+        <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
           확정 직전에 2차 가명처리를 한 번 더 돌리고, 이 기기의 저장소에만 남깁니다. 최종 기록의
           내용과 책임은 작성하신 분에게 있습니다.
         </p>
         {/* 기관 연동은 아직 없습니다 — /safety가 「계획」 배지로 구분하는 것과 같은 표기를 씁니다.
             같은 문단 안에서 「전달됩니다」와 「이 기기에만 남깁니다」가 부딪히던 자리입니다. */}
-        <p className="mt-[8px] text-[0.7813rem] leading-[1.7] text-ink-soft">
-          <span className="mr-[6px] inline-flex items-center rounded-chip border border-line-strong px-[7px] py-[1px] align-[2px] text-[0.7188rem] leading-[1.5] font-bold whitespace-nowrap text-ink-soft">
+        <p className="mt-[8px] text-[0.7813rem] leading-[1.6] text-ink-soft">
+          <span className="mr-[6px] inline-flex items-center rounded-chip border border-line-strong px-[7px] py-[1px] align-[2px] text-[0.6875rem] leading-[1.45] font-bold whitespace-nowrap text-ink-soft">
             계획
           </span>
           기관 시스템 연동은 설계까지 마쳤고 아직 구현하지 않았습니다. 연동하게 되더라도 확정
@@ -171,7 +171,7 @@ export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: Dr
           이대로 확정하기
         </BigButton>
         {allEmpty && (
-          <p className="mt-[6px] text-center text-[0.8438rem] leading-[1.5] text-ink-muted">
+          <p className="mt-[6px] text-center text-[0.8438rem] leading-[1.45] text-ink-muted">
             5요소가 모두 비어 있어 아직 확정할 수 없습니다. 한 칸이라도 채워 주세요
           </p>
         )}

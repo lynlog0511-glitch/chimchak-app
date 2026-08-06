@@ -109,7 +109,7 @@ export default function Home() {
       {/* 상단 바 — 로고 17px w800 딥틸 + 「설정」 13.5px.
           md↑에서는 셸의 가로 네비(워드마크·메뉴·설정)가 이 역할을 이어받습니다. */}
       <header className="flex items-center pt-2 pb-1 md:hidden">
-        <span className="text-[1.0625rem] leading-none font-extrabold tracking-[-0.01em] text-brand-800">
+        <span className="text-[1.0625rem] leading-[1.3] font-extrabold tracking-[-0.01em] text-brand-800">
           침착
         </span>
         <SettingsMenu className="ml-auto" />
@@ -126,7 +126,7 @@ export default function Home() {
             <br className="lg:hidden" />
             {PRACTICE_LINE_B1} {PRACTICE_LINE_B2}
           </h1>
-          <p className="mt-2 text-[0.875rem] leading-[1.6] text-ink-muted lg:mt-[14px] lg:max-w-[420px] lg:text-[1rem] lg:leading-[1.65]">
+          <p className="mt-2 text-[0.8438rem] leading-[1.6] text-ink-muted lg:mt-[14px] lg:max-w-[420px] lg:text-[1rem] lg:leading-[1.6]">
             돌보는 사람을 위한 상황 훈련 — 판정은 AI가 아니라 법령·공단 지침이 합니다.
           </p>
 
@@ -149,7 +149,7 @@ export default function Home() {
 
           {/* 「배우고·일하고·성장하고」 — 데스크톱 히어로의 마지막 한 줄(시안 7c).
               모바일에서는 아래 리스트 3행이 같은 일을 합니다. */}
-          <ul className="mt-[26px] hidden flex-wrap items-center gap-x-[22px] gap-y-2 text-[0.8438rem] leading-[1.5] text-ink-soft lg:flex">
+          <ul className="mt-[26px] hidden flex-wrap items-center gap-x-[22px] gap-y-2 text-[0.8438rem] leading-[1.45] text-ink-soft lg:flex">
             {THINGS_INLINE.map((item, i) => (
               <Fragment key={item.lead}>
                 <li>
@@ -203,7 +203,7 @@ export default function Home() {
       >
         <h2
           id="home-tiers"
-          className="text-[0.8125rem] leading-[1.5] font-bold text-ink lg:flex-none lg:text-[0.8438rem]"
+          className="text-[0.8438rem] leading-[1.45] font-bold text-ink lg:flex-none lg:text-[0.8438rem]"
         >
           위험할수록 AI의 지분을 줄입니다
         </h2>
@@ -211,7 +211,9 @@ export default function Home() {
           {TIERS.map((tier) => (
             <li key={tier.label} className="min-w-0 flex-1 text-center lg:text-left">
               <span aria-hidden className={`block h-[6px] rounded-[3px] ${tier.bar}`} />
-              <span className="mt-[5px] block text-[0.7188rem] leading-[1.4] font-semibold text-ink-soft lg:mt-1 lg:text-[0.6875rem]">
+              {/* 지면이 넓어지는 lg에서 오히려 한 단 작아지던 자리입니다 —
+                  메타 눈금(11~12.5) 위쪽으로 고정해 폭에 관계없이 같은 크기로 둡니다. */}
+              <span className="mt-[5px] block text-[0.7813rem] leading-[1.45] font-semibold text-ink-soft lg:mt-1">
                 {tier.label}
                 {tier.mobileTail && <span className="lg:hidden">{tier.mobileTail}</span>}
                 <span className="hidden lg:inline">{tier.deskTail}</span>
@@ -230,6 +232,12 @@ export default function Home() {
             className="inline-flex min-h-[48px] items-center justify-center px-2 text-[0.7813rem] font-semibold text-ink-muted underline underline-offset-4 transition-colors duration-150 hover:text-brand-800"
           >
             안전·개인정보 설계
+          </Link>
+          <Link
+            href="/for-orgs"
+            className="inline-flex min-h-[48px] items-center justify-center px-2 text-[0.7813rem] font-semibold text-ink-muted underline underline-offset-4 transition-colors duration-150 hover:text-brand-800"
+          >
+            기관 도입 안내
           </Link>
         </p>
         <InlineDisclaimer

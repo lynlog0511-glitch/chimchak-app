@@ -45,7 +45,7 @@ export function TabBar({ active, className }: TabBarProps) {
                 href={item.href}
                 aria-current={isActive ? "page" : undefined}
                 className={cx(
-                  "flex min-h-[48px] items-center justify-center px-1 text-center text-[0.8438rem] leading-none",
+                  "flex min-h-[48px] items-center justify-center px-1 text-center text-[0.8438rem] leading-[1.3]",
                   "transition-colors duration-150",
                   isActive
                     ? item.danger

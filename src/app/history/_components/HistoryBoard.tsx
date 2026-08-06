@@ -144,7 +144,7 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
           <button
             type="button"
             onClick={handleClearDemo}
-            className="mt-[10px] flex min-h-[48px] w-full items-center justify-center rounded-[14px] border border-line-strong bg-white text-[0.9375rem] font-bold text-ink"
+            className="mt-[10px] flex min-h-[48px] w-full items-center justify-center rounded-[14px] border border-line-strong bg-white text-[0.9375rem] font-bold text-ink transition-colors duration-150 active:bg-paper-2"
           >
             예시 기록 한 번에 지우기
           </button>
@@ -159,7 +159,7 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
         <Link
           href={trainHref(suggestion.candidate.id)}
           aria-label={`${suggestion.candidate.title} 훈련으로 가기 — ${suggestion.reasonText}`}
-          className="mb-4 flex min-h-[48px] items-center gap-[10px] rounded-[14px] bg-tint px-[15px] py-[14px]"
+          className="mb-4 flex min-h-[48px] items-center gap-[10px] rounded-[14px] bg-tint px-[15px] py-[14px] transition-colors duration-150 active:bg-mint-200"
         >
           <span className="min-w-0 flex-1">
             {/* 링크 안이라 문단(EyebrowLabel)을 넣을 수 없는 자리입니다 —
@@ -207,7 +207,7 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
           </p>
           <Link
             href="/train"
-            className="mt-[6px] inline-flex min-h-[48px] items-center text-[0.9375rem] font-bold text-brand-700"
+            className="mt-[6px] inline-flex min-h-[48px] items-center rounded-field text-[0.9375rem] font-bold text-brand-700 transition-colors duration-150 active:bg-paper-2"
           >
             첫 훈련 시작하기 ›
           </Link>
@@ -217,7 +217,7 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
       {/* 이수 확인서 — 인쇄용 화면으로 나갑니다(이수 사실만 담습니다). */}
       <Link
         href="/history/certificate"
-        className="mt-4 flex min-h-[50px] w-full items-center justify-center rounded-[14px] border border-line-strong bg-white text-[0.9375rem] font-bold text-ink"
+        className="mt-4 flex min-h-[50px] w-full items-center justify-center rounded-[14px] border border-line-strong bg-white text-[0.9375rem] font-bold text-ink transition-colors duration-150 active:bg-paper-2"
       >
         이수 확인서 만들기
       </Link>
@@ -229,7 +229,7 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
       <p className="mt-[6px] text-center">
         <Link
           href="/for-orgs"
-          className="inline-flex min-h-[48px] items-center text-[0.8438rem] font-bold text-brand-700"
+          className="inline-flex min-h-[48px] items-center rounded-field text-[0.8438rem] font-bold text-brand-700 transition-colors duration-150 active:bg-paper-2"
         >
           기관 담당자용 안내 보기 ›
         </Link>
@@ -250,7 +250,7 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
           </p>
           <Link
             href="/report"
-            className="mt-[6px] inline-flex min-h-[48px] items-center text-[0.9375rem] font-bold text-brand-700"
+            className="mt-[6px] inline-flex min-h-[48px] items-center rounded-field text-[0.9375rem] font-bold text-brand-700 transition-colors duration-150 active:bg-paper-2"
           >
             음성 보고하러 가기 ›
           </Link>
@@ -289,14 +289,14 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
                 <button
                   type="button"
                   onClick={handleClear}
-                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-[14px] bg-danger-ink text-[0.9375rem] font-bold text-white"
+                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-[14px] bg-danger-ink text-[0.9375rem] font-bold text-white transition-colors duration-150 active:brightness-95"
                 >
                   네, 지웁니다
                 </button>
                 <button
                   type="button"
                   onClick={() => setConfirmClear(false)}
-                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-[14px] bg-white text-[0.9375rem] font-bold text-ink-soft"
+                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-[14px] bg-white text-[0.9375rem] font-bold text-ink-soft transition-colors duration-150 active:bg-paper-2"
                 >
                   취소
                 </button>
@@ -306,7 +306,7 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
             <button
               type="button"
               onClick={() => setConfirmClear(true)}
-              className="flex min-h-[48px] items-center text-[0.8438rem] font-bold text-ink-soft"
+              className="flex min-h-[48px] items-center rounded-field text-[0.8438rem] font-bold text-ink-soft transition-colors duration-150 active:bg-paper-2"
             >
               이 기기의 기록 지우기
             </button>

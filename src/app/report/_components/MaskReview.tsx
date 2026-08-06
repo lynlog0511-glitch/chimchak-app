@@ -143,7 +143,7 @@ export function MaskReview({ text, onBack, onNext, headingRef }: MaskReviewProps
       {/* 원문 대조 · 종류별 사유 — 시안에는 없지만 기능은 그대로 두고 접어 둡니다. */}
       {total > 0 && (
         <details className="group mt-4 border-y border-line">
-          <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 px-[2px] text-[0.9375rem] leading-[1.45] font-semibold text-ink [&::-webkit-details-marker]:hidden">
+          <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 rounded-field px-[2px] text-[0.9375rem] leading-[1.45] font-semibold text-ink transition-colors duration-150 active:bg-paper-2 [&::-webkit-details-marker]:hidden">
             <span>
               말씀하신 원문과 나란히 보기 — <span className="chim-num">{total}</span>곳
             </span>

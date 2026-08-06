@@ -23,6 +23,7 @@
  *   비활성화됩니다(rules.ts의 `skipCues`). 그 구간에서는 해당 예시를 숨깁니다 — `skipCueIds`.
  */
 
+import { POST_EMERGENCY_CUES } from "@/engine/rules";
 import type { ScenarioType } from "@/types";
 
 /** 접이식 제목 */
@@ -68,7 +69,7 @@ export interface RuleDemoExample {
  * 액체·음식 ⚑CF가 꺼지는 구간 — rules.ts의 POST_EMERGENCY_CUES와 같은 값입니다.
  * (응급이 끝난 뒤 "물을 드린 사실도 기록하겠습니다" 같은 회고 진술을 잡지 않기 위한 게이트)
  */
-const POST_EMERGENCY_CUES = ["CUE-5", "CUE-T2", "CUE-6", "CUE-7"];
+/* 값의 원본은 엔진(rules.ts) 하나뿐입니다 — 두 벌이 갈라지면 UI 단언이 조용히 거짓이 됩니다. */
 
 export const RULE_DEMO_EXAMPLES: RuleDemoExample[] = [
   /* ── 치매 행동심리증상(BPSD) ── */

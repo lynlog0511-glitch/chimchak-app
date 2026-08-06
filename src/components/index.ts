@@ -23,6 +23,11 @@ export { SettingsBoot } from "./SettingsBoot";
 export { SettingsMenu } from "./SettingsMenu";
 export type { SettingsMenuProps } from "./SettingsMenu";
 
+/* 전면 오버레이 문법 한 벌 — 초점·Esc·Tab 가두기·배경 스크롤 잠금 + 240ms 등장/퇴장.
+   시트·모달·팝오버가 전부 이 두 훅을 씁니다(모달 문법이 화면마다 갈리지 않도록). */
+export { useModalDismiss, useOverlayTransition, OVERLAY_MS } from "./useModalDismiss";
+export type { ModalDismissOptions, OverlayTransition } from "./useModalDismiss";
+
 /* ── 화면 조각 (v4 §2·§3) ──────────────────────────────────── */
 
 export { ScreenHeader } from "./ScreenHeader";
@@ -63,9 +68,6 @@ export type { CardProps, CardTone } from "./Card";
 export { Badge } from "./Badge";
 export type { BadgeProps, BadgeTone } from "./Badge";
 
-export { AiBadge } from "./AiBadge";
-export type { AiBadgeProps } from "./AiBadge";
-
 export { SourceChip } from "./SourceChip";
 export type { SourceChipProps } from "./SourceChip";
 
@@ -74,12 +76,6 @@ export type { SourceDocsProviderProps } from "./SourceDocsContext";
 
 export { DEFAULT_SOURCE_DOCS } from "./sourceDocsDefault";
 
-export { Gauge } from "./Gauge";
-export type { GaugeProps } from "./Gauge";
-
-export { FeedbackCard } from "./FeedbackCard";
-export type { FeedbackCardProps } from "./FeedbackCard";
-
 export { Call119Button } from "./Call119Button";
 export type { Call119ButtonProps } from "./Call119Button";
 
@@ -87,17 +83,20 @@ export { SwRegister } from "./SwRegister";
 
 export { cx } from "./utils";
 
-/**
- * @deprecated v4에서 **전역 헤더·전역 고정 고지 바를 없앴습니다**.
- * `AppHeader`는 어디에서도 렌더하지 마세요(파일은 이력 보존용으로만 남겨 둡니다) —
- * 상단 바는 `ScreenHeader`/`SessionTopBar`, 고지는 `InlineDisclaimer`가 대신합니다.
- * `DISCLAIMER_TEXT`는 global-error처럼 셸 밖에서 문구만 필요할 때 계속 씁니다.
+/*
+ * v3에서 넘어온 조각 여섯은 **파일째 지웠습니다**(2026-08-06).
+ *   AppHeader · DisclaimerBar — v4에서 전역 헤더와 전역 고정 고지 바를 없앴습니다.
+ *     상단 바는 `ScreenHeader`/`SessionTopBar`가, 고지는 `InlineDisclaimer`가 대신합니다.
+ *   Gauge — 세션 우측 레일이 자체 구현(`SessionRail`)을 쓰고, 그쪽으로 갈아탈 계획이 없습니다.
+ *   FeedbackCard — 세션 안에서는 `InlineCoaching`이, 이력 화면에서는 각 행이 직접 그립니다.
+ *   AiBadge — 「AI 생성 · 가상 인물」 표기는 말풍선(`DialogueLog`)이 직접 답니다.
+ *   illustrations/MiniChart — 어느 화면도 그리지 않았습니다.
+ *
+ * 지운 이유는 번들이 아니라(배럴 export는 트리셰이킹됩니다) **유지보수**입니다. 렌더 0건인
+ * 조각이 살아 있는 API처럼 재수출돼 있으면 다음 사람이 「어딘가 쓰인다」를 믿고 계속 끌고 가고,
+ * 실제로 그려지지도 않는 화면이 평가와 리팩터링 판단에 섞입니다.
+ * 되살려야 할 일이 생기면 이 줄의 날짜로 이력에서 꺼내 쓰십시오.
  */
-export { AppHeader } from "./AppHeader";
-export type { AppHeaderProps } from "./AppHeader";
-
-export { DisclaimerBar, DISCLAIMER_TEXT } from "./DisclaimerBar";
-export type { DisclaimerBarProps } from "./DisclaimerBar";
 
 /**
  * 아이콘 시스템 — v4 시안은 아이콘을 거의 쓰지 않습니다(탭바는 텍스트, 리스트는 `›`).

@@ -110,6 +110,12 @@ export default function TrainIndexPage() {
             <Link
               key={scenario.id}
               href={scenarioHref(scenario.id)}
+              /* 화면에 보이기만 해도 카드 5장의 브리핑을 미리 받아 오던 자리입니다.
+                 훈련 화면은 시나리오 데이터와 대사를 함께 들고 오는 무거운 라우트라,
+                 목록을 열자마자 다섯 벌이 동시에 날아가면 정작 눌러서 들어가는 한 벌이 뒤로 밀립니다.
+                 `false`는 프리페치를 끄는 것이 아니라 **시점을 옮기는 것**입니다 —
+                 뷰포트 진입에는 받지 않고, 손가락이 올라간(hover) 뒤에 받습니다. */
+              prefetch={false}
               aria-label={`${scenario.title} — 브리핑 열기`}
               className="block rounded-[14px] bg-paper-2 px-4 py-[15px] transition-colors duration-150 ease-soft active:bg-neutral-line"
             >

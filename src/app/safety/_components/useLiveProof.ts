@@ -38,7 +38,7 @@ export interface Counts {
 }
 
 export interface CacheGroup {
-  /** 캐시 이름 (예: chimchak-v2) */
+  /** 캐시 이름 (예: chimchak-<12자리 내용 해시>) */
   name: string;
   /** 화면·파일 단위로 저장된 주소 목록 */
   entries: string[];

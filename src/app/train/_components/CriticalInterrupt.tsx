@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useRef } from "react";
 import { InlineDisclaimer, useSourceDoc } from "@/components";
 import { ChevronGlyph } from "@/components/icons";
 import { cx } from "@/components/utils";
+import { useModalDismiss, useOverlayTransition } from "@/components/useModalDismiss";
 import type { TracedFeedback } from "@/engine";
 import { cfVerdictSourceLine, splitLawSentences } from "./constants";
-import { useModalDismiss } from "./useModalDismiss";
 
 export interface CriticalInterruptProps {
   feedback: TracedFeedback;
@@ -28,36 +28,48 @@ export interface CriticalInterruptProps {
 export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalInterruptProps) {
   const retryRef = useRef<HTMLButtonElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
-  /** 시트가 아래에서 올라오는 240ms — reduced-motion에서는 전역 규칙이 즉시 정지시킵니다(§6). */
-  const [entered, setEntered] = useState(false);
+  /**
+   * 시트·딤이 함께 움직이는 240ms — 들어올 때도 나갈 때도 같은 값입니다.
+   * 예전에는 시트만 올라오고 딤은 하드컷이었고 퇴장 모션은 아예 없어서, 이 데모의 서명 장면이
+   * 「멈춰 세웠다」가 아니라 「화면이 깜빡했다」로 읽혔습니다(모션 감사 2).
+   * reduced-motion에서는 전역 규칙이 즉시 정지시킵니다(§6).
+   */
+  const { entered, leave } = useOverlayTransition(onRetry);
 
   const doc = useSourceDoc(feedback.docId);
   /** 검수 문구는 그대로 두고, 조문 문장만 아래 접힘으로 내립니다. */
   const { lead, law } = splitLawSentences(feedback.message);
 
-  // 마운트 초점(스크롤 없이) · Esc = 다시 해보기 · Tab 가두기.
-  // 세 가지는 종료 확인 모달과 규칙 엔진 시연 시트도 같은 훅으로 씁니다.
-  useModalDismiss({ panelRef, initialFocusRef: retryRef, onDismiss: onRetry });
+  /** Esc — 대안을 고르지 않고 같은 장면으로 (퇴장 모션을 태운 뒤 닫힙니다). */
+  const dismiss = useCallback(() => leave(), [leave]);
 
-  useEffect(() => {
-    const frame = window.requestAnimationFrame(() => setEntered(true));
-    return () => window.cancelAnimationFrame(frame);
-  }, []);
+  // 마운트 초점(스크롤 없이) · Esc = 다시 해보기 · Tab 가두기 · 배경 스크롤 잠금.
+  // 네 가지는 종료 확인 모달과 규칙 엔진 시연 시트도 같은 훅으로 씁니다.
+  useModalDismiss({ panelRef, initialFocusRef: retryRef, onDismiss: dismiss });
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center overflow-hidden bg-[rgba(25,31,30,0.32)]"
+      className="fixed inset-0 z-50 flex items-end justify-center overflow-hidden"
       role="dialog"
       aria-modal="true"
       aria-labelledby="cf-title"
       ref={panelRef}
     >
+      {/* 딤 — 시트와 **같은 240ms**로 함께 들어오고 함께 나갑니다(레이어마다 속도가 다르면 하드컷 플래시로 읽힙니다). */}
+      <div
+        aria-hidden
+        className={cx(
+          "absolute inset-0 bg-[rgba(25,31,30,0.32)] transition-opacity duration-[240ms] ease-out",
+          entered ? "opacity-100" : "opacity-0",
+        )}
+      />
       {/* 시트는 진짜로 떠 있는 것이라 그림자만 쓰고 테두리는 두르지 않습니다(가이드 §3).
           **탈출구는 언제나 화면 안에 있어야 합니다** — 내용만 스크롤하고 주 CTA는 바닥에 붙여 둡니다
           (360×640에서 CTA가 뷰포트 밖으로 밀려나던 문제 — 평가 UX m5). */}
       <div
         className={cx(
-          "flex max-h-[88dvh] w-full max-w-[430px] flex-col rounded-t-[22px] bg-white",
+          // 딤이 absolute라 시트도 자리를 잡아 둡니다(그래야 DOM 순서대로 딤 위에 섭니다).
+          "relative flex max-h-[88dvh] w-full max-w-[430px] flex-col rounded-t-[22px] bg-white",
           "shadow-[0_-10px_40px_rgba(25,31,30,0.25)]",
           "transition-transform duration-[240ms] ease-out",
           entered ? "translate-y-0" : "translate-y-full",
@@ -68,7 +80,9 @@ export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalI
           <span className="block h-[4px] w-[36px] rounded-full bg-line-strong" />
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-3">
+        {/* 시트 안 스크롤은 시트 안에서 끝냅니다 — 끝에 닿았다고 뒤 페이지로 넘어가면
+            「멈춰 세웠다」는 상태가 손끝에서 부정됩니다(모션 감사 3). */}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-3">
           <div className="flex items-center gap-2">
             <span aria-hidden className="h-[10px] w-[10px] flex-none rounded-full bg-danger" />
             <h2
@@ -98,8 +112,8 @@ export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalI
                         라벨은 제안 버튼과 같은 17px입니다 — 골라서 눌러야 하는 문장입니다(가이드 §4.6). */}
                     <button
                       type="button"
-                      onClick={() => onRetry(alternative)}
-                      className="min-h-[48px] w-full rounded-[14px] border border-line-strong bg-white px-[15px] py-2.5 text-left text-[1.0625rem] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2"
+                      onClick={() => leave(alternative)}
+                      className="min-h-[48px] w-full rounded-[14px] border border-line-strong bg-white px-[15px] py-2.5 text-left text-[1.0625rem] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
                     >
                       {alternative}
                     </button>
@@ -122,7 +136,7 @@ export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalI
             {cfVerdictSourceLine(feedback)}
           </p>
           <details className="group mt-1">
-            <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-1.5 text-[0.8438rem] font-semibold text-ink-muted [&::-webkit-details-marker]:hidden">
+            <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-1.5 rounded-field text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper-2 [&::-webkit-details-marker]:hidden">
               <span className="underline decoration-1 underline-offset-[3px]">법 근거 보기</span>
               {/* 동봉 폰트에 `⌄`(U+2304)가 없어 OS 심볼 폰트로 떨어집니다 — SVG 대체 글리프를 씁니다. */}
               <ChevronGlyph size="sm" className="text-ink-ghost group-open:rotate-180" />
@@ -145,7 +159,7 @@ export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalI
           <button
             type="button"
             ref={retryRef}
-            onClick={() => onRetry()}
+            onClick={() => leave()}
             className="min-h-[54px] w-full rounded-[14px] bg-brand-700 px-5 text-[1rem] font-bold text-white transition-colors duration-150 hover:bg-brand-800 active:bg-brand-900"
           >
             같은 장면에서 다시 해보기 — 벌점 없음

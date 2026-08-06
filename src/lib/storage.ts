@@ -7,6 +7,10 @@
  * - 보고 기록은 반드시 가명처리된 텍스트만 넣는다(engine/masking.maskText 통과분).
  * - 진행 체크포인트(이어서 하기)에도 발화는 담지 않는다 — 판정된 분기 id와 게이지·횟수뿐이다.
  * - SSR 가드: 서버 렌더링 중에는 조용히 빈 값으로 동작한다.
+ * - **쓰기 실패는 삼키지 않는다.** 예외는 밖으로 던지지 않되(화면이 죽으면 안 된다) 성공 여부는
+ *   반드시 돌려준다 — 사이트 데이터가 막힌 브라우저에서 「저장했습니다」라고 말하지 않기 위해서다.
+ * - **읽을 때는 필드 단위로 정화한다.** 한 필드가 어긋난 옛 기록 하나가 화면 전체를 죽이면
+ *   사용자는 그 기록을 지울 화면에도 못 들어간다.
  */
 
 import type { RecordDraft, SessionEvent, SessionRecord, SessionState, SessionStatus } from "@/types";
@@ -63,13 +67,22 @@ function readList<T>(key: string): T[] {
   }
 }
 
-function writeList<T>(key: string, list: T[]): void {
+/**
+ * 목록을 저장하고 **실제로 남았는지 돌려준다**.
+ *
+ * 예외는 밖으로 던지지 않는다(화면이 죽으면 안 된다). 다만 조용히 삼키지도 않는다 —
+ * 사이트 데이터가 막힌 브라우저에서 앱이 「확정했습니다 · 이 기기에만 저장」을 띄우면서
+ * 아무것도 남기지 않는 상태를 만들지 않기 위해, 실패했다는 사실만은 호출부로 올려 보낸다.
+ */
+function writeList<T>(key: string, list: T[]): boolean {
   const storage = getStorage();
-  if (!storage) return;
+  if (!storage) return false;
   try {
     storage.setItem(key, JSON.stringify(list.slice(0, MAX_ITEMS)));
+    return true;
   } catch {
-    /* 저장 공간 부족·사생활 보호 모드 — 조용히 무시한다 */
+    /* 저장 공간 부족·사생활 보호 모드 — 던지지 않고 실패로 돌려준다 */
+    return false;
   }
 }
 
@@ -85,13 +98,16 @@ function readValue(key: string): unknown {
   }
 }
 
-function writeValue(key: string, value: unknown): void {
+/** 값 하나를 저장하고 **실제로 남았는지 돌려준다**(사유는 `writeList`와 같다). */
+function writeValue(key: string, value: unknown): boolean {
   const storage = getStorage();
-  if (!storage) return;
+  if (!storage) return false;
   try {
     storage.setItem(key, JSON.stringify(value));
+    return true;
   } catch {
-    /* 저장 공간 부족·사생활 보호 모드 — 조용히 무시한다 */
+    /* 저장 공간 부족·사생활 보호 모드 — 던지지 않고 실패로 돌려준다 */
+    return false;
   }
 }
 
@@ -99,31 +115,158 @@ function makeId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+/* ── 저장 실패를 알리는 문구 ───────────────────────────── */
+
+/**
+ * 저장이 실패했을 때 화면이 쓰는 제목 — 성공 문구가 서 있던 **같은 자리**에 세운다.
+ *
+ * 문구를 저장소가 들고 있는 이유는 하나다: 실패를 아는 곳이 여기뿐인데 말하는 곳은 화면이라,
+ * 두 곳이 서로 다른 이야기를 하기 시작하면 「확정했습니다」와 「안 남았습니다」가 동시에 뜬다.
+ */
+export const SAVE_FAILED_TITLE = "이 기기에 저장하지 못했습니다";
+
+/** 실패 제목 아래 한 줄 — 무엇이 막혔는지 사실대로 적고, 되는 척하지 않는다. */
+export const SAVE_FAILED_BODY =
+  "브라우저에서 사이트 데이터 저장이 막혀 있습니다. 시크릿 모드를 끄시거나 저장 공간을 비우신 뒤 다시 확정하시면 이 기기에 남습니다.";
+
+/**
+ * 훈련을 마쳤는데 회차가 남지 않았을 때의 한 줄.
+ * 이수 시수·확인서가 이 기록 위에 서 있으므로, 무엇이 비게 되는지까지 함께 적는다.
+ */
+export const SESSION_SAVE_FAILED_BODY =
+  "브라우저에서 사이트 데이터 저장이 막혀 있어 이번 회차가 기록에 남지 않았습니다. 성장 기록과 이수 확인서에도 이 회차는 세지 않습니다.";
+
+/**
+ * 앱이 열릴 때 한 번 알리는 문구 — 훈련을 마친 뒤가 아니라 **시작 전에** 알리려는 자리다.
+ */
+export const STORAGE_BLOCKED_NOTICE =
+  "이 브라우저는 사이트 데이터 저장이 막혀 있어, 훈련 기록과 보고 기록이 이 기기에 남지 않습니다. 시연은 그대로 진행하실 수 있습니다.";
+
+/**
+ * 이 기기에 쓸 수 있는지 실제로 한 번 재 본다(시험 키를 썼다가 지운다).
+ *
+ * `/check`의 저장소 항목이 하던 일과 같은 방식이고, 화면이 부팅 시 한 줄 고지를 띄울지
+ * 정하는 데 쓰라고 여기에 둔다. 앱 데이터 키는 건드리지 않는다.
+ *
+ * @example
+ * if (!canWriteStorage()) show(STORAGE_BLOCKED_NOTICE);
+ */
+export function canWriteStorage(): boolean {
+  const storage = getStorage();
+  if (!storage) return false;
+  const key = "chimchak.probe.v1";
+  try {
+    storage.setItem(key, "1");
+    const ok = storage.getItem(key) === "1";
+    storage.removeItem(key);
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
 /* ── 훈련 세션 ─────────────────────────────────────────── */
+
+/** 알려진 판정값 — 목록 밖 값이 든 기록은 무엇으로 표시할지 정할 수 없어 버린다. */
+const VERDICTS: readonly SessionRecord["verdict"][] = [
+  "충족",
+  "부분 충족",
+  "재시도",
+  "재훈련",
+  "재훈련 권고",
+];
+
+/** 문자열 자리 — 아니면 빈 문자열로 낮춘다. */
+function asText(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+/** 0 이상 정수 자리 — 아니면 0으로 낮춘다. */
+function asCount(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return 0;
+  return Math.floor(value);
+}
+
+/** 문구 목록 자리 — 배열이 아니거나 문자열이 아닌 항목은 버린다. */
+function asTextList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const out: string[] = [];
+  for (const item of value) {
+    if (typeof item === "string" && item.length > 0) out.push(item);
+  }
+  return out;
+}
+
+/**
+ * 저장된 세션 기록 한 건을 **필드 단위로 정화한다** — 이수 누계(`sanitizeTallyLine`)와 같은 방식이다.
+ *
+ * 버리는 기준은 셋뿐이다: id·scenarioId가 비었거나(무엇의 기록인지 알 수 없다), 판정값이
+ * 알려진 다섯 중 하나가 아닐 때(엉뚱한 배지를 다는 것보다 없는 편이 정직하다).
+ * 나머지는 모양이 어긋나도 버리지 않고 낮춰 담는다 — 배열 자리는 `[]`, 숫자 자리는 `0`,
+ * 문자열 자리는 `""`. 화면(TrainingRow)이 `greenChecks.length`를 무가드로 읽기 때문에,
+ * 한 필드가 어긋난 옛 기록 하나가 /history 전체와 그 안의 「이 기기의 기록 지우기」 버튼까지
+ * 함께 날려 버리는 상태를 막는 것이 이 함수의 목적이다.
+ *
+ * **키 버전에 대한 결정**: 앞으로 필드를 더할 때도 키(`.v1`)를 올리지 않고 여기서 흡수한다.
+ * 담기는 것이 이수 사실과 판정 문구뿐이라 옛 기록을 버릴 이유가 없고, 키를 올리면 사용자의
+ * 이수 시수가 조용히 0으로 돌아간다. 필드를 **지우는** 변경이 생길 때만 새 키를 검토한다.
+ */
+function sanitizeSessionRecord(value: unknown): SessionRecord | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const row = value as Record<string, unknown>;
+  const id = asText(row.id);
+  const scenarioId = asText(row.scenarioId);
+  if (id.length === 0 || scenarioId.length === 0) return undefined;
+  const verdict = VERDICTS.find((item) => item === row.verdict);
+  if (!verdict) return undefined;
+  return {
+    id,
+    scenarioId,
+    scenarioTitle: asText(row.scenarioTitle) || scenarioId,
+    typeLabel: asText(row.typeLabel),
+    startedAt: asText(row.startedAt),
+    endedAt: asText(row.endedAt),
+    verdict,
+    endingTitle: asText(row.endingTitle),
+    greenChecks: asTextList(row.greenChecks),
+    coachingPoints: asTextList(row.coachingPoints),
+    cfCount: asCount(row.cfCount),
+    retriesUsed: asCount(row.retriesUsed),
+    turnCount: asCount(row.turnCount),
+  };
+}
 
 /**
  * 세션 기록을 저장한다(최신순). 같은 id가 있으면 덮어쓴다.
  *
+ * **저장에 성공했는지 돌려준다** — false면 이 회차는 이 기기에 남지 않았다는 뜻이고,
+ * 화면은 `SESSION_SAVE_FAILED_BODY`를 성공 문구가 서 있던 자리에 세운다.
+ *
  * @example
- * saveSession(buildRecord(scenario, state));
+ * if (!saveSession(buildRecord(scenario, state))) notify(SESSION_SAVE_FAILED_BODY);
  */
-export function saveSession(record: SessionRecord): void {
+export function saveSession(record: SessionRecord): boolean {
   const list = loadSessions().filter((r) => r.id !== record.id);
-  writeList(SESSIONS_KEY, [record, ...list]);
+  const stored = writeList(SESSIONS_KEY, [record, ...list]);
   // 상세는 50건 상한에 걸려 밀려나지만 「이수 사실」은 밀려나면 안 된다(아래 이수 누계).
-  addToTally(record);
+  // 상세 쓰기가 실패해도 누계는 따로 시도한다 — 둘 중 하나라도 남는 편이 증빙에 유리하다.
+  const tallied = addToTally(record);
+  return stored && tallied;
 }
 
 /**
- * 저장된 세션 기록(최신순).
+ * 저장된 세션 기록(최신순). 훼손된 레코드는 버리고, 필드가 어긋난 레코드는 낮춰 담는다.
  *
  * @example
  * const rows = loadSessions(); // [] 이면 빈 상태 화면
  */
 export function loadSessions(): SessionRecord[] {
-  return readList<SessionRecord>(SESSIONS_KEY).filter(
-    (r): r is SessionRecord => Boolean(r) && typeof r.id === "string" && typeof r.scenarioId === "string",
-  );
+  const out: SessionRecord[] = [];
+  for (const raw of readList<unknown>(SESSIONS_KEY)) {
+    const record = sanitizeSessionRecord(raw);
+    if (record) out.push(record);
+  }
+  return out;
 }
 
 /**
@@ -271,10 +414,13 @@ function laterIso(a: string, b: string): string {
   return tb > ta ? b : a;
 }
 
-/** 완주한 회차 하나를 누계에 더한다. 같은 id가 이미 반영돼 있으면 아무 일도 하지 않는다. */
-function addToTally(record: SessionRecord): void {
+/**
+ * 완주한 회차 하나를 누계에 더한다. 같은 id가 이미 반영돼 있으면 아무 일도 하지 않는다.
+ * 실제로 남았는지 돌려준다(이미 세어 둔 회차는 「할 일이 없었다」이므로 성공으로 본다).
+ */
+function addToTally(record: SessionRecord): boolean {
   const tally = loadCompletionTally();
-  if (tally.countedIds.includes(record.id)) return;
+  if (tally.countedIds.includes(record.id)) return true;
 
   const key = record.scenarioId.trim().toUpperCase();
   const at = record.endedAt || record.startedAt;
@@ -301,7 +447,7 @@ function addToTally(record: SessionRecord): void {
   tally.seconds += seconds;
   tally.countedIds = [record.id, ...tally.countedIds].slice(0, MAX_COUNTED_IDS);
   tally.updatedAt = new Date().toISOString();
-  writeValue(TALLY_KEY, tally);
+  return writeValue(TALLY_KEY, tally);
 }
 
 /** 회차 하나를 누계에서 뺀다(사용자가 그 기록을 지운 경우). */
@@ -860,32 +1006,98 @@ export function importCompletionCsv(text: string): CompletionImportResult {
 export type ReportInput = Omit<StoredReport, "id" | "createdAt"> & Partial<Pick<StoredReport, "id" | "createdAt">>;
 
 /**
+ * `saveReport`가 돌려주는 값 — 저장된 기록에 **성공 여부 한 칸**을 얹은 것이다.
+ *
+ * `StoredReport`를 그대로 넓힌 모양이라 기존 호출부는 손대지 않아도 그대로 동작한다.
+ * `persisted`는 **반환값에만 있고 저장되지는 않는다** — 저장된 JSON에는 이 칸이 없다.
+ */
+export interface SavedReport extends StoredReport {
+  /** 이 기기에 실제로 남았는지. false면 화면은 `SAVE_FAILED_TITLE`/`SAVE_FAILED_BODY`를 세운다. */
+  persisted: boolean;
+}
+
+/**
  * 확정한 보고 기록을 저장한다. maskedText에는 반드시 가명처리 결과만 넣는다.
  *
  * @example
- * saveReport({ maskedText: masked, draft, scenarioId: "CHK-A01" });
+ * const saved = saveReport({ maskedText: masked, draft, scenarioId: "CHK-A01" });
+ * if (!saved.persisted) show(SAVE_FAILED_TITLE, SAVE_FAILED_BODY);
  */
-export function saveReport(report: ReportInput): StoredReport {
+export function saveReport(report: ReportInput): SavedReport {
   const stored: StoredReport = {
     ...report,
     id: report.id ?? makeId("report"),
     createdAt: report.createdAt ?? new Date().toISOString(),
   };
   const list = loadReports().filter((r) => r.id !== stored.id);
-  writeList(REPORTS_KEY, [stored, ...list]);
-  return stored;
+  const persisted = writeList(REPORTS_KEY, [stored, ...list]);
+  return { ...stored, persisted };
+}
+
+/** 기록 초안 5칸 — 칸이 어긋나 있어도 화면이 빈칸을 그릴 수 있게 문자열 자리를 맞춰 둔다. */
+function sanitizeDraft(value: unknown): RecordDraft {
+  const row = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+  return {
+    time: asText(row.time),
+    who: asText(row.who),
+    what: asText(row.what),
+    action: asText(row.action),
+    status: asText(row.status),
+    missing: asTextList(row.missing),
+  };
+}
+
+/** 가려진 항목 수 — 숫자가 아닌 값이 섞여 있으면 그 항목만 버린다. */
+function sanitizeMaskedCounts(value: unknown): Record<string, number> | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const out: Record<string, number> = {};
+  for (const [key, count] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof count === "number" && Number.isFinite(count)) out[key] = Math.floor(count);
+  }
+  return out;
 }
 
 /**
- * 저장된 보고 기록(최신순).
+ * 저장된 보고 기록 한 건을 필드 단위로 정화한다(`sanitizeSessionRecord`와 같은 규율).
+ *
+ * 버리는 기준은 둘 — id가 비었거나 maskedText가 문자열이 아닐 때다. 본문이 없는 보고는
+ * 화면에 그릴 것이 없고, **가명처리를 통과한 본문만 저장한다**는 계약이 깨진 값이기도 하다.
+ * 5칸 초안·가림 건수처럼 모양만 어긋난 값은 낮춰 담아 목록 전체를 잃지 않게 한다.
+ */
+function sanitizeReport(value: unknown): StoredReport | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const row = value as Record<string, unknown>;
+  const id = asText(row.id);
+  if (id.length === 0 || typeof row.maskedText !== "string") return undefined;
+  const report: StoredReport = {
+    id,
+    createdAt: asText(row.createdAt),
+    maskedText: row.maskedText,
+    draft: sanitizeDraft(row.draft),
+  };
+  const counts = sanitizeMaskedCounts(row.maskedCounts);
+  if (counts) report.maskedCounts = counts;
+  const scenarioId = asText(row.scenarioId);
+  if (scenarioId.length > 0) report.scenarioId = scenarioId;
+  if (typeof row.elapsedSec === "number" && Number.isFinite(row.elapsedSec)) {
+    report.elapsedSec = Math.round(row.elapsedSec);
+  }
+  return report;
+}
+
+/**
+ * 저장된 보고 기록(최신순). 훼손된 레코드는 버리고, 필드가 어긋난 레코드는 낮춰 담는다.
  *
  * @example
  * const reports = loadReports();
  */
 export function loadReports(): StoredReport[] {
-  return readList<StoredReport>(REPORTS_KEY).filter(
-    (r): r is StoredReport => Boolean(r) && typeof r.id === "string" && typeof r.maskedText === "string",
-  );
+  const out: StoredReport[] = [];
+  for (const raw of readList<unknown>(REPORTS_KEY)) {
+    const report = sanitizeReport(raw);
+    if (report) out.push(report);
+  }
+  return out;
 }
 
 /**

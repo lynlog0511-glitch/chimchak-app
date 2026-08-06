@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { BigButton, InlineDisclaimer, SettingsMenu } from "@/components";
+import { useModalDismiss, useOverlayTransition } from "@/components/useModalDismiss";
 import { cx } from "@/components/utils";
 import { buildRecord, currentCue, currentTurn, protocolIdOf, resolveEnding } from "@/engine";
 import { isRecognitionSupported, primeVoices, speak, stopSpeaking } from "@/lib/speech";
@@ -10,6 +11,7 @@ import {
   loadProgress,
   saveProgress,
   saveSession,
+  SESSION_SAVE_FAILED_BODY,
   type SessionProgress,
 } from "@/lib/storage";
 import type { EmergencyProtocol, Scenario } from "@/types";
@@ -32,7 +34,6 @@ import {
   TAIL_ANCHOR,
 } from "./constants";
 import { cueProgress } from "./sessionProgress";
-import { useModalDismiss } from "./useModalDismiss";
 import {
   initialTrainState,
   makeTrainReducer,
@@ -48,29 +49,48 @@ import {
  * 바로 옆 ⚑CF 시트는 셋 다 갖추고 있어 같은 화면 안에서 모달 문법이 두 종류로 갈렸습니다
  * (평가 UI/UX m5 실측: 열린 직후 activeElement=BODY, Esc 후에도 dialog 잔존).
  * 지금은 같은 `useModalDismiss` 훅을 쓰고, 배경 세션 박스에는 여는 쪽에서 `aria-hidden`을 겁니다.
+ *
+ * 등장·퇴장도 시트와 **같은 240ms**입니다. 예전에는 이 모달만 `animate-fade-up`(500ms)이라,
+ * 세션 헤더의 버튼 셋을 차례로 눌러 보면 하나는 즉시 뜨고 하나는 500ms 뒤에 뜨고 ⚑CF는 240ms에
+ * 올라왔습니다 — 개별로는 미세하지만 연속으로 보면 「같은 앱이 아닌 것 같은」 감각을 만듭니다
+ * (모션 감사 6). 오버레이 등장은 두 단(시트 240ms · 팝오버 180ms)뿐입니다.
  */
 function ExitConfirm({ onClose }: { onClose: () => void }) {
   const panelRef = useRef<HTMLDivElement | null>(null);
   const titleRef = useRef<HTMLHeadingElement | null>(null);
+  const { entered, leave } = useOverlayTransition(onClose);
+  const dismiss = useCallback(() => leave(), [leave]);
 
-  useModalDismiss({ panelRef, initialFocusRef: titleRef, onDismiss: onClose });
+  useModalDismiss({ panelRef, initialFocusRef: titleRef, onDismiss: dismiss });
 
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="session-exit-title"
-      className="fixed inset-0 z-50 flex items-end justify-center bg-ink/55 p-4 sm:items-center"
+      className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center"
     >
+      {/* 딤 — 모달과 같은 240ms로 함께 여닫힙니다. */}
+      <div
+        aria-hidden
+        className={cx(
+          "absolute inset-0 bg-ink/55 transition-opacity duration-[240ms] ease-out",
+          entered ? "opacity-100" : "opacity-0",
+        )}
+      />
       <button
         type="button"
         aria-label="닫기"
-        onClick={onClose}
+        onClick={dismiss}
         className="absolute inset-0 cursor-default"
       />
       <div
         ref={panelRef}
-        className="animate-fade-up relative w-full max-w-[380px] rounded-panel bg-white p-5 shadow-panel"
+        className={cx(
+          "relative w-full max-w-[380px] rounded-panel bg-white p-5 shadow-panel",
+          "transition-[opacity,transform] duration-[240ms] ease-out",
+          entered ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
+        )}
       >
         <h2
           id="session-exit-title"
@@ -85,7 +105,7 @@ function ExitConfirm({ onClose }: { onClose: () => void }) {
           내용은 저장하지 않습니다.
         </p>
         <div className="mt-4 space-y-2">
-          <BigButton onClick={onClose} size="lg" block>
+          <BigButton onClick={dismiss} size="lg" block>
             계속하기
           </BigButton>
           <BigButton href="/train" variant="secondary" block>
@@ -127,6 +147,8 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   const [listening, setListening] = useState(false);
   /** 종료 확인 */
   const [exitOpen, setExitOpen] = useState(false);
+  /** 이번 회차 저장이 막혔는가(시크릿 모드 등) — 엔딩에서 성공한 척하지 않기 위한 사실 표시 */
+  const [sessionSaveFailed, setSessionSaveFailed] = useState(false);
   /**
    * 이번 훈련에서 마지막으로 멈춰 세웠던 ⚑CF 지점.
    * 시트가 닫힌 뒤에도 엔딩의 「다시 볼 장면」 카드가 **그때 보여 드린 근거와 대안 그대로**를
@@ -302,7 +324,8 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
        자동 재생이 만든 「잘한 것」이 실사용 이력에 섞이면 그 자체가 부정직한 데이터입니다. */
     if (demoModeRef.current) return;
     savedIdRef.current = record.id;
-    saveSession(record);
+    // 저장이 막힌 기기(시크릿 모드 등)에서는 성공한 척하지 않습니다 — 엔딩에 사실대로 세웁니다.
+    setSessionSaveFailed(!saveSession(record));
   }, [record]);
 
   /** 이 기기에 남아 있는 진행 체크포인트를 한 번만 읽어 옵니다. */
@@ -497,6 +520,9 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
         className={cx(
           "flex min-h-[calc(100dvh_-_var(--chim-safe-t))] flex-col",
           "md:h-[calc(100dvh_-_var(--chim-safe-t))] md:min-h-0 md:overflow-hidden",
+          /* 배경이 물러나는 것도 시트·딤과 **같은 240ms**입니다 — 예전에는 여기만 0s 하드컷이라
+             ⚑CF의 첫 프레임이 「멈춰 세웠다」가 아니라 「화면이 깜빡했다」로 읽혔습니다(모션 감사 2). */
+          "transition-opacity duration-[240ms] ease-out",
           interrupted && "pointer-events-none opacity-30",
         )}
       >
@@ -520,11 +546,14 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
                     홈까지 가서 설정하고 돌아와야 했습니다(평가 UI/UX mi5 · 초보 m2).
                     「소리 끄기」와 같은 문법의 텍스트 버튼 하나로 같은 팝오버를 엽니다. */}
                 <SettingsMenu label="글자 크기" align="screen" />
+                {/* 헤더의 텍스트 버튼도 눌리면 면이 한 단 어두워집니다 —
+                    Tailwind v4는 hover를 `@media (hover:hover)`에 가두므로, 터치 기기에서
+                    피드백이 남는 곳은 `active:`뿐입니다(모션 감사 1). */}
                 <button
                   type="button"
                   onClick={toggleTts}
                   aria-pressed={ttsOn}
-                  className="flex min-h-[48px] items-center px-2 text-[0.8438rem] font-semibold text-ink-muted"
+                  className="flex min-h-[48px] items-center rounded-field px-2 text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper-2"
                 >
                   {ttsOn ? "소리 끄기" : "소리 켜기"}
                 </button>
@@ -532,7 +561,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
                   <button
                     type="button"
                     onClick={() => setExitOpen(true)}
-                    className="flex min-h-[48px] items-center px-2 text-[0.8438rem] font-semibold text-ink-muted"
+                    className="flex min-h-[48px] items-center rounded-field px-2 text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper-2"
                   >
                     종료
                   </button>
@@ -551,7 +580,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
                 내부 스크롤 상자는 md↑에서만 켭니다. */}
             <div
               className={cx(
-                "flex-1 px-[18px] pt-4 pb-6 transition-opacity duration-200 md:min-h-0 md:overflow-y-auto md:px-8 md:pt-6",
+                "flex-1 px-[18px] pt-4 pb-6 transition-opacity duration-200 md:min-h-0 md:overflow-y-auto md:overscroll-contain md:px-8 md:pt-6",
                 listening && "pointer-events-none opacity-45",
               )}
             >
@@ -588,6 +617,11 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
                     ref={endingRef}
                     className="scroll-mt-[calc(var(--session-head-h,0px)_+_12px)] md:scroll-mt-3"
                   >
+                    {sessionSaveFailed && (
+                      <p className="mt-6 rounded-card bg-warn-soft px-4 py-3 text-[0.9375rem] leading-[1.6] text-warn-ink">
+                        {SESSION_SAVE_FAILED_BODY}
+                      </p>
+                    )}
                     <EndingPanel
                       scenario={scenario}
                       session={state.session}
@@ -643,7 +677,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
                       <button
                         type="button"
                         onClick={() => scrollToTailRef.current?.()}
-                        className="flex min-h-[48px] w-full items-center justify-center gap-1.5 border-b border-line bg-tint px-[18px] text-[0.8438rem] leading-[1.45] font-bold text-brand-800 md:px-8"
+                        className="flex min-h-[48px] w-full items-center justify-center gap-1.5 border-b border-line bg-tint px-[18px] text-[0.8438rem] leading-[1.45] font-bold text-brand-800 transition-colors duration-150 active:bg-mint-200 md:px-8"
                       >
                         {TAIL_ANCHOR}
                         <span aria-hidden>↓</span>

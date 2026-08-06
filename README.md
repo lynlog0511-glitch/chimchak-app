@@ -24,7 +24,8 @@ npm run dev        # 개발: http://localhost:3000
 
 ```bash
 npm run build && npm start
-npm run verify      # 게이트 3종: 타입 · 엔진 회귀 테스트 · 오디오 매니페스트 적중률
+npm run verify      # 게이트 4종: 타입 · 회귀 테스트 · 오디오 매니페스트 적중률 · 린트
+npm run lint        # 린트만 따로 (훅 생명주기·접근성 — 규칙과 사유는 eslint.config.mjs)
 ```
 
 주의: 빌드 전에 떠 있는 dev 서버(포트 3000)를 먼저 종료하세요. dev 서버가 `.next`를 공유하며 프로덕션 산출물을 오염시킵니다.
@@ -43,6 +44,14 @@ src/
 - **외부 API 호출 0건** — 데모는 네트워크 없이 완주됩니다. LLM 자리는 교체형 어댑터로 비워 두었습니다.
 - 시나리오 원본 명세: 팀 내부 문서 「침착 알파 시나리오 스크립트 & 평가 루브릭 설계서 v1.0」(CHK-DES-2026-001).
 - 구현 규칙·소유권: [PROJECT_BRIEF.md](PROJECT_BRIEF.md) · 개선점 백로그: [개선점_진단_2026-08-04.md](개선점_진단_2026-08-04.md)
+
+## 의존성 취약점에 대한 판단 (2026-08-06)
+
+`npm audit`은 high 3건(next · postcss · sharp)을 알리고 critical·moderate·low는 0건입니다. **지금은 올리지 않는 것이 판단이며, 그 근거를 여기 남깁니다.**
+
+- **패치 경로가 없습니다.** 세 건 모두 `fixAvailable`이 next 16 메이저이고, 설치된 next 15.5.22가 이미 15.x 최신입니다 — `npm audit fix`로 닫히지 않습니다.
+- **문제의 경로를 이 앱이 쓰지 않습니다.** sharp/libvips는 이미지 최적화 경로인데 `next/image` 참조 0건(이미지 자산은 `public/icon.svg` 하나), postcss 권고는 빌드타임 CSS stringify이고 컴파일 대상은 저장소 안의 신뢰된 입력뿐입니다. route handler·server action도 0건이라 서버로 나가는 코드 경로 자체가 없습니다.
+- **파일럿 전환 시 별도 작업으로 잡습니다.** next 16 업그레이드는 App Router 동작 변경을 동반하므로 발표 전에는 손대지 않고, 전환 준비 기간에 회귀 검사와 함께 진행합니다.
 
 ## 안전 설계 요지
 

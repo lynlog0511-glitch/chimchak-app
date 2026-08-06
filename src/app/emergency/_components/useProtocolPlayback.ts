@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { isSilentStep } from "@/data/protocols";
-import { speak, stopSpeaking } from "@/lib/speech";
+import { canPlayWithoutGesture, speak, stopSpeaking, unlockAudio } from "@/lib/speech";
 import type { ProtocolStep } from "@/types";
 
 /**
@@ -14,6 +14,8 @@ import type { ProtocolStep } from "@/types";
  * `Promise.all([최소 체류 시간, 낭독 완료])` 가 모두 끝난 뒤에야 다음 단계로 넘어갑니다.
  *
  * - 음성을 끄거나 쓸 수 없는 기기에서도 자막이 같은 속도로 자동 진행됩니다.
+ *   자동재생이 막힌 기기(제스처 없이 연 PWA 바로가기 등)도 마찬가지입니다 —
+ *   두 소비자가 같은 `useAutoplayGuard()`로 정책을 재고, 막혀 있으면 낭독을 아예 시도하지 않습니다.
  * - 침묵 단계(voice 가 빈 문자열)에 닿으면 소리를 내지 않고 자동 진행을 멈춥니다.
  * - 화면을 벗어나거나 단계를 손으로 옮기면 남은 음성을 정리합니다.
  */
@@ -25,6 +27,95 @@ export function dwellMsFor(text: string): number {
 
 /** 단계 사이의 짧은 숨 고르기 간격입니다. */
 export const GAP_MS = 700;
+
+/**
+ * 낭독이 매듭지어지지 않아도 자막이 넘어가는 상한입니다.
+ *
+ * `speak()` 안에도 워치독이 있지만(어림 낭독 길이 또는 실제 길이 + 4초), 자막의 자동 진행은
+ * **음성 경로가 어떻게 되든** 살아 있어야 하므로 호출부에도 상한을 하나 더 둡니다.
+ *
+ * 이 값은 speak()의 워치독보다 **넉넉해야** 합니다 — 여기가 먼저 풀리면 정상적으로 읽히는
+ * 문장이 중간에 잘립니다. 그래서 문장이 길수록 함께 늘리고, 마지막 안전망으로만 씁니다.
+ *
+ * @example stallLimitMsFor("지금 119를 누르세요.") // 약 14초
+ */
+export function stallLimitMsFor(text: string): number {
+  return dwellMsFor(text) + 6000 + text.length * 260;
+}
+
+export interface AutoplayGuard {
+  /** 이 기기가 지금 자동으로 소리를 내지 못하는 상태인지(자동재생 차단) */
+  soundBlocked: boolean;
+  /** 사용자가 직접 눌러 소리를 시작하는 지점 — 그 탭 안에서 요소 잠금까지 풉니다 */
+  unblock: () => void;
+}
+
+/**
+ * 자동재생 정책 가드 — 단독 화면(`/emergency/[id]`)과 훈련 세션 안 L3 구간이 함께 씁니다.
+ *
+ * PWA 바로가기로 응급 화면을 곧바로 열거나, 세션 안에서 화면을 오래 두었다가 L3에 닿으면
+ * 제스처가 없어 재생이 거부됩니다. 그때 「읽어 주는 중」이라고 적으면 소리가 안 나는데 난다고
+ * 말하는 것이 되고, 낭독을 기다리다 자막 진행까지 볼모가 됩니다.
+ *
+ * 그래서 이 훅은 셋을 함께 합니다.
+ *  1. 마운트 때 무음 WAV를 실제로 재생해 **지금의 정책**을 잽니다(재생과 같은 요소로 잽니다).
+ *  2. 화면을 건드리는 첫 순간에 그 제스처 안에서 요소 잠금을 풉니다(웹킷은 요소 단위 해제).
+ *  3. 차단 상태였다면 눌린 뒤 다시 재 보고, 되면 조용히 소리로 돌아옵니다.
+ *
+ * @example
+ * const { soundBlocked, unblock } = useAutoplayGuard();
+ * const voiceActive = voiceOn && !soundBlocked;
+ */
+export function useAutoplayGuard(): AutoplayGuard {
+  const [soundBlocked, setSoundBlocked] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    void canPlayWithoutGesture().then((ok) => {
+      if (alive) setSoundBlocked(!ok);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  /* 첫 탭 잠금 해제 — 어느 버튼을 누르셨든 그 제스처 안에서 요소 하나를 풀어 둡니다.
+     이미 풀렸으면 unlockAudio()가 즉시 물러나므로 재생을 방해하지 않습니다. */
+  useEffect(() => {
+    const unlock = (): void => unlockAudio();
+    window.addEventListener("pointerdown", unlock);
+    window.addEventListener("keydown", unlock);
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+  }, []);
+
+  /* 화면을 한 번 건드리면 브라우저 정책이 바뀝니다 — 그때 다시 재 보고, 되면 소리로 돌아옵니다. */
+  useEffect(() => {
+    if (!soundBlocked) return;
+    const recheck = (): void => {
+      window.setTimeout(() => {
+        void canPlayWithoutGesture().then((ok) => {
+          if (ok) setSoundBlocked(false);
+        });
+      }, 0);
+    };
+    window.addEventListener("pointerdown", recheck);
+    window.addEventListener("keydown", recheck);
+    return () => {
+      window.removeEventListener("pointerdown", recheck);
+      window.removeEventListener("keydown", recheck);
+    };
+  }, [soundBlocked]);
+
+  const unblock = useCallback((): void => {
+    unlockAudio();
+    setSoundBlocked(false);
+  }, []);
+
+  return { soundBlocked, unblock };
+}
 
 export interface UseProtocolPlaybackOptions {
   steps: ProtocolStep[];
@@ -86,9 +177,12 @@ export function useProtocolPlayback({
         return;
       }
 
-      const jobs: Array<Promise<unknown>> = [wait(dwellMsFor(text))];
+      const dwell = dwellMsFor(text);
+      const jobs: Array<Promise<unknown>> = [wait(dwell)];
       if (voiceOn) jobs.push(speak(text));
-      await Promise.all(jobs);
+      // 낭독이 어떤 이유로도 매듭지어지지 않는 환경이 있습니다(인터럽트·정체·이벤트 미발화).
+      // 자막만은 반드시 넘어가야 하므로 상한에서 기다림을 풉니다.
+      await Promise.race([Promise.all(jobs), wait(stallLimitMsFor(text))]);
       if (cancelled) return;
 
       await wait(GAP_MS);

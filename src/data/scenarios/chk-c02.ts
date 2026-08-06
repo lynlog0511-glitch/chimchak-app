@@ -1,7 +1,7 @@
 /**
  * CHK-C02 「어머니 팔에 멍이 있어요」 — 알파 초안(현직 감수 대기).
  *
- * 유형 ③ 이용자·보호자 갈등 화법 · 난이도 고급 · 소요 약 5분 · 계층 L1+L2
+ * 유형 ③ 이용자·보호자 갈등 화법 · 난이도 고급 · 소요 약 6분 · 계층 L1+L2
  * 기능 F1 시뮬레이터 + F3 기록 코칭
  *
  * 편성 근거: 설계서 §9.1 확장 매트릭스의 「C02 사고 책임 추궁·계약 해지 위협」 칸입니다.
@@ -17,10 +17,27 @@
  * 이 앵커에서 이탈하면 템플릿 고정 대사로 되돌립니다.
  *
  * 상태 흐름: S1 추궁(T1/CUE-1) → S2 책임 압박(T2/CUE-2) → [C-1 억제 요구](CUE-C1, ⚑CF)
- *          → S3 계약 해지 위협(T3/CUE-3) → [C-2 어르신 청취](CUE-C2) → S4 보고·기록(CUE-4~6)
+ *          → S3 계약 해지 위협(T3/CUE-3) → [C-2 어르신 청취](CUE-C2)
+ *          → [C-3 촬영 요구](CUE-C3) → S4 보고·기록(CUE-C4~C6)
+ *
+ * 판정 공정성 (8/6 감사 반영)
+ *  - 모든 CUE에 **중립 미분류 분기**(…-n)를 두고 defaultBranchId를 그리로 돌렸습니다.
+ *    음성 인식이 빗나갔다는 이유로 「미보고」·「회피」 같은 감점 분기가 찍히지 않습니다.
+ *    감점 분기는 학습자가 **실제로 그 말을 했을 때**(패턴 일치·버튼 선택)만 열립니다.
+ *  - 보고·성찰 CUE는 유일한 id(CUE-C4·CUE-C6)를 달아 규칙 사전(rules.ts)의
+ *    `POST_INCIDENT_REPORT_CUES` 게이트를 받습니다. 회고 진술로 적는 "묶어두라는 요구가
+ *    있었습니다"가 신체 억제 ⚑CF로 잡히지 않게 하려는 것입니다. 반대로 앞으로의 행위를
+ *    말하는 재발 방지 제안(CUE-C5)은 게이트 밖에 두어 억제 판정이 그대로 살아 있습니다.
  */
 
 import type { Scenario } from "@/types";
+
+/**
+ * 중립 미분류 분기의 코칭 문구 — 감점이 아니라 **다시 말할 기회**입니다.
+ * (같은 자리에 놓이는 문구라 한 곳에서 관리합니다.)
+ */
+const UNCLEAR_COACHING =
+  "말씀이 잘 전달되지 않았습니다. 지금 하신 말씀은 판정에 넣지 않았습니다 — 한 문장으로 짧게 다시 말씀하시거나, 아래 버튼에서 골라 주세요.";
 
 /** CO-02 ⚑CF 인터럽트 고정 문구 — 요구를 받았다는 사실이 금지행위를 허용하지 않습니다. */
 const CF_RESTRAINT_REQUEST_MESSAGE =
@@ -78,7 +95,8 @@ export const CHK_C02: Scenario = {
   typeLabel: "이용자·보호자 갈등 화법",
   level: 3,
   levelLabel: "고급",
-  durationMin: 5,
+  // 돌발 변수 C-3(촬영 요구)이 한 턴 늘어 6분으로 잡습니다.
+  durationMin: 6,
   tiers: ["L1", "L2"],
   summary:
     "원인이 확인되지 않은 멍을 두고 책임을 추궁받을 때, 단정하지 않고 기록과 보고로 옮기는 연습입니다.",
@@ -86,7 +104,7 @@ export const CHK_C02: Scenario = {
     "LO-1 확인된 사실과 확인되지 않은 것을 갈라 진술합니다. (SA-05, CL-02)",
     "LO-2 사고 정황을 기관 보고·기록 대상으로 판단하고 경로를 밝힙니다. (CO-04, CO-05)",
     "LO-3 보호자의 신체 억제 요구를 법적 근거로 거절하고 대안을 제시합니다. (CO-02 ⚑CF, CO-06, RE-05)",
-    "LO-4 폭언·해지 위협에 맞대응하지 않고 절차와 인수인계로 이동합니다. (RE-06, RE-07, SA-07)",
+    "LO-4 폭언·해지 위협·촬영 요구에 맞대응하거나 진술을 바꾸지 않고 절차와 인수인계로 이동합니다. (RE-06, RE-07, SA-07)",
     "LO-5 어르신 앞에서 갈등 노출을 최소화하고 다른 이용자 정보를 옮기지 않습니다. (CO-07, CO-08)",
   ],
   personas: [
@@ -137,7 +155,8 @@ export const CHK_C02: Scenario = {
         id: "CUE-1",
         prompt: "무엇이라고 답하시겠습니까?",
         waitSec: 8,
-        defaultBranchId: "B1-d",
+        // 미분류(음성 인식 실패 포함)는 중립 분기로 받습니다 — 「회피」로 찍지 않습니다.
+        defaultBranchId: "B1-n",
         branches: [
           {
             id: "B1-a",
@@ -217,6 +236,18 @@ export const CHK_C02: Scenario = {
             docId: "DOC-NOTI-002",
             next: "T2",
           },
+          {
+            // 미분류 전용 중립 분기 — 게이지 변동 0, 루브릭 반영 없음.
+            id: "B1-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "…지금 뭐라고 하신 거예요?",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
+            docId: "DOC-NOTI-002",
+            next: "T2",
+          },
         ],
       },
     },
@@ -232,7 +263,7 @@ export const CHK_C02: Scenario = {
         id: "CUE-2",
         prompt: "어떻게 대응하시겠습니까?",
         waitSec: 8,
-        defaultBranchId: "B2-d",
+        defaultBranchId: "B2-n",
         branches: [
           {
             id: "B2-a",
@@ -297,7 +328,9 @@ export const CHK_C02: Scenario = {
           {
             id: "B2-d",
             label: "침묵·회피",
-            patterns: [],
+            // 「침묵을 골랐다」는 판정은 학습자가 실제로 그렇게 답했을 때만 내립니다.
+            patterns: ["아무 말", "말없이", "말 없이", "침묵", "대답하지 않"],
+            fallbackOption: "아무 말 없이 서 있습니다",
             gaugeDelta: 1,
             aiReaction: "말이 없으시네. 인정하시는 거죠?",
             rubricHits: [
@@ -306,6 +339,17 @@ export const CHK_C02: Scenario = {
             ],
             coaching: "침묵은 인정으로 읽힙니다. 짧게라도 확인된 사실과 보고 계획을 말씀해 주세요.",
             docId: "DOC-LAW-007",
+            next: "T-C1",
+          },
+          {
+            id: "B2-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "…지금 뭐라고 하신 거예요?",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
+            docId: "DOC-NOTI-002",
             next: "T-C1",
           },
         ],
@@ -395,8 +439,7 @@ export const CHK_C02: Scenario = {
             gaugeDelta: 0,
             aiReaction: "…대답을 안 하시네요.",
             rubricHits: [],
-            coaching:
-              "잘 전달되지 않았습니다. 한 문장으로 짧게 다시 말씀하시거나, 아래 버튼에서 골라 주세요.",
+            coaching: UNCLEAR_COACHING,
             docId: "DOC-LAW-003",
             next: "T3",
           },
@@ -480,8 +523,7 @@ export const CHK_C02: Scenario = {
             gaugeDelta: 0,
             aiReaction: "…지금 뭐라고 하신 거예요?",
             rubricHits: [],
-            coaching:
-              "잘 전달되지 않았습니다. 한 문장으로 짧게 다시 말씀하시거나, 아래 버튼에서 골라 주세요.",
+            coaching: UNCLEAR_COACHING,
             docId: "DOC-NOTI-002",
             next: "T-C2",
           },
@@ -502,7 +544,7 @@ export const CHK_C02: Scenario = {
         id: "CUE-C2",
         prompt: "어떻게 하시겠습니까?",
         waitSec: 6,
-        defaultBranchId: "W-d",
+        defaultBranchId: "W-n",
         branches: [
           {
             id: "W-a",
@@ -530,7 +572,7 @@ export const CHK_C02: Scenario = {
             praise:
               "어르신을 먼저 안심시키고 자리를 옮기셨습니다. 갈등이 어르신 앞에서 이어지지 않게 한 판단입니다.",
             docId: "DOC-LAW-003",
-            next: "T4",
+            next: "T-C3",
           },
           {
             id: "W-b",
@@ -553,7 +595,7 @@ export const CHK_C02: Scenario = {
               "어르신 앞에서의 다툼은 어르신의 존엄과 안정에 영향을 줍니다. 자리를 먼저 옮겨 주세요.",
             docId: "DOC-LAW-003",
             retrainAdvice: true,
-            next: "T4",
+            next: "T-C3",
           },
           {
             id: "W-c",
@@ -575,17 +617,143 @@ export const CHK_C02: Scenario = {
             coaching:
               "확인이 필요하더라도 두 분 사이에서 어르신께 답을 요구하지 않습니다. 어르신께는 안심을 먼저 드려 주세요.",
             docId: "DOC-LAW-003",
-            next: "T4",
+            next: "T-C3",
           },
           {
             id: "W-d",
-            label: "무시하고 대화 지속",
-            patterns: [],
+            label: "어르신 말씀에 답하지 않음",
+            // 「대답하지 않기로 했다」는 판정도 실제로 그렇게 답했을 때만 내립니다.
+            patterns: ["대답하지 않", "못 들은 척", "무시하", "답하지 않"],
+            fallbackOption: "어르신 말씀에 대답하지 않고 아드님과의 대화를 이어갑니다",
             gaugeDelta: 1,
             aiReaction: "…내 말은 안 들리나 보네.",
             rubricHits: [{ itemId: "CO-07", score: 2 }],
             coaching: "부르셨을 때 짧게라도 대답해 드리면 불안이 줄어듭니다.",
             docId: "DOC-LAW-003",
+            next: "T-C3",
+          },
+          {
+            id: "W-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            // 어르신께는 「대답이 오지 않았다」는 사실만 같습니다 — 같은 반응 대사를 씁니다.
+            aiReaction: "…내 말은 안 들리나 보네.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
+            docId: "DOC-LAW-003",
+            next: "T-C3",
+          },
+        ],
+      },
+    },
+
+    /* ── 돌발 변수 C-3 「촬영 요구」 — 고급 난이도의 근거 지점 ───────── */
+    {
+      id: "T-C3",
+      speaker: "guardian",
+      speakerName: "보호자 아드님",
+      text: "잠깐만요. 지금부터 녹음하겠습니다. 방금 하신 말씀 다시 해 보세요.",
+      stageDirection:
+        "휴대전화를 들어 어르신 팔 쪽으로 화면을 돌리십니다. 어르신도 그 화면 안에 들어옵니다.",
+      isTrigger: true,
+      triggerName: "C-3 촬영 요구",
+      cue: {
+        id: "CUE-C3",
+        prompt: "무엇이라고 답하시겠습니까?",
+        waitSec: 8,
+        defaultBranchId: "J-n",
+        branches: [
+          {
+            id: "J-a",
+            label: "같은 사실을 그대로 다시 진술 + 어르신 촬영은 의사 확인",
+            patterns: [
+              "같은 말씀",
+              "그대로 다시",
+              "그대로 말씀드리",
+              "다시 말씀드리",
+              "어머님께 여쭤",
+              "어머님 의사",
+              "어르신 의사",
+              "동의를 여쭤",
+              "화면에 담기",
+              "이 통화도 기록",
+              "이 일도 기록",
+              "기록에 남기겠",
+            ],
+            fallbackOption:
+              "네, 같은 말씀을 그대로 다시 드리겠습니다. 다만 어머님이 화면에 담기는 것은 어머님께 먼저 여쭤봐 주시면 좋겠습니다. 촬영 요청이 있었다는 것도 기록에 남기겠습니다.",
+            gaugeDelta: -1,
+            aiReaction: "…그럼 그대로 다시 말해 봐요.",
+            rubricHits: [
+              { itemId: "CL-02", score: 4 },
+              { itemId: "CO-08", score: 4 },
+              { itemId: "RE-06", score: 4 },
+              { itemId: "SA-05", score: 3 },
+            ],
+            praise:
+              "찍힌다고 해서 말이 달라지지 않았습니다. 같은 사실을 같은 문장으로 두 번 말할 수 있는 것이 기록의 힘입니다.",
+            docId: "DOC-NOTI-002",
+            next: "T4",
+          },
+          {
+            id: "J-b",
+            label: "말을 바꾸거나 사과로 덮음",
+            patterns: [
+              "죄송합니다",
+              "제가 잘못",
+              "아까는 제가",
+              "그런 뜻이 아니",
+              "말이 잘못",
+              "없던 걸로",
+            ],
+            fallbackOption: "죄송합니다, 아까 말씀은 그런 뜻이 아니었습니다",
+            gaugeDelta: 1,
+            aiReaction: "아까랑 말이 다르잖아요.",
+            aiReactionNote: "휴대전화를 더 가까이 드십니다.",
+            rubricHits: [
+              { itemId: "CL-02", score: 2 },
+              { itemId: "SA-05", score: 1 },
+            ],
+            coaching:
+              "찍히는 자리에서 말이 달라지면 앞서 드린 사실까지 흔들립니다. 처음 드린 사실을 그대로 다시 말씀해 주세요.",
+            docId: "DOC-NOTI-002",
+            next: "T4",
+          },
+          {
+            id: "J-c",
+            label: "촬영을 막거나 맞대응",
+            patterns: [
+              "찍지 마세요",
+              "촬영 안 됩니다",
+              "휴대전화 좀",
+              "그거 내려",
+              "지워 주",
+              "저도 녹음",
+              "고발",
+              "법대로",
+            ],
+            fallbackOption: "찍지 마세요. 저도 녹음하겠습니다.",
+            gaugeDelta: 2,
+            aiReaction: "지금 뭐 하시는 거예요?",
+            rubricHits: [
+              { itemId: "RE-06", score: 1 },
+              { itemId: "CO-08", score: 2 },
+            ],
+            coaching:
+              "촬영을 두고 다투면 그 장면이 그대로 남습니다. 어르신이 화면에 담기는 부분만 의사를 여쭙고, 나머지는 사실 진술과 기록으로 옮겨 주세요.",
+            docId: "DOC-LAW-007",
+            next: "T4",
+          },
+          {
+            id: "J-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "…지금 뭐라고 하신 거예요?",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
+            docId: "DOC-NOTI-002",
             next: "T4",
           },
         ],
@@ -599,10 +767,12 @@ export const CHK_C02: Scenario = {
       speakerName: "보고·기록",
       text: "아드님이 돌아가셨습니다. 오늘 일을 센터에 보고할 차례입니다.",
       cue: {
-        id: "CUE-4",
+        // 유일한 id — rules.ts의 POST_INCIDENT_REPORT_CUES 게이트를 받는 자리입니다.
+        // (회고 진술 "묶어두라는 요구가 있었습니다"가 신체 억제 ⚑CF로 잡히지 않습니다.)
+        id: "CUE-C4",
         prompt: "오늘 있었던 일을 센터 당직에 보고한다고 생각하고 말로 보고해 주세요.",
         waitSec: 8,
-        defaultBranchId: "V-c",
+        defaultBranchId: "V-n",
         branches: [
           {
             id: "V-a",
@@ -612,15 +782,28 @@ export const CHK_C02: Scenario = {
               "오후 5시",
               "왼팔",
               "멍을 확인",
+              "멍이 있",
               "확인되지 않",
               "요구하셨",
+              "요구가 있었",
+              "묶어두",
+              "묶어 두",
+              "방문을 잠",
               "안내드렸습니다",
+              "말씀드렸습니다",
               "계약 해지",
+              "촬영",
+              "녹음",
               "보고드립니다",
               "보고드리겠습니다",
+              "보고드리겠",
+              "그대로 전달",
             ],
+            // 사실을 뭉개지 않은 문장입니다 — 받은 요구를 요구받은 말 그대로 적습니다.
+            // ("못 움직이게 해 달라는 요구"처럼 돌려 적으면, 기록이 남겨야 할 바로 그
+            //  대목을 흐리게 만듭니다. 규칙 게이트가 이 문장을 통과시킵니다.)
             fallbackOption:
-              "17시경 보호자께서 어르신 왼팔의 멍을 확인하셨고, 발생 시점은 확인되지 않았다고 안내드렸습니다. 밤에 어머님을 못 움직이게 해 달라는 요구가 있어 법으로 허용되지 않는다고 말씀드렸으며, 계약 해지 의사도 함께 전달드립니다.",
+              "17시경 보호자께서 어르신 왼팔의 멍을 확인하셨고, 발생 시점은 확인되지 않았다고 안내드렸습니다. 밤에 침대에 묶어두거나 방문을 잠가 달라는 요구가 있어 법으로 허용되지 않는다고 말씀드렸습니다. 계약 해지 의사와 촬영 요청이 있었던 사실도 함께 전달드립니다.",
             gaugeDelta: 0,
             aiReaction: "보고가 접수되었습니다.",
             rubricHits: [
@@ -669,6 +852,18 @@ export const CHK_C02: Scenario = {
             docId: "DOC-LAW-007",
             next: "T5",
           },
+          {
+            // 보고 문장이 신호에 걸리지 않았다고 해서 「미보고」로 찍지 않습니다.
+            id: "V-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "말씀이 잘 전달되지 않았습니다.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
+            docId: "DOC-NOTI-002",
+            next: "T5",
+          },
         ],
       },
     },
@@ -678,10 +873,12 @@ export const CHK_C02: Scenario = {
       speakerName: "보고·기록",
       text: "보고 내용을 확인했습니다. 다음을 위한 제안을 남길 차례입니다.",
       cue: {
-        id: "CUE-5",
+        // 재발 방지 「제안」은 앞으로의 행위라 규칙 게이트 밖에 둡니다 —
+        // 여기서 "방문을 잠그겠습니다"는 여전히 ⚑CF로 멈춰 세워야 합니다.
+        id: "CUE-C5",
         prompt: "같은 일이 반복되지 않으려면, 무엇을 바꿔볼 수 있을까요?",
         waitSec: 8,
-        defaultBranchId: "X-c",
+        defaultBranchId: "X-n",
         branches: [
           {
             id: "X-a",
@@ -730,6 +927,17 @@ export const CHK_C02: Scenario = {
             docId: "DOC-GUIDE-006",
             next: "T6",
           },
+          {
+            id: "X-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "말씀이 잘 전달되지 않았습니다.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
+            docId: "DOC-GUIDE-006",
+            next: "T6",
+          },
         ],
       },
     },
@@ -739,10 +947,11 @@ export const CHK_C02: Scenario = {
       speakerName: "보고·기록",
       text: "마지막입니다. 오늘의 대응을 스스로 돌아볼 차례입니다.",
       cue: {
-        id: "CUE-6",
+        // 성찰도 회고 진술 구간입니다 — POST_INCIDENT_REPORT_CUES 게이트를 받습니다.
+        id: "CUE-C6",
         prompt: "오늘 내 대응에서 한 가지만 고친다면?",
         waitSec: 8,
-        defaultBranchId: "Y-b",
+        defaultBranchId: "Y-n",
         branches: [
           {
             id: "Y-a",
@@ -781,6 +990,16 @@ export const CHK_C02: Scenario = {
             coaching: "무엇을 어떻게 바꿀지 한 가지만 문장으로 정해 보세요.",
             next: "end:E-부분",
           },
+          {
+            id: "Y-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "오늘 훈련을 마쳤습니다.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
+            next: "end:E-부분",
+          },
         ],
       },
     },
@@ -791,14 +1010,21 @@ export const CHK_C02: Scenario = {
       name: "억제 요구",
       condition: "CUE-2 종료 후 (알파에서는 100% 고정 발동)",
       description:
-        "보호자: \"침대에 묶어두든지 방문을 잠그든지 하세요.\" 요구를 받았다는 사실이 금지행위를 허용하지 않는다는 것을 규칙 엔진이 그대로 판정합니다. 이 시나리오에서 ⚑CF가 적용되는 유일한 지점입니다. (측정: CO-02, CO-06, RE-05)",
+        "보호자: \"침대에 묶어두든지 방문을 잠그든지 하세요.\" 요구를 받았다는 사실이 금지행위를 허용하지 않는다는 것을 규칙 엔진이 그대로 판정합니다. 이 시나리오에서 ⚑CF가 적용되는 유일한 지점입니다.",
     },
     {
       id: "C-2",
       name: "어르신 청취",
       condition: "CUE-3 종료 후 (알파에서는 100% 고정 발동)",
       description:
-        "어르신이 소파에서 두 사람을 번갈아 보시며 \"…나 때문에 싸우는 거야?\" 하고 물으십니다. 갈등 노출을 최소화하고 존엄을 보호하는지 봅니다. (측정: CO-07, SA-04)",
+        "어르신이 소파에서 두 사람을 번갈아 보시며 \"…나 때문에 싸우는 거야?\" 하고 물으십니다. 갈등 노출을 최소화하고 존엄을 보호하는지 봅니다.",
+    },
+    {
+      id: "C-3",
+      name: "촬영 요구",
+      condition: "CUE-C2 종료 후 (알파에서는 100% 고정 발동)",
+      description:
+        "보호자가 휴대전화를 들어 \"지금부터 녹음하겠습니다. 방금 하신 말씀 다시 해 보세요\" 하십니다. 어르신도 화면 안에 들어옵니다. 고급 난이도의 근거가 되는 지점으로, 기록될 것을 아는 상태에서도 처음 드린 사실이 그대로 유지되는지, 어르신이 화면에 담기는 부분을 어르신의 일로 다루는지를 봅니다.",
     },
   ],
   endings: [

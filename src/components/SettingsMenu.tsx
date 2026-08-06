@@ -14,10 +14,11 @@ import {
   type SpeechRate,
 } from "@/lib/settings";
 import { isSpeechPlaybackSupported, speak, stopSpeaking } from "@/lib/speech";
-/* 앱의 오버레이 문법(마운트 초점·Esc·Tab 가두기)은 훅 하나로 통일돼 있습니다.
-   훈련 세션 폴더에 살고 있지만 다루는 것은 초점뿐이라 화면 종류를 가리지 않습니다
-   (⚑CF 시트·종료 확인·규칙 시연 시트가 같은 훅을 씁니다 — 평가 UI/UX mi7). */
-import { useModalDismiss } from "@/app/train/_components/useModalDismiss";
+/* 앱의 오버레이 문법(마운트 초점·Esc·Tab 가두기·배경 스크롤 잠금)은 훅 하나로 통일돼 있습니다
+   (⚑CF 시트·종료 확인·규칙 시연 시트가 같은 훅을 씁니다 — 평가 UI/UX mi7).
+   한때 이 훅은 `app/train/_components`에 살았고 공용 컴포넌트인 여기서 그 안쪽을 거꾸로 가져다
+   썼습니다 — 지금은 공용 자리로 옮겼습니다(부채 감사 · 역방향 의존 해소). */
+import { useModalDismiss } from "./useModalDismiss";
 import { cx } from "./utils";
 
 /** 「음성 빠르기」를 고르면 곧바로 이 한 문장을 읽어 줍니다 — 귀로 확인하고 고르시라고요. */
@@ -45,8 +46,8 @@ function OptionButton({ label, selected, onSelect }: OptionButtonProps) {
         "chim-label min-h-[48px] flex-1 rounded-[14px] px-2",
         "transition-colors duration-150 ease-soft",
         selected
-          ? "bg-brand-700 font-bold text-white"
-          : "bg-neutral-soft text-ink hover:bg-neutral-line",
+          ? "bg-brand-700 font-bold text-white active:bg-brand-800"
+          : "bg-neutral-soft text-ink hover:bg-neutral-line active:bg-neutral-line",
       )}
     >
       {label}
@@ -124,6 +125,9 @@ function SettingsPanel({
         "z-50 w-[min(20rem,calc(100vw-2rem))] whitespace-normal",
         toScreen ? "fixed right-3" : "absolute top-full right-0 mt-2",
         "rounded-panel bg-white p-4 shadow-panel",
+        /* 등장 180ms — 예전에는 이 팝오버만 모션이 0ms라 「툭」 나타났습니다.
+           바텀시트(240ms)와 팝오버(180ms) 두 단만 씁니다(모션 감사 6). */
+        "animate-pop-in",
       )}
     >
       <div>
@@ -286,8 +290,8 @@ export function SettingsMenu({
           setOpen(true);
         }}
         className={cx(
-          "inline-flex min-h-[48px] items-center px-2 text-[0.8438rem] font-semibold",
-          "transition-colors duration-150",
+          "inline-flex min-h-[48px] items-center rounded-field px-2 text-[0.8438rem] font-semibold",
+          "transition-colors duration-150 active:bg-paper-2",
           open ? "text-brand-800" : "text-ink-muted hover:text-brand-800",
         )}
       >

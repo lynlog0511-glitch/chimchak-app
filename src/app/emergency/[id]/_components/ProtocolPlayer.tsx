@@ -17,48 +17,13 @@ import {
   type ReadingState,
 } from "../../_components/PlayerParts";
 import { ProtocolAddressCard } from "../../_components/ProtocolAddressCard";
-import { useProtocolPlayback } from "../../_components/useProtocolPlayback";
+import { useAutoplayGuard, useProtocolPlayback } from "../../_components/useProtocolPlayback";
 
 export interface ProtocolPlayerProps {
   title: string;
   steps: ProtocolStep[];
   /** 「‹ 안내 종료」가 돌아갈 곳 */
   backHref: string;
-}
-
-/**
- * 1밀리초 무음(8kHz 8bit 모노 WAV). 자동재생이 허용되는지 **실제로 재생해 봐서** 확인하는 데만 씁니다.
- * `data:`라 네트워크 요청이 생기지 않고, 내용이 무음이라 사용자에게 아무 소리도 들리지 않습니다.
- */
-const SILENT_WAV =
-  "data:audio/wav;base64,UklGRiwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQgAAACAgICAgICAgA==";
-
-/**
- * 사용자가 화면을 건드리지 않은 상태에서 소리를 낼 수 있는지 확인합니다.
- *
- * PWA 바로가기로 `/emergency/p-02`를 곧바로 열면 제스처가 없어 `audio.play()`가 거부되는데,
- * 그때 화면이 「읽어 주는 중」이라고 적으면 **소리가 안 나는데 난다고 말하는 것**이 됩니다.
- * 그래서 지원 여부(`isSpeechPlaybackSupported`)와 별도로, 지금 이 순간의 정책을 직접 재 봅니다.
- *
- * 자동재생 차단(NotAllowedError)만 「소리가 안 난다」로 셉니다 —
- * 디코딩 실패 같은 다른 오류는 판단 근거가 되지 못하므로 차단으로 단정하지 않습니다.
- */
-async function canPlayWithoutGesture(): Promise<boolean> {
-  if (typeof Audio === "undefined") return true;
-  let audio: HTMLAudioElement;
-  try {
-    audio = new Audio(SILENT_WAV);
-  } catch {
-    return true;
-  }
-  try {
-    await audio.play();
-    audio.pause();
-    return true;
-  } catch (error) {
-    const name = error instanceof DOMException ? error.name : "";
-    return name !== "NotAllowedError";
-  }
 }
 
 /**
@@ -78,8 +43,8 @@ async function canPlayWithoutGesture(): Promise<boolean> {
 export function ProtocolPlayer({ title, steps, backHref }: ProtocolPlayerProps) {
   const [voiceOn, setVoiceOn] = useState(true);
   const [ttsSupported, setTtsSupported] = useState(true);
-  /** 이 기기가 지금 자동으로 소리를 내지 못하는 상태인지(자동재생 차단) */
-  const [soundBlocked, setSoundBlocked] = useState(false);
+  /** 자동재생 정책은 훈련 세션 안 L3 구간과 **같은 가드**에서 옵니다. */
+  const { soundBlocked, unblock } = useAutoplayGuard();
 
   /* 차단된 동안에는 낭독을 시도하지 않습니다 — 소리를 내지 못하는 낭독을 기다리다
      자막 진행까지 멈추면 안내 자체가 죽습니다. 자막은 같은 속도로 계속 넘어갑니다. */
@@ -92,32 +57,7 @@ export function ProtocolPlayer({ title, steps, backHref }: ProtocolPlayerProps) 
   useEffect(() => {
     primeVoices();
     setTtsSupported(isSpeechPlaybackSupported());
-    let alive = true;
-    void canPlayWithoutGesture().then((ok) => {
-      if (alive) setSoundBlocked(!ok);
-    });
-    return () => {
-      alive = false;
-    };
   }, []);
-
-  /* 화면을 한 번 건드리면 브라우저 정책이 바뀝니다 — 그때 다시 재 보고, 되면 조용히 소리로 돌아갑니다. */
-  useEffect(() => {
-    if (!soundBlocked) return;
-    const recheck = (): void => {
-      window.setTimeout(() => {
-        void canPlayWithoutGesture().then((ok) => {
-          if (ok) setSoundBlocked(false);
-        });
-      }, 0);
-    };
-    window.addEventListener("pointerdown", recheck);
-    window.addEventListener("keydown", recheck);
-    return () => {
-      window.removeEventListener("pointerdown", recheck);
-      window.removeEventListener("keydown", recheck);
-    };
-  }, [soundBlocked]);
 
   /* 상태줄은 지금 실제로 일어나는 일만 말합니다 — 소리가 없는데 「읽어 주는 중」이라고 하지 않습니다. */
   const readingState: ReadingState = silent
@@ -173,7 +113,7 @@ export function ProtocolPlayer({ title, steps, backHref }: ProtocolPlayerProps) 
           <div className="mt-2">
             <button
               type="button"
-              onClick={() => setSoundBlocked(false)}
+              onClick={unblock}
               className="flex min-h-[52px] w-full items-center justify-center rounded-[14px] border border-line-strong bg-paper px-3 text-[0.9375rem] font-bold text-ink transition-colors duration-150 active:bg-paper-2"
             >
               눌러서 소리 시작

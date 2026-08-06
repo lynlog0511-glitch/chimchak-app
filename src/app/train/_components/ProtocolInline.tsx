@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronGlyph } from "@/components/icons";
 import { BigButton } from "@/components";
 import { cx } from "@/components/utils";
@@ -15,7 +15,11 @@ import {
   type ReadingState,
 } from "@/app/emergency/_components/PlayerParts";
 import { ProtocolAddressCard } from "@/app/emergency/_components/ProtocolAddressCard";
-import { useProtocolPlayback } from "@/app/emergency/_components/useProtocolPlayback";
+import {
+  useAutoplayGuard,
+  useProtocolPlayback,
+} from "@/app/emergency/_components/useProtocolPlayback";
+import { isSpeechPlaybackSupported, unlockAudio } from "@/lib/speech";
 import type { EmergencyProtocol } from "@/types";
 import { PROTOCOL_HANDOFF_BODY, PROTOCOL_HANDOFF_TITLE } from "./constants";
 
@@ -40,9 +44,19 @@ export interface ProtocolInlineProps {
  */
 export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolInlineProps) {
   const [started, setStarted] = useState(false);
+  const [ttsSupported, setTtsSupported] = useState(true);
+  /** 자동재생 정책은 단독 화면(`/emergency/[id]`)과 **같은 가드**에서 옵니다. */
+  const { soundBlocked, unblock } = useAutoplayGuard();
+
+  useEffect(() => {
+    setTtsSupported(isSpeechPlaybackSupported());
+  }, []);
 
   const steps = protocol.steps;
-  const playback = useProtocolPlayback({ steps, voiceOn: ttsOn, enabled: started });
+  /* 차단된 동안에는 낭독을 시도하지 않습니다 — 소리를 내지 못하는 낭독을 기다리다
+     자막 진행까지 멈추면 안내 자체가 죽습니다. 자막은 같은 속도로 계속 넘어갑니다. */
+  const voiceActive = ttsOn && !soundBlocked;
+  const playback = useProtocolPlayback({ steps, voiceOn: voiceActive, enabled: started });
   const { index, step, total, silent, isFirst, isLast, playing } = playback;
   const preview = nextStepPreview(steps, index);
 
@@ -63,7 +77,17 @@ export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolI
 
         <div className="mt-4 space-y-2">
           <Call119Bar />
-          <BigButton onClick={() => setStarted(true)} size="lg" block variant="danger">
+          {/* 이 탭이 이 구간의 **확실한 첫 제스처**입니다 — 그 자리에서 오디오 요소 잠금을 풀어 두면
+              아이폰에서도 이후 단계의 자동 낭독이 검수된 목소리 그대로 이어집니다. */}
+          <BigButton
+            onClick={() => {
+              unlockAudio();
+              setStarted(true);
+            }}
+            size="lg"
+            block
+            variant="danger"
+          >
             응급 안내 시작하기
           </BigButton>
         </div>
@@ -76,9 +100,12 @@ export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolI
     ? "done"
     : !playing
       ? "paused"
-      : ttsOn
+      : voiceActive && ttsSupported
         ? "reading"
         : "caption";
+
+  /** 소리를 켤 수 있는데 자동으로 시작하지 못한 상태 — 한 번 누르면 그 자리에서 소리가 납니다. */
+  const needsTapToStart = soundBlocked && ttsSupported && ttsOn && !silent;
 
   return (
     <div className={cx("animate-fade-up", className)}>
@@ -111,6 +138,24 @@ export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolI
       {/* 본문 — 이 구간에서 가장 큰 글자는 자막 하나뿐입니다. */}
       <div className="pt-4 pb-6">
         <ProtocolReadingLine state={readingState} />
+
+        {/* 소리가 막힌 채로 「읽어 주는 중」이라고 적지 않습니다. 한 번 누를 자리를 두되,
+            누르지 않으셔도 자막은 같은 속도로 계속 넘어갑니다(안내가 볼모가 되지 않습니다). */}
+        {needsTapToStart && (
+          <div className="mt-2">
+            <button
+              type="button"
+              onClick={unblock}
+              className="flex min-h-[52px] w-full items-center justify-center rounded-[14px] border border-line-strong bg-paper px-3 text-[0.9375rem] font-bold text-ink transition-colors duration-150 active:bg-paper-2"
+            >
+              눌러서 소리 시작
+            </button>
+            <p className="mt-[6px] text-[0.8438rem] leading-[1.6] text-ink-soft">
+              이 기기가 소리를 자동으로 시작하지 못했습니다. 누르지 않으셔도 자막은 같은 속도로
+              계속 넘어갑니다.
+            </p>
+          </div>
+        )}
 
         <p
           aria-live="polite"
@@ -157,7 +202,7 @@ export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolI
       <ProtocolFootnote className="mt-3" />
 
       <details className="group mt-5 border-t border-line">
-        <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 text-[0.8438rem] font-semibold text-ink-soft [&::-webkit-details-marker]:hidden">
+        <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 rounded-field text-[0.8438rem] font-semibold text-ink-soft transition-colors duration-150 active:bg-paper-2 [&::-webkit-details-marker]:hidden">
           <span>이 앱이 하지 않는 것</span>
           <ChevronGlyph size="sm" className="text-faint group-open:rotate-180" />
         </summary>

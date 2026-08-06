@@ -93,7 +93,7 @@ export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: Dr
           const fieldId = `draft-${slot.key}`;
           const hintId = `${fieldId}-hint`;
           const shared = cx(
-            "mt-[6px] w-full rounded-[14px] border bg-white p-[13px] text-[0.9375rem] leading-[1.6] text-ink placeholder:text-tertiary focus:outline-none",
+            "mt-[6px] w-full rounded-[14px] border bg-white p-[13px] text-[0.9375rem] leading-[1.6] text-ink placeholder:text-tertiary",
             empty
               ? "border-warn-line focus:border-warn-ink"
               : "border-line-strong focus:border-brand-400",

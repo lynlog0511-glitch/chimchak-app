@@ -23,9 +23,23 @@
  *          → [N-3 무릎 통증 단서] → S3 통증 대응(T3/CUE-3) → [N-2 옆방 어르신]
  *          → S4 안전확보·대체행동(T4/CUE-4) → S5 보고·기록(CUE-5~7)
  *          (초조도 5 도달 시 위기 엔딩 → 재시도 1회 무벌점)
+ *
+ * 판정 공정성 (8/6 감사 반영)
+ *  - 모든 CUE에 **중립 미분류 분기**(…-n)를 두고 defaultBranchId를 그리로 돌렸습니다.
+ *    말이 신호에 걸리지 않았다는 것과 잘못 대응했다는 것은 다른 사실입니다. 감점 분기는
+ *    학습자가 **실제로 그 말을 했을 때**(패턴 일치·버튼 선택)만 열립니다.
+ *  - 특히 CUE-N1의 「문이 열림 → 위기 엔딩」(NA-d)은 명시적 무행동에만 붙입니다.
+ *    미분류로 훈련이 끝나 버리면, 인식이 빗나간 사람에게 실패를 돌려주는 셈이 됩니다.
  */
 
 import type { Scenario } from "@/types";
+
+/**
+ * 중립 미분류 분기의 코칭 문구 — 감점이 아니라 **다시 말할 기회**입니다.
+ * 야간 단독 근무라는 조건을 그대로 담습니다(낮은 목소리는 잘 묻힙니다).
+ */
+const UNCLEAR_COACHING =
+  "말씀이 닿지 않았습니다. 야간에는 낮은 목소리가 더 잘 묻힙니다 — 지금 하신 말씀은 판정에 넣지 않았으니, 한 문장으로 짧게 다시 말씀하시거나 아래 버튼에서 골라 주세요.";
 
 /** CO-02 ⚑CF 인터럽트 고정 문구 — 노인복지법 제39조의9 금지행위 고지 + 대안 3개. */
 const CF_RESTRAINT_MESSAGE =
@@ -175,7 +189,8 @@ export const CHK_A02: Scenario = {
         id: "CUE-1",
         prompt: "첫 응답 — 무엇이라고 말하시겠습니까?",
         waitSec: 8,
-        defaultBranchId: "D1-d",
+        // 미분류(음성 인식 실패 포함)는 중립 분기로 받습니다 — 「회피」로 찍지 않습니다.
+        defaultBranchId: "D1-n",
         branches: [
           {
             id: "D1-c",
@@ -258,8 +273,8 @@ export const CHK_A02: Scenario = {
               { itemId: "RE-03", score: 1 },
               { itemId: "CO-02", score: 3 },
             ],
-            praise: "몸에 손을 대지 않으신 점은 지켜졌습니다.",
-            coaching: "지시형 대신 두 개 이하의 선택지를 드려 보세요.",
+            praise: "새벽에도 어르신 몸에 손을 대지 않으신 선은 지켜졌습니다.",
+            coaching: "지시형 대신, 이 시각에 드릴 수 있는 선택지를 두 개만 놓아 보세요.",
             docId: "DOC-GUIDE-001",
             next: "T-N1",
           },
@@ -279,9 +294,11 @@ export const CHK_A02: Scenario = {
           },
           {
             id: "D1-d",
-            label: "회피·무응답",
-            // 무응답은 defaultBranchId 로 이미 이 분기에 옵니다 — 신호는 최소로 둡니다.
-            patterns: ["글쎄요", "모르겠"],
+            label: "회피 — 모른다고 답함",
+            // 이제 이 분기는 학습자가 **실제로 그렇게 말했을 때만** 열립니다
+            // (무응답·미분류는 아래 D1-n이 받습니다).
+            patterns: ["글쎄요", "모르겠", "저도 잘"],
+            fallbackOption: "글쎄요, 저도 잘 모르겠습니다",
             gaugeDelta: 1,
             aiReaction: "…비켜 봐요, 늦는다니까.",
             aiReactionNote: "자동문 버튼 쪽으로 손을 뻗으십니다. 돌발 변수 N-1이 앞당겨 발동합니다.",
@@ -289,6 +306,18 @@ export const CHK_A02: Scenario = {
             coaching: "말이 막히면 짧게라도 마음을 먼저 되돌려 주세요.",
             docId: "DOC-GUIDE-001",
             triggerId: "N-1",
+            next: "T-N1",
+          },
+          {
+            // 미분류 전용 중립 분기 — 게이지 변동 0, 루브릭 반영 없음.
+            id: "D1-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "…뭐? 안 들려요.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
+            docId: "DOC-GUIDE-001",
             next: "T-N1",
           },
         ],
@@ -301,15 +330,15 @@ export const CHK_A02: Scenario = {
       speaker: "system",
       speakerName: "돌발 변수 N-1 「자동문 버튼」",
       text: "어르신이 현관 자동문 개방 버튼에 손을 올리십니다. 문이 열리면 경보가 울려 주무시는 분들이 모두 깨십니다.",
-      stageDirection:
-        "억제(⚑CF)가 아니라 대체 행동을 선택하는지 보는 지점입니다. 재촉 없이, 다만 지금 답해야 하는 순간입니다.",
+      stageDirection: "복도 등이 하나만 켜져 있고, 어르신 손이 버튼 위에 그대로 있습니다.",
       isTrigger: true,
       triggerName: "N-1 자동문 버튼",
       cue: {
         id: "CUE-N1",
         prompt: "지금 무엇을 하시겠습니까?",
         waitSec: 6,
-        defaultBranchId: "NA-d",
+        // 미분류로 문이 열리지는 않습니다 — 위기 엔딩(NA-d)은 명시적 무행동에만 붙습니다.
+        defaultBranchId: "NA-n",
         branches: [
           {
             id: "NA-a",
@@ -343,7 +372,8 @@ export const CHK_A02: Scenario = {
               { itemId: "RE-07", score: 4 },
               { itemId: "CO-02", score: 4 },
             ],
-            praise: "붙잡지 않고 함께 움직이는 방법으로 안전을 확보하셨습니다.",
+            praise:
+              "현관 앞에서 붙잡는 대신 함께 움직이는 쪽을 고르셨습니다. 경보도, 주무시는 여덟 분도 그대로입니다.",
             docId: "DOC-GUIDE-001",
             next: "T2",
           },
@@ -379,8 +409,11 @@ export const CHK_A02: Scenario = {
           },
           {
             id: "NA-d",
-            label: "대응 없음 — 문이 열림",
-            patterns: [],
+            label: "아무것도 하지 않음 — 문이 열림",
+            // 「그대로 두겠다」는 판정은 학습자가 실제로 그렇게 답했을 때만 내립니다.
+            // (미분류가 여기로 떨어지면, 인식이 빗나간 사람에게 위기 엔딩을 돌려주게 됩니다.)
+            patterns: ["아무것도", "아무 것도", "지켜보", "가만히", "그냥 두", "그대로 둡", "손 놓"],
+            fallbackOption: "아무것도 하지 않고 지켜봅니다",
             gaugeDelta: 2,
             aiReaction: "…나 갔다 오리다.",
             aiReactionNote: "자동문이 열리고 경보가 울립니다. 어르신이 현관 밖으로 나가십니다.",
@@ -388,9 +421,21 @@ export const CHK_A02: Scenario = {
               { itemId: "RE-09", score: 1 },
               { itemId: "SA-01", score: 1 },
             ],
-            coaching: "문이 열리기 전에 대체 행동을 먼저 제안해 주세요.",
+            coaching: "자동문이 열리기 전에, 함께 할 다른 일을 하나 먼저 놓아 주세요.",
             docId: "DOC-GUIDE-001",
             next: "end:E-위기",
+          },
+          {
+            id: "NA-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "…뭐? 안 들려요.",
+            aiReactionNote: "버튼 위에 손을 얹은 채 이쪽을 보십니다.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
+            docId: "DOC-GUIDE-001",
+            next: "T2",
           },
         ],
       },
@@ -465,7 +510,7 @@ export const CHK_A02: Scenario = {
             gaugeDelta: -1,
             aiReaction: "…허, 아직 캄캄하네.",
             rubricHits: [{ itemId: "SA-03", score: 4 }],
-            praise: "환경 요인을 확인하고 바로 조정하셨습니다.",
+            praise: "복도 조도라는 환경 요인을 확인하고 그 자리에서 조정하셨습니다.",
             docId: "DOC-GUIDE-001",
             next: "T3",
           },
@@ -486,7 +531,7 @@ export const CHK_A02: Scenario = {
             gaugeDelta: -1,
             aiReaction: "…그럼 물이나 한 잔 주고.",
             rubricHits: [{ itemId: "RE-03", score: 4 }],
-            praise: "지시 대신 두 개의 선택지를 드렸습니다.",
+            praise: "지시 대신, 새벽에도 고르실 수 있는 선택지 두 개를 놓아 드렸습니다.",
             docId: "DOC-GUIDE-001",
             next: "T3",
           },
@@ -519,8 +564,7 @@ export const CHK_A02: Scenario = {
             gaugeDelta: 0,
             aiReaction: "…뭐? 안 들려요.",
             rubricHits: [],
-            coaching:
-              "잘 전달되지 않았습니다. 한 문장으로 짧게 다시 말씀하시거나, 아래 버튼에서 골라 주세요.",
+            coaching: UNCLEAR_COACHING,
             docId: "DOC-GUIDE-001",
             next: "T3",
           },
@@ -534,7 +578,7 @@ export const CHK_A02: Scenario = {
       speaker: "system",
       speakerName: "돌발 변수 N-3 「무릎 통증 단서」",
       text: "어르신이 왼쪽 무릎을 손으로 누르고 계십니다. 새벽에 깨신 까닭이 통증이었다는 단서가 먼저 드러납니다.",
-      stageDirection: "이 단서는 원인 탐색(D2-a)을 수행한 학습자에게만 노출됩니다.",
+      stageDirection: "지팡이를 벽에 기대 두고, 무릎을 두어 번 문지르십니다.",
       isTrigger: true,
       triggerName: "N-3 무릎 통증 단서",
       autoNext: "T3",
@@ -551,7 +595,8 @@ export const CHK_A02: Scenario = {
         id: "CUE-3",
         prompt: "통증을 말씀하십니다. 무엇을 하시겠습니까?",
         waitSec: 8,
-        defaultBranchId: "P3-d",
+        // 「아프시겠어요」 같은 공감 발화가 미분류로 흘러 '재우려 함'(P3-d)에 찍히던 자리입니다.
+        defaultBranchId: "P3-n",
         branches: [
           {
             id: "P3-a",
@@ -585,8 +630,20 @@ export const CHK_A02: Scenario = {
           },
           {
             id: "P3-b",
-            label: "곁에 머무르며 편한 자세로 안내",
+            label: "통증에 공감하며 곁에 머무르고 편한 자세로 안내",
+            // 공감 표현을 신호로 넣습니다. "많이 아프셨겠어요"가 어디에도 걸리지 않아
+            // '재우려 함'(P3-d)으로 떨어지면, 옳게 말한 사람이 벌을 받습니다.
             patterns: [
+              "아프셨겠",
+              "아프시겠",
+              "많이 아프",
+              "얼마나 아프",
+              "쑤시셨겠",
+              "쑤시시겠",
+              "힘드셨겠",
+              "불편하셨겠",
+              "고생 많으",
+              "많이 편찮",
               "담요",
               "편한 자세",
               "앉으셔서",
@@ -605,7 +662,7 @@ export const CHK_A02: Scenario = {
               { itemId: "CO-07", score: 3 },
             ],
             praise:
-              "곁에 머무르며 편한 자리로 옮기셨습니다. 여기에 통증을 여쭙고 알리는 것까지 더하면 완성됩니다.",
+              "아프다는 말씀을 그냥 지나치지 않고 곁에 머무르셨습니다. 여기에 언제부터 아프셨는지 여쭙고 당직 간호사께 알리는 것까지 더하면 완성됩니다.",
             docId: "DOC-GUIDE-001",
             next: "T-N2",
           },
@@ -639,6 +696,17 @@ export const CHK_A02: Scenario = {
             docId: "DOC-GUIDE-001",
             next: "T-N2",
           },
+          {
+            id: "P3-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "…뭐? 안 들려요.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
+            docId: "DOC-GUIDE-001",
+            next: "T-N2",
+          },
         ],
       },
     },
@@ -649,15 +717,14 @@ export const CHK_A02: Scenario = {
       speaker: "system",
       speakerName: "돌발 변수 N-2 「옆방 어르신」",
       text: "옆방 어르신이 문을 열고 복도를 내다보시며 무슨 일이냐고 물으십니다.",
-      stageDirection:
-        "대상자의 사정을 다른 어르신 앞에서 말하지 않는지 보는 지점입니다. (측정: CO-07, CO-08)",
+      stageDirection: "최 어르신은 두 걸음 떨어진 곳에서 이쪽을 보고 계십니다.",
       isTrigger: true,
       triggerName: "N-2 옆방 어르신",
       cue: {
         id: "CUE-N2",
         prompt: "옆방 어르신이 내다보십니다. 어떻게 하시겠습니까?",
         waitSec: 6,
-        defaultBranchId: "M-d",
+        defaultBranchId: "M-n",
         branches: [
           {
             id: "M-a",
@@ -725,13 +792,26 @@ export const CHK_A02: Scenario = {
           },
           {
             id: "M-d",
-            label: "대응 없이 그대로 둠",
-            patterns: [],
+            label: "대답하지 않고 그대로 둠",
+            // 「대답하지 않기로 했다」는 판정도 실제로 그렇게 답했을 때만 내립니다.
+            patterns: ["대답 없이", "대답하지 않", "못 들은 척", "무시하", "그냥 두", "그대로 둡"],
+            fallbackOption: "아무 대답 없이 그대로 둡니다",
             gaugeDelta: 1,
             aiReaction: "…나 때문에 다 깼구먼.",
             aiReactionNote: "복도에 서 계신 분이 늘고, 최 어르신이 더 서두르십니다.",
             rubricHits: [{ itemId: "SA-04", score: 2 }],
             coaching: "부르셨을 때 짧게라도 대답해 드리면 복도가 조용해집니다.",
+            docId: "DOC-LAW-003",
+            next: "T4",
+          },
+          {
+            id: "M-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "…뭐? 안 들려요.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
             docId: "DOC-LAW-003",
             next: "T4",
           },
@@ -749,7 +829,7 @@ export const CHK_A02: Scenario = {
         id: "CUE-4",
         prompt: "안전한 대체 행동으로 유도하세요.",
         waitSec: 8,
-        defaultBranchId: "S4-c",
+        defaultBranchId: "S4-n",
         branches: [
           {
             id: "S4-a",
@@ -775,7 +855,8 @@ export const CHK_A02: Scenario = {
               { itemId: "CO-07", score: 4 },
               { itemId: "RE-09", score: 4 },
             ],
-            praise: "동의를 먼저 구하고 함께 움직이셨습니다. 억제 없이 안전을 확보한 대응입니다.",
+            praise:
+              "동의를 먼저 구하고 나란히 걸으셨습니다. 억제 없이, 주무시는 분들을 깨우지 않고 안전을 확보한 대응입니다.",
             docId: "DOC-GUIDE-001",
             next: "T5",
           },
@@ -800,19 +881,21 @@ export const CHK_A02: Scenario = {
               { itemId: "RE-04", score: 3 },
               { itemId: "RE-09", score: 3 },
             ],
-            praise: "안전한 대체 활동으로 주의를 옮기셨습니다.",
+            praise: "현관에서 거실로, 안전한 다른 일 하나로 주의를 옮기셨습니다.",
             docId: "DOC-GUIDE-001",
             next: "T5",
           },
           {
             id: "S4-c",
             label: "그냥 기다림",
-            patterns: ["기다리", "지켜보", "가만히 있", "아무 말 없이"],
+            // "기다리"는 "기다립니다"의 부분 문자열이 아닙니다(음절 블록) — 어간까지만 남깁니다.
+            patterns: ["기다", "지켜보", "가만히 있", "아무 말 없이", "말없이"],
             fallbackOption: "말없이 옆에서 기다립니다",
             gaugeDelta: 0,
             aiReaction: "…뭘 그렇게 보고만 있어.",
             rubricHits: [{ itemId: "RE-04", score: 2 }],
-            coaching: "기다리기만 하면 상황이 그대로 유지됩니다. 함께 할 것을 하나 제안해 보세요.",
+            coaching:
+              "기다리기만 하면 어르신은 현관 앞에 그대로 서 계십니다. 함께 할 일을 하나 놓아 주세요.",
             docId: "DOC-GUIDE-001",
             next: "T5",
           },
@@ -841,6 +924,17 @@ export const CHK_A02: Scenario = {
             docId: "DOC-LAW-003",
             next: "T4",
           },
+          {
+            id: "S4-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "…뭐? 안 들려요.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
+            docId: "DOC-GUIDE-001",
+            next: "T5",
+          },
         ],
       },
     },
@@ -855,7 +949,8 @@ export const CHK_A02: Scenario = {
         id: "CUE-5",
         prompt: "지금 있었던 일을 야간 근무 일지에 남긴다고 생각하고, 말로 보고해 주세요.",
         waitSec: 8,
-        defaultBranchId: "R1-d",
+        // 상식적인 보고 문장이 신호에 걸리지 않았다고 「미보고」(R1-d)로 찍지 않습니다.
+        defaultBranchId: "R1-n",
         branches: [
           {
             id: "R1-a",
@@ -883,7 +978,40 @@ export const CHK_A02: Scenario = {
               { itemId: "CO-04", score: 4 },
               { itemId: "CO-05", score: 3 },
             ],
-            praise: "누가·언제·무엇을·어떻게·현재 상태가 모두 들어간 사실 중심 보고입니다.",
+            praise:
+              "누가·언제·무엇을·어떻게·현재 상태가 모두 들어갔습니다. 아침 근무자가 이 일지만 보고 그대로 이어받을 수 있습니다.",
+            docId: "DOC-NOTI-002",
+            next: "T6",
+          },
+          {
+            // 보호자 통보를 「할지 말지」가 아니라 **언제·누구를 통해**로 다루는 한 겹입니다.
+            // C3 제약(출장 중·새벽 통화 불가)이 여기서 실제 판단으로 쓰입니다.
+            id: "R1-e",
+            label: "보호자 통보 경로 판단 (새벽 통화 대신 아침 기관 경유)",
+            patterns: [
+              "아침에 시설장",
+              "시설장께",
+              "시설장님",
+              "아침에 기관",
+              "아침에 보호자",
+              "보호자께는 아침",
+              "보호자께는 낮",
+              "기관을 통해 알",
+              "통화가 되지 않",
+              "연락이 닿지 않",
+              "전화를 받지 않",
+            ],
+            fallbackOption:
+              "보호자께는 지금 통화가 되지 않아, 아침에 시설장님을 통해 알리도록 일지에 함께 남기겠습니다",
+            gaugeDelta: 0,
+            aiReaction: "보고가 접수되었습니다.",
+            rubricHits: [
+              { itemId: "CO-04", score: 4 },
+              { itemId: "CO-05", score: 4 },
+              { itemId: "SA-07", score: 4 },
+            ],
+            praise:
+              "새벽에 닿지 않는 전화를 붙들지 않고, 누구를 통해 언제 알릴지를 정하셨습니다. 통보를 미룬 것이 아니라 경로를 정한 것이라 일지에 그대로 남습니다.",
             docId: "DOC-NOTI-002",
             next: "T6",
           },
@@ -900,7 +1028,7 @@ export const CHK_A02: Scenario = {
               { itemId: "CO-04", score: 3 },
               { itemId: "CO-05", score: 2 },
             ],
-            praise: "보고 대상이라고 판단하신 점은 맞습니다.",
+            praise: "야간 이탈 시도를 일지에 남길 일이라고 판단하신 점은 맞습니다.",
             coaching: "시각과 통증 여부를 덧붙이면 다음 근무자가 그대로 이어받을 수 있습니다.",
             docId: "DOC-NOTI-002",
             next: "T6",
@@ -917,7 +1045,8 @@ export const CHK_A02: Scenario = {
               { itemId: "CL-01", score: 2 },
               { itemId: "CL-03", score: 2 },
             ],
-            coaching: "감정 형용사 대신 보고 들은 사실만 적어 주세요. 기록은 나중에 나를 지킵니다.",
+            coaching:
+              "감정 형용사 대신 새벽에 보고 들은 사실만 적어 주세요. 야간 일지는 나중에 나를 지킵니다.",
             docId: "DOC-NOTI-002",
             next: "T6",
           },
@@ -938,6 +1067,17 @@ export const CHK_A02: Scenario = {
             docId: "DOC-NOTI-002",
             next: "T6",
           },
+          {
+            id: "R1-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "말씀이 잘 전달되지 않았습니다.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
+            docId: "DOC-NOTI-002",
+            next: "T6",
+          },
         ],
       },
     },
@@ -950,7 +1090,7 @@ export const CHK_A02: Scenario = {
         id: "CUE-6",
         prompt: "다음 밤에 같은 일이 생기지 않으려면, 무엇을 바꿔볼 수 있을까요?",
         waitSec: 8,
-        defaultBranchId: "R2-c",
+        defaultBranchId: "R2-n",
         branches: [
           {
             id: "R2-a",
@@ -986,7 +1126,7 @@ export const CHK_A02: Scenario = {
             gaugeDelta: 0,
             aiReaction: "제안이 기록에 반영되었습니다.",
             rubricHits: [{ itemId: "CL-04", score: 2 }],
-            coaching: "몇 시에 무엇을 하겠다는 형태로 바꿔 보세요.",
+            coaching: "취침 전 몇 시에 무엇을 하겠다는 형태로 바꿔 보세요.",
             docId: "DOC-GUIDE-001",
             next: "T7",
           },
@@ -1003,6 +1143,17 @@ export const CHK_A02: Scenario = {
             docId: "DOC-GUIDE-001",
             next: "T7",
           },
+          {
+            id: "R2-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "말씀이 잘 전달되지 않았습니다.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
+            docId: "DOC-GUIDE-001",
+            next: "T7",
+          },
         ],
       },
     },
@@ -1015,7 +1166,7 @@ export const CHK_A02: Scenario = {
         id: "CUE-7",
         prompt: "오늘 내 대응에서 한 가지만 고친다면?",
         waitSec: 8,
-        defaultBranchId: "R3-b",
+        defaultBranchId: "R3-n",
         branches: [
           {
             id: "R3-a",
@@ -1045,7 +1196,7 @@ export const CHK_A02: Scenario = {
               { itemId: "CL-05", score: 4 },
               { itemId: "RE-09", score: 3 },
             ],
-            praise: "고칠 점을 한 문장으로 정리하셨습니다.",
+            praise: "오늘 밤에서 고칠 점을 한 문장으로 정리하셨습니다.",
             next: "end:E-성공",
           },
           {
@@ -1066,7 +1217,17 @@ export const CHK_A02: Scenario = {
             gaugeDelta: 0,
             aiReaction: "오늘 훈련을 마쳤습니다.",
             rubricHits: [{ itemId: "CL-05", score: 2 }],
-            coaching: "무엇을 어떻게 바꿀지 한 가지만 문장으로 정해 보세요.",
+            coaching: "다음 야간 근무에서 무엇을 어떻게 바꿀지, 한 가지만 문장으로 정해 보세요.",
+            next: "end:E-부분",
+          },
+          {
+            id: "R3-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "오늘 훈련을 마쳤습니다.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
             next: "end:E-부분",
           },
         ],
@@ -1079,21 +1240,21 @@ export const CHK_A02: Scenario = {
       name: "자동문 버튼",
       condition: "CUE-1 종료 후 (감정 인정형 D1-c를 제외한 모든 분기) · D1-d 선택 시 앞당겨 발동",
       description:
-        "어르신이 현관 자동문 개방 버튼에 손을 올리십니다. 문이 열리면 경보가 울려 주무시는 분들이 모두 깨십니다. 압박이 커진 순간에도 억제(⚑CF) 대신 대체 행동을 선택하는지 봅니다. (측정: CO-02, SA-04, RE-07)",
+        "어르신이 현관 자동문 개방 버튼에 손을 올리십니다. 문이 열리면 경보가 울려 주무시는 분들이 모두 깨십니다. 압박이 커진 순간에도 붙잡는 대신 대체 행동을 선택하는지 봅니다.",
     },
     {
       id: "N-2",
       name: "옆방 어르신",
       condition: "CUE-3 종료 후 (알파에서는 100% 고정 발동)",
       description:
-        "옆방 어르신이 문을 열고 복도를 내다보시며 무슨 일이냐고 물으십니다. 대상자의 사정을 제3자 앞에서 말하지 않는지 봅니다. (측정: CO-07, CO-08)",
+        "옆방 어르신이 문을 열고 복도를 내다보시며 무슨 일이냐고 물으십니다. 대상자의 사정을 제3자 앞에서 말하지 않는지 봅니다.",
     },
     {
       id: "N-3",
       name: "무릎 통증 단서",
-      condition: "D2-a 수행 시에만 노출",
+      condition: "미충족 욕구 탐색을 수행했을 때만 노출",
       description:
-        "어르신이 왼쪽 무릎을 누르고 계십니다. 원인 탐색 행위 자체를 보상합니다. 탐색하지 않으면 이 단서는 노출되지 않고, 통증은 다음 턴에서야 드러납니다. (측정: SA-02)",
+        "어르신이 왼쪽 무릎을 누르고 계십니다. 원인을 먼저 여쭌 학습자에게만 보이는 단서로, 탐색 행위 자체를 보상합니다. 여쭙지 않으면 통증은 다음 턴에서야 드러납니다.",
     },
   ],
   endings: [
@@ -1115,11 +1276,13 @@ export const CHK_A02: Scenario = {
     },
     {
       id: "E-위기",
-      title: "경보가 울렸습니다",
+      title: "여기서 멈추고, 도움을 부를 자리입니다",
+      // 이 엔딩은 두 경로로 옵니다 — 초조도 5(문은 그대로) / 자동문 개방(밖으로 나가심).
+      // 한쪽만 가정한 문구를 쓰면 다른 경로에서 지문과 어긋납니다.
+      condition: "초조도 5 도달 또는 자동문 개방·외출 시도 성공",
       verdict: "재시도",
-      condition: "자동문 개방·외출 시도 성공",
       message:
-        "실제 현장이라면 이 시점에 기관 보고와 실종 신고 판단이 필요합니다. 재시도 1회를 벌점 없이 제공합니다.",
+        "실제 현장이라면 이 시점에 당직 간호사와 시설장에게 먼저 알립니다. 어르신이 현관 밖으로 나가신 경우라면 여기에 기관 보고와 실종 신고 판단이 더해집니다. 재시도 1회를 벌점 없이 제공합니다.",
     },
     {
       id: "E-재훈련",

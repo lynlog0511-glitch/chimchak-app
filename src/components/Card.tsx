@@ -67,7 +67,7 @@ export function Card({
         TONE[tone],
         border && TONE_BORDER[tone],
         padded && "p-5 md:p-6",
-        hoverable && "transition-colors duration-150 ease-soft hover:bg-brand-50",
+        hoverable && "transition-colors duration-150 ease-soft hover:bg-brand-50 active:bg-brand-50",
         className,
       )}
     >

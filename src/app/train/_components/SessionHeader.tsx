@@ -44,7 +44,7 @@ export function SessionHeader({
   className,
 }: SessionHeaderProps) {
   const backClass =
-    "-ml-[14px] flex h-12 w-12 flex-none items-center justify-center text-[1.0625rem] leading-none text-ink-soft md:mr-1";
+    "-ml-[14px] flex h-12 w-12 flex-none items-center justify-center rounded-field text-[1.0625rem] leading-none text-ink-soft transition-colors duration-150 active:bg-paper-2 md:mr-1";
 
   return (
     <header className={cx("flex items-start pt-1.5 pb-3 md:items-center md:py-2", className)}>

@@ -127,7 +127,7 @@ export function PageShell({
             id="chim-content"
             className={cx(
               "flex-1",
-              fill && "flex min-h-0 flex-col overflow-y-auto",
+              fill && "flex min-h-0 flex-col overflow-y-auto overscroll-contain",
               padded && "chim-pad",
               narrowed && "chim-narrow",
               className,

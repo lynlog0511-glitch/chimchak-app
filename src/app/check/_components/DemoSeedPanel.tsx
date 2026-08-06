@@ -108,13 +108,13 @@ export function DemoSeedPanel() {
         <div className="mt-[10px] flex flex-wrap gap-x-4">
           <Link
             href="/history"
-            className="inline-flex min-h-[48px] items-center text-[0.8438rem] font-bold text-brand-700"
+            className="inline-flex min-h-[48px] items-center rounded-field text-[0.8438rem] font-bold text-brand-700 transition-colors duration-150 active:bg-paper-2"
           >
             성장 기록 열기 ›
           </Link>
           <Link
             href="/history/certificate"
-            className="inline-flex min-h-[48px] items-center text-[0.8438rem] font-bold text-brand-700"
+            className="inline-flex min-h-[48px] items-center rounded-field text-[0.8438rem] font-bold text-brand-700 transition-colors duration-150 active:bg-paper-2"
           >
             이수 확인서 열기 ›
           </Link>

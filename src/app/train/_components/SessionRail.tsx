@@ -75,7 +75,7 @@ export function SessionRail({
   return (
     <aside
       aria-label="이번 상황 요약"
-      className={cx("w-[270px] flex-none overflow-y-auto bg-paper-rail px-6 py-6", className)}
+      className={cx("w-[270px] flex-none overflow-y-auto overscroll-contain bg-paper-rail px-6 py-6", className)}
     >
       <RailLabel>상황</RailLabel>
       <p className="mb-[18px] text-[0.8438rem] leading-[1.6] text-ink-soft">{scenario.summary}</p>

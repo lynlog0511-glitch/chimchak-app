@@ -149,7 +149,7 @@ function FoldedList({
             type="button"
             onClick={() => setOpen((value) => !value)}
             aria-expanded={open}
-            className="flex min-h-[48px] w-full items-center justify-between px-0.5 text-[0.7813rem] font-semibold text-ink-muted"
+            className="flex min-h-[48px] w-full items-center justify-between rounded-field px-0.5 text-[0.7813rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper-2"
           >
             {open ? "접기" : `외 ${rest}개 더 보기`}
             <ChevronGlyph size="sm" className={cx("text-ink-ghost", open && "rotate-180")} />
@@ -183,7 +183,7 @@ function CriticalSceneCard({
       {/* 조문 전문은 접힘 안에 그대로 둡니다 — 지우지 않고, 앞세우지도 않습니다. */}
       {law.length > 0 && (
         <details className="group mt-1.5">
-          <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-1.5 text-[0.7813rem] font-semibold text-ink-muted [&::-webkit-details-marker]:hidden">
+          <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-1.5 rounded-field text-[0.7813rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper-2 [&::-webkit-details-marker]:hidden">
             <span className="underline decoration-1 underline-offset-[3px]">근거 조문 보기</span>
             <ChevronGlyph size="sm" className="text-faint group-open:rotate-180" />
           </summary>
@@ -200,7 +200,7 @@ function CriticalSceneCard({
 
       {alternatives.length > 0 && (
         <details className="group mt-1">
-          <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-1.5 text-[0.7813rem] font-semibold text-ink-muted [&::-webkit-details-marker]:hidden">
+          <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-1.5 rounded-field text-[0.7813rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper-2 [&::-webkit-details-marker]:hidden">
             <span className="underline decoration-1 underline-offset-[3px]">대안 다시 보기</span>
             <ChevronGlyph size="sm" className="text-faint group-open:rotate-180" />
           </summary>
@@ -370,13 +370,13 @@ export function EndingPanel({
         <div className="mt-2 flex gap-2">
           <Link
             href="/report"
-            className="flex min-h-[48px] min-w-0 flex-1 items-center justify-center rounded-field bg-paper-2 px-3 text-center text-[0.9375rem] leading-[1.3] font-semibold text-ink"
+            className="flex min-h-[48px] min-w-0 flex-1 items-center justify-center rounded-field bg-paper-2 px-3 text-center text-[0.9375rem] leading-[1.3] font-semibold text-ink transition-colors duration-150 active:bg-neutral-line"
           >
             이 훈련 보고 연습하기
           </Link>
           <Link
             href="/history"
-            className="flex min-h-[48px] min-w-0 flex-1 items-center justify-center rounded-field bg-paper-2 px-3 text-center text-[0.9375rem] leading-[1.3] font-semibold text-ink"
+            className="flex min-h-[48px] min-w-0 flex-1 items-center justify-center rounded-field bg-paper-2 px-3 text-center text-[0.9375rem] leading-[1.3] font-semibold text-ink transition-colors duration-150 active:bg-neutral-line"
           >
             성장 기록 보기
           </Link>
@@ -385,7 +385,7 @@ export function EndingPanel({
         {shape === "retry" && (
           <Link
             href="/train"
-            className="mt-2 flex min-h-[48px] w-full items-center justify-center rounded-field px-3 text-center text-[0.9375rem] leading-[1.3] font-semibold text-ink-soft"
+            className="mt-2 flex min-h-[48px] w-full items-center justify-center rounded-field px-3 text-center text-[0.9375rem] leading-[1.3] font-semibold text-ink-soft transition-colors duration-150 active:bg-paper-2"
           >
             오늘은 여기까지
           </Link>

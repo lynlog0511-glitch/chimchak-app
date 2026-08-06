@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { cx } from "@/components/utils";
+import { useModalDismiss, useOverlayTransition } from "@/components/useModalDismiss";
 import {
   RULE_DEMO_HINT,
   RULE_DEMO_NO_CRITICAL_NOTE,
@@ -10,7 +11,6 @@ import {
   RULE_DEMO_TITLE,
   type RuleDemoExample,
 } from "./ruleDemoExamples";
-import { useModalDismiss } from "./useModalDismiss";
 
 export interface RuleDemoSheetProps {
   /** 지금 답하시던 CUE 지시문 — 시트가 떠 있는 동안에도 무엇에 답하던 중인지 남깁니다 */
@@ -34,15 +34,16 @@ export interface RuleDemoSheetProps {
 export function RuleDemoSheet({ prompt, examples, onFill, onClose }: RuleDemoSheetProps) {
   const panelRef = useRef<HTMLDivElement | null>(null);
   const closeRef = useRef<HTMLButtonElement | null>(null);
-  /** 시트가 아래에서 올라오는 240ms — reduced-motion에서는 전역 규칙이 즉시 정지시킵니다(§6). */
-  const [entered, setEntered] = useState(false);
+  /** 시트·딤이 함께 오르내리는 240ms — ⚑CF 시트와 **같은 문법**입니다(§6 · 모션 감사 2). */
+  const { entered, leave } = useOverlayTransition<[RuleDemoExample?]>((example) => {
+    if (example) onFill(example);
+    else onClose();
+  });
 
-  useModalDismiss({ panelRef, initialFocusRef: closeRef, onDismiss: onClose });
+  /** 닫기 — 퇴장 모션을 태운 뒤 닫힙니다(Esc도 같은 길로 갑니다). */
+  const dismiss = useCallback(() => leave(), [leave]);
 
-  useEffect(() => {
-    const frame = window.requestAnimationFrame(() => setEntered(true));
-    return () => window.cancelAnimationFrame(frame);
-  }, []);
+  useModalDismiss({ panelRef, initialFocusRef: closeRef, onDismiss: dismiss });
 
   /* 도크는 `sticky z-20`이라 자기 쌓임 맥락을 만듭니다 — 그 안에서 그리면 시트가
      `z-30` 세션 헤더 **아래**로 깔립니다. 그래서 문서 맨 위(body)에 붙여 그립니다.
@@ -52,15 +53,23 @@ export function RuleDemoSheet({ prompt, examples, onFill, onClose }: RuleDemoShe
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center overflow-hidden bg-[rgba(25,31,30,0.32)]"
+      className="fixed inset-0 z-50 flex items-end justify-center overflow-hidden"
       role="dialog"
       aria-modal="true"
       aria-labelledby="rule-demo-title"
       ref={panelRef}
     >
+      {/* 딤 — 시트와 같은 240ms로 함께 들어오고 함께 나갑니다(⚑CF 시트와 같은 문법). */}
+      <div
+        aria-hidden
+        className={cx(
+          "absolute inset-0 bg-[rgba(25,31,30,0.32)] transition-opacity duration-[240ms] ease-out",
+          entered ? "opacity-100" : "opacity-0",
+        )}
+      />
       <div
         className={cx(
-          "flex max-h-[88dvh] w-full max-w-[430px] flex-col rounded-t-[22px] bg-white",
+          "relative flex max-h-[88dvh] w-full max-w-[430px] flex-col rounded-t-[22px] bg-white",
           "shadow-[0_-10px_40px_rgba(25,31,30,0.25)]",
           "transition-transform duration-[240ms] ease-out",
           entered ? "translate-y-0" : "translate-y-full",
@@ -83,7 +92,8 @@ export function RuleDemoSheet({ prompt, examples, onFill, onClose }: RuleDemoShe
           <p className="mt-1.5 text-[0.9375rem] leading-[1.45] font-bold text-ink">{prompt}</p>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-3 pb-3">
+        {/* 스크롤은 시트 안에서 끝냅니다 — 목록 끝에서 뒤 페이지로 새어 나가지 않게(모션 감사 3). */}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-3 pb-3">
           <p className="text-[0.8438rem] leading-[1.6] font-semibold text-ink-soft">
             {RULE_DEMO_NOTE}
           </p>
@@ -94,8 +104,8 @@ export function RuleDemoSheet({ prompt, examples, onFill, onClose }: RuleDemoShe
               <li key={example.id}>
                 <button
                   type="button"
-                  onClick={() => onFill(example)}
-                  className="w-full rounded-[14px] bg-paper-2 px-3.5 py-3 text-left transition-colors duration-150 hover:bg-tint"
+                  onClick={() => leave(example)}
+                  className="w-full rounded-[14px] bg-paper-2 px-3.5 py-3 text-left transition-colors duration-150 hover:bg-tint active:bg-tint"
                 >
                   <span className="block text-[0.7813rem] leading-[1.45] font-bold text-ink-muted">
                     {example.kind === "critical" ? "즉시 중단" : "코칭"} · {example.ruleId} ·{" "}
@@ -124,8 +134,8 @@ export function RuleDemoSheet({ prompt, examples, onFill, onClose }: RuleDemoShe
           <button
             type="button"
             ref={closeRef}
-            onClick={onClose}
-            className="min-h-[54px] w-full rounded-[14px] bg-neutral-soft px-5 text-[1rem] font-bold text-ink transition-colors duration-150 hover:bg-neutral-line"
+            onClick={dismiss}
+            className="min-h-[54px] w-full rounded-[14px] bg-neutral-soft px-5 text-[1rem] font-bold text-ink transition-colors duration-150 hover:bg-neutral-line active:bg-neutral-line"
           >
             닫고 보기로 돌아가기
           </button>

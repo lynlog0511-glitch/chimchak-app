@@ -29,7 +29,7 @@ export default function ReportPage() {
 
       {/* 고지는 존재하되 조용히. 첫 문장만 보이고 나머지는 펼쳐서 봅니다. */}
       <details className="group mt-6 border-y border-line">
-        <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-2 px-[2px] text-[0.7813rem] leading-[1.45] font-bold text-ink-soft [&::-webkit-details-marker]:hidden">
+        <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-2 rounded-field px-[2px] text-[0.7813rem] leading-[1.45] font-bold text-ink-soft transition-colors duration-150 active:bg-paper-2 [&::-webkit-details-marker]:hidden">
           <span
             aria-hidden
             className="text-[0.9375rem] leading-[1.3] text-faint transition-transform duration-150 group-open:rotate-90"

@@ -12,7 +12,12 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   PROGRESS_KEY,
   REPORTS_KEY,
+  SAVE_FAILED_BODY,
+  SAVE_FAILED_TITLE,
   SESSIONS_KEY,
+  SESSION_SAVE_FAILED_BODY,
+  STORAGE_BLOCKED_NOTICE,
+  canWriteStorage,
   clearAllProgress,
   clearProgress,
   clearReports,
@@ -184,7 +189,12 @@ describe("보고 기록 왕복", () => {
   };
 
   it("id·시각을 붙여 저장하고 되읽는다", () => {
-    const stored = saveReport({ maskedText: "[대상자]께서 사레가 있으셨습니다.", draft });
+    // persisted는 반환값에만 있는 칸이다(저장되는 몸통에는 없다) — 여기서 떼어 내고 비교한다.
+    const { persisted, ...stored } = saveReport({
+      maskedText: "[대상자]께서 사레가 있으셨습니다.",
+      draft,
+    });
+    expect(persisted).toBe(true);
     expect(stored.id).toMatch(/^report-/);
     expect(stored.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(loadReports()).toEqual([stored]);
@@ -333,7 +343,144 @@ describe("환경이 없거나 저장에 실패해도 화면을 죽이지 않는�
     store.failOnWrite = true;
     expect(() => saveSession(makeRecord())).not.toThrow();
     store.failOnWrite = false;
-    // 화면에 알리는 경로가 없다는 사실은 별도 과제로 남긴다 (구역 T 보고서 참조).
     expect(loadSessions()).toEqual([]);
+  });
+});
+
+/**
+ * 저장 실패가 **무음이면 안 된다**는 것이 이 묶음의 요지다.
+ * 예외를 던지지 않는 것과 실패를 숨기는 것은 다르다 — 화면이 「확정했습니다 · 이 기기에만 저장」을
+ * 띄우는 동안 아무것도 남지 않는 상태를, 반환값 하나로 갈라낸다.
+ */
+describe("저장 실패를 호출부가 알 수 있다", () => {
+  const draft: RecordDraft = { time: "", who: "", what: "", action: "", status: "", missing: [] };
+
+  it("성공하면 true·persisted true", () => {
+    expect(saveSession(makeRecord())).toBe(true);
+    expect(saveReport({ maskedText: "[대상자] 기록", draft }).persisted).toBe(true);
+  });
+
+  it("쓰기가 막히면 false를 돌려준다 — 화면이 성공을 말하지 않도록", () => {
+    store.failOnWrite = true;
+    expect(saveSession(makeRecord())).toBe(false);
+    expect(saveReport({ maskedText: "[대상자] 기록", draft }).persisted).toBe(false);
+    store.failOnWrite = false;
+  });
+
+  it("저장소가 아예 없는 환경(서버 렌더링)에서도 false다", () => {
+    delete (globalThis as { window?: unknown }).window;
+    expect(saveSession(makeRecord())).toBe(false);
+    expect(saveReport({ maskedText: "가", draft }).persisted).toBe(false);
+    expect(canWriteStorage()).toBe(false);
+  });
+
+  it("쓰기 가능 여부를 재는 프로브는 앱 데이터 키를 건드리지 않는다", () => {
+    saveSession(makeRecord());
+    expect(canWriteStorage()).toBe(true);
+    expect(loadSessions()).toHaveLength(1);
+    store.failOnWrite = true;
+    expect(canWriteStorage()).toBe(false);
+    store.failOnWrite = false;
+  });
+
+  it("실패 문구는 무엇이 막혔는지 사실대로 적고 성공을 말하지 않는다", () => {
+    for (const text of [SAVE_FAILED_TITLE, SAVE_FAILED_BODY, SESSION_SAVE_FAILED_BODY, STORAGE_BLOCKED_NOTICE]) {
+      expect(text.length).toBeGreaterThan(0);
+      expect(text).not.toContain("저장했습니다");
+    }
+    expect(SAVE_FAILED_TITLE).toContain("저장하지 못했습니다");
+  });
+});
+
+/**
+ * 훼손된 레코드 하나가 화면 전체를 죽이지 않는다.
+ * 이수 누계가 이미 쓰던 정화 규율(sanitizeTallyLine)을 세션·보고까지 넓힌 자리다.
+ */
+describe("스키마 정화 — 깨진 레코드만 버리고 나머지는 살린다", () => {
+  it("배열·숫자 필드가 없는 옛 기록도 빈 값으로 낮춰 살린다", () => {
+    store.setItem(
+      SESSIONS_KEY,
+      JSON.stringify([
+        {
+          id: "old-1",
+          scenarioId: "TEST-01",
+          verdict: "충족",
+          // greenChecks·coachingPoints·cfCount·turnCount가 통째로 없는 옛 형식
+        },
+      ]),
+    );
+    const rows = loadSessions();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toEqual({
+      id: "old-1",
+      scenarioId: "TEST-01",
+      scenarioTitle: "TEST-01",
+      typeLabel: "",
+      startedAt: "",
+      endedAt: "",
+      verdict: "충족",
+      endingTitle: "",
+      greenChecks: [],
+      coachingPoints: [],
+      cfCount: 0,
+      retriesUsed: 0,
+      turnCount: 0,
+    });
+  });
+
+  it("배열 자리에 배열이 아닌 값이 들어 있어도 화면이 읽을 수 있는 모양으로 준다", () => {
+    store.setItem(
+      SESSIONS_KEY,
+      JSON.stringify([
+        { ...makeRecord(), greenChecks: "문자열", coachingPoints: [1, "코칭", null], turnCount: "셋" },
+      ]),
+    );
+    const row = loadSessions()[0];
+    expect(row?.greenChecks).toEqual([]);
+    expect(row?.coachingPoints).toEqual(["코칭"]);
+    expect(row?.turnCount).toBe(0);
+  });
+
+  it("판정값이 알려진 다섯 밖이면 그 레코드만 버린다", () => {
+    store.setItem(
+      SESSIONS_KEY,
+      JSON.stringify([{ ...makeRecord(), id: "bad", verdict: "S등급" }, makeRecord()]),
+    );
+    expect(loadSessions().map((r) => r.id)).toEqual([makeRecord().id]);
+  });
+
+  it("훼손된 한 건이 있어도 나머지 목록은 그대로 남는다", () => {
+    store.setItem(
+      SESSIONS_KEY,
+      JSON.stringify([{ id: "", scenarioId: "TEST-01" }, null, "문자열", makeRecord()]),
+    );
+    expect(loadSessions()).toHaveLength(1);
+  });
+
+  it("보고 기록의 5칸 초안이 깨져 있어도 빈칸으로 살린다", () => {
+    store.setItem(
+      REPORTS_KEY,
+      JSON.stringify([
+        { id: "r1", maskedText: "[대상자] 기록", draft: null, maskedCounts: { 성명: "둘" } },
+        { id: "r2", maskedText: 42 },
+      ]),
+    );
+    const rows = loadReports();
+    expect(rows.map((r) => r.id)).toEqual(["r1"]);
+    expect(rows[0]?.draft).toEqual({
+      time: "",
+      who: "",
+      what: "",
+      action: "",
+      status: "",
+      missing: [],
+    });
+    expect(rows[0]?.maskedCounts).toEqual({});
+  });
+
+  it("정상 기록은 저장한 그대로 되읽힌다(정화가 값을 바꾸지 않는다)", () => {
+    const record = makeRecord({ greenChecks: ["가"], coachingPoints: ["나"], cfCount: 1 });
+    saveSession(record);
+    expect(loadSessions()).toEqual([record]);
   });
 });

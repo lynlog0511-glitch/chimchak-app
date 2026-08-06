@@ -19,8 +19,20 @@
  * 등록은 프로덕션 빌드에서만 이뤄집니다(src/components/SwRegister.tsx).
  */
 
-/* 캐시 이름의 버전을 올리면 이전 캐시는 activate 단계에서 전부 지워집니다. */
-const CACHE_NAME = "chimchak-v4";
+/*
+ * 캐시 이름 — 빌드마다 자동으로 바뀝니다.
+ *
+ * `__CHIMCHAK_BUILD__` 자리는 `npm run build` 직전에 scripts/stamp-sw.mjs가
+ * 소스 내용 해시로 바꿔 넣습니다. activate 단계가 이름이 다른 캐시를 전부 지우므로,
+ * 새 빌드가 올라가면 이전 빌드의 죽은 `/_next/static/...` 청크가 함께 사라집니다.
+ *
+ * 손으로 버전을 올리던 때(`chimchak-v4`)에는 올리는 것을 잊는 순간
+ * 낡은 HTML과 새 청크가 섞여 오프라인 화면이 조용히 깨졌습니다. 그 실수를 없앤 자리입니다.
+ *
+ * 개발 서버에서는 서비스워커를 아예 등록하지 않으므로(SwRegister.tsx),
+ * 치환되지 않은 플레이스홀더가 그대로 남아 있어도 문제가 없습니다.
+ */
+const CACHE_NAME = "chimchak-__CHIMCHAK_BUILD__";
 
 /** 오프라인에서도 반드시 열려야 하는 화면·자산 목록입니다. */
 const PRECACHE_URLS = [
@@ -33,8 +45,27 @@ const PRECACHE_URLS = [
   "/emergency/p-05",
   "/manifest.webmanifest",
   "/icon.svg",
-  "/fonts/PretendardVariable.woff2",
+  "/icon-192.png",
+  "/icon-512.png",
+  // 원본 2.0MB가 아니라 서브셋 429KB만 담습니다. 응급 화면 글자는 전부 서브셋 안에 있고,
+  // 설치 때 2.0MB를 더 받는 것은 정작 급할 때 쓸 회선을 미리 써 버리는 일입니다.
+  "/fonts/PretendardVariable.subset.woff2",
 ];
+
+/**
+ * 설치 때 HTTP 캐시를 건너뛰고 새로 받아야 하는 것은 **HTML 화면뿐**입니다.
+ *
+ * 예전에는 목록 전체를 `cache: "reload"`로 받았습니다. 그러면 방금 화면을 그리며 이미 받아 둔
+ * 폰트·아이콘·매니페스트·해시 붙은 청크를 설치 단계가 한 번 더 내려받습니다 —
+ * 같은 바이트를 두 번 받는 셈이고, 행사장 회선에서는 그대로 체감 지연이 됩니다.
+ * 주소가 곧 버전인 자산(해시 파일명·서브셋 폰트·아이콘)은 기본 fetch로 받아
+ * 브라우저 HTTP 캐시를 그대로 재사용합니다.
+ */
+const URL_VERSIONED = /\.(?:css|js|mjs|json|svg|png|jpg|jpeg|webp|avif|ico|woff2?|ttf|mp3|webmanifest)$/i;
+
+function installRequest(url) {
+  return URL_VERSIONED.test(url) ? new Request(url) : new Request(url, { cache: "reload" });
+}
 
 /** 저장된 화면이 하나도 없을 때 마지막으로 보여 줄 화면입니다. */
 const OFFLINE_FALLBACK_URL = "/emergency";
@@ -81,7 +112,7 @@ const AUDIO_MANIFEST_URL = "/audio/manifest.json";
  */
 async function precacheEmergencyAudio(cache) {
   try {
-    const response = await fetch(new Request(AUDIO_MANIFEST_URL, { cache: "reload" }));
+    const response = await fetch(installRequest(AUDIO_MANIFEST_URL));
     if (!response || !response.ok) return;
     const manifest = await response.clone().json();
     await cache.put(AUDIO_MANIFEST_URL, response);
@@ -97,7 +128,8 @@ async function precacheEmergencyAudio(cache) {
         const url = AUDIO_PREFIX + name;
         try {
           if (await cache.match(url)) return;
-          const audio = await fetch(new Request(url, { cache: "reload" }));
+          // 음성 파일명은 내용 해시입니다 — HTTP 캐시에 있으면 그대로 씁니다.
+          const audio = await fetch(installRequest(url));
           if (audio && audio.ok) await cache.put(url, audio);
         } catch {
           /* 개별 실패는 무시합니다 — 나머지 단계는 계속 담습니다. */
@@ -121,7 +153,7 @@ self.addEventListener("install", (event) => {
       await Promise.all(
         PRECACHE_URLS.map(async (url) => {
           try {
-            const response = await fetch(new Request(url, { cache: "reload" }));
+            const response = await fetch(installRequest(url));
             if (!response || !response.ok) return;
             const type = response.headers.get("content-type") || "";
             if (type.includes("text/html")) {
@@ -141,7 +173,8 @@ self.addEventListener("install", (event) => {
         [...assets].map(async (href) => {
           try {
             if (await cache.match(href)) return;
-            const response = await fetch(new Request(href, { cache: "reload" }));
+            // 청크 주소에는 빌드 해시가 박혀 있습니다 — 방금 화면이 받아 둔 것을 다시 씁니다.
+            const response = await fetch(installRequest(href));
             if (response && response.ok) await cache.put(href, response);
           } catch {
             /* 개별 실패는 무시합니다. */

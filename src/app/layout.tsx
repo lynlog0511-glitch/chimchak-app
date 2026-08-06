@@ -46,10 +46,12 @@ export default function RootLayout({
     <html lang="ko" suppressHydrationWarning>
       {/* 지면은 앱 프레임 밖 배경(#f1f2f0)입니다 — 화면(흰 면)은 PageShell이 그립니다. */}
       <body className="min-h-dvh bg-paper-out antialiased">
-        {/* 동봉한 Pretendard를 첫 페인트 전에 받도록 프리로드 — React가 head로 끌어올립니다. */}
+        {/* 동봉한 Pretendard를 첫 페인트 전에 받도록 프리로드 — React가 head로 끌어올립니다.
+            **서브셋만** 프리로드합니다(429KB). 원본 2.0MB는 globals.css의 2순위 @font-face로 남아
+            서브셋에 없는 글자를 실제로 그려야 할 때만 내려받습니다 — 미리 당기면 절감이 사라집니다. */}
         <link
           rel="preload"
-          href="/fonts/PretendardVariable.woff2"
+          href="/fonts/PretendardVariable.subset.woff2"
           as="font"
           type="font/woff2"
           crossOrigin="anonymous"

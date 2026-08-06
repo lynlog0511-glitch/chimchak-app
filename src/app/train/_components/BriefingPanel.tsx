@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { ChevronGlyph } from "@/components/icons";
+import { unlockAudio } from "@/lib/speech";
 import Link from "next/link";
 import { BigButton, InlineDisclaimer, SourceChip } from "@/components";
 import { progressStepCount, type SessionProgress } from "@/lib/storage";
@@ -87,7 +88,7 @@ function castLine(personas: readonly PersonaDef[]): string {
 function Fold({ title, children }: { title: string; children: ReactNode }) {
   return (
     <details className="group border-t border-line">
-      <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 px-[2px] py-[12px] text-[0.9375rem] leading-[1.45] font-semibold text-ink [&::-webkit-details-marker]:hidden">
+      <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 rounded-field px-[2px] py-[12px] text-[0.9375rem] leading-[1.45] font-semibold text-ink transition-colors duration-150 active:bg-paper-2 [&::-webkit-details-marker]:hidden">
         <span>{title}</span>
         <ChevronGlyph size="sm" className="flex-none text-ink-ghost group-open:rotate-180" />
       </summary>
@@ -144,7 +145,13 @@ function ResumeBlock({
         않았습니다.
       </p>
       <div className="mt-3">
-        <BigButton onClick={onResume} block>
+        <BigButton
+          onClick={() => {
+            unlockAudio();
+            onResume();
+          }}
+          block
+        >
           이어서 하기
         </BigButton>
       </div>
@@ -192,7 +199,7 @@ export function BriefingPanel({
       <div className="pt-1 pb-1">
         <Link
           href="/train"
-          className="-ml-[2px] inline-flex min-h-[48px] items-center gap-[10px] pr-2 text-[0.8438rem] leading-none font-semibold text-ink-muted transition-colors duration-150 hover:text-ink"
+          className="-ml-[2px] inline-flex min-h-[48px] items-center gap-[10px] rounded-field pr-2 text-[0.8438rem] leading-none font-semibold text-ink-muted transition-colors duration-150 hover:text-ink active:bg-paper-2"
         >
           <span aria-hidden className="text-[1.375rem] leading-none text-ink-soft">
             ‹
@@ -252,7 +259,16 @@ export function BriefingPanel({
           진행하던 훈련이 남아 있을 때는 이 버튼이 곧 「처음부터」입니다 —
           라벨을 그대로 두면 화면에서 가장 큰 버튼이 위의 이어하기를 조용히 지웁니다. */}
       <div className="mt-2">
-        <BigButton onClick={onStart} size="lg" block className="font-bold">
+        {/* 첫 탭의 제스처 콜스택 안에서 오디오 잠금을 풀어야 아이폰에서 이후 자동 낭독이 됩니다. */}
+        <BigButton
+          onClick={() => {
+            unlockAudio();
+            onStart();
+          }}
+          size="lg"
+          block
+          className="font-bold"
+        >
           {resuming ? "처음부터 다시 시작" : "훈련 시작하기"}
         </BigButton>
         {resuming && (

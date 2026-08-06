@@ -75,7 +75,7 @@ function Field({
           autoComplete="off"
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="chim-num min-h-[48px] w-full min-w-0 rounded-[14px] border border-line-strong bg-white px-[13px] text-[0.9375rem] leading-[1.6] font-bold text-ink focus:border-brand-400 focus:outline-none"
+          className="chim-num min-h-[48px] w-full min-w-0 rounded-[14px] border border-line-strong bg-white px-[13px] text-[0.9375rem] leading-[1.6] font-bold text-ink focus:border-brand-400"
         />
         <span className="flex-none text-[0.8438rem] leading-[1.45] text-ink-soft">{unit}</span>
       </div>

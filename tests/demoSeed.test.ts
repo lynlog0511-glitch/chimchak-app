@@ -196,7 +196,13 @@ describe("실기록 보존", () => {
   it("지우기는 예시만 지우고 진짜 기록·보고는 그대로 둔다", () => {
     saveSession(makeRealRecord({ id: "real-a" }));
     saveSession(makeRealRecord({ id: "real-b", scenarioId: "CHK-C01" }));
-    const realReport = saveReport({ id: "real-report", maskedText: "[대상자] 기록", draft: DRAFT });
+    // saveReport의 반환값에는 성공 여부(persisted) 한 칸이 더 붙는다 — 저장되는 것은 그 칸을 뺀 몸통이다.
+    const { persisted, ...realReport } = saveReport({
+      id: "real-report",
+      maskedText: "[대상자] 기록",
+      draft: DRAFT,
+    });
+    expect(persisted).toBe(true);
 
     seedDemoRecords(NOW);
     expect(loadSessions()).toHaveLength(5);

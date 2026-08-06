@@ -56,7 +56,7 @@ export default function GlobalError({ reset }: GlobalErrorProps) {
           background: PAPER_OUT,
           color: INK,
           fontFamily:
-            "'Pretendard Variable', Pretendard, system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif",
+            "'Pretendard Variable', 'Pretendard Variable Full', Pretendard, system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif",
           lineHeight: 1.6,
           wordBreak: "keep-all",
         }}

@@ -29,6 +29,32 @@ interface Notice {
   text: string;
 }
 
+/**
+ * 파일 바이트를 지정한 인코딩으로 읽습니다. 읽지 못하면 null입니다.
+ * `fatal: false`라 깨진 바이트는 대체 문자로 남고 예외를 던지지 않습니다 —
+ * 성패는 파서가 머리글로 판정합니다.
+ */
+function decodeWith(buffer: ArrayBuffer, encoding: string): string | null {
+  if (typeof TextDecoder === "undefined") return null;
+  try {
+    return new TextDecoder(encoding, { fatal: false }).decode(buffer);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 인코딩이 원인일 수 있는 실패 사유.
+ * 머리글이 깨지면 파서는 「서식이 다르다」로 떨어지고, 빈 표로 보이기도 합니다.
+ */
+function mayBeEncoding(reason: string): boolean {
+  return reason === "format" || reason === "empty";
+}
+
+/** 인코딩이 원인일 때 덧붙이는 한 줄 — 「우리 파일이 아니다」로 끝내지 않기 위해서입니다. */
+const ENCODING_HINT =
+  " 엑셀·한셀에서 다시 저장한 파일은 글자 인코딩이 바뀌어 읽지 못할 수 있습니다 — 내려받은 원본 파일을 그대로 골라 주십시오.";
+
 export interface CompletionImportPanelProps {
   /** 가져오기가 성공해 이수 누계가 바뀐 뒤 — 부모가 요약을 다시 읽게 합니다. */
   onImported: () => void;
@@ -53,17 +79,39 @@ export function CompletionImportPanel({ onImported }: CompletionImportPanelProps
         return;
       }
 
+      /* 바이트로 먼저 받습니다 — 같은 파일을 두 인코딩으로 읽어 보기 위해서입니다.
+         내보내기는 UTF-8(BOM 포함)이지만, 담당자가 엑셀·한셀로 한 번 열어 저장하면 파일이
+         CP949(EUC-KR)로 바뀝니다. 그 파일을 UTF-8로만 읽으면 머리글이 깨져
+         「이 앱에서 내려받은 파일이 아닙니다」가 뜨는데, 진짜 원인은 인코딩입니다. */
+      let buffer: ArrayBuffer | null = null;
       let text = "";
       try {
-        text = await file.text();
+        if (typeof file.arrayBuffer === "function") {
+          buffer = await file.arrayBuffer();
+          text = decodeWith(buffer, "utf-8") ?? (await file.text());
+        } else {
+          text = await file.text();
+        }
       } catch {
         setNotice({ tone: "warn", text: "파일을 읽지 못했습니다. 다른 파일로 시도해 주십시오." });
         return;
       }
 
-      const merged = importCompletionCsv(text);
+      let merged = importCompletionCsv(text);
+      /* 실패해도 저장소에는 아무것도 쓰이지 않았으므로(파싱 단계에서 멈춥니다) 다시 시도해도
+         같은 파일이 두 번 세어지지 않습니다. */
+      if (!merged.ok && buffer && mayBeEncoding(merged.reason)) {
+        const legacy = decodeWith(buffer, "euc-kr");
+        if (legacy && legacy !== text) {
+          const retry = importCompletionCsv(legacy);
+          // 두 번째 시도가 성공했거나, 실패 사유가 인코딩과 무관해졌다면 그쪽이 더 정확한 사실입니다.
+          if (retry.ok || !mayBeEncoding(retry.reason)) merged = retry;
+        }
+      }
+
       if (!merged.ok) {
-        setNotice({ tone: "warn", text: `가져오지 않았습니다 — ${merged.message}` });
+        const hint = mayBeEncoding(merged.reason) ? ENCODING_HINT : "";
+        setNotice({ tone: "warn", text: `가져오지 않았습니다 — ${merged.message}${hint}` });
         return;
       }
 
@@ -97,7 +145,7 @@ export function CompletionImportPanel({ onImported }: CompletionImportPanelProps
 
       <label
         htmlFor="completion-import-file"
-        className="mt-[12px] inline-flex min-h-[48px] cursor-pointer items-center justify-center gap-2 rounded-[14px] border border-line-strong bg-white px-5 py-2.5 text-[1.0625rem] font-semibold text-ink focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand-700"
+        className="mt-[12px] inline-flex min-h-[48px] cursor-pointer items-center justify-center gap-2 rounded-[14px] border border-line-strong bg-white px-5 py-2.5 text-[1.0625rem] font-semibold text-ink focus-within:outline focus-within:outline-[3px] focus-within:outline-offset-2 focus-within:outline-brand-700"
       >
         이수 사실 파일 고르기
         <input

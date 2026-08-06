@@ -77,7 +77,7 @@ export function TrainingRow({ record, typeLabel }: TrainingRowProps) {
           onClick={() => setOpen((prev) => !prev)}
           aria-expanded={open}
           aria-controls={panelId}
-          className="min-h-[48px] min-w-0 flex-1 py-2 text-left"
+          className="min-h-[48px] min-w-0 flex-1 rounded-field py-2 text-left transition-colors duration-150 active:bg-paper-2"
         >
           <span className="block text-[0.7813rem] leading-[1.4] text-tertiary">
             {isExample && <span className="font-bold text-warn-ink">예시 · </span>}
@@ -103,7 +103,7 @@ export function TrainingRow({ record, typeLabel }: TrainingRowProps) {
         <Link
           href={trainHref(record.scenarioId)}
           aria-label={`${record.scenarioTitle} 다시 연습하기`}
-          className="flex min-h-[48px] flex-none items-center px-2 text-[0.9375rem] font-bold whitespace-nowrap text-brand-700"
+          className="flex min-h-[48px] flex-none items-center rounded-field px-2 text-[0.9375rem] font-bold whitespace-nowrap text-brand-700 transition-colors duration-150 active:bg-paper-2"
         >
           다시 ›
         </Link>

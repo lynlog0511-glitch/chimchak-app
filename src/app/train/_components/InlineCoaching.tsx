@@ -97,7 +97,6 @@ function pathNote(trace: FeedbackTrace): string {
  *          근거 문서 · 왜 이 판정인가요?  ← 누르면 판정 근거가 펼쳐집니다
  *
  * 점수·등급·백분위는 어떤 형태로도 만들지 않습니다. 판정어는 「충족 / 코칭 / 즉시 중단」 세 낱말뿐입니다.
- * (예전 `FeedbackCard`는 다른 화면에서 계속 쓰이고, 세션에서는 이 조각이 대신합니다.)
  */
 export function InlineCoaching({ feedback, gaugeLabel, className }: InlineCoachingProps) {
   const [open, setOpen] = useState(false);
@@ -156,7 +155,7 @@ export function InlineCoaching({ feedback, gaugeLabel, className }: InlineCoachi
             onClick={() => setOpen((value) => !value)}
             aria-expanded={open}
             aria-controls={panelId}
-            className="-mx-1.5 mt-1 flex min-h-[48px] w-full flex-wrap items-center gap-x-1.5 gap-y-0.5 rounded-field px-1.5 py-1 text-left text-[0.7813rem] leading-[1.45] text-ink-muted transition-colors duration-150 hover:bg-paper-2"
+            className="-mx-1.5 mt-1 flex min-h-[48px] w-full flex-wrap items-center gap-x-1.5 gap-y-0.5 rounded-field px-1.5 py-1 text-left text-[0.7813rem] leading-[1.45] text-ink-muted transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
           >
             {/* 판정 경로는 접힘 안에 숨기지 않고 손잡이 줄에 상시 노출합니다.
                 버튼만으로 시연하는 동선에서도 「무엇이 판정했는가」가 매 턴 보여야, 화면의

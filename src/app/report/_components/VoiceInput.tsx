@@ -235,21 +235,21 @@ export function VoiceInput({
           }}
           rows={7}
           placeholder="예) 오후 4시 40분쯤 어르신이 현관 앞에서 집에 가야 한다며 나가려 하셨습니다."
-          className="mt-[6px] w-full rounded-[14px] border border-line-strong bg-white p-[14px] text-[0.9375rem] leading-[1.6] text-ink placeholder:text-tertiary focus:border-brand-400 focus:outline-none"
+          className="mt-[6px] w-full rounded-[14px] border border-line-strong bg-white p-[14px] text-[0.9375rem] leading-[1.6] text-ink placeholder:text-tertiary focus:border-brand-400"
         />
 
         <div className="mt-[10px] flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => onChange(EXAMPLE_WANDERING)}
-            className="flex min-h-[48px] items-center rounded-[14px] bg-paper-2 px-4 text-[0.8438rem] font-semibold text-ink"
+            className="flex min-h-[48px] items-center rounded-[14px] bg-paper-2 px-4 text-[0.8438rem] font-semibold text-ink transition-colors duration-150 active:bg-neutral-line"
           >
             예시 문장 넣기 (배회 대응 보고)
           </button>
           <button
             type="button"
             onClick={() => onChange(EXAMPLE_PARTIAL)}
-            className="flex min-h-[48px] items-center rounded-[14px] bg-paper-2 px-4 text-[0.8438rem] font-semibold text-ink-soft"
+            className="flex min-h-[48px] items-center rounded-[14px] bg-paper-2 px-4 text-[0.8438rem] font-semibold text-ink-soft transition-colors duration-150 active:bg-neutral-line"
           >
             빈 칸이 있는 예시
           </button>
@@ -257,7 +257,7 @@ export function VoiceInput({
             type="button"
             onClick={() => onChange("")}
             disabled={empty}
-            className="flex min-h-[48px] items-center px-2 text-[0.8438rem] font-semibold text-ink-muted disabled:opacity-45"
+            className="flex min-h-[48px] items-center rounded-field px-2 text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper-2 disabled:opacity-45"
           >
             지우기
           </button>

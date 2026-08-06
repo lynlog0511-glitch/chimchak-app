@@ -68,7 +68,7 @@ export function DemoJumpPanel() {
           <li key={row.href}>
             <Link
               href={row.href}
-              className="flex min-h-[48px] flex-col justify-center py-[10px]"
+              className="-mx-1.5 flex min-h-[48px] flex-col justify-center rounded-field px-1.5 py-[10px] transition-colors duration-150 active:bg-paper-2"
             >
               <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                 <span className="text-[0.8438rem] leading-[1.45] font-bold text-brand-700">

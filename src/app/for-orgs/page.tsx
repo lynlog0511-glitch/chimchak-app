@@ -87,7 +87,7 @@ export default function ForOrgsPage() {
         action={
           <Link
             href="/safety"
-            className="flex min-h-[48px] items-center px-1 text-[0.8438rem] font-semibold text-ink-muted"
+            className="flex min-h-[48px] items-center rounded-field px-1 text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper-2"
           >
             닫기
           </Link>

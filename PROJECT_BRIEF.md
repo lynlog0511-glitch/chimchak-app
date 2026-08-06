@@ -71,16 +71,14 @@ AI는 어르신 역만 맡고, 옳고 그름의 판정은 **한국 법령·공�
 
 `src/components/` 에 최소 다음을 export (props는 아래와 호환되게, 추가 옵션 자유):
 
-- `AppHeader` — 상단 네비(로고 "침착 ChimChak", 홈/훈련/응급/기록/성장 링크, 현재 경로 강조, 모바일 하단 탭바 병행)
-- `DisclaimerBar` — 고정 고지 문구 바 (모든 페이지 하단)
-- `PageShell({ title?, children })` — 헤더+본문 컨테이너+DisclaimerBar 포함 래퍼
+- `TopNav`·`TabBar` — 상단 네비(데스크톱)와 모바일 하단 탭바(홈/훈련/응급/보고/성장). (8/6 정리: 구 `AppHeader`는 렌더 0건으로 삭제)
+- `InlineDisclaimer` — 인라인 고지 한 줄. (8/6 정리: 고정 바 `DisclaimerBar`는 v4 §4.11 「고정 바 폐지」에 따라 삭제)
+- `PageShell({ title?, children })` — 헤더+본문 컨테이너 래퍼(고지는 인라인으로 포함)
 - `BigButton({ children, onClick?, href?, variant?: "primary"|"secondary"|"danger"|"ghost", size?: "md"|"lg", disabled?, type? })` — 48px+ 터치 타겟
 - `Card({ children, className? })`
-- `Badge({ children, tone?: "brand"|"ok"|"warn"|"danger"|"neutral" })`
-- `AiBadge` — "AI 생성 · 가상 인물" 소형 배지
+- (8/6 정리: `Badge`·`AiBadge`는 렌더 0건 — 배지 대신 문장·타이포로 말하는 v4 원칙에 따라 삭제. 가상 인물 고지는 말풍선 이름 줄이 담당)
 - `SourceChip({ docId })` — 근거 출처 칩. `src/data/docs.ts`의 문서 제목 표시, 클릭 시 문서 설명 팝오버/모달
-- `Gauge({ value, max, label })` — 초조도/긴장도 게이지 바
-- `FeedbackCard({ ok, message, docId? })` — 🟢/⚪ 피드백 표시
+- (8/6 정리: `Gauge`·`FeedbackCard`는 렌더 0건으로 삭제 — 게이지는 SessionRail이 직접 그리고, 판정 표시는 `InlineCoaching`+`StatusMark`가 담당. 판정어는 「충족/코칭/즉시 중단」 세 낱말)
 - `Call119Button` — 붉은 대형 119 버튼 (tel:119 링크 + 캡션 "누르면 전화 앱이 열립니다 — 훈련 중에는 누르지 마세요". 8/6 교정: tel: 링크는 실제로 전화 앱을 열므로 「발신되지 않습니다」라고 적지 않는다 — 없는 안전장치를 있다고 말하지 않는 원칙)
 - `SwRegister` — 서비스워커 등록 클라이언트 컴포넌트 (design은 no-op 스텁 생성, emergency 에이전트가 실구현으로 교체)
 

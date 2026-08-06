@@ -2,13 +2,43 @@
 
 /* Pretendard Variable — 앱에 동봉(셀프호스팅)해 오프라인에서도 항상 같은 글꼴을 보장합니다.
    (없으면 Windows에서 맑은 고딕으로 떨어져 화면 전체가 공문서 인상이 됩니다.)
-   라이선스: SIL OFL 1.1 (재배포 자유) · 출처: orioncactus/pretendard */
+   라이선스: SIL OFL 1.1 (재배포 자유) · 출처: orioncactus/pretendard
+
+   ── 2단 구조 ────────────────────────────────────────────────
+   1순위 "Pretendard Variable"      = 서브셋 429KB. 첫 화면이 받는 유일한 폰트입니다.
+                                      화면에 쓰인 글자 전부 + ASCII + 한글 호환 자모
+                                      + KS X 1001 완성형 2,350자를 담습니다(scripts/subset-font.py).
+   2순위 "Pretendard Variable Full" = 원본 2.0MB. 서브셋에 없는 글자를 그려야 하는 순간에만
+                                      내려받습니다. 신고서 자유 입력란에 희귀 한자·옛한글이
+                                      들어와도 글꼴이 어긋나지 않게 하는 보험입니다.
+   두 이름을 --font-sans가 이 순서로 나열합니다. CSS 글꼴 대체는 **글자 단위**로 앞 글꼴부터
+   찾으므로, 서브셋에 있는 글자는 원본 파일을 한 바이트도 건드리지 않습니다.
+
+   ※ 같은 family 이름에 unicode-range만 달리 주는 방식은 일부러 피했습니다 —
+     선택된 face에 글리프가 없을 때 브라우저는 같은 family의 다른 face로 되돌아가지 않고
+     곧장 다음 family로 넘어갑니다. 그래서 이름을 둘로 나눠야 보완이 실제로 동작합니다.
+   ※ 서브셋 파일 이름은 next.config.ts의 1년 immutable과 묶여 있습니다.
+     내용을 바꿔 다시 만들면 파일 이름의 버전도 함께 올려 주십시오.
+   ──────────────────────────────────────────────────────────── */
 @font-face {
   font-family: "Pretendard Variable";
+  src: url("/fonts/PretendardVariable.subset.woff2") format("woff2-variations");
+  font-weight: 45 920;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Pretendard Variable Full";
   src: url("/fonts/PretendardVariable.woff2") format("woff2-variations");
   font-weight: 45 920;
   font-style: normal;
   font-display: swap;
+  /* 원본에 실제로 글리프가 있는 영역만 열어 둡니다. 이모지처럼 어차피 없는 글자를 만나
+     2.0MB를 헛되이 받는 일을 막습니다. */
+  unicode-range: U+0000-00FF, U+1100-11FF, U+2000-206F, U+20A0-20BF, U+2100-21FF,
+    U+2200-22FF, U+2460-24FF, U+25A0-25FF, U+3000-303F, U+3130-318F, U+3400-4DBF,
+    U+4E00-9FFF, U+A960-A97F, U+AC00-D7A3, U+D7B0-D7FF, U+F900-FAFF, U+FF00-FFEF;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -127,9 +157,11 @@
   --color-neutral-soft: #f5f6f6; /* 보조 버튼 면 (= paper-2) */
   --color-neutral-line: #e4e7e5;
 
-  /* 타이포 — 외부 폰트 CDN 없이 동봉 폰트 + 시스템 스택만 사용(오프라인 데모 보장) */
-  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
-    "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif;
+  /* 타이포 — 외부 폰트 CDN 없이 동봉 폰트 + 시스템 스택만 사용(오프라인 데모 보장)
+     "Pretendard Variable"(서브셋) → "Pretendard Variable Full"(원본) 순서가 곧 위 2단 구조입니다.
+     순서를 바꾸면 첫 화면이 2.0MB를 받게 되니 두 이름의 앞뒤를 지켜 주십시오. */
+  --font-sans: "Pretendard Variable", "Pretendard Variable Full", Pretendard, -apple-system,
+    BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif;
 
   /* 모서리 — v4 §2: 버튼·카드 14 · 말풍선 18(발화 방향만 4) · 한 글자 마커 12 · 입력 pill 반원 */
   --radius-card: 14px;
@@ -146,10 +178,16 @@
   --shadow-lift: 0 0 #0000;
   --shadow-panel: 0 1px 2px rgb(25 31 30 / 0.06), 0 18px 40px -24px rgb(25 31 30 / 0.28);
 
-  /* 모션 */
+  /* 모션 — 등장은 **두 단**뿐입니다(모션 감사 6).
+       · 240ms 슬라이드/페이드 = 전면 오버레이(바텀시트·확인 모달). 값은 `OVERLAY_MS`(useModalDismiss)와 짝입니다.
+       · 180ms 페이드 = 그 밖의 가벼운 등장(팝오버·근거 카드).
+     새 속도를 여기에 더하지 마세요 — 한 화면에서 오버레이가 서로 다른 속도로 뜨면
+     「같은 앱이 아닌 것 같은」 감각을 만듭니다. */
   --ease-soft: cubic-bezier(0.22, 0.61, 0.36, 1);
   --animate-fade-up: chim-fade-up 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) both;
-  --animate-gauge: chim-gauge 0.45s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  --animate-pop-in: chim-pop-in 0.18s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  /* `--animate-gauge`(0.45s)는 2026-08-06에 지웠습니다 — 정의만 있고 사용처가 0건이었습니다.
+     쓰이지 않는 모션 토큰은 다음 사람에게 「여기 규격이 있다」는 잘못된 신호가 됩니다. */
 }
 
 @keyframes chim-fade-up {
@@ -163,14 +201,16 @@
   }
 }
 
-@keyframes chim-gauge {
+/* 팝오버·근거 카드 — 「그냥 나타남」과 500ms 페이드 사이의 한 단(180ms).
+   4px만 올라옵니다: 자리를 알려 줄 만큼이고, 읽는 눈이 따라가야 할 만큼은 아닙니다. */
+@keyframes chim-pop-in {
   from {
-    transform: scaleX(0.2);
-    opacity: 0.4;
+    opacity: 0;
+    transform: translateY(4px);
   }
   to {
-    transform: none;
     opacity: 1;
+    transform: none;
   }
 }
 
@@ -213,6 +253,12 @@
     font-size: 16px;
     -webkit-text-size-adjust: 100%;
     scroll-behavior: smooth;
+
+    /* 탭 하이라이트는 OS가 아니라 앱이 그립니다.
+       모바일 브라우저 기본 하이라이트는 모양·색이 안드로이드/iOS마다 달라 무대에서 통제할 수 없는
+       변수가 됩니다(가이드가 셰브론에서 경계한 것과 같은 성격). 눌림 표현은 각 컨트롤의
+       `active:` 면 색 하나로만 합니다 — 상속되는 속성이라 여기 한 줄로 화면 전체에 걸립니다. */
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
@@ -239,10 +285,24 @@
     font-variant-numeric: tabular-nums;
   }
 
+  /* 포커스 링의 **시작값**을 못 박습니다.
+     Tailwind v4의 `.transition-colors`는 transition-property 목록에 `outline-color`를 포함하는데,
+     미포커스 상태의 outline-color 기본값이 `currentcolor`라 시작값이 확정되지 않습니다 —
+     그 결과 `transition-colors`를 가진 컨트롤만 링이 **잉크색(#191f1e)**으로 렌더돼
+     한 화면에 검정 링과 틸 링이 공존했습니다(모션 감사 4 실측: 홈 20개 중 19개가 영향권).
+     선언(brand-600)과 출고를 같게 만드는 한 줄이고, 시각적 결과는 「선언대로」뿐입니다. */
+  *,
+  ::before,
+  ::after {
+    outline-color: var(--color-brand-600);
+  }
+
   :focus-visible {
     outline: 3px solid var(--color-brand-600);
     outline-offset: 2px;
     border-radius: 4px;
+    /* 포커스 표시는 애니메이션 대상이 아닙니다 — 즉시 나타나야 키보드 이동이 끈적하지 않습니다. */
+    transition-property: none;
   }
 
   ::selection {

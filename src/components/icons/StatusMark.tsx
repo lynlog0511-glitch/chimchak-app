@@ -6,7 +6,7 @@ export type StatusMarkSize = "sm" | "md" | "lg";
 
 /**
  * 판정 2단계(+즉시 중단)의 표준 표기 문구.
- * FeedbackCard가 이미 쓰고 있는 문구 그대로입니다 — 새 문구를 만들지 않습니다.
+ * 판정 표시가 필요한 조각들이 함께 씁니다.
  */
 export const STATUS_MARK_LABEL: Record<StatusMarkKind, string> = {
   met: "충족",

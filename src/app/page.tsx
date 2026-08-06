@@ -229,13 +229,13 @@ export default function Home() {
         <p className="text-center">
           <Link
             href="/safety"
-            className="inline-flex min-h-[48px] items-center justify-center px-2 text-[0.7813rem] font-semibold text-ink-muted underline underline-offset-4 transition-colors duration-150 hover:text-brand-800"
+            className="inline-flex min-h-[48px] items-center justify-center rounded-field px-2 text-[0.7813rem] font-semibold text-ink-muted underline underline-offset-4 transition-colors duration-150 hover:text-brand-800 active:bg-paper-2"
           >
             안전·개인정보 설계
           </Link>
           <Link
             href="/for-orgs"
-            className="inline-flex min-h-[48px] items-center justify-center px-2 text-[0.7813rem] font-semibold text-ink-muted underline underline-offset-4 transition-colors duration-150 hover:text-brand-800"
+            className="inline-flex min-h-[48px] items-center justify-center rounded-field px-2 text-[0.7813rem] font-semibold text-ink-muted underline underline-offset-4 transition-colors duration-150 hover:text-brand-800 active:bg-paper-2"
           >
             기관 도입 안내
           </Link>

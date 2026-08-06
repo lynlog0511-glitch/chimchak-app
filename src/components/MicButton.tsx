@@ -89,7 +89,8 @@ export function MicButton({
         "flex flex-none flex-col items-center justify-center rounded-full",
         "transition-colors duration-150 ease-soft",
         "disabled:cursor-not-allowed disabled:opacity-45",
-        isDeep ? "bg-mic-deep" : "bg-brand-600",
+        // 누르는 순간 곧바로 눌림 색으로 갑니다 — 상태(pressed)가 부모를 돌아 오기 전에도 손끝에 답합니다.
+        isDeep ? "bg-mic-deep" : "bg-brand-600 active:bg-mic-deep",
         className,
       )}
       style={{

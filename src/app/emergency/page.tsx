@@ -8,6 +8,7 @@ import {
   ScreenHeader,
 } from "@/components";
 import { PROTOCOLS, PROTOCOL_NOTICE } from "@/data/protocols";
+import { AudioUnlock } from "./_components/AudioUnlock";
 import { Call119Bar } from "./_components/Call119Bar";
 import { OfflineStatus } from "./_components/OfflineStatus";
 
@@ -52,6 +53,10 @@ const ACTION_SUMMARY: Record<string, string> = {
 export default function EmergencyPage() {
   return (
     <PageShell>
+      {/* 프로토콜을 고르시는 그 탭에서 오디오 잠금을 풀어 둡니다 — 다음 화면의 첫 문장이
+          아이폰에서도 검수된 목소리로 나오게 하는 자리입니다(그리는 것은 없습니다). */}
+      <AudioUnlock />
+
       {/* 제목 22px + 초록 점 한 줄. 저장 여부는 실측한 뒤에만 단정합니다(시안 5b). */}
       <ScreenHeader title="응급 안내" subtitle={<OfflineStatus />} />
 

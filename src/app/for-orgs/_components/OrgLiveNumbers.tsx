@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { formatTotalDuration } from "@/lib/duration";
 import { BigButton } from "@/components";
 import { clearDemoRecords, hasDemoRecords, isDemoRecord, seedDemoRecords } from "@/lib/demoSeed";
 import {
@@ -74,14 +75,6 @@ function countCrossOriginRequests(): number | undefined {
   }
 }
 
-/** 「약 N시간 N분」 — 확인서의 총 이수 시수와 같은 표기입니다. */
-function formatTotalDuration(totalSec: number): string {
-  const minutes = Math.round(totalSec / 60);
-  if (minutes < 1) return "약 1분 미만";
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  return hours > 0 ? `약 ${hours}시간 ${rest}분` : `약 ${rest}분`;
-}
 
 /** 이 기기의 값을 한 번에 읽어 옵니다 — 예시를 심거나 지운 직후에도 같은 함수로 다시 읽습니다. */
 function readNumbers(): LiveNumbers {

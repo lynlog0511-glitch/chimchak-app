@@ -342,7 +342,9 @@ export function CueResponder({
    * 인식을 끊지 않고 "허용 후 다시 눌러 주세요" 안내로 대신합니다.
    */
   const releaseMic = useCallback(() => {
-    if (micPermission === "prompt" && !micGraceUsedRef.current) {
+    // 사파리·파이어폭스는 permissions.query가 microphone을 몰라 "unknown"에 머뭅니다 —
+    // 그 기기에서도 첫 안내가 한 번은 뜨도록 조건을 넓힙니다(1회 제한은 ref가 지킵니다).
+    if ((micPermission === "prompt" || micPermission === "unknown") && !micGraceUsedRef.current) {
       micGraceUsedRef.current = true;
       setNotice(
         "브라우저가 마이크 사용을 허용할지 묻고 있습니다. ‘허용’을 누르신 뒤 버튼을 꾹 누른 채로 말씀해 주세요. 마이크 없이 아래 버튼만으로도 끝까지 진행하실 수 있습니다.",
@@ -573,7 +575,7 @@ export function CueResponder({
           접힘선 아래로 내려갔습니다(18px 마이크 bottom 855 > 도크 844 · 20px 152px 감춤 — 평가 UI/UX m1). */}
       <div
         ref={listRef}
-        className="mx-auto min-h-0 w-full max-w-[624px] flex-1 overflow-y-auto px-[18px] pt-3.5 pb-2 md:px-8"
+        className="mx-auto min-h-0 w-full max-w-[624px] flex-1 overflow-y-auto overscroll-contain px-[18px] pt-3.5 pb-2 md:px-8"
       >
         <div ref={listInnerRef}>
           <div className="mb-3">
@@ -626,7 +628,7 @@ export function CueResponder({
               <button
                 type="button"
                 onClick={closeMicIntro}
-                className="mt-2 min-h-[48px] w-full rounded-[14px] bg-white text-[0.9375rem] font-semibold text-ink"
+                className="mt-2 min-h-[48px] w-full rounded-[14px] bg-white text-[0.9375rem] font-semibold text-ink transition-colors duration-150 active:bg-paper-2"
               >
                 알겠습니다
               </button>
@@ -655,7 +657,7 @@ export function CueResponder({
                   <button
                     type="button"
                     onClick={() => sendAlternative(chosenAlternative)}
-                    className="min-h-[48px] w-full rounded-[14px] border border-line-strong bg-white px-[15px] py-2.5 text-left text-[1.0625rem] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2"
+                    className="min-h-[48px] w-full rounded-[14px] border border-line-strong bg-white px-[15px] py-2.5 text-left text-[1.0625rem] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
                   >
                     {chosenAlternative}
                   </button>
@@ -666,7 +668,7 @@ export function CueResponder({
                   <button
                     type="button"
                     onClick={() => pick(branch.id)}
-                    className="min-h-[48px] w-full rounded-[14px] border border-line-strong bg-white px-[15px] py-2.5 text-left text-[1.0625rem] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2"
+                    className="min-h-[48px] w-full rounded-[14px] border border-line-strong bg-white px-[15px] py-2.5 text-left text-[1.0625rem] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
                   >
                     {branch.fallbackOption}
                   </button>
@@ -716,7 +718,7 @@ export function CueResponder({
                     setFilledExampleId(null);
                   }}
                   disabled={text.length === 0}
-                  className="min-h-[48px] px-1 text-[0.8438rem] font-semibold text-ink-muted disabled:opacity-45"
+                  className="min-h-[48px] rounded-field px-1 text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper-2 disabled:opacity-45"
                 >
                   지우기
                 </button>
@@ -729,7 +731,7 @@ export function CueResponder({
                     setExpanded(false);
                     setFilledExampleId(null);
                   }}
-                  className="min-h-[48px] px-1 text-[0.8438rem] font-semibold text-ink-muted"
+                  className="min-h-[48px] rounded-field px-1 text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper-2"
                 >
                   입력창 접기
                 </button>
@@ -753,7 +755,7 @@ export function CueResponder({
               type="button"
               onClick={() => setDemoOpen(true)}
               aria-haspopup="dialog"
-              className="mt-2 flex min-h-[48px] w-full items-center justify-between gap-3 rounded-field px-1 text-left text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 hover:bg-paper-2"
+              className="mt-2 flex min-h-[48px] w-full items-center justify-between gap-3 rounded-field px-1 text-left text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
             >
               <span>{RULE_DEMO_TITLE}</span>
               <span aria-hidden className="flex-none text-[0.8438rem] text-ink-ghost">
@@ -807,7 +809,7 @@ export function CueResponder({
             <button
               type="button"
               onClick={openInput}
-              className="h-12 min-w-0 flex-1 rounded-[24px] border border-line-strong bg-paper-2 px-4 text-left text-[0.9375rem] text-ink-muted"
+              className="h-12 min-w-0 flex-1 rounded-[24px] border border-line-strong bg-paper-2 px-4 text-left text-[0.9375rem] text-ink-muted transition-colors duration-150 active:bg-neutral-line"
             >
               직접 입력…
             </button>

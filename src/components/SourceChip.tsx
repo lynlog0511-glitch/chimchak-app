@@ -86,7 +86,7 @@ export function SourceChip({
      터치 타겟 48px은 불변이라 높이는 그대로 두고 시각적 무게만 낮췄습니다. */
   const chipClass = cx(
     "chim-caption inline-flex max-w-full items-center gap-1.5 rounded-chip bg-brand-50 px-3.5 py-1 text-brand-800",
-    interactive && "min-h-[48px] hover:bg-brand-100 transition-colors duration-150",
+    interactive && "min-h-[48px] hover:bg-brand-100 active:bg-brand-100 transition-colors duration-150",
     className,
   );
 
@@ -113,7 +113,7 @@ export function SourceChip({
           id={panelId}
           role="dialog"
           aria-label="근거 문서 설명"
-          className="animate-fade-up absolute bottom-full left-0 z-50 mb-2 block w-[min(22rem,80vw)] rounded-panel bg-white p-4 text-left shadow-panel"
+          className="animate-pop-in absolute bottom-full left-0 z-50 mb-2 block w-[min(22rem,80vw)] rounded-panel bg-white p-4 text-left shadow-panel"
         >
           <span className="chim-body block font-bold text-ink">{resolvedTitle}</span>
           {resolvedKind && (
@@ -134,7 +134,7 @@ export function SourceChip({
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="chim-caption mt-3 inline-flex min-h-[48px] items-center rounded-field bg-neutral-soft px-4 font-semibold text-ink-soft hover:bg-neutral-line"
+            className="chim-caption mt-3 inline-flex min-h-[48px] items-center rounded-field bg-neutral-soft px-4 font-semibold text-ink-soft transition-colors duration-150 hover:bg-neutral-line active:bg-neutral-line"
           >
             닫기
           </button>

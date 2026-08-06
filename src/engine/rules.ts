@@ -181,6 +181,22 @@ export interface RuleDef {
   alternatives?: string[];
 }
 
+/**
+ * 사건이 끝난 뒤 **보고·성찰** 구간의 CUE id (CHK-C02 전용으로 유일하게 지은 id).
+ *
+ * 이 구간의 발화는 행위가 아니라 **회고 진술**이다. "묶어두라는 요구가 있었습니다"처럼
+ * 받았던 요구를 사실대로 적는 문장이 신체 억제로 잡히면, 규칙이 「기록을 남기지 말라」는
+ * 신호가 된다 — 옳게 말한 사람이 벌받는 구조다.
+ *
+ * 두 가지를 일부러 좁혀 두었다.
+ * ① 재발 방지 **제안** CUE(CUE-C5)는 빼 두었다. 거기서 "방문을 잠그겠습니다"는 앞으로의
+ *    행위라 여전히 멈춰 세워야 한다.
+ * ② cue id는 시나리오끼리 겹친다(CUE-4는 A01 보고·A02 안전확보·C02 보고가 모두 쓴다).
+ *    그래서 C02 쪽 id를 CUE-C4·CUE-C6으로 유일하게 짓고, 그 두 개만 여기 적는다.
+ *    이 게이트가 다른 시나리오로 새면 A02 CUE-4의 억제 판정이 함께 꺼진다.
+ */
+const POST_INCIDENT_REPORT_CUES = ["CUE-C4", "CUE-C6"];
+
 /** ⚑CF — 신체 억제 동사 8종 (CO-02 · 전 시나리오 공통) */
 export const RESTRAINT_RULES: RuleDef[] = [
   {
@@ -236,6 +252,8 @@ export const RESTRAINT_RULES: RuleDef[] = [
     ],
     // "이끌고", "휠체어를 밀어서"처럼 제지가 아닌 표현은 제외한다
     except: ["휠체어", "보행기", "유모차", "이끌"],
+    // 보고·성찰 구간의 회고 진술("묶어두라는 요구가 있었습니다")은 행위가 아니다.
+    skipCues: POST_INCIDENT_REPORT_CUES,
     message:
       "잠시 멈추겠습니다. 붙잡기·끌기·밀기·문 잠그기는 법이 금지한 신체 자유 제한에 해당합니다. 어르신을 더 위험하게 만들 수 있어 훈련에서도 허용하지 않습니다.",
     docId: "DOC-LAW-003",
@@ -252,7 +270,7 @@ export const RESTRAINT_RULES: RuleDef[] = [
  * 이 구간에서는 "식사 전에 물을 드린 사실도 기록하겠습니다" 같은 **회고 진술**이
  * 액체·음식 제공으로 잡히면 안 되므로, 응급 처치 관련 ⚑CF 규칙을 건너뛴다.
  */
-const POST_EMERGENCY_CUES = ["CUE-5", "CUE-T2", "CUE-6", "CUE-7"];
+export const POST_EMERGENCY_CUES = ["CUE-5", "CUE-T2", "CUE-6", "CUE-7"];
 
 /** ⚑CF — 허용 범위 밖 행위 15종 (CO-01) */
 export const PROHIBITED_ACTION_RULES: RuleDef[] = [

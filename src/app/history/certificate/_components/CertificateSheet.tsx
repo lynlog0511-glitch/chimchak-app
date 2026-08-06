@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { formatTotalDuration } from "@/lib/duration";
 import Link from "next/link";
 import { BigButton, InlineDisclaimer, cx } from "@/components";
 import { countDemoRecords } from "@/lib/demoSeed";
@@ -28,10 +29,41 @@ const PRINT_CSS = `
     border: 0 !important;
     border-radius: 0 !important;
     padding: 0 !important;
+    /* 표식을 감쌀 수 있는 overflow는 인쇄에서 풀어 둡니다(아래 fixed 표식이 잘리지 않게). */
+    overflow: visible !important;
   }
-  /* 예시 표시는 종이에도 반드시 남아야 합니다 — 브라우저가 배경·연한 색을 지우지 못하게 못 박습니다. */
+  /* 예시 표시는 종이에도 반드시 남아야 합니다 — 브라우저가 배경·연한 색을 지우지 못하게 못 박습니다.
+     position: fixed 로 두는 이유: 절대위치 상자는 페이지 나눔을 따라 복제되지 않아, 확인서가
+     두 쪽이 되는 순간 둘째 장에는 표식이 남지 않습니다. 페이지 미디어에서 fixed 상자는 매 쪽에
+     다시 그려지므로, 몇 쪽이 되든 모든 장에 같은 표식이 놓입니다. */
   [data-demo-watermark] {
     display: flex !important;
+    position: fixed !important;
+    inset: 0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* 표식은 배경이 아니라 글자라 잉크 절약·흑백 인쇄에서 옅은 색이 거의 사라집니다.
+     종이에서는 검정 계열로 진하게 바꿔, 색 설정과 무관하게 남게 합니다. */
+  [data-demo-watermark] > span {
+    color: #000000 !important;
+    opacity: 0.28 !important;
+  }
+  /* 색을 아예 버리는 인쇄 설정까지 대비한 둘째 보증 — 매 쪽 머리에 한 줄로 박습니다.
+     흰 바탕과 아래 실선을 함께 두어, 뒤 문장과 겹쳐 읽히지 않고 머리띠로 보이게 합니다. */
+  [data-demo-band] {
+    display: block !important;
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: #ffffff !important;
+    border-bottom: 0.4pt solid #000000;
+    padding: 1mm 0 1.5mm;
+    color: #000000 !important;
+    font-size: 9pt;
+    font-weight: 700;
+    text-align: center;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
@@ -47,13 +79,6 @@ const PRINT_CSS = `
  * @example formatTotalDuration(4530) // "약 1시간 16분"
  * @example formatTotalDuration(720)  // "약 12분"
  */
-function formatTotalDuration(totalSec: number): string {
-  const minutes = Math.round(totalSec / 60);
-  if (minutes < 1) return "약 1분 미만";
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  return hours > 0 ? `약 ${hours}시간 ${rest}분` : `약 ${rest}분`;
-}
 
 /**
  * 이수 사실 파일을 이 기기에 내려받습니다.
@@ -68,8 +93,31 @@ function downloadCsv(summary: CompletionSummary, issuedAt: string): void {
   const anchor = document.createElement("a");
   anchor.href = url;
   anchor.download = `chimchak-completion-${summary.number}.csv`;
+  anchor.rel = "noopener";
+  /* 문서에 붙였다가 누르고, 폐기는 미룹니다.
+     브라우저는 click()이 돌아온 **뒤에** 비동기로 이 주소를 읽어 갑니다 — 같은 태스크에서
+     revokeObjectURL을 부르면 사파리(맥·아이폰)에서는 대상이 사라져 아무 일도 일어나지 않고,
+     파이어폭스는 문서에 붙지 않은 앵커의 프로그램 클릭을 무시하는 경우가 있습니다.
+     아이폰·아이패드 사용자에게 이 파일은 기기를 바꿀 때 이수 시수를 옮기는 유일한 경로입니다. */
+  anchor.style.display = "none";
+  document.body.appendChild(anchor);
   anchor.click();
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => {
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  }, 1000);
+}
+
+/**
+ * 카카오톡·네이버 등 **인앱 브라우저**인지 — UA 문자열로만 봅니다.
+ *
+ * 이 앱의 링크는 실제로 카카오톡으로 오갑니다. 그 안의 웹뷰는 `window.print()`를 구현하지 않아
+ * 인쇄 버튼을 눌러도 **아무 일도 일어나지 않습니다**. 안내는 어느 환경에서나 한 줄로 두되,
+ * 인앱 브라우저로 확인되면 그 줄을 강조 톤으로 올려 원인을 먼저 보이게 합니다.
+ */
+function isInAppBrowser(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /KAKAOTALK|NAVER|Instagram|FB[AV]|Line\//i.test(navigator.userAgent);
 }
 
 /**
@@ -120,11 +168,14 @@ export function CertificateSheet() {
    * 여기서 켜지는 것: 워터마크(인쇄물 포함) · 「예시 — 발급되지 않음」 · 파일 내려받기 잠금.
    */
   const [demoCount, setDemoCount] = useState(0);
+  /** 인앱 브라우저(카카오톡·네이버 등) 안인지 — 인쇄 안내를 강조할지 결정합니다. */
+  const [inApp, setInApp] = useState(false);
 
   useEffect(() => {
     setSummary(buildCompletionSummary());
     setIssuedAt(new Date().toISOString());
     setDemoCount(countDemoRecords().sessions);
+    setInApp(isInAppBrowser());
     setLoaded(true);
   }, []);
 
@@ -200,7 +251,7 @@ export function CertificateSheet() {
                   onChange={(event) => setLearnerName(event.target.value)}
                   autoComplete="off"
                   placeholder="이수하신 분 성함"
-                  className="mt-[6px] min-h-[48px] w-full rounded-[14px] border border-line-strong bg-white px-[13px] text-[0.9375rem] leading-[1.6] text-ink placeholder:text-tertiary focus:border-brand-400 focus:outline-none"
+                  className="mt-[6px] min-h-[48px] w-full rounded-[14px] border border-line-strong bg-white px-[13px] text-[0.9375rem] leading-[1.6] text-ink placeholder:text-tertiary focus:border-brand-400"
                 />
               </div>
               <div className="min-w-0 flex-1">
@@ -217,7 +268,7 @@ export function CertificateSheet() {
                   onChange={(event) => setLearnerOrg(event.target.value)}
                   autoComplete="off"
                   placeholder="예) ○○주야간보호센터"
-                  className="mt-[6px] min-h-[48px] w-full rounded-[14px] border border-line-strong bg-white px-[13px] text-[0.9375rem] leading-[1.6] text-ink placeholder:text-tertiary focus:border-brand-400 focus:outline-none"
+                  className="mt-[6px] min-h-[48px] w-full rounded-[14px] border border-line-strong bg-white px-[13px] text-[0.9375rem] leading-[1.6] text-ink placeholder:text-tertiary focus:border-brand-400"
                 />
               </div>
             </div>
@@ -234,15 +285,21 @@ export function CertificateSheet() {
             {/* 종이만 따로 돌아다녀도 예시인 줄 알아볼 수 있게 지면 자체에 표시를 얹습니다.
                 읽어야 하는 문장은 아래 안내줄이 담당하므로 이 층은 장식으로 숨깁니다. */}
             {isPreview && (
-              <div
-                aria-hidden
-                data-demo-watermark
-                className="pointer-events-none absolute inset-0 flex items-center justify-center"
-              >
-                <span className="rotate-[-24deg] text-[1.75rem] leading-none font-extrabold whitespace-nowrap text-warn-ink opacity-[0.16] md:text-[2.5rem]">
-                  예시 — 발급되지 않음
-                </span>
-              </div>
+              <>
+                <div
+                  aria-hidden
+                  data-demo-watermark
+                  className="pointer-events-none absolute inset-0 flex items-center justify-center"
+                >
+                  <span className="rotate-[-24deg] text-[1.75rem] leading-none font-extrabold whitespace-nowrap text-warn-ink opacity-[0.16] md:text-[2.5rem]">
+                    예시 — 발급되지 않음
+                  </span>
+                </div>
+                {/* 인쇄 전용 머리줄 — 워터마크가 색 설정에 지워져도 이 한 줄은 매 쪽에 남습니다. */}
+                <p aria-hidden data-demo-band className="hidden">
+                  예시 — 발급되지 않음 · 증빙으로 쓸 수 없습니다
+                </p>
+              </>
             )}
 
             {isPreview && (
@@ -393,6 +450,20 @@ export function CertificateSheet() {
             <BigButton onClick={() => window.print()} size="lg" block className="mt-4">
               인쇄하기 · PDF로 저장
             </BigButton>
+            {/* 인쇄가 열리지 않는 환경이 실제로 있습니다 — 카카오톡·네이버 앱 안의 브라우저는
+                window.print()를 구현하지 않아 눌러도 아무 일도 일어나지 않습니다. 그 사실을
+                먼저 적어 두고, 인앱 브라우저로 확인되면 같은 문장을 강조 톤으로 올립니다. */}
+            <p
+              className={
+                inApp
+                  ? "mt-2 rounded-[14px] bg-warn-soft px-4 py-[12px] text-[0.8438rem] leading-[1.7] font-bold text-warn-ink"
+                  : "mt-[10px] text-center text-[0.8125rem] leading-[1.6] text-ink-soft"
+              }
+            >
+              {inApp
+                ? "지금은 카카오톡·네이버 등 앱 안의 브라우저입니다 — 여기서는 인쇄 창이 열리지 않습니다. 오른쪽 위 메뉴에서 「다른 브라우저로 열기」를 고르신 뒤 다시 눌러 주십시오."
+                : "인쇄 창이 열리지 않으면 카카오톡·네이버 등 앱 안의 브라우저라 그렇습니다. 오른쪽 위 메뉴에서 「다른 브라우저로 열기」를 고르신 뒤 다시 눌러 주십시오."}
+            </p>
             {/* 예시가 섞인 파일은 화면 표시를 잃은 채 자료철로 흘러갈 수 있어 내려받기를 잠급니다.
                 인쇄물에는 워터마크가 남지만, CSV 한 장에는 남길 자리가 없습니다. */}
             {isPreview ? (

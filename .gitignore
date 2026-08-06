@@ -5,6 +5,10 @@
 /.next
 /out
 
+# 타입 검사 증분 캐시 — tsconfig의 incremental:true 때문에 npm run typecheck마다 갱신된다.
+# CI가 매번 typecheck를 돌리므로, 추적하면 작업 트리가 늘 더러운 상태가 된다.
+*.tsbuildinfo
+
 # misc
 .DS_Store
 *.pem

@@ -72,7 +72,7 @@ function ReportRow({ report }: { report: StoredReport }) {
         onClick={() => setOpen((prev) => !prev)}
         aria-expanded={open}
         aria-controls={panelId}
-        className="flex min-h-[48px] w-full items-center gap-3 px-[2px] py-[14px] text-left"
+        className="flex min-h-[48px] w-full items-center gap-3 rounded-field px-[2px] py-[14px] text-left transition-colors duration-150 active:bg-paper-2"
       >
         <span className="min-w-0 flex-1">
           <span className="block text-[0.7813rem] leading-[1.4] text-tertiary">

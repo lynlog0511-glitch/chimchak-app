@@ -18,7 +18,8 @@ export interface SessionTopBarProps {
   backLabel?: string;
   /**
    * 우측 액션 — 시안의 「종료」.
-   * 스타일은 이렇게 맞추세요: `className="-mr-2 flex min-h-[48px] items-center px-2 text-[0.8438rem] font-semibold text-ink-muted"`
+   * 스타일은 이렇게 맞추세요(눌림 상태까지 한 벌입니다):
+   * `className="-mr-2 flex min-h-[48px] items-center rounded-field px-2 text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper-2"`
    */
   action?: ReactNode;
   className?: string;
@@ -36,7 +37,7 @@ export interface SessionTopBarProps {
  *   title="집에 가야 해요"
  *   status="대화 단계 · AI는 어르신 역만 맡습니다"
  *   backHref="/train"
- *   action={<button type="button" onClick={end} className="-mr-2 flex min-h-[48px] items-center px-2 text-[0.8438rem] font-semibold text-ink-muted">종료</button>}
+ *   action={<button type="button" onClick={end} className="-mr-2 flex min-h-[48px] items-center rounded-field px-2 text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper-2">종료</button>}
  * />
  */
 export function SessionTopBar({
@@ -50,7 +51,7 @@ export function SessionTopBar({
   className,
 }: SessionTopBarProps) {
   const backClass =
-    "-ml-[14px] flex h-12 w-12 flex-none items-center justify-center text-[1.0625rem] leading-[1.3] text-ink-soft";
+    "-ml-[14px] flex h-12 w-12 flex-none items-center justify-center rounded-field text-[1.0625rem] leading-[1.3] text-ink-soft transition-colors duration-150 active:bg-paper-2";
 
   return (
     <header className={cx("flex items-center pt-1.5 pb-3", className)}>

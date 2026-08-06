@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { formatElapsedDuration } from "@/lib/duration";
 import type { RecordDraft } from "@/types";
 import { BigButton, EyebrowLabel } from "@/components";
 import { maskText } from "@/engine/masking";
 import { extractDraft, recomputeMissing } from "@/engine/record";
-import { saveReport, type StoredReport } from "@/lib/storage";
+import { SAVE_FAILED_BODY, SAVE_FAILED_TITLE, saveReport, type SavedReport } from "@/lib/storage";
 import { DraftForm } from "./DraftForm";
 import { DraftRows } from "./DraftRows";
 import { MaskReview } from "./MaskReview";
@@ -19,13 +20,8 @@ const MAX_DISPLAYABLE_ELAPSED_SEC = 60 * 60;
 /**
  * 초 단위 소요시간을 "N분 N초"로 표시합니다(1분 미만이면 "N초"만).
  *
- * @example formatElapsed(102) // "1분 42초"
+ * @example formatElapsedDuration(102) // "1분 42초"
  */
-function formatElapsed(totalSec: number): string {
-  const minutes = Math.floor(totalSec / 60);
-  const seconds = totalSec % 60;
-  return minutes > 0 ? `${minutes}분 ${seconds}초` : `${seconds}초`;
-}
 
 const EMPTY_DRAFT: RecordDraft = recomputeMissing({
   time: "",
@@ -50,7 +46,7 @@ export function ReportWizard() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [text, setText] = useState("");
   const [draft, setDraft] = useState<RecordDraft>(EMPTY_DRAFT);
-  const [saved, setSaved] = useState<StoredReport | null>(null);
+  const [saved, setSaved] = useState<SavedReport | null>(null);
   /** 2차 가명처리에서 추가로 가린 건수 */
   const [secondPassCount, setSecondPassCount] = useState(0);
   /** 실제 입력 시작 시각(첫 타이핑 또는 마이크 시작). 예시 문장 채우기는 포함하지 않는다. */
@@ -166,9 +162,14 @@ export function ReportWizard() {
             tabIndex={-1}
             className="text-[1.1875rem] leading-[1.45] font-extrabold text-ok-ink"
           >
-            확정했습니다
+            {saved && !saved.persisted ? SAVE_FAILED_TITLE : "확정했습니다"}
           </h2>
-          <EyebrowLabel className="mt-[3px] text-ok-ink">이 기기에만 저장</EyebrowLabel>
+          <EyebrowLabel className="mt-[3px] text-ok-ink">
+            {saved && !saved.persisted ? "저장되지 않음" : "이 기기에만 저장"}
+          </EyebrowLabel>
+          {saved && !saved.persisted && (
+            <p className="mt-[10px] text-[0.9375rem] leading-[1.6] text-warn-ink">{SAVE_FAILED_BODY}</p>
+          )}
           <p className="mt-[10px] text-[0.8438rem] leading-[1.6] text-ink">
             지금 남은 것은 가명처리 2단을 통과한 텍스트뿐이며, 말씀하신 음성과 원문은 저장하지
             않았습니다.
@@ -200,7 +201,7 @@ export function ReportWizard() {
               <>
                 이번 기록{" "}
                 <span className="chim-num text-brand-800">
-                  {formatElapsed(saved.elapsedSec as number)}
+                  {formatElapsedDuration(saved.elapsedSec as number)}
                 </span>{" "}
                 ·{" "}
               </>

@@ -1,6 +1,8 @@
 /**
  * 주요 메뉴 5칸 — **모바일 하단 탭바(`TabBar`)와 데스크톱 상단 네비(`TopNav`)가 같은 목록을 씁니다.**
- * 순서는 시안 5a·5b·5c·7c 고정입니다(홈·훈련·응급·기록·성장).
+ * 순서는 시안 5a·5b·5c·7c 고정입니다(홈·훈련·응급·보고·성장).
+ * 「기록」→「보고」는 2026-08-06 팀장 승인 교정 — "기록"이 /report(보고 연습)와
+ * /history(성장 기록) 양쪽에 걸려 헷갈린다는 평가를 받아, 겹치는 낱말을 탭에서 뺐습니다.
  *
  * 두 곳이 각자 배열을 들고 있으면 언젠가 한쪽만 바뀝니다 — 그래서 한 파일에 둡니다.
  */
@@ -21,7 +23,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { key: "home", href: "/", label: "홈", exact: true },
   { key: "train", href: "/train", label: "훈련" },
   { key: "emergency", href: "/emergency", label: "응급", danger: true },
-  { key: "report", href: "/report", label: "기록" },
+  { key: "report", href: "/report", label: "보고" },
   { key: "history", href: "/history", label: "성장" },
 ];
 

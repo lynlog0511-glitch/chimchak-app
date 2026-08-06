@@ -253,14 +253,46 @@ function loadVoices(): SpeechSynthesisVoice[] {
   return voicesCache;
 }
 
-/** ko-KR 보이스를 우선 고른다 */
+/**
+ * 한국어 보이스 품질 점수.
+ *
+ * 「목록의 첫 번째」를 잡으면 Windows 크롬에서 가장 로봇 같은 레거시(Microsoft Heami)가
+ * 걸립니다 — 같은 브라우저에 훨씬 자연스러운 「Google 한국의」가 있는데도요.
+ * 그래서 알려진 보이스를 품질순으로 채점해 가장 좋은 것을 고릅니다.
+ *
+ * 오프라인이면 네트워크 보이스(Google 계열, localService=false)는 소리가 나지 않으므로
+ * 큰 감점을 주어 기기 내장 보이스로 자동 폴백합니다 — 비행기 모드 시연 보장.
+ */
+function scoreKoreanVoice(v: SpeechSynthesisVoice): number {
+  if (!v.lang.toLowerCase().startsWith("ko")) return -1000;
+  const n = v.name.toLowerCase();
+  let s = 1; // ko 매칭 기본점
+  if (/sunhi|injoon|bongjin|seoyeon|jisu|gook|hyunsu/.test(n)) s += 60; // Edge 뉴럴 계열
+  if (n.includes("google")) s += 50; // 크롬 네트워크 보이스 — 자연스러움
+  if (/yuna|유나|sora|소라/.test(n)) s += 40; // Apple 계열
+  if (/neural|natural|online/.test(n)) s += 30;
+  if (/heami|해미/.test(n)) s -= 40; // Windows 레거시 — 최후순위
+  if (typeof navigator !== "undefined" && !navigator.onLine && !v.localService) s -= 500;
+  return s;
+}
+
+/**
+ * 한국어 보이스 중 품질 점수가 가장 높은 것을 고른다.
+ * 전부 감점 보이스뿐이어도(레거시 Heami만 있는 기기 등) 한국어 보이스인 이상 뽑는다 —
+ * 아무것도 안 고르면 브라우저 기본(영어 보이스일 수 있음)이 한국어를 읽게 된다.
+ */
 function pickKoreanVoice(): SpeechSynthesisVoice | undefined {
   const voices = loadVoices();
-  return (
-    voices.find((v) => v.lang === "ko-KR") ??
-    voices.find((v) => v.lang.toLowerCase().startsWith("ko")) ??
-    undefined
-  );
+  let best: SpeechSynthesisVoice | undefined;
+  let bestScore = -999;
+  for (const v of voices) {
+    const s = scoreKoreanVoice(v);
+    if (s > bestScore) {
+      best = v;
+      bestScore = s;
+    }
+  }
+  return best;
 }
 
 /**

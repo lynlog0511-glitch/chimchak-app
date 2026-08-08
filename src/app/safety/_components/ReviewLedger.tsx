@@ -29,7 +29,7 @@ export function ReviewLedger({ className }: ReviewLedgerProps) {
   const rows: readonly { k: string; v: string }[] = [
     {
       k: `루브릭 ${RUBRIC.length}항목`,
-      v: "1차 감수 완료 — 방문요양 5년 현직 · 2026. 7. 25.",
+      v: "1차 감수 완료 — 현직 요양보호사(경력 5년) · 2026. 7. 25.",
     },
     {
       k: "시나리오 대사",

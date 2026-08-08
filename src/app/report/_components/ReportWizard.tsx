@@ -209,7 +209,7 @@ export function ReportWizard() {
             손으로 쓰면 <span className="chim-num text-brand-800">20~30분</span>
           </p>
           <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
-            20~30분은 현직 인터뷰 실측입니다.{" "}
+            20~30분은 현직 인터뷰에서 들은 값입니다.{" "}
             {showElapsed
               ? "이번 기록 시간은 처음 적기 시작한 순간부터 확정까지를 이 기기에서 잰 값입니다."
               : "이번 회차는 예시 문장으로 시작해 소요 시간을 재지 않았습니다."}

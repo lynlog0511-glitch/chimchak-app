@@ -23,7 +23,7 @@ export default function NotFound() {
       <div className="mt-[16px] rounded-[14px] bg-paper-2 px-[15px] py-[14px]">
         <p className="text-[0.8438rem] leading-[1.65] text-ink">
           급하신 상황이라면 아래에서 응급 안내를 바로 여실 수 있습니다. 응급 안내
-          5종(낙상·기도폐쇄·의식 저하·경련·출혈)은 검수된 고정 문구로 되어 있고, 연결이 끊겨도
+          5종(낙상·기도폐쇄·의식 저하·경련·출혈)은 고정 문구로 되어 있고, 연결이 끊겨도
           열리도록 기기에 저장해 둡니다.
         </p>
       </div>

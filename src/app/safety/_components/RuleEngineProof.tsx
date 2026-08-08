@@ -19,7 +19,7 @@ import { cx } from "@/components/utils";
 /**
  * 규칙 엔진 검증 카드 — **인용치와 실측치를 나란히** 둡니다.
  *
- * 예전에는 기획서 [그림 7]의 숫자를 옮겨 적기만 했습니다. 옮겨 적은 값은 심사위원이
+ * 예전에는 기획서 검증 계단 ①의 숫자를 옮겨 적기만 했습니다. 옮겨 적은 값은 심사위원이
  * 그 자리에서 반증할 수 없어서, 경계 케이스를 저장소에 커밋하고(src/data/ruleBoundaryCases.ts)
  * 버튼 한 번으로 **지금 이 브라우저에서** 다시 돌리게 했습니다. 위 칸은 기획서 값,
  * 아래 칸은 방금 이 기기에서 잰 값입니다 — 섞지 않습니다.
@@ -38,7 +38,7 @@ export interface RuleEngineProofProps {
   className?: string;
 }
 
-/** 기획서 [그림 7] 실행 로그 — 옮겨 적은 값입니다(이 화면에서 잰 값이 아닙니다). */
+/** 기획서 검증 계단 ① 실행 로그 — 옮겨 적은 값입니다(이 화면에서 잰 값이 아닙니다). */
 const QUOTED_ROWS: readonly { k: string; v: string }[] = [
   { k: "경계 케이스", v: "30 / 30 전수 통과" },
   { k: "판정 지연 (p95)", v: "0.11 ms" },
@@ -155,7 +155,7 @@ export function RuleEngineProof({ className }: RuleEngineProofProps) {
       </p>
 
       <p className="mt-4 text-[0.7813rem] leading-[1.5] font-bold tracking-[0.04em] text-ink-muted">
-        기획서 [그림 7] 실행 로그 — 옮겨 적은 값
+        기획서 검증 계단 ① 실행 로그 — 옮겨 적은 값
       </p>
       <dl className="chim-hairline mt-1 border-y border-line">
         {QUOTED_ROWS.map((row) => (

@@ -32,7 +32,7 @@
  * 개발 서버에서는 서비스워커를 아예 등록하지 않으므로(SwRegister.tsx),
  * 치환되지 않은 플레이스홀더가 그대로 남아 있어도 문제가 없습니다.
  */
-const CACHE_NAME = "chimchak-__CHIMCHAK_BUILD__";
+const CACHE_NAME = "chimchak-32562527b4cb";
 
 /** 오프라인에서도 반드시 열려야 하는 화면·자산 목록입니다. */
 const PRECACHE_URLS = [

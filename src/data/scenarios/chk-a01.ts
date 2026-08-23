@@ -11,9 +11,23 @@
  * 상태 흐름: S0 진입 → S1 대화개시(T1/CUE-1) → S2 원인탐색(T2/CUE-2)
  *          → S3 안전확보·대체행동(T3/CUE-3) → S4 보고·기록(CUE-4~6)
  *          (초조도 5 도달 시 위기 엔딩 → 재시도 1회 무벌점)
+ *
+ * 판정 공정성 (8/6 감사 기준을 전 CUE로 소급)
+ *  - 모든 CUE에 **중립 미분류 분기**(…-n)를 두고 defaultBranchId를 그리로 돌렸습니다.
+ *    말이 신호에 걸리지 않았다는 것과 잘못 대응했다는 것은 다른 사실입니다. 감점 분기는
+ *    학습자가 **실제로 그 말을 했을 때**(패턴 일치·버튼 선택)만 열립니다.
+ *  - 특히 CUE-T1·CUE-T1B의 「문이 열림 → 위기 엔딩」(TA-d·TB-d)은 명시적 무행동에만 붙입니다.
+ *    미분류로 훈련이 끝나 버리면, 인식이 빗나간 사람에게 실패를 돌려주는 셈입니다.
  */
 
 import type { Scenario } from "@/types";
+
+/**
+ * 중립 미분류 분기의 코칭 문구 — 감점이 아니라 **다시 말할 기회**입니다.
+ * (CUE-T2 전화 구간만 문맥이 달라 따로 씁니다.)
+ */
+const UNCLEAR_COACHING =
+  "잘 전달되지 않았습니다. 한 문장으로 짧게 다시 말씀하시거나, 아래 버튼에서 골라 주세요.";
 
 /** CO-02 ⚑CF 인터럽트 고정 문구 — 노인복지법 제39조의9 금지행위 고지 + 대안 3개. */
 const CF_RESTRAINT_MESSAGE =
@@ -124,7 +138,8 @@ export const CHK_A01: Scenario = {
         id: "CUE-1",
         prompt: "첫 응답 — 무엇이라고 말하시겠습니까?",
         waitSec: 8,
-        defaultBranchId: "D1-d",
+        // 미분류(음성 인식 실패 포함)는 중립 분기로 받습니다 — 「회피」로 찍지 않습니다.
+        defaultBranchId: "D1-n",
         branches: [
           {
             id: "D1-c",
@@ -252,10 +267,12 @@ export const CHK_A01: Scenario = {
           },
           {
             id: "D1-d",
-            label: "회피·무응답",
+            label: "회피 — 모른다고 답함",
             // "음…"·"어…"는 정규화하면 한 글자만 남아 모든 발화를 삼키므로 두지 않습니다.
-            // (무응답은 defaultBranchId 로 이미 이 분기에 옵니다.)
+            // 이제 이 분기는 학습자가 **실제로 그렇게 말했을 때만** 열립니다
+            // (무응답·미분류는 아래 D1-n이 받습니다).
             patterns: ["글쎄요", "모르겠"],
+            fallbackOption: "글쎄요, 저도 잘 모르겠습니다",
             gaugeDelta: 1,
             aiReaction: "이 사람이 왜 안 비켜…",
             aiReactionNote: "혼잣말을 하십니다. 돌발 변수 T-1이 앞당겨 발동합니다.",
@@ -263,6 +280,19 @@ export const CHK_A01: Scenario = {
             coaching: "말이 막히면 짧게라도 감정을 먼저 되돌려 주세요.",
             docId: "DOC-GUIDE-001",
             triggerId: "T-1",
+            next: "T-1",
+          },
+          {
+            // 미분류(음성 인식 실패 포함) 전용 중립 분기 — 게이지 변동 0, 루브릭 반영 없음.
+            id: "D1-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "…응? 뭐라고요. 잘 안 들려요.",
+            aiReactionNote: "문고리를 잡은 채 이쪽으로 고개를 돌리십니다.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
+            docId: "DOC-GUIDE-001",
             next: "T-1",
           },
         ],
@@ -283,7 +313,8 @@ export const CHK_A01: Scenario = {
         id: "CUE-T1",
         prompt: "3초입니다. 지금 무엇을 하시겠습니까?",
         waitSec: 3,
-        defaultBranchId: "TA-d",
+        // 미분류로 문이 열리지는 않습니다 — 위기 엔딩(TA-d)은 명시적 무행동에만 붙입니다.
+        defaultBranchId: "TA-n",
         branches: [
           {
             id: "TA-a",
@@ -356,7 +387,21 @@ export const CHK_A01: Scenario = {
           {
             id: "TA-d",
             label: "대응 없음 — 문이 열림",
-            patterns: [],
+            // 「그대로 두겠다」는 판정은 학습자가 실제로 그렇게 답했을 때만 내립니다.
+            // (미분류가 여기로 떨어지면, 인식이 빗나간 사람에게 위기 엔딩을 돌려주게 됩니다.)
+            // "가만히"는 홑낱말로 두면 제지 발화("가만히 계세요")까지 삼키므로 구로 좁혔습니다.
+            patterns: [
+              "아무것도",
+              "아무 것도",
+              "아무 대응",
+              "지켜보",
+              "가만히 있",
+              "가만히 둡",
+              "그냥 두",
+              "그대로 둡",
+              "손 놓",
+            ],
+            fallbackOption: "아무것도 하지 않고 지켜봅니다",
             gaugeDelta: 2,
             aiReaction: "…다녀올게.",
             aiReactionNote: "도어락이 열리고 어르신이 현관 밖으로 나가십니다.",
@@ -367,6 +412,18 @@ export const CHK_A01: Scenario = {
             coaching: "문이 열리기 전에 대체 행동을 먼저 제안해 주세요.",
             docId: "DOC-GUIDE-001",
             next: "end:E-위기",
+          },
+          {
+            id: "TA-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "…뭐라고요? 안 들려요.",
+            aiReactionNote: "도어락 버튼 위에 손을 얹은 채 이쪽을 보십니다.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
+            docId: "DOC-GUIDE-001",
+            next: "T2",
           },
         ],
       },
@@ -497,8 +554,7 @@ export const CHK_A01: Scenario = {
             gaugeDelta: 0,
             aiReaction: "…뭐라고?",
             rubricHits: [],
-            coaching:
-              "잘 전달되지 않았습니다. 한 문장으로 짧게 다시 말씀하시거나, 아래 버튼에서 골라 주세요.",
+            coaching: UNCLEAR_COACHING,
             docId: "DOC-GUIDE-001",
             next: "T-2",
           },
@@ -646,7 +702,8 @@ export const CHK_A01: Scenario = {
         id: "CUE-T1B",
         prompt: "3초입니다. 지금 무엇을 하시겠습니까?",
         waitSec: 3,
-        defaultBranchId: "TB-d",
+        // CUE-T1과 같은 기준입니다 — 미분류로는 문이 열리지 않습니다.
+        defaultBranchId: "TB-n",
         branches: [
           {
             id: "TB-a",
@@ -713,7 +770,20 @@ export const CHK_A01: Scenario = {
           {
             id: "TB-d",
             label: "대응 없음 — 문이 열림",
-            patterns: [],
+            // TA-d와 같은 기준입니다 — 명시적 무행동에만 붙습니다.
+            patterns: [
+              "아무것도",
+              "아무 것도",
+              "아무 대응",
+              "지켜보",
+              "가만히 있",
+              "가만히 둡",
+              "그냥 두",
+              "그대로 둡",
+              "손 놓",
+              "통화를 계속",
+            ],
+            fallbackOption: "아무것도 하지 않고 지켜봅니다",
             gaugeDelta: 2,
             aiReaction: "…다녀올게.",
             aiReactionNote: "도어락이 열리고 어르신이 현관 밖으로 나가십니다.",
@@ -721,6 +791,18 @@ export const CHK_A01: Scenario = {
             coaching: "통화는 나중에 할 수 있지만, 문은 다시 닫을 수 없습니다.",
             docId: "DOC-GUIDE-001",
             next: "end:E-위기",
+          },
+          {
+            id: "TB-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "…뭐라고요? 다시 말해 봐요.",
+            aiReactionNote: "도어락 버튼에서 손을 떼지 않으십니다.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
+            docId: "DOC-GUIDE-001",
+            next: "T3",
           },
         ],
       },
@@ -736,7 +818,8 @@ export const CHK_A01: Scenario = {
         id: "CUE-3",
         prompt: "안전한 대체 행동으로 유도하세요.",
         waitSec: 8,
-        defaultBranchId: "D3-c",
+        // 미분류를 감점 분기(D3-c 그냥 기다림)에 매핑하지 않습니다 — 중립 분기로 받습니다.
+        defaultBranchId: "D3-n",
         branches: [
           {
             id: "D3-a",
@@ -794,7 +877,9 @@ export const CHK_A01: Scenario = {
           {
             id: "D3-c",
             label: "그냥 기다림",
-            patterns: ["기다리", "지켜보", "가만히 있", "아무 말 없이"],
+            // "기다리"는 "기다립니다"의 부분 문자열이 아닙니다(음절 블록) — 어간까지만 남깁니다.
+            // 기본값이 중립 분기로 옮겨 갔으므로, 버튼 문구도 여기서 직접 걸려야 합니다.
+            patterns: ["기다", "지켜보", "가만히 있", "아무 말 없이", "말없이"],
             fallbackOption: "말없이 옆에서 기다립니다",
             gaugeDelta: 0,
             aiReaction: "…뭐 해. 문 안 열어줘?",
@@ -829,6 +914,17 @@ export const CHK_A01: Scenario = {
             docId: "DOC-LAW-003",
             next: "T3",
           },
+          {
+            id: "D3-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "…네? 잘 못 들었어요.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
+            docId: "DOC-GUIDE-001",
+            next: "T4",
+          },
         ],
       },
     },
@@ -843,7 +939,8 @@ export const CHK_A01: Scenario = {
         id: "CUE-4",
         prompt: "지금 있었던 일을 기관에 보고한다고 생각하고, 말로 보고해 주세요.",
         waitSec: 8,
-        defaultBranchId: "R1-d",
+        // 상식적인 보고 문장이 신호에 걸리지 않았다고 「미보고」(R1-d)로 찍지 않습니다.
+        defaultBranchId: "R1-n",
         branches: [
           {
             id: "R1-a",
@@ -937,6 +1034,17 @@ export const CHK_A01: Scenario = {
             docId: "DOC-NOTI-002",
             next: "T5",
           },
+          {
+            id: "R1-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "말씀이 잘 전달되지 않았습니다.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
+            docId: "DOC-NOTI-002",
+            next: "T5",
+          },
         ],
       },
     },
@@ -949,7 +1057,7 @@ export const CHK_A01: Scenario = {
         id: "CUE-5",
         prompt: "다음에 같은 시간에 같은 일이 생기지 않으려면, 무엇을 바꿔볼 수 있을까요?",
         waitSec: 8,
-        defaultBranchId: "R2-c",
+        defaultBranchId: "R2-n",
         branches: [
           {
             id: "R2-a",
@@ -1001,6 +1109,17 @@ export const CHK_A01: Scenario = {
             docId: "DOC-GUIDE-001",
             next: "T6",
           },
+          {
+            id: "R2-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "말씀이 잘 전달되지 않았습니다.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
+            docId: "DOC-GUIDE-001",
+            next: "T6",
+          },
         ],
       },
     },
@@ -1013,7 +1132,7 @@ export const CHK_A01: Scenario = {
         id: "CUE-6",
         prompt: "오늘 내 대응에서 한 가지만 고친다면?",
         waitSec: 8,
-        defaultBranchId: "R3-b",
+        defaultBranchId: "R3-n",
         branches: [
           {
             id: "R3-a",
@@ -1047,8 +1166,11 @@ export const CHK_A01: Scenario = {
           {
             id: "R3-b",
             label: "성찰이 막연함",
+            // 기본값이 중립 분기로 옮겨 갔으므로 버튼 문구("잘 못한 것 같습니다")도
+            // 여기서 직접 걸려야 합니다 — "잘 못했"만으로는 활용형이 빠집니다.
             patterns: [
               "잘 못했",
+              "잘 못한",
               "어려웠",
               "모르겠",
               "그냥",
@@ -1063,6 +1185,16 @@ export const CHK_A01: Scenario = {
             aiReaction: "오늘 훈련을 마쳤습니다.",
             rubricHits: [{ itemId: "CL-05", score: 2 }],
             coaching: "무엇을 어떻게 바꿀지 한 가지만 문장으로 정해 보세요.",
+            next: "end:E-부분",
+          },
+          {
+            id: "R3-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "오늘 훈련을 마쳤습니다.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
             next: "end:E-부분",
           },
         ],
@@ -1103,11 +1235,15 @@ export const CHK_A01: Scenario = {
     },
     {
       id: "E-부분",
-      title: "안전은 확보했지만 원인은 남았습니다",
+      // 이 엔딩은 마지막 돌아보기 한 문장(CUE-6)으로만 갈립니다 — 원인을 확인하고도,
+      // 보고를 남기고도 여기로 옵니다. 그래서 **제목도 문구도** 세션 사실을 단정하지 않고
+      // 실제 갈림 사유만 적습니다(무엇이 충족되었는지는 아래 항목별 표시가 말합니다).
+      // 제목은 종료 화면 부제와 /history 회차 카드에 그대로 실리므로 같은 기준을 받습니다.
+      title: "현관 앞 장면을 돌아보는 한 문장이 남았습니다",
       verdict: "부분 충족",
       condition: "초조도 2~3, 현관 이탈했으나 원인 미확인",
       message:
-        "현관에서는 벗어났지만 원인을 확인하지 못했습니다. 원인을 확인하지 않으면 같은 상황이 30분 뒤 반복됩니다. 다음엔 이것부터 여쭤 보세요.",
+        "마무리 돌아보기에서 한 문장이 남았습니다. 오늘 무엇이 충족되었고 무엇이 남았는지는 아래에서 확인해 주세요.",
     },
     {
       id: "E-위기",

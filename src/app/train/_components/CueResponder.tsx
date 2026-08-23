@@ -10,7 +10,7 @@ import type { CueDef, Scenario, SessionState } from "@/types";
 import { WAIT_NO_AUTO_ADVANCE, WAIT_WORD, waitLevel } from "./constants";
 import { RecordDraftPreview } from "./RecordDraftPreview";
 import { RuleDemoSheet } from "./RuleDemoSheet";
-import { ruleDemoExamplesFor, RULE_DEMO_TITLE, type RuleDemoExample } from "./ruleDemoExamples";
+import type { RuleDemoExample } from "./ruleDemoExamples";
 import { isReportCue } from "./sessionMachine";
 
 export interface CueResponderProps {
@@ -28,6 +28,16 @@ export interface CueResponderProps {
   chosenAlternative?: string;
   /** 컴포저 맨 위에 얹을 한 줄 (「새로 말씀하셨어요 ↑」 앵커) */
   anchor?: ReactNode;
+  /**
+   * 지금 CUE에서 발동하는 규칙 엔진 시연 예시 — 시트 내용입니다.
+   *
+   * 여는 버튼은 **컴포저 밖**(대화 로그 아래)에 있습니다. 도크 안에 두었을 때는
+   * 제안 버튼 셋보다 아래로 밀려 어느 글자 크기에서도 접힘선 밑에 숨었습니다.
+   */
+  demoExamples: RuleDemoExample[];
+  /** 시연 시트가 떠 있는지 (여는 것은 부모, 닫는 것은 이 컴포넌트도 합니다) */
+  demoOpen: boolean;
+  onDemoClose: () => void;
   onSubmit: (input: { utterance?: string; branchId?: string; viaButton: boolean }) => void;
   /** 말하는 중(시안 4b)일 때 본문을 흐리게 하려고 부모에게 알립니다 */
   onListeningChange?: (listening: boolean) => void;
@@ -106,6 +116,11 @@ function useCountdown(seconds: number, resetKey: string): number {
  *  ③ 직접 입력 pill → 누르면 확장되는 입력창
  *
  * 도크는 화면 아래에 붙어 있고, 대화 본문은 그 위에서 따로 스크롤합니다.
+ *
+ * 도크 안은 **위·가운데·아래 세 켜**입니다. CUE 지시문과 여유는 위 켜에 붙박이로 서고,
+ * 가운데 켜(제안 버튼·입력창)만 상한을 넘는 만큼 스크롤하며, 마이크·보내기는 아래 켜에 남습니다.
+ * 예전에는 지시문·여유·시연 진입까지 전부 가운데 켜에 있어서, 정작 눌러야 하는 제안 버튼
+ * 셋째 개가 10.8px만 남고 잘렸습니다(375×812 실측 clientH 246 / scrollH 349).
  */
 export function CueResponder({
   scenario,
@@ -115,6 +130,9 @@ export function CueResponder({
   micSupported,
   chosenAlternative,
   anchor,
+  demoExamples,
+  demoOpen,
+  onDemoClose,
   onSubmit,
   onListeningChange,
 }: CueResponderProps) {
@@ -126,8 +144,6 @@ export function CueResponder({
   const [micPermission, setMicPermission] = useState<MicPermission>("unknown");
   /** 규칙 엔진 예시 문장을 방금 채워 넣었는지 (전송은 사용자가 직접 하십니다) */
   const [filledExampleId, setFilledExampleId] = useState<string | null>(null);
-  /** 규칙 엔진 시연 시트 — 도크 밖 바텀시트입니다(도크를 부풀리지 않습니다) */
-  const [demoOpen, setDemoOpen] = useState(false);
   /** 글자 크기 — 도크 상한을 여기에 맞춰 내립니다(로그 면적 역전 방지) */
   const fontScale = useFontScale();
   const recognizerRef = useRef<Recognizer | null>(null);
@@ -150,11 +166,6 @@ export function CueResponder({
 
   const options = useMemo(() => cueOptions(scenario, session), [scenario, session]);
   const reportMode = useMemo(() => isReportCue(scenario, cue), [scenario, cue]);
-  /** 지금 화면에서 실제로 발동하는 규칙 예시만 남깁니다 (유형·CUE 게이트 반영) */
-  const demoExamples = useMemo(
-    () => ruleDemoExamplesFor(scenario.type, cue.id),
-    [scenario.type, cue.id],
-  );
   const filledExample = demoExamples.find((example) => example.id === filledExampleId);
   const resetKey = `${cue.id}-${attempt}`;
   const secondsLeft = useCountdown(cue.waitSec, resetKey);
@@ -166,6 +177,8 @@ export function CueResponder({
   );
   /** 입력창이 열려 있는 상태 — 인식 결과가 들어오면 저절로 열립니다(전송 전 확인). */
   const composing = expanded || text.trim().length > 0;
+  /** 보기 목록이 스냅해도 되는 상태 — 목록 안에 보기 말고 다른 것이 없을 때뿐입니다. */
+  const listSnaps = !composing && !micIntroOpen && notice === null;
 
   useEffect(() => {
     setText("");
@@ -174,7 +187,6 @@ export function CueResponder({
     setExpanded(false);
     setNotice(null);
     setFilledExampleId(null);
-    setDemoOpen(false);
     // 마이크 안내는 누르신 그 턴에서만 유효합니다 — 턴이 넘어가면 도크를 다시 비웁니다.
     setMicIntroOpen(false);
   }, [resetKey]);
@@ -446,7 +458,7 @@ export function CueResponder({
     (example: RuleDemoExample) => {
       stopListening();
       setNotice(null);
-      setDemoOpen(false);
+      onDemoClose();
       setExpanded(true);
       setText(example.sentence);
       setFilledExampleId(example.id);
@@ -458,7 +470,7 @@ export function CueResponder({
         node.setSelectionRange(caret, caret);
       });
     },
-    [stopListening],
+    [onDemoClose, stopListening],
   );
 
   const openInput = useCallback(() => {
@@ -545,8 +557,11 @@ export function CueResponder({
             />
           </div>
 
+          {/* 손을 떼면 **전송이 아니라 확인**입니다 — 실제 전송은 「이 내용으로 답하기」를
+              누르셔야 일어납니다. 버튼 aria 라벨·바로 아래 한 줄과 같은 사실을 적습니다
+              (셋 중 하나만 「전송돼요」라고 적혀 있으면 손을 떼기가 무서워집니다). */}
           <p className="text-center text-[0.8438rem] leading-[1.45] font-semibold text-ink-soft">
-            손을 떼면 전송돼요
+            손을 떼면 확인 화면으로 넘어가요
           </p>
           <p className="mt-1 text-center text-[0.7813rem] leading-[1.45] text-tertiary">
             잘못 들렸다면 보내기 전에 고칠 수 있어요
@@ -569,48 +584,60 @@ export function CueResponder({
       )}
     >
       {anchor && <div className="flex-none">{anchor}</div>}
-      {/* ① 스크롤되는 목록 — 지시문·여유·제안 버튼·시연 진입이 여기 있습니다.
-          상한을 넘는 만큼은 여기서만 스크롤되고, 마이크·직접 입력 행은 아래 ②에 따로 섭니다.
+
+      {/* ① 붙박이 머리 — CUE 지시문과 여유. **스크롤 밖**(`flex-none`)입니다.
+          답해야 하는 질문이 답하는 도중에 위로 밀려 사라지지 않고, 스크롤이 필요한 만큼은
+          아래 ②(제안 버튼·입력창)가 전부 가져갑니다. 예전에는 이 셋이 한 상자에 있어
+          지시문 76px이 목록 몫을 먼저 떼어 갔습니다. */}
+      <div className="mx-auto w-full max-w-[624px] flex-none px-[18px] pt-3 md:px-8">
+        {/* 지시문은 코어 콘텐츠입니다 — 17px w700 (§3).
+            턴이 넘어가면 초점이 여기로 옵니다(tabIndex={-1}). */}
+        <h2
+          ref={promptRef}
+          tabIndex={-1}
+          className="text-[1.0625rem] leading-[1.45] font-bold text-ink"
+        >
+          {cue.prompt}
+        </h2>
+        {/* 여유 표시 — 숫자 초읽기를 걷어냈습니다.
+            「여유 1초」까지 줄어드는 숫자는 벌점을 겁내는 분을 그 자리에서 얼어붙게 만듭니다
+            (평가 초보 m4). 게이지와 같은 원칙으로 띠 하나와 상태어 한 낱말만 남기고,
+            「자동으로 넘어가지 않습니다」를 그 옆 같은 자리에 붙였습니다. */}
+        <div className="mt-1 flex items-center gap-2">
+          <span
+            aria-hidden
+            className="h-[3px] w-[56px] flex-none overflow-hidden rounded-[2px] bg-line"
+          >
+            <span
+              className="block h-full rounded-[2px] bg-brand-600 transition-[width] duration-1000 ease-linear"
+              style={{ width: `${waitLeftPercent}%` }}
+            />
+          </span>
+          <span className="min-w-0 text-[0.8438rem] leading-[1.45] font-semibold text-ink-soft">
+            {WAIT_WORD[waitState]}
+          </span>
+        </div>
+        <p className="mt-0.5 text-[0.8438rem] leading-[1.45] text-ink-soft">
+          {WAIT_NO_AUTO_ADVANCE}
+        </p>
+      </div>
+
+      {/* ② 스크롤되는 목록 — 제안 버튼과 입력창이 여기 있습니다.
+          상한을 넘는 만큼은 여기서만 스크롤되고, 마이크·직접 입력 행은 아래 ③에 따로 섭니다.
           예전에는 이 상자가 도크의 전부여서 「크게」·「아주 크게」에서 마이크와 직접 입력이
-          접힘선 아래로 내려갔습니다(18px 마이크 bottom 855 > 도크 844 · 20px 152px 감춤 — 평가 UI/UX m1). */}
+          접힘선 아래로 내려갔습니다(18px 마이크 bottom 855 > 도크 844 · 20px 152px 감춤 — 평가 UI/UX m1).
+
+          스냅은 **보기만 늘어서 있는 상태에서만** 겁니다. 입력창·마이크 안내·오류 안내가 열려 있을 때
+          걸면, 그것들을 화면 안으로 넣으려고 우리가 옮긴 스크롤을 스냅이 도로 제안 버튼 쪽으로
+          끌어당깁니다. `scroll-pt`는 스냅이 위쪽 여백을 먹지 않게 하는 값입니다. */}
       <div
         ref={listRef}
-        className="mx-auto min-h-0 w-full max-w-[624px] flex-1 overflow-y-auto overscroll-contain px-[18px] pt-3.5 pb-2 md:px-8"
+        className={cx(
+          "mx-auto min-h-0 w-full max-w-[624px] flex-1 overflow-y-auto overscroll-contain px-[18px] pt-2.5 pb-1.5 md:px-8",
+          listSnaps && "snap-y snap-proximity scroll-pt-2.5",
+        )}
       >
         <div ref={listInnerRef}>
-          <div className="mb-3">
-            {/* 지시문은 코어 콘텐츠입니다 — 17px w700 (§3).
-                턴이 넘어가면 초점이 여기로 옵니다(tabIndex={-1}). */}
-            <h2
-              ref={promptRef}
-              tabIndex={-1}
-              className="text-[1.0625rem] leading-[1.45] font-bold text-ink"
-            >
-              {cue.prompt}
-            </h2>
-            {/* 여유 표시 — 숫자 초읽기를 걷어냈습니다.
-                「여유 1초」까지 줄어드는 숫자는 벌점을 겁내는 분을 그 자리에서 얼어붙게 만듭니다
-                (평가 초보 m4). 게이지와 같은 원칙으로 띠 하나와 상태어 한 낱말만 남기고,
-                「자동으로 넘어가지 않습니다」를 그 옆 같은 자리에 붙였습니다. */}
-            <div className="mt-1.5 flex items-center gap-2">
-              <span
-                aria-hidden
-                className="h-[3px] w-[56px] flex-none overflow-hidden rounded-[2px] bg-line"
-              >
-                <span
-                  className="block h-full rounded-[2px] bg-brand-600 transition-[width] duration-1000 ease-linear"
-                  style={{ width: `${waitLeftPercent}%` }}
-                />
-              </span>
-              <span className="min-w-0 text-[0.8438rem] leading-[1.45] font-semibold text-ink-soft">
-                {WAIT_WORD[waitState]}
-              </span>
-            </div>
-            <p className="mt-1 text-[0.8438rem] leading-[1.45] text-ink-soft">
-              {WAIT_NO_AUTO_ADVANCE}
-            </p>
-          </div>
-
           {/* 마이크 첫 사용 안내 — 세션 진입이 아니라 **마이크 버튼을 처음 누르시는 순간**에 열립니다.
               열리면 도크가 상한에 걸려 있어도 이 카드가 보이도록 스스로 화면 안으로 들어옵니다.
               읽어야 하는 문장이라 15px 아래로 내리지 않습니다(가이드 §7-8). */}
@@ -644,31 +671,34 @@ export function CueResponder({
             </p>
           )}
 
-          {/* ② 제안 버튼 — 항상 노출되는 폴백입니다.
+          {/* 제안 버튼 — 항상 노출되는 폴백입니다.
               ⚑CF에서 고르신 대안이 있으면 **맨 위에 같은 문법으로** 다시 세웁니다 —
               대안을 골라 놓고 그 문장을 버튼으로 다시 못 고르면 「버튼만으로 끝까지」가 깨집니다. */}
           {/* 제안 버튼 라벨은 17px입니다 — 버튼만으로 완주하시는 분이 4분 내내 읽고 **판단해서 누르는**
               유일한 텍스트인데, 읽기만 하는 대사·지시문(17px)보다 작았습니다(평가 초보 m3 실측 15px).
-              높아지는 만큼은 위 목록이 스크롤로 흡수하고, 마이크·직접 입력 행은 아래 고정 행에 있습니다. */}
+              세로 여백은 min-h 48px이 지키므로 한 줄짜리 보기의 크기는 그대로이고,
+              두 줄로 넘어가는 긴 보기만 4px씩 낮아집니다.
+              `snap-start`는 목록이 끝내 잘릴 때 **잘린 보기가 sliver로 남지 않게** 하는 장치입니다 —
+              10.8px만 남아 테두리처럼 읽히던 자리(375×812 실측)를 없앱니다. */}
           {(options.length > 0 || chosenAlternative) && (
-            <ul className="mb-2.5 flex flex-col gap-[8px]">
+            <ul className="mb-2 flex flex-col gap-[6px]">
               {chosenAlternative && (
-                <li key="cf-alternative">
+                <li key="cf-alternative" className="snap-start">
                   <button
                     type="button"
                     onClick={() => sendAlternative(chosenAlternative)}
-                    className="min-h-[48px] w-full rounded-[14px] border border-line-strong bg-white px-[15px] py-2.5 text-left text-[1.0625rem] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
+                    className="min-h-[48px] w-full rounded-[14px] border border-line-strong bg-white px-[15px] py-2 text-left text-[1.0625rem] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
                   >
                     {chosenAlternative}
                   </button>
                 </li>
               )}
               {options.map((branch) => (
-                <li key={branch.id}>
+                <li key={branch.id} className="snap-start">
                   <button
                     type="button"
                     onClick={() => pick(branch.id)}
-                    className="min-h-[48px] w-full rounded-[14px] border border-line-strong bg-white px-[15px] py-2.5 text-left text-[1.0625rem] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
+                    className="min-h-[48px] w-full rounded-[14px] border border-line-strong bg-white px-[15px] py-2 text-left text-[1.0625rem] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
                   >
                     {branch.fallbackOption}
                   </button>
@@ -677,8 +707,8 @@ export function CueResponder({
             </ul>
           )}
 
-          {/* ③ 직접 입력 겸 인식 결과 확인 — 보내기 전에 고치실 수 있습니다.
-              보내기 버튼과 마이크는 아래 고정 행(②)에 있습니다. */}
+          {/* 직접 입력 겸 인식 결과 확인 — 보내기 전에 고치실 수 있습니다.
+              보내기 버튼과 마이크는 아래 고정 행(③)에 있습니다. */}
           {composing && (
             <div>
               <label
@@ -749,20 +779,9 @@ export function CueResponder({
             </p>
           )}
 
-          {/* 규칙 엔진 시연 — 도크에는 진입 한 줄만 두고 내용은 바텀시트로 뺐습니다. */}
-          {demoExamples.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setDemoOpen(true)}
-              aria-haspopup="dialog"
-              className="mt-2 flex min-h-[48px] w-full items-center justify-between gap-3 rounded-field px-1 text-left text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
-            >
-              <span>{RULE_DEMO_TITLE}</span>
-              <span aria-hidden className="flex-none text-[0.8438rem] text-ink-ghost">
-                ›
-              </span>
-            </button>
-          )}
+          {/* 규칙 엔진 시연을 여는 행은 이 목록에 없습니다 — 대화 로그 아래(TrainSession)에 있습니다.
+              도크 안에서는 제안 버튼 셋보다 아래라 어느 글자 크기에서도 접힘선 밑이었습니다(노출 0px).
+              시트는 body로 포털되므로 여는 자리와 상관없이 같은 자리에 뜹니다. */}
 
           <p role="status" className="sr-only">
             {filledExample
@@ -781,14 +800,17 @@ export function CueResponder({
         </div>
       </div>
 
-      {/* ② 항상 보이는 하단 행 — 스크롤 밖(`flex-none`)이라 16/18/20px 어느 설정에서도
+      {/* ③ 항상 보이는 하단 행 — 스크롤 밖(`flex-none`)이라 16/18/20px 어느 설정에서도
           마이크와 직접 입력이 도크 안에 그대로 남습니다.
           위 목록에 못 보신 것이 남아 있으면 헤어라인 아래 한 줄로 알려 드립니다
           (그림자·그라데이션은 가이드가 금지합니다 — §7-4·§3). */}
       <div className="mx-auto w-full max-w-[624px] flex-none border-t border-line px-[18px] pt-2.5 pb-[calc(28px_+_var(--chim-safe-b))] md:px-8">
+        {/* 예전에는 `aria-hidden`이었습니다 — 목록이 잘렸다는 사실이 화면을 보는 분에게만 갔습니다.
+            보기 목록은 스크린리더에서도 잘려 있으므로(스크롤 상자 안의 항목) 같은 사실을 같이 전합니다.
+            `aria-live`는 걸지 않습니다 — 스크롤할 때마다 읽히면 안내가 아니라 소음이 됩니다. */}
         {moreBelow && (
-          <p aria-hidden className="mb-2 text-[0.8438rem] leading-[1.45] font-semibold text-ink-muted">
-            아래로 더 있어요
+          <p className="mb-2 text-[0.8438rem] leading-[1.45] font-semibold text-ink-muted">
+            보기가 아래로 더 있어요
           </p>
         )}
 
@@ -837,7 +859,7 @@ export function CueResponder({
           prompt={cue.prompt}
           examples={demoExamples}
           onFill={fillExample}
-          onClose={() => setDemoOpen(false)}
+          onClose={onDemoClose}
         />
       )}
     </div>

@@ -44,6 +44,15 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+# 표준 출력을 UTF-8로 고정한다.
+# 윈도우 콘솔의 기본 코드 페이지(cp949)에서는 보고 문구의 「▲」·「⚑」 같은 글자가
+# UnicodeEncodeError로 터져서 --dry-run이 합성도 못 해 보고 끝난다.
+# 인코딩만 바꾸며, 합성 로직·출력 내용은 건드리지 않는다.
+for _stream in (sys.stdout, sys.stderr):
+    reconfigure = getattr(_stream, "reconfigure", None)
+    if reconfigure is not None:
+        reconfigure(encoding="utf-8", errors="replace")
+
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPT_DIR = Path(__file__).resolve().parent
 SCENARIO_DIR = ROOT / "src" / "data" / "scenarios"

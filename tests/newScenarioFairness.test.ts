@@ -1,5 +1,5 @@
 /**
- * 신작 2종(CHK-A02·CHK-C02)의 판정 공정성.
+ * 판정 공정성 — 신작 2종(CHK-A02·CHK-C02)에서 시작해 **열린 5종 전부**로 소급했다.
  *
  * 감사에서 나온 한 문장으로 요약되는 결함을 고정한다 — **옳게 말한 사람이 벌받는 구조**.
  * 세 갈래였다.
@@ -10,11 +10,18 @@
  *
  * 여기서 고정하는 원칙: **감점은 학습자가 실제로 그 말을 했을 때만** 붙는다.
  * 반대편도 같이 고정한다 — 게이트가 새어 다른 시나리오·다른 구간의 ⚑CF까지 꺼지면 안 된다.
+ *
+ * 소급 대상(감사 뒤에 발견된 것)
+ *  - A01 CUE-T1의 기본값이 「대응 없음 — 문이 열림」(게이지 +2 · 위기 엔딩)이었다.
+ *    말이 닿지 않은 사람에게 훈련 종료를 돌려주던 자리다.
+ *  - B02는 중립 분기가 한 개도 없어, CUE-4에서 인식이 빗나가면 네 항목이 한꺼번에 1점이었다.
+ *  - 엔딩 문구가 세션 사실을 단정했다 — 원인을 확인하고도 "확인하지 못했습니다"가 떴다.
  */
 
 import { describe, expect, it } from "vitest";
 import type { Scenario, SessionState } from "@/types";
-import { CHK_A01, CHK_A02, CHK_C02 } from "@/data/scenarios";
+import { CHK_A01, CHK_A02, CHK_B02, CHK_C02, SCENARIOS } from "@/data/scenarios";
+import { RUBRIC } from "@/data/rubric";
 import { classifyInput } from "@/engine/classify";
 import { checkCritical } from "@/engine/rules";
 import {
@@ -23,6 +30,8 @@ import {
   buildRecord,
   currentCue,
   currentTurn,
+  protocolIdOf,
+  resumeFromProtocol,
   startSession,
   submitResponse,
   type SubmitInput,
@@ -30,11 +39,22 @@ import {
 
 /* ── 도우미 ────────────────────────────────────────────── */
 
-/** CUE가 없는 자동 진행 턴(단서 턴)을 지나 다음 CUE까지 밀어 준다 — 화면과 같은 순서다. */
+/**
+ * CUE가 없는 자동 진행 턴(단서 턴)을 지나 다음 CUE까지 밀어 준다 — 화면과 같은 순서다.
+ * L3 프로토콜 재생 구간(B02)은 화면이 재생을 마친 뒤 다리 턴의 autoNext로 돌아오므로,
+ * 여기서도 같은 규약으로 이어 붙인다.
+ */
 function step(s: Scenario, state: SessionState, input: SubmitInput) {
   const result = submitResponse(s, state, input);
   let next = result.state;
   for (let guard = 0; guard < 8; guard += 1) {
+    if (next.status === "protocol") {
+      const bridgeId = protocolIdOf(next);
+      const bridge = bridgeId ? s.turns.find((t) => t.id === bridgeId) : undefined;
+      if (!bridge?.autoNext) break;
+      next = resumeFromProtocol(s, next, bridge.autoNext);
+      continue;
+    }
     if (next.status !== "running") break;
     const turn = currentTurn(s, next);
     if (!turn || turn.cue) break;
@@ -189,7 +209,8 @@ describe("보고 단계의 상식적인 문장이 「미보고」로 찍히지 �
 });
 
 describe("모든 CUE가 중립 미분류 분기를 기본값으로 둔다", () => {
-  for (const scenario of [CHK_A02, CHK_C02]) {
+  // 열린 5종 전부에 적용한다 — 새 시나리오를 얹는 순간 이 규칙이 자동으로 요구된다.
+  for (const scenario of SCENARIOS) {
     for (const { turnId, cue } of allCues(scenario)) {
       it(`${scenario.id} ${turnId} ${cue.id}`, () => {
         const fallback = cue.branches.find((b) => b.id === cue.defaultBranchId);
@@ -207,7 +228,7 @@ describe("모든 CUE가 중립 미분류 분기를 기본값으로 둔다", () =
   }
 
   it("알아듣지 못한 발화는 어느 CUE에서도 게이지를 올리지 않는다", () => {
-    for (const scenario of [CHK_A02, CHK_C02]) {
+    for (const scenario of SCENARIOS) {
       for (const { cue } of allCues(scenario)) {
         // 정규화하면 2글자 미만이 되는 잡음 — 분류기가 기본 분기로 보낸다.
         const branch = classifyInput(cue, { utterance: "음…" }).branch;
@@ -411,8 +432,9 @@ describe("워크스루 4경로", () => {
     expect(state.endingId).toBe("E-결렬");
   });
 
-  it("두 시나리오 모두 미분류만으로도 끝까지 완주된다 (감점 없이)", () => {
-    for (const scenario of [CHK_A02, CHK_C02]) {
+  it.each(SCENARIOS.map((s) => [s.id, s] as const))(
+    "%s — 미분류만으로도 끝까지 완주된다 (감점 없이)",
+    (_id, scenario) => {
       let state = startSession(scenario);
       for (let guard = 0; guard < 20 && state.status === "running"; guard += 1) {
         const result = step(scenario, state, { utterance: "음…", viaButton: false });
@@ -423,6 +445,209 @@ describe("워크스루 4경로", () => {
       expect(state.gauge).toBe(scenario.gauge.start);
       expect(state.cfCount).toBe(0);
       expect(Object.keys(state.scores)).toEqual([]);
+    },
+  );
+});
+
+/* ── ⑦ A01 문고리 구간 — 미분류로 문이 열리지 않는다 ───── */
+
+describe("A01 문고리 구간(T-1)", () => {
+  function atDoor() {
+    // D1-a(사실 반박)로 들어가면 돌발 변수 T-1이 발동한다.
+    const walked = walk(CHK_A01, ["D1-a"]);
+    expect(walked.state.currentTurnId).toBe("T-1");
+    return walked.state;
+  }
+
+  it("미분류는 위기 엔딩으로 끝나지 않는다", () => {
+    // 소급 전에는 이 자리의 기본값이 TA-d(게이지 +2 · end:E-위기)였다.
+    const result = step(CHK_A01, atDoor(), { utterance: "어… 그게요", viaButton: false });
+    expect(result.feedback.branchId).toBe("TA-n");
+    expect(result.state.status).toBe("running");
+    expect(result.state.endingId).toBeUndefined();
+    expect(result.state.currentTurnId).toBe("T2");
+    expect(result.feedback.rubricHits).toEqual([]);
+    expect(result.state.gauge).toBe(CHK_A01.gauge.start + 2); // D1-a의 +2만 남는다
+  });
+
+  it("명시적 무행동을 골랐을 때만 문이 열린다", () => {
+    const result = step(CHK_A01, atDoor(), {
+      utterance: "아무것도 하지 않고 지켜봅니다",
+      viaButton: false,
+    });
+    expect(result.feedback.branchId).toBe("TA-d");
+    expect(result.state.status).toBe("ended");
+    expect(result.state.endingId).toBe("E-위기");
+  });
+});
+
+/* ── ⑧ B02 — 응급 구간에서 인식이 빗나가도 낙인되지 않는다 ── */
+
+describe("B02 응급 구간의 미분류", () => {
+  it("CUE-1의 미분류가 「관찰만 하고 대기」로 기록되지 않는다", () => {
+    const result = step(CHK_B02, startSession(CHK_B02), { utterance: "음…", viaButton: false });
+    expect(result.feedback.branchId).toBe("D1-n");
+    expect(result.feedback.rubricHits).toEqual([]);
+    // 관찰 지연으로 돌발 변수(T-1)가 앞당겨지지도 않는다.
+    expect(result.state.currentTurnId).toBe("T2");
+  });
+
+  it("상황실 응답(CUE-4)의 미분류가 네 항목을 한꺼번에 1점으로 만들지 않는다", () => {
+    const walked = walk(CHK_B02, ["D1-a", "D2-a", "D3-a"]);
+    expect(walked.state.currentTurnId).toBe("T4");
+    const result = step(CHK_B02, walked.state, { utterance: "음…", viaButton: false });
+    expect(result.feedback.branchId).toBe("Q-n");
+    expect(result.feedback.rubricHits).toEqual([]);
+  });
+
+  it("정말로 그렇게 답했을 때만 감점 분기가 붙는다", () => {
+    expect(classifyInput(cueOf(CHK_B02, "T1"), { utterance: "일단 지켜봅니다" }).branch.id).toBe("D1-b");
+    expect(
+      classifyInput(cueOf(CHK_B02, "T5"), { utterance: "따로 드릴 말씀이 없습니다" }).branch.id,
+    ).toBe("S-d");
+    expect(
+      classifyInput(cueOf(CHK_B02, "T6"), { utterance: "병원에서 알아서 처리할 테니 따로 남기지 않겠습니다" })
+        .branch.id,
+    ).toBe("M-c");
+  });
+});
+
+/* ── ⑨ CO-03 「미신고 ⚑」가 실제로 열린다 ─────────────── */
+
+describe("B02 CUE-3의 신고 거부 ⚑CF", () => {
+  const cue = cueOf(CHK_B02, "T3");
+
+  it("루브릭 앵커가 가리키는 분기가 데이터에 있다", () => {
+    const branch = cue.branches.find((b) => b.id === "D3-d");
+    expect(branch?.criticalFail).toBe(true);
+    expect(branch?.rubricHits).toEqual([{ itemId: "CO-03", score: 1 }]);
+    expect(branch?.cfMessage).toBeTruthy();
+    expect(branch?.cfAlternatives?.length).toBe(3);
+    // CO-03의 근거 문서는 루브릭과 같은 것을 쓴다.
+    expect(branch?.docId).toBe(RUBRIC.find((item) => item.id === "CO-03")?.docId);
+  });
+
+  it("신고하지 않겠다고 말하면 그 자리에서 멈춘다", () => {
+    const walked = walk(CHK_B02, ["D1-a", "D2-a"]);
+    expect(walked.state.currentTurnId).toBe("T3");
+    const result = step(CHK_B02, walked.state, {
+      utterance: "119까지는 부르지 않고 조금 더 지켜보겠습니다",
+      viaButton: false,
+    });
+    expect(result.interrupted).toBe(true);
+    expect(result.feedback.criticalFail).toBe(true);
+    // 규칙 사전이 아니라 이 데이터 분기가 멈춘 것이어야 화면에 CO-03 문구·대안이 뜬다.
+    expect(result.feedback.branchId).toBe("D3-d");
+    expect(result.feedback.rubricHits).toEqual([{ itemId: "CO-03", score: 1 }]);
+    expect(result.state.cfCount).toBe(1);
+    const resumed = advanceAfterCF(CHK_B02, result.state);
+    expect(resumed.currentTurnId).toBe("T3");
+  });
+
+  it("신고하겠다는 말은 ⚑CF에 걸리지 않는다", () => {
+    for (const utterance of [
+      "119! 지금 신고하겠습니다. 소리를 못 내십니다.",
+      "지금 119를 부르겠습니다",
+      "119를 안 부르면 안 됩니다, 바로 신고하겠습니다",
+    ]) {
+      const branch = classifyInput(cue, { utterance }).branch;
+      expect(branch.criticalFail ?? false).toBe(false);
+      expect(branch.id).toBe("D3-a");
     }
+  });
+});
+
+/* ── ⑩ 근거 칩이 루브릭 근거와 어긋나지 않는다 ──────────── */
+
+describe("B02의 CO-01 ⚑CF 근거 문서", () => {
+  const cfBranches = CHK_B02.turns
+    .flatMap((turn) => turn.cue?.branches ?? [])
+    .filter((branch) => branch.criticalFail);
+
+  it("무면허 의료행위 경계 분기는 루브릭 CO-01과 같은 문서를 인용한다", () => {
+    const co01Doc = RUBRIC.find((item) => item.id === "CO-01")?.docId;
+    for (const id of ["D1-d", "D3-c"]) {
+      expect(cfBranches.find((b) => b.id === id)?.docId, id).toBe(co01Doc);
+    }
+  });
+
+  it("관찰·체위 오류 분기는 응급처치 안내 문서를 그대로 쓴다", () => {
+    for (const id of ["D1-c", "D1-e"]) {
+      expect(cfBranches.find((b) => b.id === id)?.docId, id).toBe("DOC-GUIDE-004");
+    }
+  });
+
+  it("선언한 sourceDocs가 전부 실제로 인용된다", () => {
+    const cited = new Set<string>();
+    for (const turn of CHK_B02.turns) {
+      for (const branch of turn.cue?.branches ?? []) {
+        if (branch.docId) cited.add(branch.docId);
+      }
+    }
+    expect(CHK_B02.sourceDocs.filter((id) => !cited.has(id))).toEqual([]);
+  });
+});
+
+/* ── ⑪ 엔딩 문구가 세션 사실을 단정하지 않는다 ─────────── */
+
+describe("부분 충족 엔딩 문구", () => {
+  // 이 엔딩은 마지막 돌아보기 CUE 하나로 갈린다. 원인을 확인하고도·즉시 신고하고도·기록을
+  // 남기고도 뜨므로, 특정 실패를 단정하는 문장이 들어가면 세션 사실과 어긋난다.
+  const ASSERTIONS = [
+    "확인하지 못했습니다",
+    "남지 않았습니다",
+    "먼저 119를 눌러",
+    "기록으로 남겨야 남습니다",
+    "원인을 확인하지",
+  ];
+
+  function partialEndings(s: Scenario) {
+    return s.endings.filter((e) => e.verdict === "부분 충족");
+  }
+
+  it.each(SCENARIOS.map((s) => [s.id, s] as const))("%s", (_id, scenario) => {
+    const partial = partialEndings(scenario);
+    expect(partial.length).toBeGreaterThan(0);
+    for (const ending of partial) {
+      expect(ending.message).toContain("돌아보기");
+      for (const phrase of ASSERTIONS) {
+        expect(ending.message, `${scenario.id} ${ending.id}`).not.toContain(phrase);
+      }
+    }
+  });
+
+  // 제목에도 같은 기준을 건다. message만 고쳐 두면 제목이 반대말을 하는데, 제목은 종료 화면
+  // 부제(EndingPanel)와 /history 회차 카드에 그대로 실리므로 화면에서 정면으로 어긋난다.
+  it.each(SCENARIOS.map((s) => [s.id, s] as const))("%s — 제목", (_id, scenario) => {
+    for (const ending of partialEndings(scenario)) {
+      const where = `${scenario.id} ${ending.id}`;
+      // 갈림 사유(마지막 한 문장)를 적는다 — 이 엔딩이 실제로 무엇으로 갈렸는지가 제목이다.
+      expect(ending.title, where).toContain("한 문장");
+      // 「A는 했지만 B는 못했다」 꼴을 막는다. 다섯 종의 옛 제목이 전부 이 구문으로
+      // 세션이 보장하지 않는 실패(원인·시간·기록)를 단정하고 있었다.
+      expect(ending.title, where).not.toContain("지만");
+      for (const phrase of ASSERTIONS) {
+        expect(ending.title, where).not.toContain(phrase);
+      }
+      // 판정 낱말은 화면에 세우지 않는다(EndingPanel이 원·문장으로만 알린다).
+      for (const verdict of ["부분 충족", "충족", "재시도", "재훈련"]) {
+        expect(ending.title, where).not.toContain(verdict);
+      }
+    }
+  });
+
+  // 제목이 세션 사실을 단정하지 않아도 되는 근거 — 이 엔딩으로 오는 길이 마지막 CUE 하나뿐이다.
+  // 중간 구간에서도 올 수 있게 되는 순간 「한 문장이 남았습니다」가 거짓이 되므로 여기서 막는다.
+  it.each(SCENARIOS.map((s) => [s.id, s] as const))("%s — 마지막 CUE에서만 온다", (_id, scenario) => {
+    const partialIds = new Set(partialEndings(scenario).map((e) => `end:${e.id}`));
+    const lastTurnId = scenario.turns[scenario.turns.length - 1]?.id;
+    for (const turn of scenario.turns) {
+      for (const branch of turn.cue?.branches ?? []) {
+        if (!partialIds.has(branch.next ?? "")) continue;
+        expect(turn.id, `${scenario.id} ${turn.id} ${branch.id}`).toBe(lastTurnId);
+      }
+    }
+    // 게이지가 위기치에 닿았을 때 가는 곳도 부분 충족이 아니어야 한다.
+    expect(partialIds.has(`end:${scenario.gauge.crisisEndingId}`)).toBe(false);
   });
 });

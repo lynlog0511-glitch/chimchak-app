@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components";
-import { IconArrowRight, IconX } from "@/components/icons";
+import { IconArrowRight } from "@/components/icons";
 
 export interface FirstVisitHintProps {
   /** 카드에 붙는 클래스 — 홈이 위아래 간격을 잡습니다(숨었을 때는 그 간격도 생기지 않습니다). */
@@ -67,13 +67,14 @@ export function FirstVisitHint({ className }: FirstVisitHintProps) {
           </Link>
         </div>
 
+        {/* 아이콘 단독 금지(브리프 §4) — × 하나는 무엇이 닫히는지 말하지 못하고, 중고령 사용자에게는
+            누를 것으로도 읽히지 않습니다. 글자로 적되 48px 타깃은 그대로 둡니다. */}
         <button
           type="button"
           onClick={handleClose}
-          aria-label="닫기"
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-chip text-ink-muted transition-colors duration-150 ease-soft hover:bg-white hover:text-ink"
+          className="flex min-h-[48px] shrink-0 items-center justify-center rounded-chip px-3 text-[0.8438rem] leading-[1.45] font-semibold text-ink-muted transition-colors duration-150 ease-soft hover:bg-white hover:text-ink"
         >
-          <IconX className="h-4 w-4" />
+          닫기
         </button>
       </div>
     </Card>

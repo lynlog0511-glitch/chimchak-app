@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { BigButton } from "@/components";
 import { StatusMark, type StatusMarkKind } from "@/components/icons";
 import { cx } from "@/components/utils";
 import type { CheckResult, CheckStatus } from "./checks";
-import { loadingResults, runAllChecks } from "./checks";
+import { loadingResults, primeMicrophonePermission, runAllChecks } from "./checks";
 
 /** 판정 표기는 전 화면 공통 마크(StatusMark)로 통일합니다 — 이모지를 쓰지 않습니다. */
 const STATUS_MARK: Record<CheckStatus, StatusMarkKind> = {
@@ -23,7 +23,7 @@ const STATUS_LABEL: Record<CheckStatus, string> = {
 };
 
 /**
- * 행 바탕 — 항목이 아홉 개라 보더로 두르지 않고 hairline으로만 나눕니다(v4 §2).
+ * 행 바탕 — 항목이 열세 개라 보더로 두르지 않고 hairline으로만 나눕니다(v4 §2).
  * 무대 직전 30초 안에 눈에 걸려야 하는 것은 "확인 필요" 한 줄뿐이라 그 행만 옅은 면을 깝니다.
  */
 const STATUS_ROW: Record<CheckStatus, string> = {
@@ -40,7 +40,7 @@ const STATUS_TEXT: Record<CheckStatus, string> = {
   loading: "text-ink-muted",
 };
 
-function CheckRow({ result }: { result: CheckResult }) {
+function CheckRow({ result, action }: { result: CheckResult; action?: ReactNode }) {
   return (
     <li
       className={cx("px-[10px] py-[12px]", STATUS_ROW[result.status])}
@@ -62,6 +62,8 @@ function CheckRow({ result }: { result: CheckResult }) {
           조치: {result.fix}
         </p>
       )}
+
+      {action && <div className="mt-[8px] pl-[24px]">{action}</div>}
     </li>
   );
 }
@@ -84,6 +86,7 @@ export function CheckClient() {
   const [mounted, setMounted] = useState(false);
   const [results, setResults] = useState<CheckResult[]>(loadingResults());
   const [checking, setChecking] = useState(false);
+  const [priming, setPriming] = useState(false);
 
   const runChecks = useCallback(() => {
     setChecking(true);
@@ -92,6 +95,14 @@ export function CheckClient() {
       setResults(next);
       setChecking(false);
     });
+  }, []);
+
+  // OS 마이크 권한 창을 무대 전에 미리 소비합니다 — 발표자가 버튼으로 직접 부를 때만 뜹니다.
+  const primeMic = useCallback(async () => {
+    setPriming(true);
+    const next = await primeMicrophonePermission();
+    setResults((rs) => rs.map((r) => (r.id === "micperm" ? next : r)));
+    setPriming(false);
   }, []);
 
   useEffect(() => {
@@ -130,7 +141,17 @@ export function CheckClient() {
 
       <ul aria-live="polite" className="chim-hairline mt-[10px] border-y border-line">
         {results.map((result) => (
-          <CheckRow key={result.id} result={result} />
+          <CheckRow
+            key={result.id}
+            result={result}
+            action={
+              result.id === "micperm" && result.status === "fail" ? (
+                <BigButton variant="secondary" onClick={() => void primeMic()} disabled={priming}>
+                  {priming ? "권한 창 확인 중…" : "지금 권한 받아 두기"}
+                </BigButton>
+              ) : undefined
+            }
+          />
         ))}
       </ul>
     </div>

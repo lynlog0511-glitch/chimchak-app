@@ -9,7 +9,7 @@ import { extractDraft, recomputeMissing } from "@/engine/record";
 import { SAVE_FAILED_BODY, SAVE_FAILED_TITLE, saveReport, type SavedReport } from "@/lib/storage";
 import { DraftForm } from "./DraftForm";
 import { DraftRows } from "./DraftRows";
-import { MaskReview } from "./MaskReview";
+import { MaskReview, applyManualMask, type ManualMaskSpan } from "./MaskReview";
 import { PrivacyPath } from "./PrivacyPath";
 import { StepBar } from "./StepBar";
 import { VoiceInput } from "./VoiceInput";
@@ -36,7 +36,7 @@ const EMPTY_DRAFT: RecordDraft = recomputeMissing({
  * 음성 보고 → 기록 코칭 3단계 위저드 (시안 6e 언어).
  *
  * 1) 말하기: 마이크(누르는 동안 인식) 또는 타이핑
- * 2) 가리기: 무엇이 왜 가려졌는지 인라인 칩과 범례로 표시
+ * 2) 가리기: 무엇이 왜 가려졌는지 인라인 칩과 범례로 표시(자동이 놓친 자리는 눌러서 직접 가림)
  * 3) 확인  : 급여제공기록지 5요소를 고치고 확정(이 기기에만 저장)
  *
  * 모든 처리는 브라우저 안에서 끝나며 외부 호출이 0건입니다.
@@ -45,6 +45,8 @@ const EMPTY_DRAFT: RecordDraft = recomputeMissing({
 export function ReportWizard() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [text, setText] = useState("");
+  /** 2단계에서 손으로 가린 자리(원문 좌표). 저장 경로도 이 값을 함께 씁니다. */
+  const [manual, setManual] = useState<ManualMaskSpan[]>([]);
   const [draft, setDraft] = useState<RecordDraft>(EMPTY_DRAFT);
   const [saved, setSaved] = useState<SavedReport | null>(null);
   /** 2차 가명처리에서 추가로 가린 건수 */
@@ -81,8 +83,14 @@ export function ReportWizard() {
     if (inputStartRef.current === null) inputStartRef.current = Date.now();
   };
 
+  /** 원문이 바뀌면 손으로 가린 좌표는 더 이상 그 글을 가리키지 않습니다 — 함께 버립니다. */
+  const updateText = (next: string): void => {
+    setText(next);
+    setManual([]);
+  };
+
   const goDraft = (): void => {
-    setDraft(extractDraft(maskText(text).masked));
+    setDraft(extractDraft(applyManualMask(text, manual).masked));
     setStep(3);
   };
 
@@ -93,7 +101,9 @@ export function ReportWizard() {
     const what = maskText(draft.what);
     const action = maskText(draft.action);
     const status = maskText(draft.status);
-    const body = maskText(maskText(text).masked);
+    // 1차 = 자동 규칙 + 2단계에서 손으로 가린 자리. 그 결과를 다시 한 번 규칙에 태웁니다.
+    const firstPass = applyManualMask(text, manual);
+    const body = maskText(firstPass.masked);
 
     const extraSpans = [
       ...time.spans,
@@ -104,7 +114,7 @@ export function ReportWizard() {
       ...body.spans,
     ];
 
-    const firstSpans = maskText(text).spans;
+    const firstSpans = firstPass.spans;
     const counts: Record<string, number> = {};
     for (const span of [...firstSpans, ...extraSpans]) {
       counts[span.kind] = (counts[span.kind] ?? 0) + 1;
@@ -138,6 +148,7 @@ export function ReportWizard() {
 
   const reset = (): void => {
     setText("");
+    setManual([]);
     setDraft(EMPTY_DRAFT);
     setSaved(null);
     setSecondPassCount(0);
@@ -240,7 +251,7 @@ export function ReportWizard() {
         {step === 1 && (
           <VoiceInput
             value={text}
-            onChange={setText}
+            onChange={updateText}
             onNext={() => setStep(2)}
             onInputStart={markInputStart}
             headingRef={headingRef}
@@ -250,6 +261,8 @@ export function ReportWizard() {
         {step === 2 && (
           <MaskReview
             text={text}
+            manual={manual}
+            onManualChange={setManual}
             onBack={() => setStep(1)}
             onNext={goDraft}
             headingRef={headingRef}

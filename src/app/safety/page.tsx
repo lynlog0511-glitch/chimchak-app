@@ -3,17 +3,20 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { BigButton, InlineDisclaimer, PageShell, ScreenHeader, cx } from "@/components";
 import { StatusMark } from "@/components/icons";
+import { CountedFacts } from "./_components/CountedFacts";
 import { DocWhitelist } from "./_components/DocWhitelist";
 import { EvidenceFlow } from "./_components/EvidenceFlow";
 import { LiveMeterPanel } from "./_components/LiveMeterPanel";
 import { LiveProofPanel } from "./_components/LiveProofPanel";
 import { MaskingPipeline } from "./_components/MaskingPipeline";
+import { MobileFold } from "./_components/MobileFold";
 import { PlanTag } from "./_components/PlanTag";
 import { ReviewLedger } from "./_components/ReviewLedger";
 import { RubricAllList } from "./_components/RubricAllList";
 import { RuleEngineProof } from "./_components/RuleEngineProof";
 import { SafetyToc, type TocItem } from "./_components/SafetyToc";
 import { TierShareDiagram } from "./_components/TierShareDiagram";
+import { VerificationLadder } from "./_components/VerificationLadder";
 
 export const metadata: Metadata = {
   title: "안전·개인정보 설계",
@@ -35,25 +38,35 @@ export const metadata: Metadata = {
    흰 지면에서 회색 면(paper-2)으로 전환합니다 — 13화면을 눈이 세 덩어리로 끊어 읽습니다.
 
    [주인공] 화면의 주장은 「우리가 적은 값이 아니라 지금 잰 값」입니다. 그래서 라이브 계측
-   두 칸과 규칙 엔진 40건 재실행 결과만 40px 숫자로 올리고, 기획서에서 옮겨 적은 인용치는
+   두 칸과 경계 케이스 전수 재실행 결과만 40px 숫자로 올리고(건수는 화면이 셉니다),
+   기획서에서 옮겨 적은 인용치는
    작은 표로 남겨 둡니다 — 크기 자체가 「이건 실측, 저건 인용」을 말하게 했습니다.
 
    위에서부터: 제목 + 목차 칩(가로 스크롤·활성 잉크 채움)
      → 「위험할수록 AI의 지분이 줄어듭니다」 생성 허용 범위 막대(퍼센트 없음 — 순서만)
      → 「지금 이 기기에서 — 실시간 계측」 두 칸
      → 「개인정보가 움직이는 길 — 한 줄뿐입니다」 3칩
-     → 그 아래로 상세(3계층 표·개인정보 경로·폴백·화이트리스트·의료기기 경계·접근권한
-       ·루브릭 30항목과 감수 이력) → 기관 담당자용 요약 한 장.
+     → 그 아래로 상세(3계층 표·검증 계단 ①~④·개인정보 경로·폴백·화이트리스트
+       ·의료기기 경계·접근권한·루브릭 30항목과 감수 이력) → 기관 담당자용 요약 한 장.
+
+   [검증 계단] 이 화면에는 성격이 다른 값이 셋 섞여 있습니다 — 지금 이 기기에서 잰 것,
+   앱 밖 하네스에서 재어 옮겨 적은 것, 아직 재지 않은 것. 구분 없이 늘어놓으면 셋 다 같은
+   무게로 읽히므로, 02 절에서 계단 ①~④로 세우고 칸마다 출처를 문장으로 답니다.
+   ④(파일럿)에는 숫자가 한 칸도 없습니다 — 잴 항목만 미리 적어 둡니다.
 
    화면이 「지금 되는 것」과 「설계까지 한 것」을 같은 말투로 섞지 않도록,
-   아직 구현하지 않은 항목에는 「계획」 배지를 답니다(접근권한 표의 두 행·가명처리 6단의 저장).
+   아직 구현하지 않은 항목에는 「계획」 배지를 답니다(접근권한 표의 두 행·가명처리 6단의
+   저장과 추론·폴백 표의 재전송과 유출 대응·확인서 위조 방지·검증 계단 ④).
 
-   상세는 하나도 지우지 않았습니다 — 문장은 한 글자도 바꾸지 않고 크기와 여백만 다시 잡았습니다.
+   [모바일 접힘] 상세는 하나도 지우지 않았습니다. 대신 430px에서는 섹션 제목이 그대로
+   접이식 손잡이가 되고(`MobileFold`), 기본 펼침은 실측 패널·3계층 막대·검증 계단뿐입니다.
+   목차 칩을 누르면 그 항목이 먼저 펴진 뒤 앵커로 이동합니다. 데스크톱은 예전 그대로입니다.
    ─────────────────────────────────────────────────────────── */
 
-/** 목차 칩 — 시안 7b의 다섯 개. 「의료기기 경계」는 근거 문서 다음에 이어서 읽히므로 칩을 따로 두지 않습니다. */
+/** 목차 칩 — 「의료기기 경계」는 근거 문서 다음에 이어서 읽히므로 칩을 따로 두지 않습니다. */
 const TOC: readonly TocItem[] = [
   { id: "tiers", label: "3계층" },
+  { id: "ladder", label: "검증" },
   { id: "privacy", label: "데이터" },
   { id: "fallback", label: "폴백" },
   { id: "docs", label: "근거 문서" },
@@ -66,31 +79,49 @@ const TOC: readonly TocItem[] = [
  * 섹션 사이의 쉼표는 여백이 아니라 **헤어라인 + 32px**입니다 — 3,000px씩 이어지던 구간에
  * 눈이 멈출 자리를 만듭니다. 제목은 페이지 제목과 같은 22px 한 단으로 통일했습니다
  * (예전에는 같은 위계의 h2가 12.5·16·17px 세 크기로 갈라져 있었습니다).
+ *
+ * **모바일에서는 제목 줄이 그대로 접이식 손잡이가 됩니다**(`MobileFold`). 430px 폭에서
+ * 이 화면은 19화면 길이라, 목차 칩만으로는 「어디까지 있는지」가 손에 잡히지 않았습니다.
+ * 기본 펼침으로 두는 것은 화면의 주장에 해당하는 칸(검증 계단)뿐입니다 —
+ * 그 위의 실측 패널과 3계층 막대는 애초에 섹션 밖이라 언제나 펴져 있습니다.
+ * 번호 줄이 `<span>`인 이유는 `<summary>` 안에 문단을 넣을 수 없기 때문입니다.
  */
 function Section({
   id,
   num,
   title,
   lead,
+  alwaysOpen,
   children,
 }: {
   id: string;
   num: string;
   title: string;
   lead?: string;
+  /** 모바일에서도 접지 않을 섹션 */
+  alwaysOpen?: boolean;
   children: ReactNode;
 }) {
   return (
     // 목차 칩이 위에 붙어 있으므로, 앵커로 뛰었을 때 제목이 칩 아래에 놓이도록 여백을 둡니다.
     <section id={id} className="scroll-mt-[68px] border-t border-line pt-8">
-      <p className="chim-num text-[0.7813rem] leading-[1.5] font-bold tracking-[0.06em] text-ink-muted">
-        {num}
-      </p>
-      <h2 className="mt-1 text-[1.375rem] leading-[1.3] font-extrabold tracking-[-0.02em] text-ink">
-        {title}
-      </h2>
-      {lead && <p className="mt-3 text-[0.9375rem] leading-[1.65] text-ink-soft">{lead}</p>}
-      <div className="mt-5">{children}</div>
+      <MobileFold
+        id={id}
+        alwaysOpen={alwaysOpen}
+        handle={
+          <>
+            <span className="chim-num block text-[0.7813rem] leading-[1.5] font-bold tracking-[0.06em] text-ink-muted">
+              {num}
+            </span>
+            <h2 className="mt-1 text-[1.375rem] leading-[1.3] font-extrabold tracking-[-0.02em] text-ink">
+              {title}
+            </h2>
+          </>
+        }
+      >
+        {lead && <p className="text-[0.9375rem] leading-[1.65] text-ink-soft">{lead}</p>}
+        <div className={lead ? "mt-5" : undefined}>{children}</div>
+      </MobileFold>
     </section>
   );
 }
@@ -230,7 +261,11 @@ const PRIVACY_STEPS = [
     step: "1차 가명처리",
     desc: "성명·연락처·인정번호·주소·생년·기관명 6종을 지웁니다.",
   },
-  { step: "추론", desc: "학습에 쓰이지 않는 조건으로만 처리합니다." },
+  {
+    step: "추론",
+    desc: "학습에 쓰이지 않는 조건으로만 처리합니다.",
+    plan: "알파에는 추론 구간 자체가 없습니다 — 경량 LLM 연결 시 이 조건으로 계약합니다.",
+  },
   { step: "2차 가명처리", desc: "저장 직전에 한 번 더 검사합니다." },
   {
     step: "저장",
@@ -403,8 +438,13 @@ export default function SafetyPage() {
             ]}
           />
 
-          {/* 규칙 엔진 실행 로그 — 「규칙이 판정한다」는 주장 바로 아래에 그 검증 결과를 놓습니다. */}
-          <RuleEngineProof className="mt-5" />
+          {/* 「규칙이 판정한다」의 증거는 바로 아래 절(검증 계단 ①)로 옮겼습니다 —
+              같은 성격의 검증 넷을 한자리에 세워야 「어디까지 재 봤는가」가 한눈에 읽힙니다. */}
+          <p className="mt-5 text-[0.9375rem] leading-[1.65] text-ink-soft">
+            이 주장은 아래 <b className="font-bold text-ink">검증 계단 ①</b>에서 경계 문장으로
+            때려 본 기록과 함께 다시 나옵니다. 같은 케이스를 이 기기에서 지금 다시 돌려 보실 수
+            있습니다.
+          </p>
 
           {/* 흐름도 — 세로 스텝 목록은 그대로 보이고, 큰 다이어그램은 그 안에서 한 번 더 접힙니다. */}
           <div className="mt-6">
@@ -423,10 +463,22 @@ export default function SafetyPage() {
           </Note>
         </Section>
 
-        {/* 2. 데이터 — 개인정보 경로 + 라이브 계측 상세 */}
+        {/* 2. 검증 계단 — 「무엇을 어디까지 재 봤는가」. 이 화면에서 유일하게 모바일에서도 펴 두는 절입니다. */}
+        <Section
+          id="ladder"
+          num="02"
+          title="검증 계단 — 어디까지 재 봤는지"
+          lead="「잘 될 겁니다」 대신 네 계단을 쌓았습니다. 칸마다 어디서 잰 값인지를 함께 적었습니다 — ①은 이 기기에서 지금 다시 돌릴 수 있고, ②·③은 앱 밖 하네스 실행 기록을 옮겨 적은 값이며, ④는 아직 재지 않았습니다. 재지 않은 칸에는 숫자를 넣지 않습니다."
+          alwaysOpen
+        >
+          <VerificationLadder proof={<RuleEngineProof className="mt-4" />} />
+          <CountedFacts className="mt-6" />
+        </Section>
+
+        {/* 3. 데이터 — 개인정보 경로 + 라이브 계측 상세 */}
         <Section
           id="privacy"
-          num="02"
+          num="03"
           title="털릴 데이터를 처음부터 만들지 않았습니다"
           lead="훈련에서 대화하는 상대는 전부 가상 인물이라, 훈련 단계에서는 개인정보 수집 자체가 일어나지 않습니다. 실제 어르신의 정보가 지나가는 길은 기록 코칭 하나뿐이고, 그 길에는 가명처리 관문이 두 개 있습니다."
         >
@@ -473,12 +525,18 @@ export default function SafetyPage() {
 
           {/* 위 두 칸(외부 출처 요청·저장된 응급 안내)의 근거가 되는 상세 계측입니다. */}
           <LiveProofPanel className="mt-6 border-t border-line pt-6" />
+
+          {/* 세는 것과 막는 것은 다른 일입니다 — 계측 바로 아래에서 그 차이를 한 줄로 밝힙니다. */}
+          <p className="mt-4 text-[0.9375rem] leading-[1.65] text-ink">
+            세는 데서 그치지 않습니다 — 외부 요청은 응답 헤더(콘텐츠 보안 정책, CSP)로 브라우저가
+            차단하도록 못 박았습니다.
+          </p>
         </Section>
 
-        {/* 3. 폴백 매트릭스 */}
+        {/* 4. 폴백 매트릭스 */}
         <Section
           id="fallback"
-          num="03"
+          num="04"
           title="어느 구간이 죽어도 훈련은 멈추지 않습니다"
           lead="장애는 일어난다고 보고 설계했습니다. 각 구간이 멈췄을 때 세션을 유지하는 방법을 미리 정해 두었습니다."
         >
@@ -507,14 +565,26 @@ export default function SafetyPage() {
                 head: "서버 전면 장애",
                 cells: [
                   "훈련과 응급은 브라우저 캐시로 무중단 동작합니다. 119 버튼은 상시 노출됩니다.",
-                  "서버 의존은 기록 업로드뿐이라 로컬 큐에 저장했다가 자동 재전송합니다.",
+                  // 큐도 재전송도 이 데모에는 없습니다 — 있는 척하면 폴백 표 전체가 인용문이 됩니다.
+                  <>
+                    서버에 기대는 것은 기록 업로드뿐인데, 이 데모에는 업로드 경로 자체가 없습니다.
+                    끊긴 동안 기기에 담아 두었다가 자동으로 다시 보내도록 설계했습니다{" "}
+                    <PlanTag />
+                  </>,
                 ],
               },
               {
                 head: "개인정보 유출 정황",
                 cells: [
-                  "해당 키를 즉시 폐기하고 기록 코칭만 차단합니다. 훈련 기능은 정상 유지됩니다.",
-                  "24시간 내 정보주체·기관 통지, 요건 충족 시 관계기관 신고, 접속기록 1년 보관.",
+                  <>
+                    기록 코칭만 차단하고 훈련 기능은 그대로 둡니다. 이 데모에는 서버도 키도 없어
+                    폐기할 대상이 없습니다 — 기관 연동이 붙으면 해당 키를 즉시 폐기하도록
+                    설계했습니다 <PlanTag />
+                  </>,
+                  <>
+                    24시간 안에 정보주체와 기관에 알리고, 요건에 해당하면 관계기관에 신고합니다.
+                    접속기록 1년 보관은 서버가 생기는 시점의 절차입니다 <PlanTag />
+                  </>,
                 ],
               },
             ]}
@@ -528,10 +598,10 @@ export default function SafetyPage() {
           </Note>
         </Section>
 
-        {/* 4. 근거 문서 화이트리스트 */}
+        {/* 5. 근거 문서 화이트리스트 */}
         <Section
           id="docs"
-          num="04"
+          num="05"
           title="근거 문서 화이트리스트"
           lead="피드백에 붙는 근거는 아래 목록 안에서만 나옵니다. 목록 밖 문서는 인용하지 않고, 목록 밖 문서를 근거로 든 판정은 엔진이 멈춰 세웁니다."
         >
@@ -552,10 +622,10 @@ export default function SafetyPage() {
           </p>
         </Section>
 
-        {/* 5. 의료기기 경계 */}
+        {/* 6. 의료기기 경계 */}
         <Section
           id="boundary"
-          num="05"
+          num="06"
           title="의료기기 경계는 표현이 아니라 기능으로 지킵니다"
           lead="문구로 피해 가는 대신, 구조적으로 그 판단이 생기지 않게 만들었습니다."
         >
@@ -599,10 +669,10 @@ export default function SafetyPage() {
           </div>
         </Section>
 
-        {/* 6. 접근권한 3등급 */}
+        {/* 7. 접근권한 3등급 */}
         <Section
           id="access"
-          num="06"
+          num="07"
           title="접근권한 3등급"
           lead="내부 판정 결과가 인사평가로 흘러가면 아무도 솔직하게 실패하지 않습니다. 실패 없는 훈련은 효과가 0이 되기 때문에, 권한을 처음부터 나눠 두었습니다."
         >
@@ -623,7 +693,8 @@ export default function SafetyPage() {
                   <>
                     본인의 훈련 이력, {MET}·{COACH} 요약, 본인이 확정한 기록
                   </>,
-                  "다른 사용자의 어떤 정보도 볼 수 없습니다.",
+                  // 기록이 기기에 남는 구조라, 한 기기를 여럿이 돌려 쓰면 이 문장이 성립하지 않습니다.
+                  "다른 사용자의 어떤 정보도 볼 수 없습니다(1인 1기기 사용 기준).",
                   "발화 원문은 세션 안에서만 존재하고 저장되지 않습니다.",
                 ],
               },
@@ -679,10 +750,10 @@ export default function SafetyPage() {
           </Note>
         </Section>
 
-        {/* 7. 판정 기준과 감수 이력 — 「자산을 보여 달라」는 요청에 화면이 답하는 자리입니다. */}
+        {/* 8. 판정 기준과 감수 이력 — 「자산을 보여 달라」는 요청에 화면이 답하는 자리입니다. */}
         <Section
           id="rubric"
-          num="07"
+          num="08"
           title="루브릭 30항목과 감수 이력"
           lead="이 제품의 자산은 모델이 아니라 루브릭 30항목입니다. 감추고 믿어 달라고 하는 대신, 판정 기준 문장을 전부 펴 두고 누가 어디까지 감수했는지도 같이 적었습니다."
         >
@@ -713,6 +784,12 @@ export default function SafetyPage() {
         <p className="mt-3 text-[0.9375rem] leading-[1.6] text-ink-soft">
           법정 보수교육 이수 인정은 아니며, 기관 내부 교육 기록·평가 대비 자료로 활용하실 수
           있습니다.
+        </p>
+        {/* 확인서가 자기 한계를 적어 두었으니, 그 한계를 언제 없앨지도 같은 무게로 적습니다. */}
+        <p className="mt-3 text-[0.9375rem] leading-[1.6] text-ink-soft">
+          <PlanTag className="mr-2" />
+          이수 확인서의 발급번호는 같은 기록을 가리키는 대조용 번호이지 위조 방지 장치가
+          아닙니다. 위조 방지는 기관 연동 시 서버 발급·서명으로 이관합니다.
         </p>
         <Link
           href="/for-orgs"

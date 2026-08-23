@@ -6,13 +6,27 @@
  * 조용히 물러납니다(SSR·미지원 브라우저 가드). 심사에 보여주는 화면이 아니라 발표자가
  * 무대 직전 30초 안에 훑어보는 화면이므로, 여기서 실패해도 앱의 다른 어떤 상태도 바꾸지
  * 않습니다(읽기 전용 점검 + localStorage 쓰기 테스트 키 하나만 예외).
+ *
+ * 예외가 하나 더 있습니다 — `primeMicrophonePermission()`은 마이크 권한 창을 일부러 띄웁니다.
+ * 자동 검사에는 들어가지 않고, 발표자가 직접 부를 때만 도는 함수입니다.
  */
 
 import { runEngineSelfCheck } from "@/engine";
-import { canPlayWithoutGesture, isSpeechPlaybackSupported } from "@/lib/speech";
+import {
+  canPlayWithoutGesture,
+  createRecognizer,
+  isRecognitionSupported,
+  isSpeechPlaybackSupported,
+} from "@/lib/speech";
 import { EVIDENCE_GUARD } from "@/data/evidenceGuard";
+import { SCENARIO_MATRIX } from "@/data/matrix";
+import { PROTOCOLS } from "@/data/protocols";
+// 시나리오 본문까지 번들에 실리지만, /check는 발표자 전용 로컬 페이지라 무게보다
+// 「감수 대기 라벨이 무대 카드에 노출되는가」를 한 화면에서 아는 쪽을 택했습니다(8/24).
+import { SCENARIOS } from "@/data/scenarios";
 import {
   CALL_DELAY_BOUNDARY_CASES,
+  DIALECT_BOUNDARY_CASE_IDS,
   EVIDENCE_BOUNDARY_CASES,
   RULE_BOUNDARY_CASES,
 } from "@/data/ruleBoundaryCases";
@@ -88,20 +102,39 @@ export async function checkServiceWorker(): Promise<CheckResult> {
   }
 }
 
-/** 오프라인 상태여도 열려야 하는 화면 목록 — public/sw.js의 PRECACHE_URLS와 같습니다. */
+/**
+ * 오프라인 상태여도 열려야 하는 화면 목록 — public/sw.js의 PRECACHE_URLS와 같은 것을 봅니다.
+ *
+ * 목록을 손으로 옮겨 적지 않고 데이터에서 만듭니다. 시나리오·프로토콜이 늘 때 여기를 고치는 것을
+ * 잊으면, 저장되지 않은 화면을 두고 「전부 저장됨」이라고 말하는 점검이 됩니다.
+ * sw.js는 번들 밖 정적 파일이라 이 목록을 import할 수 없어, 그쪽과의 대조는
+ * tests/swPrecache.test.ts가 맡습니다.
+ */
 const EMERGENCY_ROUTES = [
   "/emergency",
-  "/emergency/p-01",
-  "/emergency/p-02",
-  "/emergency/p-03",
-  "/emergency/p-04",
-  "/emergency/p-05",
+  ...PROTOCOLS.map((protocol) => `/emergency/${protocol.id.toLowerCase()}`),
 ];
 
-/** 3. 응급 안내 5종(+목록) 캐시 존재 여부. */
-export async function checkEmergencyCache(): Promise<CheckResult> {
-  const id = "cache";
-  const title = "응급 안내 5종 캐시";
+/** 훈련 한 바퀴 — 고르고, 한 판 돌고, 보고를 적고, 기록을 확인하는 데까지의 화면입니다. */
+const TRAINING_ROUTES = [
+  "/train",
+  ...SCENARIO_MATRIX.filter((cell) => cell.scenarioId).map(
+    (cell) => `/train/${(cell.scenarioId ?? "").toLowerCase()}`,
+  ),
+  "/report",
+  "/history",
+];
+
+const CACHE_FIX =
+  "프로덕션 빌드로 홈 화면을 한 번 열어 서비스워커 설치가 끝나길 기다린 뒤 다시 검사해 주세요.";
+
+/** 라우트 묶음이 기기에 저장되어 있는지 세어 한 줄로 만듭니다. */
+async function checkRoutesCached(
+  id: string,
+  title: string,
+  routes: readonly string[],
+  noun: string,
+): Promise<CheckResult> {
   if (typeof caches === "undefined") {
     return {
       id,
@@ -113,7 +146,7 @@ export async function checkEmergencyCache(): Promise<CheckResult> {
   }
   try {
     const hits = await Promise.all(
-      EMERGENCY_ROUTES.map(async (url) => {
+      routes.map(async (url) => {
         try {
           const hit = await caches.match(url, { ignoreSearch: true });
           return Boolean(hit);
@@ -123,16 +156,14 @@ export async function checkEmergencyCache(): Promise<CheckResult> {
       }),
     );
     const hitCount = hits.filter(Boolean).length;
-    const total = EMERGENCY_ROUTES.length;
+    const total = routes.length;
     const allCached = hitCount === total;
     return {
       id,
       title,
       status: allCached ? "ok" : "fail",
-      detail: `${hitCount} / ${total}개 응급 화면이 기기에 저장되어 있습니다.`,
-      fix: allCached
-        ? undefined
-        : "프로덕션 빌드로 홈 화면을 한 번 열어 서비스워커 설치가 끝나길 기다린 뒤 다시 검사해 주세요.",
+      detail: `${hitCount} / ${total}개 ${noun}이 기기에 저장되어 있습니다.`,
+      fix: allCached ? undefined : CACHE_FIX,
     };
   } catch {
     return {
@@ -143,6 +174,25 @@ export async function checkEmergencyCache(): Promise<CheckResult> {
       fix: "새로고침 후 다시 검사해 주세요.",
     };
   }
+}
+
+/** 3. 응급 안내 5종(+목록) 캐시 존재 여부. */
+export async function checkEmergencyCache(): Promise<CheckResult> {
+  return checkRoutesCached("cache", "응급 안내 5종 캐시", EMERGENCY_ROUTES, "응급 화면");
+}
+
+/**
+ * 4. 훈련 한 바퀴 캐시 — 회선이 끊긴 자리에서도 훈련을 끝까지 돌 수 있는지.
+ *
+ * 응급 화면만 저장되어 있으면, 오프라인에서 /train 주소를 열었을 때 서비스워커의 마지막
+ * 폴백이 응급 화면을 대신 내놓습니다. 화면은 뜨니 아무도 실패라고 느끼지 못한 채
+ * 「인터넷이 끊겨도 훈련 한 바퀴」만 어긋납니다. 그 어긋남을 여기서 먼저 봅니다.
+ *
+ * 저장되는 것은 화면과 화면이 쓰는 청크입니다 — 훈련 대사의 동봉 음성은 담기지 않으므로,
+ * 오프라인에서는 낭독이 기기 음성 합성으로 넘어가거나 자막만 남습니다(자막은 항상 있습니다).
+ */
+export async function checkTrainingCache(): Promise<CheckResult> {
+  return checkRoutesCached("train-cache", "훈련 한 바퀴 캐시", TRAINING_ROUTES, "훈련 화면");
 }
 
 /** voiceschanged를 기다려 보이스 목록을 한 번 얻습니다. 최대 1.2초만 기다립니다. */
@@ -166,7 +216,7 @@ function getVoicesOnce(synth: SpeechSynthesis): Promise<SpeechSynthesisVoice[]> 
 }
 
 /**
- * 4. 낭독 경로 — **이 기기에서 소리를 낼 수 있는가**를 봅니다.
+ * 5. 낭독 경로 — **이 기기에서 소리를 낼 수 있는가**를 봅니다.
  *
  * 이 앱의 1순위 경로는 동봉한 사전 합성 mp3이고, 브라우저 TTS는 그것이 없을 때의 폴백입니다.
  * 그래서 판정 기준은 `isSpeechPlaybackSupported()`입니다 — ko 보이스가 없어도 동봉 음성으로
@@ -209,7 +259,7 @@ export async function checkTtsVoices(): Promise<CheckResult> {
 }
 
 /**
- * 5. 이 탭에서 소리를 자동으로 낼 수 있는가 — **무대에서 실제로 시연을 죽이는 것**입니다.
+ * 6. 이 탭에서 소리를 자동으로 낼 수 있는가 — **무대에서 실제로 시연을 죽이는 것**입니다.
  *
  * 응급 안내는 사용자가 아무것도 누르지 않아도 단계가 자동으로 넘어가며 읽힙니다. 그런데 브라우저는
  * 아직 화면을 건드리지 않은 탭의 재생을 거부합니다(PWA 바로가기·새 탭으로 곧바로 연 경우).
@@ -236,7 +286,7 @@ export async function checkAutoplay(): Promise<CheckResult> {
   };
 }
 
-/** 6. 음성 인식(STT) 지원 여부. */
+/** 7. 음성 인식(STT) 지원 여부. */
 export async function checkSttSupport(): Promise<CheckResult> {
   const id = "stt";
   const title = "음성 인식(마이크) 지원";
@@ -261,7 +311,115 @@ export async function checkSttSupport(): Promise<CheckResult> {
   };
 }
 
-/** 7. localStorage 쓰기 가능 여부. */
+/* ── 마이크 권한 ───────────────────────────────────────── */
+
+/** 권한 상태 — 이름을 모르는 브라우저(파이어폭스 등)에서는 undefined입니다. */
+type MicPermission = PermissionState | undefined;
+
+async function readMicPermission(): Promise<MicPermission> {
+  if (typeof navigator === "undefined" || !navigator.permissions) return undefined;
+  try {
+    // 표준 타입 목록에 "microphone"이 없는 정의가 있어 이름만 넘겨 캐스팅합니다.
+    const status = await navigator.permissions.query({ name: "microphone" as PermissionName });
+    return status.state;
+  } catch {
+    // 이름을 모르는 브라우저는 여기서 TypeError를 던집니다 — 상태를 모르는 것이지 실패가 아닙니다.
+    return undefined;
+  }
+}
+
+/**
+ * 8. 마이크 권한 상태 — **OS 권한 창이 무대에서 처음 뜨는 일**을 막기 위한 항목입니다.
+ *
+ * 권한 창은 브라우저 화면 위가 아니라 OS 위에 뜨고, 발표자가 그것을 찾아 누르는 몇 초는
+ * 그대로 시연 시간입니다. 미리 한 번 소비해 두면 무대에서는 뜨지 않습니다.
+ * 권한이 없어도 훈련은 버튼만으로 완주되므로, 여기서 막히는 것은 시연 흐름이지 기능이 아닙니다.
+ */
+export async function checkMicPermission(): Promise<CheckResult> {
+  const id = "micperm";
+  const title = "마이크 권한 상태";
+  if (!isRecognitionSupported()) {
+    return {
+      id,
+      title,
+      status: "unknown",
+      detail: "이 브라우저는 음성 인식을 지원하지 않아 마이크 권한을 쓰지 않습니다.",
+      fix: "버튼 폴백으로 진행해 주세요 — 모든 화면은 버튼만으로도 완주됩니다.",
+    };
+  }
+  const state = await readMicPermission();
+  if (state === "granted") {
+    return {
+      id,
+      title,
+      status: "ok",
+      detail: "마이크 권한이 허용되어 있습니다 — 무대에서 권한 창이 뜨지 않습니다.",
+    };
+  }
+  if (state === "denied") {
+    return {
+      id,
+      title,
+      status: "fail",
+      detail: "마이크 권한이 차단되어 있습니다 — 마이크 버튼은 눌러도 인식이 시작되지 않습니다.",
+      fix: "주소창의 자물쇠에서 마이크를 허용으로 바꾸시거나, 버튼 폴백으로 진행해 주세요.",
+    };
+  }
+  if (state === "prompt") {
+    return {
+      id,
+      title,
+      status: "fail",
+      detail: "아직 권한을 묻지 않은 상태입니다 — 무대에서 마이크를 처음 누를 때 권한 창이 뜹니다.",
+      fix: "아래 「지금 권한 받아 두기」를 눌러 권한 창을 미리 받아 두세요.",
+    };
+  }
+  return {
+    id,
+    title,
+    status: "unknown",
+    detail: "이 브라우저에서는 마이크 권한 상태를 확인할 수 없습니다.",
+    fix: "훈련 화면에서 마이크 버튼을 한 번 눌러 권한 창이 뜨는지 미리 확인해 주세요.",
+  };
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+/**
+ * OS 권한 창을 **무대에 올라가기 전에** 한 번 소비합니다.
+ *
+ * 인식을 짧게 시작해 창을 띄우고, 발표자가 창을 누를 때까지(최대 12초) 기다렸다가 멈춥니다.
+ * 발화는 받지도 저장하지도 않습니다 — 결과 콜백이 아무 일도 하지 않습니다.
+ * 상태를 읽을 수 없는 브라우저에서는 창이 뜰 시간만 두고 물러납니다.
+ *
+ * @example const next = await primeMicrophonePermission(); // 눌러 받은 뒤의 상태
+ */
+export async function primeMicrophonePermission(): Promise<CheckResult> {
+  const recognizer = createRecognizer({ onResult: () => undefined, onError: () => undefined });
+  if (!recognizer.supported) return checkMicPermission();
+  try {
+    recognizer.start();
+    const deadline = Date.now() + 12_000;
+    while (Date.now() < deadline) {
+      await wait(300);
+      const state = await readMicPermission();
+      if (state === undefined) {
+        await wait(1200);
+        break;
+      }
+      if (state !== "prompt") break;
+    }
+  } finally {
+    recognizer.stop();
+  }
+  return checkMicPermission();
+}
+
+/** 9. localStorage 쓰기 가능 여부. */
 export async function checkLocalStorage(): Promise<CheckResult> {
   const id = "storage";
   const title = "기기 저장소(localStorage) 쓰기";
@@ -294,7 +452,7 @@ export async function checkLocalStorage(): Promise<CheckResult> {
 }
 
 /**
- * 8. 규칙 엔진 경계 케이스 — **지금 이 브라우저에서** 돌려 통과 건수와 판정 지연을 잽니다.
+ * 10. 규칙 엔진 경계 케이스 — **지금 이 브라우저에서** 돌려 통과 건수와 판정 지연을 잽니다.
  *
  * 다른 항목들은 환경을 봅니다. 이 항목만 제품의 주장을 봅니다 — 「경계 케이스 전수 통과」와
  * 「119 지연은 규칙 엔진이 판정」과 「근거가 목록 밖이면 멈춘다」가 지금 이 빌드에서도 참인지,
@@ -324,7 +482,50 @@ export async function checkRuleEngine(): Promise<CheckResult> {
   };
 }
 
-/** 9. 네트워크 상태 — 참고용. 오프라인이어도 응급 화면은 정상 동작하므로 실패로 다루지 않습니다. */
+/**
+ * 11. 사투리 말씨 경계 문항 — 판정선이 **말씨를 타지 않는지** 그 자리에서 다시 봅니다.
+ *
+ * 규칙 사전은 표준어로 쓰였습니다. 그대로 두면 사전은 현장 말씨로 말하는 분들에게만 관대해지고,
+ * 그 관대함은 「덜 걸린다」가 아니라 「그분들만 코칭을 못 받는다」로 나타납니다.
+ * 문항은 위 규칙 엔진 항목과 같은 목록에서 id로 골라 옵니다(src/data/ruleBoundaryCases.ts) —
+ * 따로 복사해 두면 한쪽만 고쳐지는 날이 옵니다.
+ */
+export async function checkDialectCases(): Promise<CheckResult> {
+  const id = "dialect";
+  const title = "사투리 말씨 경계 문항";
+  const wanted = new Set(DIALECT_BOUNDARY_CASE_IDS);
+  const cases = RULE_BOUNDARY_CASES.filter((testCase) => wanted.has(testCase.id));
+  if (cases.length !== DIALECT_BOUNDARY_CASE_IDS.length) {
+    return {
+      id,
+      title,
+      status: "fail",
+      detail: `사투리 문항 목록과 케이스 목록이 어긋납니다 (${cases.length} / ${DIALECT_BOUNDARY_CASE_IDS.length}건).`,
+      fix: "src/data/ruleBoundaryCases.ts의 DIALECT_BOUNDARY_CASE_IDS를 케이스 id와 맞춰 주세요.",
+    };
+  }
+
+  const result = runEngineSelfCheck({
+    ruleCases: cases,
+    callDelayCases: [],
+    evidenceCases: [],
+    evidenceGuard: EVIDENCE_GUARD,
+  });
+  const allPassed = result.passed === result.total;
+  return {
+    id,
+    title,
+    status: allPassed ? "ok" : "fail",
+    detail: allPassed
+      ? `${result.passed} / ${result.total}문항 통과 — 경상·전라 말씨 문장에서도 판정선이 같습니다.`
+      : `${result.passed} / ${result.total}문항 통과 — 말씨에 따라 판정이 갈리는 문항이 있습니다.`,
+    fix: allPassed
+      ? undefined
+      : `기대와 다르게 판정된 문항: ${result.groups.flatMap((group) => group.failures).join(" / ")}`,
+  };
+}
+
+/** 12. 네트워크 상태 — 참고용. 오프라인이어도 응급 화면은 정상 동작하므로 실패로 다루지 않습니다. */
 export async function checkNetwork(): Promise<CheckResult> {
   const id = "net";
   const title = "네트워크 상태 (참고용)";
@@ -342,16 +543,50 @@ export async function checkNetwork(): Promise<CheckResult> {
   };
 }
 
+/* ── 시나리오 감수 상태 ───────────────────────────────── */
+
+/**
+ * 12. 시나리오 감수 상태 — 「알파 초안 — 현직 감수 대기」 라벨이 시연 카드에 노출되는지
+ * 무대 전에 확인합니다. 원천은 시나리오 데이터의 `reviewPending` 필드 하나이고,
+ * /train 카드 라벨이 같은 필드를 읽습니다. 감수가 끝나면 해당 시나리오 파일의
+ * `reviewPending` 한 줄을 지우는 것으로 라벨과 이 항목이 함께 내려갑니다.
+ */
+async function checkScenarioReview(): Promise<CheckResult> {
+  const id = "review";
+  const title = "시나리오 감수 상태";
+  const pending = SCENARIOS.filter((s) => s.reviewPending);
+  if (pending.length === 0) {
+    return {
+      id,
+      title,
+      status: "ok",
+      detail: `열린 ${SCENARIOS.length}종 모두 현직 감수를 마쳤습니다 — 카드에 초안 라벨이 없습니다.`,
+    };
+  }
+  const names = pending.map((s) => s.id.replace("CHK-", "")).join("·");
+  return {
+    id,
+    title,
+    status: "fail",
+    detail: `감수 대기 ${pending.length}종(${names}) — 훈련 카드에 「알파 초안 — 현직 감수 대기」 라벨이 그대로 노출됩니다.`,
+    fix: "시연은 감수 완료 시나리오로 태우시고, 감수가 끝나면 해당 시나리오 데이터의 reviewPending 표기를 지워 주세요.",
+  };
+}
+
 /** 화면에 이 순서 그대로 나열합니다. */
 export const CHECK_RUNNERS: Array<() => Promise<CheckResult>> = [
   checkBuildEnv,
   checkServiceWorker,
   checkEmergencyCache,
+  checkTrainingCache,
   checkTtsVoices,
   checkAutoplay,
   checkSttSupport,
+  checkMicPermission,
   checkLocalStorage,
   checkRuleEngine,
+  checkDialectCases,
+  checkScenarioReview,
   checkNetwork,
 ];
 
@@ -365,11 +600,15 @@ export function loadingResults(): CheckResult[] {
     loadingResult("build", "프로덕션 빌드 여부"),
     loadingResult("sw", "서비스워커 등록·활성"),
     loadingResult("cache", "응급 안내 5종 캐시"),
+    loadingResult("train-cache", "훈련 한 바퀴 캐시"),
     loadingResult("tts", "낭독 경로(동봉 음성·TTS)"),
     loadingResult("autoplay", "이 탭에서 소리 자동 재생"),
     loadingResult("stt", "음성 인식(마이크) 지원"),
+    loadingResult("micperm", "마이크 권한 상태"),
     loadingResult("storage", "기기 저장소(localStorage) 쓰기"),
     loadingResult("rules", "규칙 엔진 경계 케이스"),
+    loadingResult("dialect", "사투리 말씨 경계 문항"),
+    loadingResult("review", "시나리오 감수 상태"),
     loadingResult("net", "네트워크 상태 (참고용)"),
   ];
 }

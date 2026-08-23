@@ -16,6 +16,17 @@ export const PRACTICE_LINE = "정답을 맞히는 시험이 아니라, 말이 �
 /** 가상 인물 고지 */
 export const FICTION_NOTICE = "등장인물은 전원 가상 인물이며 실존 인물·기관과 무관합니다.";
 
+/**
+ * 생성 자리 고지 — 세션 화면이 「생성 0건」이라고 적는 까닭을 한 줄로 밝힙니다.
+ *
+ * 지금 화면에서 도는 것과 앞으로 붙일 것을 같은 문장 안에 둡니다. 「AI 시뮬레이터」라고
+ * 소개해 놓고 화면에는 생성 호출이 0건이라 적으면 둘 중 하나가 거짓말로 읽히므로,
+ * **어디까지가 데이터·규칙이고 어디부터가 어댑터 자리인지**를 사실대로 적습니다.
+ * (안전 설계 페이지의 「교체형 어댑터 연결 지점」과 같은 사실을 가리킵니다.)
+ */
+export const GENERATION_ADAPTER_NOTE =
+  "어르신 대사는 검수된 시나리오 문장이고, 판정은 규칙이 합니다. 경량 LLM 어댑터 자리는 근거 가드 검증을 통과한 구간부터 엽니다.";
+
 /** L3 진입 전환 문구 */
 export const PROTOCOL_HANDOFF_TITLE = "여기서부터 AI가 화면에서 빠집니다";
 export const PROTOCOL_HANDOFF_BODY =
@@ -243,9 +254,16 @@ export const COACH_HEAD: Record<StatusMarkKind, string> = {
   stop: "즉시 중단 · 침착의 코칭",
 };
 
+/**
+ * 판정 머리말 색 — 가이드 v4 §4.4.
+ *
+ * 미충족 코칭은 `warn-ink`입니다. 예전에는 `ink-soft`(보조 본문과 같은 회색)라,
+ * 같은 판정을 가리키는 엔딩의 「다시 볼 것」(warn-ink)과 색 문법이 갈렸습니다 —
+ * 한 훈련 안에서 같은 뜻이 두 색으로 나오면 색이 뜻을 잃습니다.
+ */
 export const COACH_HEAD_TEXT: Record<StatusMarkKind, string> = {
   met: "text-ok-ink",
-  coach: "text-ink-soft",
+  coach: "text-warn-ink",
   stop: "text-danger-ink",
 };
 

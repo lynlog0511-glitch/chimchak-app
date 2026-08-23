@@ -235,7 +235,9 @@ export function VoiceInput({
           }}
           rows={7}
           placeholder="예) 오후 4시 40분쯤 어르신이 현관 앞에서 집에 가야 한다며 나가려 하셨습니다."
-          className="mt-[6px] w-full rounded-[14px] border border-line-strong bg-white p-[14px] text-[0.9375rem] leading-[1.6] text-ink placeholder:text-tertiary focus:border-brand-400"
+          /* 입력 글자는 17px(코어 단)입니다 — 16px 미만이면 iOS가 포커스 순간 화면을 강제로 확대하고,
+             확대된 화면은 손으로 되돌려야 합니다(주 사용자가 중고령이라 그 되돌림이 곧 이탈입니다). */
+          className="mt-[6px] w-full rounded-[14px] border border-line-strong bg-white p-[14px] text-[1.0625rem] leading-[1.6] text-ink placeholder:text-tertiary focus:border-brand-400"
         />
 
         <div className="mt-[10px] flex flex-wrap gap-2">

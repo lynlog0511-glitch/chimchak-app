@@ -11,7 +11,7 @@ import {
   MATRIX_TYPE_NOTES,
   SCENARIO_MATRIX,
 } from "@/data/matrix";
-import { getActiveScenarios } from "@/data/scenarios";
+import { getActiveScenarios, SCENARIOS } from "@/data/scenarios";
 import { FICTION_NOTICE, scenarioHref } from "./_components/constants";
 import { PracticeCount } from "./_components/PracticeCount";
 
@@ -57,7 +57,9 @@ const CARD_SUMMARY: Record<string, string> = {
   "CHK-A01": "저녁마다 집에 가겠다는 어르신 — 막지 않고 말로 방향 바꾸기",
   "CHK-A02": "새벽에 출근하시겠다는 어르신 — 다른 분들을 깨우지 않고 원인 찾기",
   "CHK-B02": "기침이 멎는 순간을 알아채기 — 진짜 응급이 되면 AI가 빠집니다",
-  "CHK-C01": "해 드릴 수 없는 일을 관계를 지키며 거절하기",
+  /* 폭언·호칭 격하는 이 시나리오 S3의 실제 장면입니다(chk-c01.ts T2 「이모님, 유난이시네」).
+     요약에서 빼 두면 카드가 「거절 연습」으로만 읽혀, 정작 준비해 온 상황과 대조되지 않습니다. */
+  "CHK-C01": "폭언·호칭 격하에 흔들리지 않고, 해 드릴 수 없는 일을 관계를 지키며 거절하기",
   "CHK-C02": "원인을 모르는 멍 앞에서 — 단정하지 않고 기록으로 답하기",
 };
 
@@ -70,9 +72,12 @@ const FIRST_CARD_HINT = "처음이라면 여기부터";
  * 「열렸다」와 「감수까지 끝났다」는 다른 말입니다. 둘을 같은 얼굴로 두면 나머지 표기의
  * 신뢰도 함께 떨어지므로, 감수 대기 상태를 카드에서 먼저 밝힙니다.
  * (/safety 「현직 감수 현황」의 시나리오 대사 줄과 같은 사실을 가리킵니다.)
+ *
+ * 목록은 손으로 적지 않습니다 — 원천은 시나리오 데이터의 `reviewPending` 필드 하나이고,
+ * /check 「시나리오 감수 상태」 항목도 같은 필드를 셉니다(8/24 단일화).
  */
 const REVIEW_PENDING_LABEL = "알파 초안 — 현직 감수 대기";
-const REVIEW_PENDING_IDS: string[] = ["CHK-A02", "CHK-C02"];
+const REVIEW_PENDING_IDS: string[] = SCENARIOS.filter((s) => s.reviewPending).map((s) => s.id);
 
 /** 베타로 이연한 유형 — 「준비 중」으로만 두면 이유를 알 수 없어 편성표 아래 한 줄로 적습니다. */
 const DEFERRED_TYPE_LABEL = "④ 위험 판단";

@@ -1,9 +1,9 @@
 /*
  * 침착(ChimChak) 서비스워커
  *
- * 목적은 하나입니다 — **서버가 죽어도 응급 화면은 열린다.**
- * 설치 시점에 응급 라우트 5종과 목록 화면, 매니페스트·아이콘을 미리 저장해 두고,
- * 네트워크가 끊기면 저장해 둔 화면을 그대로 돌려줍니다.
+ * 목적은 하나입니다 — **서버가 죽어도, 회선이 끊겨도 화면은 열린다.**
+ * 설치 시점에 응급 라우트 5종과 목록 화면, 훈련 한 바퀴(시나리오 선택 → 세션 5종 → 보고 → 기록),
+ * 매니페스트·아이콘·폰트를 미리 저장해 두고, 네트워크가 끊기면 저장해 둔 화면을 그대로 돌려줍니다.
  *
  * 캐시 전략
  *  - 화면 이동(navigate): 네트워크 우선 → 실패 시 캐시 → 그래도 없으면 /emergency 로 대체
@@ -32,17 +32,39 @@
  * 개발 서버에서는 서비스워커를 아예 등록하지 않으므로(SwRegister.tsx),
  * 치환되지 않은 플레이스홀더가 그대로 남아 있어도 문제가 없습니다.
  */
-const CACHE_NAME = "chimchak-32562527b4cb";
+const CACHE_NAME = "chimchak-0bfd5643e245";
 
-/** 오프라인에서도 반드시 열려야 하는 화면·자산 목록입니다. */
+/**
+ * 오프라인에서도 반드시 열려야 하는 화면·자산 목록입니다.
+ *
+ * 이 목록은 src/data/protocols.ts(P-01~P-05)·src/data/scenarios/index.ts(SCENARIOS)와
+ * 같은 순서·같은 건수를 유지해야 합니다. 서비스워커는 번들 밖 정적 파일이라 데이터를 import할 수
+ * 없어, 어긋남은 tests/swPrecache.test.ts가 대신 잡습니다.
+ */
 const PRECACHE_URLS = [
   "/",
+
+  // 응급 — 서버가 죽어도 가장 먼저 열려야 하는 화면입니다.
   "/emergency",
   "/emergency/p-01",
   "/emergency/p-02",
   "/emergency/p-03",
   "/emergency/p-04",
   "/emergency/p-05",
+
+  // 훈련 한 바퀴 — 고르고, 한 판 돌고, 보고를 적고, 기록을 확인하는 데까지입니다.
+  // 여기를 비워 두면 오프라인에서 /train 주소가 아래 네비게이션 폴백에 걸려 응급 화면으로
+  // 바뀝니다. 화면은 뜨니 아무도 눈치채지 못한 채, 「인터넷이 끊겨도 훈련 한 바퀴」라는
+  // 약속만 무대에서 조용히 어긋납니다.
+  "/train",
+  "/train/chk-a01",
+  "/train/chk-a02",
+  "/train/chk-b02",
+  "/train/chk-c01",
+  "/train/chk-c02",
+  "/report",
+  "/history",
+
   "/manifest.webmanifest",
   "/icon.svg",
   "/icon-192.png",
@@ -67,7 +89,13 @@ function installRequest(url) {
   return URL_VERSIONED.test(url) ? new Request(url) : new Request(url, { cache: "reload" });
 }
 
-/** 저장된 화면이 하나도 없을 때 마지막으로 보여 줄 화면입니다. */
+/**
+ * 요청한 화면이 저장되어 있지 않을 때 마지막으로 보여 줄 화면입니다.
+ *
+ * 위 목록에 있는 주소는 자기 화면이 그대로 열리므로 여기까지 오지 않습니다.
+ * 여기 걸리는 것은 목록 밖 화면(/safety·/for-orgs 등)을 오프라인에서 처음 여는 경우뿐이고,
+ * 그때는 주소와 다른 화면이 뜹니다 — 그래도 응급 안내로 가는 길이 막히는 것보다 낫습니다.
+ */
 const OFFLINE_FALLBACK_URL = "/emergency";
 
 /**
@@ -238,6 +266,7 @@ async function networkFirst(request) {
     }
     return response;
   } catch {
+    // 저장해 둔 화면이 먼저입니다 — 폴백은 그다음입니다.
     // 쿼리스트링(?from=train 등)이 붙어도 같은 화면을 찾도록 ignoreSearch를 씁니다.
     const cached = await cache.match(request, { ignoreSearch: true });
     if (cached) return cached;

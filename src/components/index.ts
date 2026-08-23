@@ -76,9 +76,6 @@ export type { SourceDocsProviderProps } from "./SourceDocsContext";
 
 export { DEFAULT_SOURCE_DOCS } from "./sourceDocsDefault";
 
-export { Call119Button } from "./Call119Button";
-export type { Call119ButtonProps } from "./Call119Button";
-
 export { SwRegister } from "./SwRegister";
 
 export { cx } from "./utils";
@@ -96,6 +93,12 @@ export { cx } from "./utils";
  * 조각이 살아 있는 API처럼 재수출돼 있으면 다음 사람이 「어딘가 쓰인다」를 믿고 계속 끌고 가고,
  * 실제로 그려지지도 않는 화면이 평가와 리팩터링 판단에 섞입니다.
  * 되살려야 할 일이 생기면 이 줄의 날짜로 이력에서 꺼내 쓰십시오.
+ *
+ * 같은 이유로 `Call119Button`도 **파일째 지웠습니다**(2026-08-23).
+ * 119 버튼은 응급·훈련 세 자리 모두 `emergency/_components/Call119Bar`가 그리고 있었고,
+ * 이 조각은 어디서도 렌더되지 않은 채 캡션 상수만 내주고 있었습니다.
+ * 캡션 문구·크기(`CALL_119_CAPTION`·`CALL_119_CAPTION_CLASS`)와 그 역사 기록은
+ * 실제로 쓰는 쪽인 `Call119Bar.tsx`로 그대로 옮겼습니다.
  */
 
 /**

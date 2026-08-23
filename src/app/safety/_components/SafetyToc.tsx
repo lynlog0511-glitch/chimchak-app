@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cx } from "@/components/utils";
+import { announceTocTarget } from "./tocEvent";
 
 /**
  * 안전 설계 목차 칩 (시안 7b 상단).
@@ -94,6 +95,8 @@ export function SafetyToc({ items, className }: SafetyTocProps) {
   const handleClick = useCallback((id: string): void => {
     // 눌린 즉시 활성 표시를 옮깁니다 — 스크롤이 끝나기를 기다리지 않게.
     setActive(id);
+    // 모바일에서 그 항목이 접혀 있으면 먼저 폅니다(앵커 이동은 브라우저가 그대로 합니다).
+    announceTocTarget(id);
   }, []);
 
   if (items.length === 0) return null;

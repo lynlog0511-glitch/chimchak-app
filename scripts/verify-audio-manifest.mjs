@@ -22,20 +22,45 @@ import ts from "typescript";
 const require = createRequire(import.meta.url);
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-/** 타입만 참조하는 데이터 모듈이라, 트랜스파일 후 그대로 실행할 수 있습니다. */
+/**
+ * 데이터 모듈 로더 — 값 import까지 따라갑니다.
+ *
+ * 시나리오 파일이 순수 데이터이던 시절에는 트랜스파일 한 번이면 됐지만,
+ * chk-c02가 규칙 사전(`@/engine/rules`)을 값으로 import하면서(목록 단일화)
+ * `@/` 별칭과 상대 경로를 여기서도 풀어야 합니다. tsconfig의 `@/* → src/*` 규칙을
+ * 그대로 따르고, 그 밖(노드 내장·패키지)은 진짜 require에 넘깁니다.
+ */
+const moduleCache = new Map();
+
+function resolveSpec(spec, fromRel) {
+  if (spec.startsWith("@/")) return `src/${spec.slice(2)}`;
+  if (spec.startsWith(".")) {
+    const dir = path.posix.dirname(fromRel.replace(/\\/g, "/"));
+    return path.posix.normalize(`${dir}/${spec}`);
+  }
+  return null; // 노드 내장·패키지 — 진짜 require가 처리
+}
+
 function loadModule(relPath) {
-  const source = readFileSync(path.join(ROOT, relPath), "utf8");
+  const norm = relPath.endsWith(".ts") ? relPath : `${relPath}.ts`;
+  if (moduleCache.has(norm)) return moduleCache.get(norm).exports;
+  const source = readFileSync(path.join(ROOT, norm), "utf8");
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
-    fileName: relPath,
+    fileName: norm,
   });
   const module = { exports: {} };
+  moduleCache.set(norm, module);
+  const localRequire = (spec) => {
+    const resolved = resolveSpec(spec, norm);
+    return resolved ? loadModule(resolved) : require(spec);
+  };
   // eslint-disable-next-line no-new-func
   new Function("exports", "require", "module", "__filename", "__dirname", outputText)(
     module.exports,
-    require,
+    localRequire,
     module,
-    relPath,
+    norm,
     ROOT,
   );
   return module.exports;

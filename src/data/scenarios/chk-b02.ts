@@ -15,9 +15,24 @@
  * ※ 감수 보류 항목: 설계서 §6.2의 "상체를 앞으로 숙이도록 유도" 발화는 '체위 확보'인지
  *    '동작 지도'인지 2차 현직 감수 대기 중이므로, 본 구현에서는 어떤 분기에도 포함하지 않고
  *    "기침을 계속하시도록 격려"만 남겼습니다. 앱은 신체 술기를 지도하지 않습니다.
+ *
+ * 판정 공정성 (8/6 감사 기준을 전 CUE로 소급)
+ *  - 모든 CUE에 **중립 미분류 분기**(…-n)를 두고 defaultBranchId를 그리로 돌렸습니다.
+ *    음성 인식이 빗나간 것과 잘못 대응한 것은 다른 사실입니다. 응급 구간은 양손을 쓰고 있어
+ *    (제약 C5) 인식이 더 자주 빗나가므로, 여기서 감점이 붙으면 CUE-1에서만 네 항목이 한꺼번에
+ *    1점으로 떨어집니다. 감점 분기는 학습자가 **실제로 그 말을 했을 때만** 열립니다.
+ *  - CO-03의 1점 앵커 「미신고 ⚑」는 CUE-3의 D3-d(명시적 신고 거부)가 맡습니다.
+ *    시간으로는 잴 수 없는 판정이라 데이터 쪽 ⚑CF 분기가 있어야 성립합니다(engine/timing.ts 참조).
  */
 
 import type { Scenario } from "@/types";
+
+/**
+ * 중립 미분류 분기의 코칭 문구 — 감점이 아니라 **다시 말할 기회**입니다.
+ * 양손을 쓰고 있는 구간이라(제약 C5) 버튼 폴백을 함께 안내합니다.
+ */
+const UNCLEAR_COACHING =
+  "말씀이 닿지 않았습니다. 지금 하신 말씀은 판정에 넣지 않았으니, 한 문장으로 짧게 다시 말씀하시거나 아래 버튼에서 골라 주세요.";
 
 /** CO-01 ⚑CF 인터럽트 화면 문구 (고정, L3 — 변형 불가). */
 const CF_OUT_OF_SCOPE_MESSAGE =
@@ -60,6 +75,19 @@ const CF_NO_MANEUVER_ALTERNATIVES = [
   "지금 119를 누릅니다.",
   "소리를 낼 수 있는지 확인해 본 그대로 119에 전달합니다.",
   "스피커폰을 켜고 휴대폰을 바닥에 둡니다.",
+];
+
+/**
+ * ⚑CF D3-d(명시적 신고 거부) 인터럽트 문구 — 루브릭 CO-03의 1점 앵커 「미신고 ⚑」 자리입니다.
+ * 지연(2~3점)은 engine/timing.ts가 경과 시간으로 재고, 「부르지 않겠다」는 판단만 여기서 멈춥니다.
+ */
+const CF_NO_CALL_MESSAGE =
+  "잠시 멈추겠습니다. 소리가 사라진 상태에서 119를 부르지 않는 것은, 요양보호사가 미룰 수 있는 판단이 아닙니다. 지금 하실 수 있는 것은 ①119 연결 ②스피커폰을 켜고 휴대폰을 바닥에 두기 ③보이는 그대로 상황실에 전달하기입니다. 다시 해보시겠어요?";
+
+const CF_NO_CALL_ALTERNATIVES = [
+  "지금 119를 누릅니다.",
+  "스피커폰을 켜고 휴대폰을 바닥에 둡니다.",
+  "소리가 나오지 않는다는 것을 그대로 119에 전달합니다.",
 ];
 
 export const CHK_B02: Scenario = {
@@ -131,7 +159,8 @@ export const CHK_B02: Scenario = {
         id: "CUE-1",
         prompt: "지금 즉시 무엇을 하시겠습니까?",
         waitSec: 6,
-        defaultBranchId: "D1-b",
+        // 미분류를 「관찰만 하고 대기」(D1-b)에 매핑하지 않습니다 — 중립 분기로 받습니다.
+        defaultBranchId: "D1-n",
         branches: [
           {
             id: "D1-a",
@@ -173,7 +202,9 @@ export const CHK_B02: Scenario = {
           {
             id: "D1-b",
             label: "관찰만 하고 대기",
-            patterns: ["지켜보", "기다리", "가만히", "일단 보", "괜찮아지시겠"],
+            // 기본값이 중립 분기로 옮겨 갔으므로 버튼 문구도 여기서 직접 걸려야 합니다.
+            // "지켜보"는 "지켜봅니다"의 부분 문자열이 아닙니다(음절 블록) — 활용형을 함께 둡니다.
+            patterns: ["지켜보", "지켜봅", "기다", "가만히", "일단 보", "괜찮아지시겠"],
             fallbackOption: "일단 지켜봅니다",
             gaugeDelta: 1,
             aiReaction: "…컥… 커억…",
@@ -229,7 +260,9 @@ export const CHK_B02: Scenario = {
             criticalFail: true,
             cfMessage: CF_ORAL_MESSAGE,
             cfAlternatives: CF_ORAL_ALTERNATIVES,
-            docId: "DOC-GUIDE-004",
+            // 구강 내 조작은 무면허 의료행위 경계에 놓인 행위입니다 — 루브릭 CO-01의 근거와
+            // 같은 문서(의료법 제27조)를 인용합니다. 관찰·체위 오류(D1-c·D1-e)와는 근거가 다릅니다.
+            docId: "DOC-LAW-005",
             next: "T1",
           },
           {
@@ -250,6 +283,8 @@ export const CHK_B02: Scenario = {
             id: "D1-f",
             label: "등을 세게 두드림 (경고 — ⚑CF 아님)",
             // 부사가 끼어도(등을 '세게' 두드립니다) 걸리도록 어간을 넓혔습니다.
+            // 「두드리는 대신 119를 부르겠습니다」처럼 부정·대체 선언까지 감점하지 않도록 부정 창을 건너뜁니다.
+            skipNegated: true,
             patterns: ["두드", "등을 세게", "세게 두드", "등짝", "두들기", "때리", "쳐서", "등을 치"],
             fallbackOption: "등을 세게 두드립니다",
             gaugeDelta: 1,
@@ -257,6 +292,20 @@ export const CHK_B02: Scenario = {
             rubricHits: [{ itemId: "CO-01", score: 2 }],
             coaching:
               "세게 두드리는 것은 상황을 악화시킬 수 있습니다. 지금 하실 일은 식사 중단과 기침 격려, 그리고 소리가 나오는지 확인하는 것입니다.",
+            docId: "DOC-GUIDE-004",
+            next: "T2",
+          },
+          {
+            // 미분류(음성 인식 실패 포함) 전용 중립 분기 — 게이지 변동 0, 루브릭 반영 없음.
+            // 여기가 D1-b였을 때는 인식 한 번 빗나가면 관찰 지연으로 기록되고 T-1이 앞당겨졌습니다.
+            id: "D1-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "…컥… 컥…",
+            aiReactionNote: "기침이 이어집니다. 아직 소리가 남아 있습니다.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
             docId: "DOC-GUIDE-004",
             next: "T2",
           },
@@ -275,7 +324,8 @@ export const CHK_B02: Scenario = {
         id: "CUE-2",
         prompt: "어르신 상태를 소리 내어 관찰 보고하세요.",
         waitSec: 8,
-        defaultBranchId: "D2-c",
+        // 관찰을 말했는데 신호에 걸리지 않았다고 「미보고」(D2-c)로 찍지 않습니다.
+        defaultBranchId: "D2-n",
         branches: [
           {
             id: "D2-a",
@@ -320,13 +370,33 @@ export const CHK_B02: Scenario = {
           },
           {
             id: "D2-c",
-            label: "미보고",
-            patterns: [],
+            label: "말하지 않고 지켜보기만 함",
+            // 「소리 내어 말하지 않기로 했다」는 판정은 실제로 그렇게 답했을 때만 내립니다.
+            patterns: [
+              "말없이",
+              "아무 말 없이",
+              "말하지 않",
+              "말씀드리지 않",
+              "소리 내지 않",
+              "그냥 지켜보",
+            ],
+            fallbackOption: "아무 말 없이 지켜보기만 합니다",
             gaugeDelta: 0,
             aiReaction: "…컥…",
             aiReactionNote: "상태 진술 없이 시간이 지나갑니다.",
             rubricHits: [{ itemId: "SA-05", score: 1 }],
             coaching: "소리 내어 관찰을 말하면, 그 문장이 곧 119 신고 문장이 됩니다.",
+            docId: "DOC-GUIDE-004",
+            next: "T3",
+          },
+          {
+            id: "D2-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "…컥…",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
             docId: "DOC-GUIDE-004",
             next: "T3",
           },
@@ -348,7 +418,9 @@ export const CHK_B02: Scenario = {
         id: "CUE-3",
         prompt: "지금 판단하세요.",
         waitSec: 4,
-        defaultBranchId: "D3-b",
+        // 미분류를 「신고 지연」(D3-b)에 매핑하지 않습니다 — 인식이 빗나간 것과 신고를 미룬 것은
+        // 다른 사실입니다. 상황 자체는 어느 쪽이든 4초 뒤 고정 스크립트(P-02)로 넘어갑니다.
+        defaultBranchId: "D3-n",
         branches: [
           {
             id: "D3-a",
@@ -424,8 +496,57 @@ export const CHK_B02: Scenario = {
             criticalFail: true,
             cfMessage: CF_NO_MANEUVER_MESSAGE,
             cfAlternatives: CF_NO_MANEUVER_ALTERNATIVES,
+            // 복부 압박은 무면허 의료행위 경계에 놓인 행위입니다 — 루브릭 CO-01의 근거와
+            // 같은 문서(의료법 제27조)를 인용합니다.
+            docId: "DOC-LAW-005",
+            next: "T3",
+          },
+          {
+            // CO-03의 1점 앵커 「미신고 ⚑」가 실제로 열리는 자리입니다.
+            // 이 분기가 없으면 루브릭 앵커·E-재훈련 조건·engine/timing.ts 주석이 모두
+            // 데이터에 없는 판정을 가리키게 됩니다.
+            id: "D3-d",
+            label: "신고하지 않기로 함 (⚑CF)",
+            // 「미룬다」가 아니라 「부르지 않겠다」에만 붙입니다 — 지연(2~3점)은 시간이 재고,
+            // 여기서 멈추는 것은 신고를 하지 않기로 한 판단뿐입니다.
+            // ⚑CF 분기는 부정 문맥을 넓게 건너뛰므로("안 부르면 안 됩니다"는 걸리지 않습니다)
+            // 어간을 넉넉히 둡니다.
+            patterns: [
+              "신고까지는",
+              "신고는 안",
+              "신고 안",
+              "신고하지 않",
+              "119까지는",
+              "119는 안",
+              "구급차까지는",
+              "안 부르",
+              "안 불러",
+              "부르지 않",
+              "부르지는 않",
+            ],
+            fallbackOption: "119까지는 부르지 않고 조금 더 지켜보겠습니다",
+            gaugeDelta: 0,
+            aiReaction: "(무음)",
+            aiReactionNote: "소리가 나오지 않는 상태가 이어집니다.",
+            rubricHits: [{ itemId: "CO-03", score: 1 }],
+            criticalFail: true,
+            cfMessage: CF_NO_CALL_MESSAGE,
+            cfAlternatives: CF_NO_CALL_ALTERNATIVES,
             docId: "DOC-GUIDE-004",
             next: "T3",
+          },
+          {
+            id: "D3-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "(무음)",
+            aiReactionNote:
+              "4초가 지나 화면이 응급 음성 가이드로 전환됩니다. 생성 호출이 없는 고정 스크립트 구간입니다.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
+            docId: "DOC-GUIDE-004",
+            next: "protocol:P-02",
           },
         ],
       },
@@ -452,7 +573,8 @@ export const CHK_B02: Scenario = {
         id: "CUE-4",
         prompt: "상황실 질문에 답하세요.",
         waitSec: 8,
-        defaultBranchId: "Q-c",
+        // 미분류를 「추정·감정 진술」(Q-c)에 매핑하지 않습니다 — 네 항목이 한꺼번에 1점이 되는 자리입니다.
+        defaultBranchId: "Q-n",
         branches: [
           {
             id: "Q-a",
@@ -517,6 +639,17 @@ export const CHK_B02: Scenario = {
             docId: "DOC-GUIDE-004",
             next: "T5",
           },
+          {
+            id: "Q-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "여보세요? 잘 안 들립니다. 소리를 내시는지만 알려 주세요.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
+            docId: "DOC-GUIDE-004",
+            next: "T5",
+          },
         ],
       },
     },
@@ -531,7 +664,8 @@ export const CHK_B02: Scenario = {
         id: "CUE-5",
         prompt: "구급대원에게 인계한다고 생각하고 SBAR로 보고하세요.",
         waitSec: 8,
-        defaultBranchId: "S-d",
+        // 인계 문장을 말했는데 신호에 걸리지 않았다고 「인계 없음」(S-d)으로 찍지 않습니다.
+        defaultBranchId: "S-n",
         branches: [
           {
             id: "S-a",
@@ -605,13 +739,34 @@ export const CHK_B02: Scenario = {
           },
           {
             id: "S-d",
-            label: "인계 없음",
-            patterns: [],
+            label: "인계하지 않음",
+            // 「전할 말이 없다」는 판정은 실제로 그렇게 답했을 때만 내립니다.
+            patterns: [
+              "드릴 말씀이 없",
+              "따로 말씀드릴",
+              "말씀드릴 것이 없",
+              "인계하지 않",
+              "알아서 하시",
+              "그냥 보내",
+            ],
+            fallbackOption: "따로 드릴 말씀이 없습니다",
             // 인계 문장이 없어도 구급대가 자체 확인 후 이송하므로 상황 자체는 넘어갑니다.
             gaugeDelta: -1,
             aiReaction: "구급대가 자체 확인 후 이송합니다.",
             rubricHits: [{ itemId: "CL-01", score: 1 }],
             coaching: "인계 한 문장이 병원에서의 첫 판단을 바꿉니다. 시각부터 말씀해 보세요.",
+            docId: "DOC-NOTI-002",
+            next: "T-2",
+          },
+          {
+            // 중립 분기는 게이지도 움직이지 않습니다 — 인계 하강(−1)은 인계가 실제로 있었을 때의 값입니다.
+            id: "S-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "…네? 다시 말씀해 주시겠어요?",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
             docId: "DOC-NOTI-002",
             next: "T-2",
           },
@@ -632,7 +787,7 @@ export const CHK_B02: Scenario = {
         id: "CUE-T2",
         prompt: "보호자께 어떻게 답하시겠습니까?",
         waitSec: 8,
-        defaultBranchId: "G-d",
+        defaultBranchId: "G-n",
         branches: [
           {
             id: "G-a",
@@ -698,12 +853,33 @@ export const CHK_B02: Scenario = {
           },
           {
             id: "G-d",
-            label: "무응답·회피",
-            patterns: [],
+            label: "대답하지 않고 넘김",
+            // 「대답하지 않기로 했다」는 판정은 실제로 그렇게 답했을 때만 내립니다.
+            patterns: [
+              "아무 말 없이",
+              "말없이",
+              "대답하지 않",
+              "대답 안",
+              "못 들은 척",
+              "그냥 끊",
+              "듣고만",
+            ],
+            fallbackOption: "아무 말 없이 듣고만 있습니다",
             gaugeDelta: 0,
             aiReaction: "…듣고 계세요?",
             rubricHits: [{ itemId: "RE-06", score: 2 }],
             coaching: "짧게라도 확인된 사실 한 문장을 전해 주세요.",
+            docId: "DOC-LAW-007",
+            next: "T6",
+          },
+          {
+            id: "G-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "…여보세요? 잘 안 들려요.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
             docId: "DOC-LAW-007",
             next: "T6",
           },
@@ -721,7 +897,8 @@ export const CHK_B02: Scenario = {
         id: "CUE-6",
         prompt: "기관에 보고하고, 급여제공기록지 초안을 확정해 주세요.",
         waitSec: 8,
-        defaultBranchId: "M-c",
+        // 상식적인 보고 문장이 신호에 걸리지 않았다고 「보고·기록 없음」(M-c)으로 찍지 않습니다.
+        defaultBranchId: "M-n",
         branches: [
           {
             id: "M-a",
@@ -781,6 +958,17 @@ export const CHK_B02: Scenario = {
             docId: "DOC-NOTI-002",
             next: "T7",
           },
+          {
+            id: "M-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "말씀이 잘 전달되지 않았습니다.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
+            docId: "DOC-NOTI-002",
+            next: "T7",
+          },
         ],
       },
     },
@@ -793,7 +981,7 @@ export const CHK_B02: Scenario = {
         id: "CUE-7",
         prompt: "재발 방지 제안과, 오늘 내 대응에서 한 가지 고칠 점을 말씀해 주세요.",
         waitSec: 8,
-        defaultBranchId: "N-c",
+        defaultBranchId: "N-n",
         branches: [
           {
             id: "N-a",
@@ -855,6 +1043,17 @@ export const CHK_B02: Scenario = {
             docId: "DOC-GUIDE-001",
             next: "end:E-부분",
           },
+          {
+            id: "N-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "훈련을 마쳤습니다.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
+            docId: "DOC-GUIDE-001",
+            next: "end:E-부분",
+          },
         ],
       },
     },
@@ -893,11 +1092,15 @@ export const CHK_B02: Scenario = {
     },
     {
       id: "E-부분",
-      title: "이양은 했지만 시간이 걸렸습니다",
+      // 이 엔딩은 마지막 한 문장(CUE-7 재발 방지 제안 + 고칠 점)으로만 갈립니다 — 90초 안에
+      // 신고하고도 여기로 옵니다. 그래서 **제목도 문구도** 신고가 늦었는지를 단정하지 않고
+      // 실제 갈림 사유만 적습니다(연결까지 걸린 시간은 engine/timing.ts가 재서 따로 표시합니다).
+      // 제목은 종료 화면 부제와 /history 회차 카드에 그대로 실리므로 같은 기준을 받습니다.
+      title: "다음 식사를 위한 한 문장이 남았습니다",
       verdict: "부분 충족",
       condition: "119 신고 90~180초 또는 SBAR 2요소 이하",
       message:
-        "소리가 사라진 순간이 신고 시점입니다. 다음엔 확인을 줄이고 먼저 119를 눌러 주세요.",
+        "마무리 돌아보기에서 한 문장이 남았습니다. 관찰과 이양이 어디까지 닿았는지는 아래에서 확인해 주세요.",
     },
     {
       id: "E-재훈련",

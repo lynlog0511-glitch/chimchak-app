@@ -10,6 +10,7 @@ import {
 import { PROTOCOLS, PROTOCOL_NOTICE } from "@/data/protocols";
 import { AudioUnlock } from "./_components/AudioUnlock";
 import { Call119Bar } from "./_components/Call119Bar";
+import { InstallHint } from "./_components/InstallHint";
 import { OfflineStatus } from "./_components/OfflineStatus";
 
 export const metadata: Metadata = {
@@ -65,6 +66,13 @@ export default function EmergencyPage() {
         <Call119Bar />
       </div>
 
+      {/* 이 다섯 가지가 무엇이고 무엇이 아닌지를 목록 앞에서 한 번 못박습니다.
+          아래 각주(생성 통제·술기 경계)와 겹치지 않는, **순서**에 관한 경계입니다 — 119가 먼저입니다. */}
+      <p className="mt-[6px] mb-[14px] text-[0.8438rem] leading-[1.6] text-ink-soft">
+        이 안내는 119 신고를 대체하지 않으며, 신고 후 구급대 도착까지의 확인 절차를 돕습니다 — 안내
+        내용은 관찰·확인·119 이양뿐입니다.
+      </p>
+
       {/* 5종 — 카드가 아니라 선으로 나눈 목록입니다. 마커 한 글자로 눈이 먼저 찾습니다. */}
       <ListRows>
         {PROTOCOLS.map((protocol) => {
@@ -87,6 +95,9 @@ export default function EmergencyPage() {
           );
         })}
       </ListRows>
+
+      {/* 홈 화면 추가 — 이 기기에서 실제로 되는 길이 있을 때만 그려집니다(없으면 조용히 사라집니다). */}
+      <InstallHint className="mt-5" />
 
       {/* 하단 고지 2줄 — 생성 통제와 술기 경계를 이 화면에서 한 번 더 못박습니다. */}
       <p className="mt-[10px] text-center text-[0.7813rem] leading-[1.6] text-tertiary">

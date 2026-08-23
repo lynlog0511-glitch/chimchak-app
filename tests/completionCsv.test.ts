@@ -238,6 +238,20 @@ describe("왕복 — 내보내기 → 다른 기기에서 가져오기 → 누�
     expect(loadCompletionTally().count).toBeGreaterThan(0);
   });
 
+  it("가져온 회차는 줄마다 몇 회인지 남는다 — 확인서가 줄 단위로 사유를 갈라 적는다", () => {
+    seedRealDevice();
+    const csv = exportCsv();
+
+    useDevice();
+    expect(importCompletionCsv(csv).ok).toBe(true);
+    const after = buildCompletionSummary();
+    expect(after.lines.length).toBeGreaterThan(0);
+    for (const line of after.lines) {
+      // 이 기기에서 마친 회차가 없으므로 줄의 전부가 「옮겨 온 회차」다.
+      expect(line.importedCount).toBe(line.count);
+    }
+  });
+
   it("상세 없이 합계만 있는 기기에서도 확인서 문장이 사유를 나눠 셀 수 있다", () => {
     seedRealDevice();
     const csv = exportCsv();
@@ -368,6 +382,64 @@ describe("검증 — 서식이 어긋나면 반쯤 넣지 않고 사유를 말�
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.reason).toBe("row");
+  });
+
+  /* 아래 셋은 「파일을 고쳐 이수 시수를 부풀리는」 길을 막는지 본다.
+     발급번호 위조를 막는 장치는 아니고(그건 서버 발급·서명의 일이다), 여기서 막는 것은
+     **이 앱이 만들 수 없는 값**이 적힌 파일까지다. */
+
+  it("편성표에 없는 시나리오 번호로 행을 늘린 파일은 받지 않는다", () => {
+    const csv = csvFromOtherDevice();
+    const rows = csv.replace(/^﻿/, "").split("\r\n");
+    const cells = splitRow(rows[1] as string);
+    cells[2] = "CHK-Z99"; // 이 앱에 없는 번호
+    rows[1] = cells.join(",");
+    const result = importCompletionCsv(`﻿${rows.join("\r\n")}`);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe("scenario");
+    expect(loadCompletionTally().count).toBe(0);
+  });
+
+  it("회당 30분 상한을 넘는 이수 시수는 받지 않는다", () => {
+    const csv = csvFromOtherDevice();
+    const rows = csv.replace(/^﻿/, "").split("\r\n");
+    const cells = splitRow(rows[1] as string);
+    // 이수 1회에 999분 — 이 앱은 한 회차를 30분까지만 센다.
+    cells[5] = "1";
+    cells[6] = "999";
+    rows[1] = cells.join(",");
+    const result = importCompletionCsv(`﻿${rows.join("\r\n")}`);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe("limit");
+    expect(loadCompletionTally().count).toBe(0);
+  });
+
+  it("한 줄에 담을 수 있는 이수 횟수를 넘긴 파일은 받지 않는다", () => {
+    const csv = csvFromOtherDevice();
+    const rows = csv.replace(/^﻿/, "").split("\r\n");
+    const cells = splitRow(rows[1] as string);
+    cells[5] = "9999";
+    rows[1] = cells.join(",");
+    const result = importCompletionCsv(`﻿${rows.join("\r\n")}`);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe("limit");
+    expect(loadCompletionTally().count).toBe(0);
+  });
+
+  it("막힌 파일은 한 줄도 반영되지 않는다 — 반쯤 들어가는 일이 없다", () => {
+    const csv = csvFromOtherDevice();
+    const rows = csv.replace(/^﻿/, "").split("\r\n");
+    // 마지막 줄만 고쳐도 앞줄까지 통째로 되돌린다.
+    const last = rows.length - 1;
+    const cells = splitRow(rows[last] as string);
+    cells[2] = "CHK-Z99";
+    rows[last] = cells.join(",");
+    expect(importCompletionCsv(`﻿${rows.join("\r\n")}`).ok).toBe(false);
+    expect(loadCompletionTally().count).toBe(0);
+    expect(buildCompletionSummary().totalCount).toBe(0);
   });
 
   it("실패한 가져오기는 안내 문장을 함께 돌려준다", () => {

@@ -13,9 +13,12 @@
  * - masking : 가명처리
  * - record  : 보고 발화 → 급여제공기록지 5요소 초안
  * - boundaryCheck : 경계 케이스를 지금 이 브라우저에서 돌려 보는 자가 점검 러너
+ * - adapter : 경량 LLM 교체형 어댑터 자리(현행은 결정론 구현) — 검증 통과 구간부터 개방
  */
 
 export * from "./session";
+// adapter의 JudgeResult는 다른 모듈의 동명 export와 겹쳐 선택 재수출합니다 — 어댑터 타입은 "@/engine/adapter"에서 직접 가져와도 됩니다.
+export { DETERMINISTIC_JUDGE, type UtteranceJudge } from "./adapter";
 export * from "./classify";
 export * from "./rules";
 export * from "./timing";

@@ -144,8 +144,10 @@ const CONTROL_BASE =
 
 export const CONTROL_OUTLINE = `${CONTROL_BASE} flex-1 border border-line-strong bg-paper font-semibold text-ink-soft active:bg-paper-2`;
 
-/** 이 화면의 유일한 틸 채움입니다(119는 danger, 나머지는 아웃라인 — 가이드 §0 「화면당 2곳 이하」). */
-export const CONTROL_PRIMARY = `${CONTROL_BASE} flex-[1.4] bg-brand-600 font-bold text-white active:bg-brand-700`;
+/** 이 화면의 유일한 틸 채움입니다(119는 danger, 나머지는 아웃라인 — 가이드 §0 「화면당 2곳 이하」).
+    채움은 brand-600이 아니라 **brand-700**입니다 — globals.css의 토큰 주석대로 「흰 글자 얹는 채움」은 700입니다.
+    600(#17948a) 위 흰 15px/700은 3.72:1이고, 15px는 굵어도 큰 글자(18.66px)에 못 들어 4.5:1이 적용됩니다. */
+export const CONTROL_PRIMARY = `${CONTROL_BASE} flex-[1.4] bg-brand-700 font-bold text-white active:bg-brand-800`;
 
 /** 부수 조작 — 텍스트만. 48px 터치는 지킵니다. */
 export const CONTROL_QUIET =

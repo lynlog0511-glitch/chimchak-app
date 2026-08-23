@@ -6,6 +6,7 @@ import { SOURCE_DOCS } from "@/data/docs";
 import { SCENARIO_MATRIX } from "@/data/matrix";
 import { PROTOCOLS } from "@/data/protocols";
 import { SCENARIOS } from "@/data/scenarios";
+import { PILOT_SCOPE, VERIFICATION_LADDER } from "@/data/pilotResults";
 import { OrgLiveNumbers } from "./_components/OrgLiveNumbers";
 
 export const metadata: Metadata = {
@@ -20,7 +21,7 @@ const ACTIVE_COUNT = ACTIVE_SCENARIOS.length;
 const TOTAL_COUNT = SCENARIO_MATRIX.length;
 const PROTOCOL_COUNT = PROTOCOLS.length;
 const ACTIVE_MINUTES = ACTIVE_SCENARIOS.reduce((sum, scenario) => sum + scenario.durationMin, 0);
-/** 12종이 다 열렸을 때의 시수는 **추정치**입니다 — 열린 3종의 소요를 그대로 곱한 값입니다. */
+/** 12종이 다 열렸을 때의 시수는 **추정치**입니다 — 지금 열린 5종의 평균 소요를 그대로 곱한 값입니다. */
 const PROJECTED_MINUTES = Math.round((ACTIVE_MINUTES / ACTIVE_COUNT) * TOTAL_COUNT);
 
 /**
@@ -139,7 +140,34 @@ export default function ForOrgsPage() {
         title="지금 되는 것과 아직 아닌 것"
         lead="파일럿에서 확인하실 수 있는 범위입니다. 설계까지만 끝난 항목에는 「계획」을 붙였습니다."
       >
-        <EyebrowLabel className="mt-4 mb-[2px]">지금 되는 것</EyebrowLabel>
+        {/* 「무엇을 어디까지 재 봤는가」는 /safety의 검증 계단과 같은 데이터를 인용합니다 —
+            두 화면이 다른 숫자를 말하지 않도록 문장을 데이터 쪽에 두었습니다. */}
+        <div className="mt-[10px] rounded-[14px] bg-paper-2 px-4 py-[14px]">
+          <p className="text-[0.875rem] leading-[1.45] font-bold text-ink">
+            검증 계단 — 어디까지 재 봤는지
+          </p>
+          <ul className="chim-hairline mt-[8px] border-y border-line">
+            {VERIFICATION_LADDER.map((step) => (
+              <li key={step.id} className="py-[10px]">
+                <p className="text-[0.875rem] leading-[1.45] font-bold text-ink">
+                  <span className="chim-num">{step.no}</span>{" "}
+                  {step.origin === "not-yet" && <PlanMark />}
+                  {step.title}
+                </p>
+                <p className="mt-[3px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+                  {step.result}
+                </p>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-[8px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+            ①은 앱 안에서 지금 다시 돌려 보실 수 있고, ②·③은 앱 밖 하네스 실행 기록을 옮겨 적은
+            값이며, ④는 8월 파일럿({PILOT_SCOPE})에서 잽니다. 1차 결과가 나오기 전까지 ④ 칸에는
+            숫자를 적지 않습니다. 상세는 「안전·개인정보 설계」 화면의 검증 계단에 있습니다.
+          </p>
+        </div>
+
+        <EyebrowLabel className="mt-5 mb-[2px]">지금 되는 것</EyebrowLabel>
         <ul className="chim-hairline border-y border-line">
           <StateRow
             title={`훈련 시나리오 ${ACTIVE_COUNT}종 (전체 편성표 ${TOTAL_COUNT}종)`}
@@ -236,7 +264,13 @@ export default function ForOrgsPage() {
             </p>
           </li>
         </ol>
+        {/* 가격을 적지 않는 화면이라도 「그래서 얼마냐」에 침묵하면 감추는 것처럼 보입니다.
+            공표한 기준가와 그 값이 아직 확정이 아니라는 사실만 한 줄로 밝힙니다. */}
         <p className="mt-[10px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+          가격 원칙 · 기획서에 공표한 기준가(기관 연 90만 원부터, 팀 결정가)는 파일럿 실측을 보고
+          확정합니다. 이 화면은 견적서가 아니므로 기관별 조건은 협의 자리에서 다룹니다.
+        </p>
+        <p className="mt-[8px] text-[0.8438rem] leading-[1.7] text-ink-soft">
           파일럿이 끝나도 기기에 쌓인 이수 사실은 사라지지 않습니다 — 확인서로 인쇄하시거나 이수 사실
           파일로 내려받아 두시면 앱과 무관하게 남습니다. 반대로 기기에서 기록을 지우면 되살릴 수
           없으므로, 그 전에 남겨 두시는 편이 안전합니다.

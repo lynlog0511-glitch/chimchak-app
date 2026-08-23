@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { isSilentStep } from "@/data/protocols";
 import { canPlayWithoutGesture, speak, stopSpeaking, unlockAudio } from "@/lib/speech";
+import { useWakeLock } from "@/lib/wakeLock";
 import type { ProtocolStep } from "@/types";
 
 /**
@@ -154,6 +155,13 @@ export function useProtocolPlayback({
 
   const step = steps[index];
   const silent = step ? isSilentStep(step) : true;
+
+  /* 자동 진행 중에는 화면이 꺼지지 않게 잡아 둡니다.
+     손이 어르신에게 가 있어 화면을 못 만지는 구간인데, 기본 잠금 시간(보통 30초)은 한 단계 낭독보다
+     짧을 수 있습니다. 화면이 꺼지면 자막이 사라지고 다시 깨워 잠금을 푸는 동안 안내가 끊깁니다.
+     멈춰 두거나(playing=false) 아직 시작 전(enabled=false)이면 잠금도 함께 풉니다 —
+     미지원·거부 환경에서는 wakeLock.ts가 조용히 아무것도 하지 않습니다. */
+  useWakeLock(enabled && playing);
 
   // 자동 진행: 낭독과 최소 체류 시간이 **둘 다** 끝나야 다음 단계로 넘어갑니다.
   useEffect(() => {

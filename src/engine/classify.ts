@@ -17,6 +17,43 @@ import { indexOfPattern, isNegated, normalize } from "./rules";
 
 export type ClassifySource = "button" | "criticalPattern" | "pattern" | "default";
 
+/**
+ * 부정 문맥을 건너뛸지 분기 데이터가 직접 켜는 옵트인 플래그.
+ *
+ * `BranchDef`(src/types/index.ts)는 리드 소유라 여기서 넓히지 않고, 있으면 읽는 형태로만
+ * 받는다. 타입에 필드가 추가되면 그날부터 분기 데이터가 규칙 엔진과 같은 넓은 부정 창을
+ * 켤 수 있고, 그전까지는 아래 isDirectlyNegated()가 모든 일반 분기에 좁게 적용된다.
+ */
+type NegationAwareBranch = BranchDef & { skipNegated?: boolean };
+
+/**
+ * 부정이 **그 동사에 바로 붙었는지** 볼 때 사이에 끼어도 되는 글자 (활용 어미).
+ * 새 동사가 끼어들면("아무것도 **하**지 않고") 부정이 향하는 곳이 달라진다.
+ */
+const CONJUGATION_FILLERS = new Set([..."지리으이히기게려어아여라러서는도를을시"]);
+
+const DIRECT_NEGATION_MARKERS = ["않", "지마", "지말", "마세", "말고", "말아"];
+const DIRECT_NEGATION_WINDOW = 5;
+
+/**
+ * 매치된 패턴 **자신**이 부정된 꼴인지 ("두드" + "리지 않겠습니다").
+ *
+ * ⚑CF 분기는 예전부터 부정 문맥을 건너뛰었지만 일반 분기는 그러지 않아서,
+ * "등을 두드리지 않겠습니다"가 「등을 세게 두드림」(D1-f)으로 분류돼 하지 않겠다고 말한
+ * 사람이 감점을 받았다. 다만 규칙 엔진과 같은 넓은 창(10글자)을 그대로 쓰면 이번엔
+ * 「아무것도 하지 않고 지켜봅니다」·「따로 남기지 않겠습니다」처럼 **부정 자체가 잘못인**
+ * 분기가 전부 빠져나간다. 그래서 일반 분기에는 활용 어미만 사이에 둔 직접 부정만 본다.
+ */
+function isDirectlyNegated(normalized: string, end: number): boolean {
+  const tail = normalized.slice(end, end + DIRECT_NEGATION_WINDOW);
+  for (const marker of DIRECT_NEGATION_MARKERS) {
+    const at = tail.indexOf(marker);
+    if (at < 0) continue;
+    if ([...tail.slice(0, at)].every((char) => CONJUGATION_FILLERS.has(char))) return true;
+  }
+  return false;
+}
+
 export interface ClassifyResult {
   branch: BranchDef;
   source: ClassifySource;
@@ -72,13 +109,14 @@ export function fallbackBranches(cue: CueDef): BranchDef[] {
  * - 정규화 후 2글자 미만이 되는 패턴은 무시한다.
  *   ("음…", "어…" 처럼 구두점이 지워지면 한 글자만 남아 사실상 모든 발화를 삼킨다.)
  * - 패턴이 '-시'로 끝나면 존경 선어말어미 활용형(-신/-셨/-세…)까지 받는다.
- * - `skipNegated`(⚑CF 분기 전용)면 "밀어내지 않고", "억지로 하지 않고"처럼
- *   부정 문맥 안의 매치는 건너뛴다. 규칙 엔진(rules.ts)과 같은 기준이다.
+ * - `skipNegated`면 "밀어내지 않고", "억지로 하지 않고"처럼 부정 문맥 안의 매치는
+ *   건너뛴다. 규칙 엔진(rules.ts)과 같은 기준이며, 어느 분기가 이걸 켜는지는
+ *   isNegationAware()가 정한다.
  */
 function matchPattern(
   normalizedUtterance: string,
   branch: BranchDef,
-  skipNegated = false,
+  mode: "none" | "direct" | "full" = "none",
 ): string | undefined {
   for (const pattern of branch.patterns) {
     const needle = normalize(pattern);
@@ -88,7 +126,11 @@ function matchPattern(
       const idx = indexOfPattern(normalizedUtterance, needle, from);
       if (idx < 0) break;
       const end = idx + needle.length;
-      if (!skipNegated || !isNegated(normalizedUtterance, idx, end)) return pattern;
+      const negated =
+        mode === "full"
+          ? isNegated(normalizedUtterance, idx, end)
+          : mode === "direct" && isDirectlyNegated(normalizedUtterance, end);
+      if (!negated) return pattern;
       from = idx + 1;
     }
   }
@@ -130,14 +172,15 @@ export function classifyInput(cue: CueDef, input: { utterance?: string; branchId
   // 2) ⚑CF 분기 우선 검사 (부정 표현은 제외 — "밀어내지 않고 119를 부르겠습니다")
   for (const branch of cue.branches) {
     if (!branch.criticalFail) continue;
-    const matched = matchPattern(normalized, branch, true);
+    const matched = matchPattern(normalized, branch, "full");
     if (matched) return { branch, source: "criticalPattern", matchedPattern: matched };
   }
 
-  // 3) 배열 순서대로 패턴 대조
+  // 3) 배열 순서대로 패턴 대조 (하지 않겠다고 말한 행동으로는 분류하지 않는다)
   for (const branch of cue.branches) {
     if (branch.criticalFail) continue;
-    const matched = matchPattern(normalized, branch);
+    const mode = (branch as NegationAwareBranch).skipNegated ? "full" : "direct";
+    const matched = matchPattern(normalized, branch, mode);
     if (matched) return { branch, source: "pattern", matchedPattern: matched };
   }
 

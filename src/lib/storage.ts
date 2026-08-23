@@ -14,6 +14,8 @@
  */
 
 import type { RecordDraft, SessionEvent, SessionRecord, SessionState, SessionStatus } from "@/types";
+import { SCENARIO_MATRIX } from "@/data/matrix";
+import { SCENARIOS } from "@/data/scenarios";
 
 export const SESSIONS_KEY = "chimchak.sessions.v1";
 export const REPORTS_KEY = "chimchak.reports.v1";
@@ -304,6 +306,28 @@ export const MAX_SESSION_SEC = 30 * 60;
 const MAX_COUNTED_IDS = 300;
 
 /**
+ * 이 앱이 아는 시나리오 번호 — 편성표(12종)와 실제로 실린 시나리오를 합친 목록이다.
+ *
+ * 이수 사실 파일을 가져올 때 이 목록 **밖의 번호는 받지 않는다.** 파일은 사람이 열어 고칠 수
+ * 있는 표라서, 없는 번호로 행을 하나 늘리면 이수 시수가 그만큼 늘어난다. 확인서가 증빙으로
+ * 쓰이는 이상 「이 앱에 없는 훈련을 이수했다」는 행은 애초에 들어올 자리가 없어야 한다.
+ */
+const KNOWN_SCENARIO_IDS: ReadonlySet<string> = new Set([
+  ...SCENARIOS.map((scenario) => scenario.id.trim().toUpperCase()),
+  ...SCENARIO_MATRIX.map((cell) => cell.scenarioId?.trim().toUpperCase() ?? "").filter(
+    (id) => id.length > 0,
+  ),
+]);
+
+/**
+ * 파일 한 줄이 실을 수 있는 최대 이수 횟수.
+ *
+ * 이 기기가 같은 회차를 두 번 세지 않으려고 기억해 두는 회차 수(`MAX_COUNTED_IDS`)와 같은
+ * 눈금이다 — 한 기기가 낳을 수 있는 회차보다 큰 값이 파일에 적혀 있으면 손으로 고친 파일이다.
+ */
+const MAX_IMPORT_COUNT_PER_LINE = MAX_COUNTED_IDS;
+
+/**
  * 회차 하나의 이수 시간(초).
  *
  * `endedAt − startedAt`이고, 회차당 30분을 넘으면 30분까지만 센다.
@@ -485,6 +509,13 @@ export interface CompletionLine {
   seconds: number;
   /** 가장 최근에 마친 시각 (ISO) */
   lastEndedAt: string;
+  /**
+   * 이 줄의 회차 가운데 **다른 기기의 파일에서 가져온** 회차 수.
+   *
+   * 확인서가 줄마다 사유를 밝힐 수 있게 두는 칸이다 — 「이 기기에서 마친 회차」와
+   * 「파일로 옮겨 온 회차」는 증빙에서 무게가 다르다. 내보내는 파일에는 싣지 않는다.
+   */
+  importedCount?: number;
 }
 
 export interface CompletionSummary {
@@ -594,9 +625,18 @@ export function buildCompletionSummary(): CompletionSummary {
   // 확인서가 두 사유를 다른 문장으로 적을 수 있게 따로 세어 넘긴다.
   let importedCount = 0;
   let importedSec = 0;
+  const importedByScenario = new Map<string, number>();
   for (const entry of loadCompletionImports()) {
     importedCount += entry.count;
     importedSec += entry.seconds;
+    for (const row of entry.lines ?? []) {
+      importedByScenario.set(row.scenarioId, (importedByScenario.get(row.scenarioId) ?? 0) + row.count);
+    }
+  }
+  // 줄마다 「이 가운데 몇 회가 파일에서 온 것인지」를 달아 둔다. 내역이 없는 옛 기록은 건너뛴다.
+  for (const line of lines) {
+    const imported = importedByScenario.get(line.scenarioId);
+    if (imported && imported > 0) line.importedCount = Math.min(imported, line.count);
   }
 
   return {
@@ -698,6 +738,12 @@ export function buildCompletionCsv(summary: CompletionSummary, issuedAt: string)
 /** 이미 가져온 파일 목록 — 같은 발급번호를 두 번 더하지 않기 위한 기록이다. */
 export const IMPORTS_KEY = "chimchak.imports.v1";
 
+/** 가져온 파일이 어느 시나리오에 몇 회를 더했는지 — 확인서가 줄마다 사유를 밝히는 데 쓴다. */
+export interface CompletionImportLine {
+  scenarioId: string;
+  count: number;
+}
+
 /** 가져온 이수 사실 한 건 — 담기는 것은 발급번호와 합계뿐이고, 사람을 가리키는 값은 없다. */
 export interface CompletionImport {
   /** 파일에 적혀 있던 발급번호 */
@@ -708,6 +754,25 @@ export interface CompletionImport {
   count: number;
   /** 이 파일로 더해진 이수 시수(초) */
   seconds: number;
+  /**
+   * 시나리오별 내역. 옛 기록에는 없으므로 비어 있을 수 있고, 그때는 확인서가 줄 단위 표시 없이
+   * 합계 문장만 적는다(없는 내역을 지어내지 않는다).
+   */
+  lines?: CompletionImportLine[];
+}
+
+function sanitizeImportLines(value: unknown): CompletionImportLine[] {
+  if (!Array.isArray(value)) return [];
+  const out: CompletionImportLine[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") continue;
+    const row = item as Record<string, unknown>;
+    const scenarioId = typeof row.scenarioId === "string" ? row.scenarioId.toUpperCase() : "";
+    const count = typeof row.count === "number" && row.count > 0 ? Math.floor(row.count) : 0;
+    if (scenarioId.length === 0 || count === 0) continue;
+    out.push({ scenarioId, count });
+  }
+  return out;
 }
 
 function sanitizeImport(value: unknown): CompletionImport | undefined {
@@ -715,12 +780,15 @@ function sanitizeImport(value: unknown): CompletionImport | undefined {
   const row = value as Record<string, unknown>;
   const number = typeof row.number === "string" ? row.number : "";
   if (number.length === 0) return undefined;
-  return {
+  const entry: CompletionImport = {
     number,
     importedAt: typeof row.importedAt === "string" ? row.importedAt : "",
     count: typeof row.count === "number" && row.count > 0 ? Math.floor(row.count) : 0,
     seconds: typeof row.seconds === "number" && row.seconds > 0 ? Math.round(row.seconds) : 0,
   };
+  const lines = sanitizeImportLines(row.lines);
+  if (lines.length > 0) entry.lines = lines;
+  return entry;
 }
 
 /**
@@ -749,6 +817,8 @@ export type CompletionImportError =
   | "format"
   | "number"
   | "row"
+  | "scenario"
+  | "limit"
   | "total"
   | "same-device"
   | "duplicate";
@@ -764,6 +834,10 @@ export function completionImportMessage(reason: CompletionImportError): string {
       return "발급번호 칸이 비었거나 서식과 다릅니다. 한 파일에는 한 발급번호만 담깁니다.";
     case "row":
       return "이수 횟수·이수 시수 칸에 숫자가 아닌 값이 들어 있습니다.";
+    case "scenario":
+      return "이 앱에 없는 시나리오 번호가 들어 있습니다 — 편성표 밖 번호는 가져오지 않습니다.";
+    case "limit":
+      return "이수 횟수나 이수 시수가 이 앱이 만들 수 있는 범위를 넘습니다 — 한 회차는 30분까지만 셉니다.";
     case "total":
       return "파일 안의 합계가 줄 값과 맞지 않습니다 — 고쳐 쓴 파일은 가져오지 않습니다.";
     case "same-device":
@@ -848,6 +922,15 @@ function parseWhole(text: string): number | undefined {
  * 통과 조건: 머리글이 서식과 같고, 모든 행의 발급번호가 하나이며, 줄 값의 합이 파일에 적힌
  * 합계와 맞을 것. 시수는 줄마다 분으로 반올림해 적히므로 줄 수만큼의 오차까지 허용한다.
  *
+ * **여기에 두 가지를 더 본다.** 이 파일은 사람이 열어 고칠 수 있는 표이고, 그 위에 이수
+ * 확인서가 서 있기 때문이다.
+ *  ① 시나리오 번호가 이 앱의 편성표 안에 있을 것 — 없는 번호로 행을 늘리는 길을 막는다.
+ *  ② 한 줄의 이수 시수가 `이수 횟수 × 30분`을 넘지 않을 것 — 이 앱이 한 회차를 세는 상한과
+ *     같은 값이라, 넘는다는 것은 이 앱이 만들지 않은 값이라는 뜻이다. 횟수 자체의 상한도 같이 본다.
+ *
+ * 그래도 **발급번호 위조를 막는 장치는 아니다**(발급번호는 대조용 번호일 뿐이다).
+ * 여기서 막는 것은 「앱이 만들 수 없는 값이 적힌 파일」까지다.
+ *
  * @example
  * const read = parseCompletionCsv(text);
  * if (read.ok) read.file.totalCount; // 4
@@ -884,9 +967,13 @@ export function parseCompletionCsv(text: string): CompletionParseResult {
 
     const scenarioId = (cells[2] as string).toUpperCase();
     if (scenarioId.length === 0) return { ok: false, reason: "row" };
+    if (!KNOWN_SCENARIO_IDS.has(scenarioId)) return { ok: false, reason: "scenario" };
     const count = parseWhole(cells[5] as string);
     const minutes = parseWhole(cells[6] as string);
     if (count === undefined || count < 1 || minutes === undefined) return { ok: false, reason: "row" };
+    // 회당 30분 상한(MAX_SESSION_SEC)과 같은 눈금 — 이 앱이 만들 수 없는 값은 받지 않는다.
+    if (count > MAX_IMPORT_COUNT_PER_LINE) return { ok: false, reason: "limit" };
+    if (minutes > count * (MAX_SESSION_SEC / 60)) return { ok: false, reason: "limit" };
     const rowTotalCount = parseWhole(cells[8] as string);
     const rowTotalMinutes = parseWhole(cells[9] as string);
     if (rowTotalCount === undefined || rowTotalMinutes === undefined) {
@@ -925,10 +1012,15 @@ export type CompletionImportResult =
   | { ok: false; reason: CompletionImportError; message: string };
 
 /** 가져온 줄을 이수 누계에 더한다. 상세 목록에는 넣지 않는다 — 파일에 대화도 판정도 없다. */
-function addImportedLines(lines: CompletionLine[]): { count: number; seconds: number } {
+function addImportedLines(lines: CompletionLine[]): {
+  count: number;
+  seconds: number;
+  added: CompletionImportLine[];
+} {
   const tally = loadCompletionTally();
   let count = 0;
   let seconds = 0;
+  const added: CompletionImportLine[] = [];
   for (const line of lines) {
     const key = line.scenarioId.trim().toUpperCase();
     const found = tally.lines.find((row) => row.scenarioId === key);
@@ -950,12 +1042,13 @@ function addImportedLines(lines: CompletionLine[]): { count: number; seconds: nu
     }
     count += line.count;
     seconds += line.seconds;
+    added.push({ scenarioId: key, count: line.count });
   }
   tally.count += count;
   tally.seconds += seconds;
   tally.updatedAt = new Date().toISOString();
   writeValue(TALLY_KEY, tally);
-  return { count, seconds };
+  return { count, seconds, added };
 }
 
 /**
@@ -989,6 +1082,7 @@ export function importCompletionCsv(text: string): CompletionImportResult {
     importedAt: new Date().toISOString(),
     count: added.count,
     seconds: added.seconds,
+    lines: added.added,
   };
   writeList(IMPORTS_KEY, [entry, ...loadCompletionImports()]);
 

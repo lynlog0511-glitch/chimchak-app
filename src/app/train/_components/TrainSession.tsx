@@ -6,6 +6,7 @@ import { useModalDismiss, useOverlayTransition } from "@/components/useModalDism
 import { cx } from "@/components/utils";
 import { buildRecord, currentCue, currentTurn, protocolIdOf, resolveEnding } from "@/engine";
 import { isRecognitionSupported, primeVoices, speak, stopSpeaking } from "@/lib/speech";
+import { useWakeLock } from "@/lib/wakeLock";
 import {
   clearProgress,
   loadProgress,
@@ -28,11 +29,13 @@ import {
   EMOTION_WORD,
   emotionLevel,
   FICTION_NOTICE,
+  GENERATION_ADAPTER_NOTE,
   SESSION_STATUS_ENDED,
   SESSION_STATUS_PROTOCOL,
   sessionSubtitle,
   TAIL_ANCHOR,
 } from "./constants";
+import { ruleDemoExamplesFor, RULE_DEMO_TITLE } from "./ruleDemoExamples";
 import { cueProgress } from "./sessionProgress";
 import {
   initialTrainState,
@@ -233,6 +236,12 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   /* 마운트 시점에는 브리핑 화면이라 두 ref가 비어 있습니다 — []로 걸면 영영 실행되지 않습니다.
      세션 화면이 실제로 렌더된 뒤(atBriefing false) 다시 시도하도록 화면 상태를 의존성에 둡니다. */
   const inSessionView = state.phase !== "briefing" && !atBriefing;
+
+  /* 훈련이 도는 동안에는 화면이 저절로 꺼지지 않게 붙듭니다 —
+     말로 답하는 구간에서는 몇 십 초씩 화면에 손이 닿지 않아, 어르신 대사 도중에 화면이 꺼집니다.
+     브리핑·엔딩·이탈 시에는 풀립니다. 미지원·거부 기기에서는 아무 일도 일어나지 않습니다. */
+  useWakeLock(inSessionView && state.phase !== "ended");
+
   useEffect(() => {
     if (!inSessionView) return undefined;
     const head = headBoxRef.current;
@@ -253,6 +262,22 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   const protocol = protocolId
     ? protocols.find((item) => item.id.toUpperCase() === protocolId.toUpperCase())
     : undefined;
+
+  /* ── 규칙 엔진 시연 (발표용) ────────────────────────────────
+     여는 행은 컴포저 밖 — 대화 로그 아래에 있습니다. 컴포저 안에 두었을 때는 제안 버튼
+     셋보다 아래로 밀려 어느 글자 크기에서도 노출 0px이었습니다(375×812 실측).
+     시트 자체와 「입력창에 채우기」는 그대로 CueResponder가 맡습니다. */
+  const cueId = cue?.id;
+  const demoExamples = useMemo(
+    () => (cueId ? ruleDemoExamplesFor(scenario.type, cueId) : []),
+    [cueId, scenario.type],
+  );
+  const [ruleDemoOpen, setRuleDemoOpen] = useState(false);
+  const closeRuleDemo = useCallback(() => setRuleDemoOpen(false), []);
+  /** 장면이 넘어가면 시트를 닫습니다 — 지난 장면의 예시가 새 장면에 남지 않게. */
+  useEffect(() => {
+    setRuleDemoOpen(false);
+  }, [cueId, state.attempt]);
 
   const record = useMemo(
     () => (state.phase === "ended" ? buildRecord(scenario, state.session) : null),
@@ -592,6 +617,12 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
                 <p className="mt-1 text-center text-[0.6875rem] leading-[1.6] text-ink-muted">
                   {FICTION_NOTICE}
                 </p>
+                {/* 생성 자리 한 줄 — 가상 인물 고지와 같은 문법(같은 크기·같은 자리)으로 답니다.
+                    이 화면이 「생성 0건」이라고 적는 까닭과, 경량 LLM 어댑터가 어디부터 붙는지가
+                    같은 문장 안에 있어야 소개와 화면 표기가 어긋나 보이지 않습니다. */}
+                <p className="mt-1 text-center text-[0.6875rem] leading-[1.6] text-ink-muted">
+                  {GENERATION_ADAPTER_NOTE}
+                </p>
 
                 {/* 고지는 로그 위에 한 번 둡니다 — 예전에는 입력 도크 안에 상주해
                     상시 안내문 넉 줄(141px)의 한 몫을 하고 있었습니다(평가 UI/UX m1). */}
@@ -608,6 +639,24 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
                   onTailOffscreen={composing ? handleTailOffscreen : undefined}
                   scrollToTailRef={scrollToTailRef}
                 />
+
+                {/* 규칙 엔진 시연 진입 — 컴포저 밖, 대화 로그 바로 아래입니다.
+                    발표자가 찾는 자리이자, 평소에는 대화 끝에 조용히 남는 한 줄입니다.
+                    헤어라인 하나로 대화와 갈라 둡니다 — 시연 장치가 대사처럼 읽히지 않게.
+                    (시트는 body로 포털되므로 여기서 열어도 뜨는 자리는 같습니다.) */}
+                {composing && demoExamples.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setRuleDemoOpen(true)}
+                    aria-haspopup="dialog"
+                    className="mt-3 flex min-h-[48px] w-full items-center justify-between gap-3 rounded-field border-t border-line px-1 pt-1 text-left text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
+                  >
+                    <span>{RULE_DEMO_TITLE}</span>
+                    <span aria-hidden className="flex-none text-[0.8438rem] text-ink-ghost">
+                      ›
+                    </span>
+                  </button>
+                )}
 
                 {ended && record ? (
                   /* 대사 줄과 같은 규칙으로 헤더 실측 높이를 비웁니다 —
@@ -684,6 +733,9 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
                       </button>
                     ) : null
                   }
+                  demoExamples={demoExamples}
+                  demoOpen={ruleDemoOpen}
+                  onDemoClose={closeRuleDemo}
                   onSubmit={handleSubmit}
                   onListeningChange={setListening}
                 />

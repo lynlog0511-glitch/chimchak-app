@@ -11,9 +11,18 @@
  * 상태 흐름: S1 요구(T1/CUE-1) → S2 압박(T2/CUE-2) → S3 폭언·격하
  *          → S4 기관 언급 압박(T3/CUE-3, 트리거 T-1) → 어르신 청취(T4/CUE-4, 트리거 T-2)
  *          → S5 보고·기록(CUE-5~7)
+ *
+ * 판정 공정성 (8/6 감사 기준을 전 CUE로 소급)
+ *  - 모든 CUE에 **중립 미분류 분기**(…-n)를 두고 defaultBranchId를 그리로 돌렸습니다.
+ *    말이 신호에 걸리지 않았다는 것과 잘못 대응했다는 것은 다른 사실입니다. 「침묵으로 넘김」·
+ *    「미보고」 같은 판정은 학습자가 **실제로 그렇게 답했을 때만**(패턴 일치·버튼 선택) 붙습니다.
  */
 
 import type { Scenario } from "@/types";
+
+/** 중립 미분류 분기의 코칭 문구 — 감점이 아니라 **다시 말할 기회**입니다. */
+const UNCLEAR_COACHING =
+  "잘 전달되지 않았습니다. 한 문장으로 짧게 다시 말씀하시거나, 아래 버튼에서 골라 주세요.";
 
 export const CHK_C01: Scenario = {
   id: "CHK-C01",
@@ -81,7 +90,8 @@ export const CHK_C01: Scenario = {
         id: "CUE-1",
         prompt: "무엇이라고 답하시겠습니까?",
         waitSec: 8,
-        defaultBranchId: "D1-d",
+        // 미분류(음성 인식 실패 포함)는 중립 분기로 받습니다 — 「회피」로 찍지 않습니다.
+        defaultBranchId: "D1-n",
         branches: [
           {
             id: "D1-c",
@@ -172,6 +182,19 @@ export const CHK_C01: Scenario = {
             docId: "DOC-GUIDE-006",
             next: "T2",
           },
+          {
+            // 미분류(음성 인식 실패 포함) 전용 중립 분기 — 게이지 변동 0, 루브릭 반영 없음.
+            id: "D1-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "…네? 잘 못 들었는데요.",
+            aiReactionNote: "부엌 입구에 그대로 서 계십니다.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
+            docId: "DOC-GUIDE-006",
+            next: "T2",
+          },
         ],
       },
     },
@@ -199,7 +222,9 @@ export const CHK_C01: Scenario = {
         id: "CUE-2",
         prompt: "어떻게 대응하시겠습니까?",
         waitSec: 8,
-        defaultBranchId: "D2-d",
+        // 미분류를 「침묵으로 넘김」(D2-d)에 매핑하지 않습니다 — 말이 닿지 않은 것과
+        // 입을 다물기로 한 것은 다른 사실입니다.
+        defaultBranchId: "D2-n",
         branches: [
           {
             id: "D2-c",
@@ -266,12 +291,33 @@ export const CHK_C01: Scenario = {
           },
           {
             id: "D2-d",
-            label: "침묵·회피",
-            patterns: [],
+            label: "침묵으로 넘김",
+            // 「말하지 않기로 했다」는 판정도 학습자가 실제로 그렇게 답했을 때만 내립니다.
+            patterns: [
+              "아무 말 없이",
+              "말없이",
+              "대답하지 않",
+              "대답 안",
+              "못 들은 척",
+              "그냥 넘기",
+              "침묵",
+            ],
+            fallbackOption: "아무 말 없이 하던 일을 계속합니다",
             gaugeDelta: 1,
             aiReaction: "말이 없으시네. 그럼 해주시는 걸로 알게요.",
             rubricHits: [{ itemId: "RE-06", score: 2 }],
             coaching: "침묵은 동의로 읽힙니다. 짧게라도 경계를 말씀해 주세요.",
+            docId: "DOC-LAW-007",
+            next: "T3",
+          },
+          {
+            id: "D2-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "…네? 잘 안 들렸어요. 다시 말씀해 보세요.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
             docId: "DOC-LAW-007",
             next: "T3",
           },
@@ -385,8 +431,7 @@ export const CHK_C01: Scenario = {
             gaugeDelta: 0,
             aiReaction: "…네? 뭐라고 하셨어요?",
             rubricHits: [],
-            coaching:
-              "잘 전달되지 않았습니다. 한 문장으로 짧게 다시 말씀하시거나, 아래 버튼에서 골라 주세요.",
+            coaching: UNCLEAR_COACHING,
             docId: "DOC-NOTI-002",
             next: "T4",
           },
@@ -410,7 +455,8 @@ export const CHK_C01: Scenario = {
         id: "CUE-4",
         prompt: "어떻게 하시겠습니까?",
         waitSec: 6,
-        defaultBranchId: "C4-d",
+        // 어르신을 못 들은 척한 것과, 말이 닿지 않은 것은 다른 사실입니다.
+        defaultBranchId: "C4-n",
         branches: [
           {
             id: "C4-a",
@@ -482,12 +528,34 @@ export const CHK_C01: Scenario = {
           },
           {
             id: "C4-d",
-            label: "무시하고 대화 지속",
-            patterns: [],
+            label: "못 들은 척하고 대화 지속",
+            // 버튼 문구(행동 서술)를 그대로 말했을 때도 같은 분기로 오도록 포함시켰습니다.
+            patterns: [
+              "못 들은 척",
+              "무시하",
+              "대답하지 않",
+              "대답 안",
+              "하던 이야기",
+              "계속 이야기",
+              "그냥 계속",
+            ],
+            fallbackOption: "어르신 부르심을 못 들은 척하고 대화를 계속합니다",
             gaugeDelta: 1,
             aiReaction: "…아무도 대답을 안 해주네.",
             rubricHits: [{ itemId: "CO-07", score: 2 }],
             coaching: "부르셨을 때 짧게라도 대답해 드리면 불안이 줄어듭니다.",
+            docId: "DOC-LAW-003",
+            next: "T5",
+          },
+          {
+            id: "C4-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "…응? 무슨 소리야?",
+            aiReactionNote: "옆방에서 다시 물으십니다.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
             docId: "DOC-LAW-003",
             next: "T5",
           },
@@ -505,7 +573,8 @@ export const CHK_C01: Scenario = {
         id: "CUE-5",
         prompt: "오늘 일을 센터에 보고한다고 생각하고 말로 보고해 주세요.",
         waitSec: 8,
-        defaultBranchId: "R1-c",
+        // 상식적인 보고 문장이 신호에 걸리지 않았다고 「미보고」(R1-c)로 찍지 않습니다.
+        defaultBranchId: "R1-n",
         branches: [
           {
             id: "R1-a",
@@ -574,6 +643,17 @@ export const CHK_C01: Scenario = {
             docId: "DOC-LAW-007",
             next: "T6",
           },
+          {
+            id: "R1-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "보고 내용이 잘 전달되지 않았습니다.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
+            docId: "DOC-NOTI-002",
+            next: "T6",
+          },
         ],
       },
     },
@@ -586,7 +666,7 @@ export const CHK_C01: Scenario = {
         id: "CUE-6",
         prompt: "같은 요구가 반복되지 않으려면, 무엇을 바꿔볼 수 있을까요?",
         waitSec: 8,
-        defaultBranchId: "R2-c",
+        defaultBranchId: "R2-n",
         branches: [
           {
             id: "R2-a",
@@ -635,6 +715,17 @@ export const CHK_C01: Scenario = {
             docId: "DOC-GUIDE-006",
             next: "T7",
           },
+          {
+            id: "R2-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "제안이 잘 전달되지 않았습니다.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
+            docId: "DOC-GUIDE-006",
+            next: "T7",
+          },
         ],
       },
     },
@@ -647,7 +738,7 @@ export const CHK_C01: Scenario = {
         id: "CUE-7",
         prompt: "오늘 내 대응에서 한 가지만 고친다면?",
         waitSec: 8,
-        defaultBranchId: "R3-b",
+        defaultBranchId: "R3-n",
         branches: [
           {
             id: "R3-a",
@@ -678,12 +769,33 @@ export const CHK_C01: Scenario = {
           {
             id: "R3-b",
             label: "성찰이 막연함",
-            patterns: ["잘 못했", "어려웠", "모르겠", "그냥", "조심", "신경 쓰", "노력하겠", "잘하겠"],
+            // 기본값이 중립 분기로 옮겨 갔으므로 버튼 문구도 여기서 직접 걸려야 합니다.
+            patterns: [
+              "잘 못했",
+              "잘 못한",
+              "어려웠",
+              "모르겠",
+              "그냥",
+              "조심",
+              "신경 쓰",
+              "노력하겠",
+              "잘하겠",
+            ],
             fallbackOption: "잘 못한 것 같습니다",
             gaugeDelta: 0,
             aiReaction: "오늘 훈련을 마쳤습니다.",
             rubricHits: [{ itemId: "CL-05", score: 2 }],
             coaching: "무엇을 어떻게 바꿀지 한 가지만 문장으로 정해 보세요.",
+            next: "end:E-부분",
+          },
+          {
+            id: "R3-n",
+            label: "무응답·미분류",
+            patterns: [],
+            gaugeDelta: 0,
+            aiReaction: "오늘 훈련을 마쳤습니다.",
+            rubricHits: [],
+            coaching: UNCLEAR_COACHING,
             next: "end:E-부분",
           },
         ],
@@ -724,11 +836,15 @@ export const CHK_C01: Scenario = {
     },
     {
       id: "E-부분",
-      title: "경계는 세웠지만 기록이 남지 않았습니다",
+      // 이 엔딩은 마지막 돌아보기 한 문장(CUE-7)으로만 갈립니다 — 기록·보고 경로를 잡고도
+      // 여기로 옵니다. 그래서 **제목도 문구도** 기록이 남았는지를 단정하지 않고 실제 갈림
+      // 사유만 적습니다(그 판정은 아래 항목별 표시가 합니다).
+      // 제목은 종료 화면 부제와 /history 회차 카드에 그대로 실리므로 같은 기준을 받습니다.
+      title: "부엌에서의 대화를 돌아보는 한 문장이 남았습니다",
       verdict: "부분 충족",
       condition: "경계는 유지했으나 보고 미이행",
       message:
-        "말로 지킨 것은 기록으로 남겨야 남습니다. 다음엔 보고 의사까지 함께 밝혀 주세요.",
+        "마무리 돌아보기에서 한 문장이 남았습니다. 경계와 기록이 어디까지 닿았는지는 아래에서 확인해 주세요.",
     },
     {
       id: "E-실패",

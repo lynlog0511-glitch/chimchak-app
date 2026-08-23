@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { formatTotalDuration } from "@/lib/duration";
 import Link from "next/link";
 import { BigButton, InlineDisclaimer, cx } from "@/components";
+import { CITABLE_DOC_IDS, SOURCE_DOCS } from "@/data/docs";
 import { countDemoRecords } from "@/lib/demoSeed";
 import { buildCompletionCsv, buildCompletionSummary, type CompletionSummary } from "@/lib/storage";
 import { formatDate, formatDateTime } from "../../_components/format";
@@ -120,6 +121,48 @@ function isInAppBrowser(): boolean {
   return /KAKAOTALK|NAVER|Instagram|FB[AV]|Line\//i.test(navigator.userAgent);
 }
 
+/** 인용 가능한 근거 문서와 인용에서 뺀 문서 — 목록의 출처는 `src/data/docs.ts` 하나입니다. */
+const CITABLE_DOCS = SOURCE_DOCS.filter((doc) => CITABLE_DOC_IDS.includes(doc.id));
+const EXCLUDED_DOCS = SOURCE_DOCS.filter((doc) => !CITABLE_DOC_IDS.includes(doc.id));
+
+/**
+ * 부록 · 판정 근거 문서 목록 — **인쇄물에 함께 실립니다**.
+ *
+ * 확인서가 자료철에 들어가면 다음 질문은 언제나 「무엇을 근거로 판정했느냐」입니다. 그 답이
+ * 앱 화면에만 있으면 종이만 남은 자리에서는 확인할 방법이 없어서, 목록을 확인서 뒷장에
+ * 그대로 붙입니다. 목록은 앱이 쓰는 화이트리스트에서 만들어지므로 두 벌이 되지 않습니다.
+ *
+ * 인용에서 뺀 문서도 **사유와 함께** 적습니다 — 목록에 있다는 사실과 인용할 수 있다는 사실은
+ * 다른 이야기이고, 그 차이가 저작권 판단의 핵심입니다.
+ */
+function SourceDocAppendix() {
+  return (
+    <div className="mt-[16px] border-t border-line pt-[14px]">
+      <p className="text-[0.8125rem] leading-[1.5] font-bold text-ink">
+        부록 · 판정 근거 문서 {CITABLE_DOCS.length}종
+      </p>
+      <p className="mt-[6px] text-[0.7813rem] leading-[1.7] text-ink-soft">
+        이 훈련의 피드백은 아래 목록 안에서만 근거를 붙입니다. 목록 밖 문서를 근거로 든 판정은
+        엔진이 멈춰 세우고 확인 안내로 넘깁니다.
+      </p>
+      <ol className="mt-[8px]">
+        {CITABLE_DOCS.map((doc, index) => (
+          <li key={doc.id} className="mt-[4px] text-[0.7813rem] leading-[1.7] text-ink">
+            <span className="chim-num font-bold">{index + 1}.</span> {doc.title}{" "}
+            <span className="text-ink-muted">({doc.kind})</span>
+          </li>
+        ))}
+      </ol>
+      {EXCLUDED_DOCS.map((doc) => (
+        <p key={doc.id} className="mt-[8px] text-[0.7813rem] leading-[1.7] text-ink-soft">
+          <b className="font-bold text-ink">인용 제외 · {doc.title}</b>
+          {doc.note ? ` — ${doc.note}` : ""}
+        </p>
+      ))}
+    </div>
+  );
+}
+
 /**
  * 종이에 인쇄되는 기입 칸 — 값이 있으면 값을, 없으면 **빈 밑줄**을 인쇄합니다.
  * 비워 두고 손으로 적어도 되도록 밑줄은 언제나 남깁니다.
@@ -151,6 +194,8 @@ function FillField({
  *
  * 「이수 확인서 만들기」에서 넘어오면 확인서를 그립니다. 종이에 남는 것은 **이수 사실뿐**입니다 —
  * 시나리오·완료일·이수 횟수·이수 시수까지이고, 판정 결과와 대화 내용은 담기지 않습니다.
+ * 마지막 장에는 판정 근거 문서 목록을 부록으로 붙입니다(`SourceDocAppendix`) — 종이만 남은
+ * 자리에서 「무엇을 근거로 판정했느냐」를 확인할 방법이 있어야 하기 때문입니다.
  *
  * 성명·소속은 인쇄 직전에 이 화면에서만 받습니다. 상태로만 들고 있다가 인쇄에 실어 보내고,
  * 저장소에는 쓰지 않습니다 — 화면을 닫으면 사라집니다(개인정보 최소수집).
@@ -392,20 +437,33 @@ export function CertificateSheet() {
             )}
 
             <ul className="chim-hairline mt-[14px] border-t border-line">
-              {lines.map((line) => (
-                <li key={line.scenarioId} className="py-[12px]">
-                  <p className="text-[0.75rem] leading-[1.4] text-ink-muted">
-                    <span className="chim-num">{line.scenarioId}</span> · {line.typeLabel}
-                  </p>
-                  <p className="mt-[2px] text-[0.9375rem] leading-[1.4] font-bold text-ink">
-                    {line.title}
-                  </p>
-                  <p className="mt-[3px] text-[0.7813rem] leading-[1.6] text-ink-soft">
-                    이수 <span className="chim-num font-bold">{line.count}</span>회 · 최근 완료{" "}
-                    {formatDateTime(line.lastEndedAt)}
-                  </p>
-                </li>
-              ))}
+              {lines.map((line) => {
+                const imported = line.importedCount ?? 0;
+                return (
+                  <li key={line.scenarioId} className="py-[12px]">
+                    {/* 파일에서 옮겨 온 회차가 섞인 줄은 머리 줄에서 먼저 갈라 둡니다 —
+                        이 기기에서 마친 회차와 증빙 무게가 다르기 때문입니다. */}
+                    <p className="text-[0.75rem] leading-[1.4] text-ink-muted">
+                      <span className="chim-num">{line.scenarioId}</span> · {line.typeLabel}
+                      {imported > 0 && " · 가져온 회차 포함"}
+                    </p>
+                    <p className="mt-[2px] text-[0.9375rem] leading-[1.4] font-bold text-ink">
+                      {line.title}
+                    </p>
+                    <p className="mt-[3px] text-[0.7813rem] leading-[1.6] text-ink-soft">
+                      이수 <span className="chim-num font-bold">{line.count}</span>회 · 최근 완료{" "}
+                      {formatDateTime(line.lastEndedAt)}
+                    </p>
+                    {imported > 0 && (
+                      <p className="mt-[3px] text-[0.7813rem] leading-[1.6] text-ink-muted">
+                        이 가운데 <span className="chim-num font-bold">{imported}</span>회는 다른
+                        기기의 이수 사실 파일에서 옮겨 온 회차입니다 — 상세는 이 기기에 남아 있지
+                        않습니다.
+                      </p>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
 
             {/* 서명란 — 종이로 오가는 서식이라 확인자·일자 칸을 비워 인쇄합니다. */}
@@ -444,6 +502,8 @@ export function CertificateSheet() {
               </p>
               <InlineDisclaimer size="md" tone="readable" className="mt-[10px]" />
             </div>
+
+            <SourceDocAppendix />
           </section>
 
           <div data-noprint>

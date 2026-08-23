@@ -44,6 +44,7 @@ export interface BranchDef {
   id: string; // "D1-c"
   label: string; // 분기 유형명 (예: "감정 인정형")
   patterns: string[]; // 판정 신호 — 발화에 포함되면 이 분기로 분류 (부분 문자열, 우선순위는 배열 순서)
+  skipNegated?: boolean; // 부정 문맥(「~하지 않고」)에서는 이 분기 매치를 건너뜀 — 감점 분기 옵트인 (classify.ts NegationAwareBranch가 읽음)
   fallbackOption?: string; // 버튼 폴백으로 노출할 문구 (없으면 버튼 미노출 분기)
   gaugeDelta: number; // 초조도/긴장도 변동 (▲)
   aiReaction: string; // AI(어르신·보호자 등) 반응 대사
@@ -132,6 +133,7 @@ export interface Scenario {
   sourceDocs: string[]; // 근거 문서 id 목록
   reportCues?: string[]; // S4 보고·기록 단계 질문 (CUE-5~7)
   active: boolean; // false면 12종 매트릭스에서 잠금 표시
+  reviewPending?: boolean; // true면 대사가 현직 감수 대기(알파 초안) — /train 카드 라벨·/check 감수 항목이 이 필드 하나를 셉니다. 감수 완료 시 이 표기만 지우면 됩니다.
 }
 
 /** 12종 매트릭스 항목 (잠금 포함) */

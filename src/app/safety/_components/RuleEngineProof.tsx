@@ -151,7 +151,9 @@ export function RuleEngineProof({ className }: RuleEngineProofProps) {
       <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink-soft">
         규칙 사전과 시간 규칙이 단독으로 판정하는 {RULE_ENGINE_ITEM_IDS.length}항목(그중 안전
         직결 {RULE_ENGINE_CF_ITEM_IDS.length}항목)을 경계 문장으로 때려 본 기록입니다. 아래
-        「지금 돌려보기」를 누르면 같은 케이스를 이 기기에서 다시 돌립니다.
+        「지금 돌려보기」를 누르면 같은 케이스를 이 기기에서 다시 돌립니다. 기획서 시점의
+        케이스는 30건이었고, 그 뒤 사투리 말씨·부정 표현 경계를 더해 지금은 실측 칸의 수만큼
+        늘었습니다 — 그날 30건도 전부 그대로 들어 있습니다.
       </p>
 
       <p className="mt-4 text-[0.7813rem] leading-[1.5] font-bold tracking-[0.04em] text-ink-muted">

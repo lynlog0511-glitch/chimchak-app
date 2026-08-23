@@ -92,8 +92,10 @@ export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: Dr
           const empty = value.trim().length === 0;
           const fieldId = `draft-${slot.key}`;
           const hintId = `${fieldId}-hint`;
+          /* 입력 글자는 17px(코어 단) — 16px 미만이면 iOS가 포커스 순간 화면을 강제로 확대합니다.
+             다섯 칸을 차례로 옮겨 다니는 화면이라 확대·복귀가 칸마다 반복됩니다. */
           const shared = cx(
-            "mt-[6px] w-full rounded-[14px] border bg-white p-[13px] text-[0.9375rem] leading-[1.6] text-ink placeholder:text-tertiary",
+            "mt-[6px] w-full rounded-[14px] border bg-white p-[13px] text-[1.0625rem] leading-[1.6] text-ink placeholder:text-tertiary",
             empty
               ? "border-warn-line focus:border-warn-ink"
               : "border-line-strong focus:border-brand-400",

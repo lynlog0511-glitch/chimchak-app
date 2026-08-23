@@ -11,7 +11,7 @@ export const INLINE_DISCLAIMER_TEXT =
 export interface InlineDisclaimerProps {
   /** 문구 교체 — 필수 고지를 지우는 용도로 쓰지 마세요(보태는 경우에만). */
   text?: string;
-  /** sm 10.5px(세션 도크) · md 11.5px(목록 화면 하단) */
+  /** sm 11px(세션 도크) · md 11.5px(목록 화면 하단) — 가이드 §2 「하단 고지 10.5~11px」 위의 두 단 */
   size?: "sm" | "md";
   /**
    * readable = `ink-muted`(2.54:1이던 시안 톤을 6.27:1로 올린 값) · faint = `extra-faint`(2.54:1).
@@ -41,7 +41,7 @@ export function InlineDisclaimer({
       role="note"
       className={cx(
         "text-center leading-[1.6]",
-        size === "sm" ? "text-[0.6875rem]" : "text-[0.6875rem]",
+        size === "sm" ? "text-[0.6875rem]" : "text-[0.7188rem]",
         tone === "faint" ? "text-extra-faint" : "text-ink-muted",
         className,
       )}

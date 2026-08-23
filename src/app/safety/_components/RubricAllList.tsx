@@ -1,6 +1,7 @@
-import type { RubricArea } from "@/types";
+import type { RubricArea, RubricItem } from "@/types";
 import { AREA_LABELS, getRubricByArea } from "@/data/rubric";
 import { cx } from "@/components/utils";
+import { JUDGE_LABEL } from "./judgeLabel";
 
 /**
  * 판정 기준 — 루브릭 30항목 전체 보기.
@@ -20,6 +21,21 @@ const AREA_ORDER: readonly RubricArea[] = ["SA", "CO", "RE", "CL"];
 
 export interface RubricAllListProps {
   className?: string;
+}
+
+/**
+ * 항목마다 붙는 판정 주체 칩 — 「이 문장을 누가 판정하도록 배정했는가」.
+ *
+ * 기준 문장만 펴 두면 「그래서 이건 AI가 봅니까, 규칙이 봅니까」가 바로 다음 질문입니다.
+ * 그 답이 목록 밖 어딘가에 있으면 확인할 수 없는 주장이 되므로, 항목 옆에 그대로 답니다.
+ * 무게는 「계획」 표와 같은 눈금(12.5px 테두리 칩)이되, 색 면은 쓰지 않습니다.
+ */
+function JudgeTag({ judge }: { judge: RubricItem["judge"] }) {
+  return (
+    <span className="mr-2 inline-flex items-center rounded-chip border border-line-strong px-2 py-[1px] align-[2px] text-[0.7813rem] leading-[1.5] font-bold whitespace-nowrap text-ink-muted">
+      {JUDGE_LABEL[judge].short}
+    </span>
+  );
 }
 
 export function RubricAllList({ className }: RubricAllListProps) {
@@ -49,6 +65,11 @@ export function RubricAllList({ className }: RubricAllListProps) {
           점수·등급·앵커는 내부 전용이라 화면에 내지 않습니다. 대신 판정의 기준이 되는 행동지표
           문장은 한 줄도 빼지 않고 그대로 공개합니다.
         </p>
+        <p className="mt-2 text-[0.7813rem] leading-[1.6] text-ink-muted">
+          항목 앞의 표는 판정 주체 배정입니다 — {JUDGE_LABEL.rule.long} · {JUDGE_LABEL.llm.long} ·{" "}
+          {JUDGE_LABEL.both.long}. 알파에는 생성 호출이 0건이라, AI로 배정한 항목도 지금은 검수된
+          시나리오 규칙표가 판정합니다.
+        </p>
 
         <div className="mt-4 space-y-5">
           {groups.map((group) => (
@@ -59,6 +80,7 @@ export function RubricAllList({ className }: RubricAllListProps) {
               <ul className="chim-hairline mt-1 border-y border-line">
                 {group.items.map((item) => (
                   <li key={item.id} className="py-3 text-[0.9375rem] leading-[1.6] text-ink">
+                    <JudgeTag judge={item.judge} />
                     {item.indicator}
                   </li>
                 ))}

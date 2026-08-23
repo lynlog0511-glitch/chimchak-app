@@ -10,7 +10,7 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-/** 활성 시나리오 3종을 정적 생성합니다 (오프라인 데모 보장). */
+/** 열린 시나리오 5종을 모두 정적 생성합니다 (오프라인 데모 보장). */
 export function generateStaticParams(): { id: string }[] {
   return SCENARIOS.map((scenario) => ({ id: scenario.id.toLowerCase() }));
 }

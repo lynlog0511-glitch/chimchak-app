@@ -1,21 +1,28 @@
 /**
- * 온라인 코칭 중계 — **키가 사는 유일한 자리**입니다.
+ * 온라인 중계 — **키가 사는 유일한 자리**입니다.
  *
  * 브라우저는 이제 상류 제공사를 직접 부르지 않습니다. 같은 도메인의 `/api/coach` 한 곳만
  * 부르고, 주소·모델 이름·키는 **서버 환경변수**에만 있습니다(`NEXT_PUBLIC_` 접두어가 없으므로
- * 어떤 값도 브라우저 번들에 실리지 않습니다). 그래서 온라인 코칭을 켜도 CSP의
+ * 어떤 값도 브라우저 번들에 실리지 않습니다). 그래서 온라인 모드를 켜도 CSP의
  * `connect-src 'self'` 한 줄이 그대로 참입니다 — 이 전환이 사려는 것이 정확히 그 한 줄입니다.
  *
+ * 이 주소가 받는 일은 **둘**입니다(`task`로 갈립니다).
+ *  · `coach`(기본) — 미분류 턴에 코칭 한 문장. `task`가 없으면 이쪽입니다(옛 계약 그대로).
+ *  · `vary`        — 검수 앵커 대사를 같은 뜻으로 다시 쓰기(`src/lib/onlineVary.ts`).
+ * 두 일은 검증도 프롬프트도 생성 상한도 따로지만, **한도 계수기는 하나를 나눠 씁니다** —
+ * 비용은 요청 수로 나가지 작업 이름으로 나가지 않습니다.
+ *
  * 이 파일이 하는 일은 셋뿐입니다.
- *  ① **검증** — 클라이언트가 보내는 `buildCoachRequest` 산출물 모양만 받습니다. 그 밖의 값은
- *    버리고 400으로 끊습니다(상류로 흘려보내지 않습니다). 발화는 500자가 상한입니다.
+ *  ① **검증** — 클라이언트가 보내는 산출물 모양만 받습니다. 그 밖의 값은 버리고 400으로 끊습니다
+ *    (상류로 흘려보내지 않습니다). 발화는 500자가 상한입니다.
  *  ② **한도** — IP당 분당·일당, 그리고 배포 전체 일당 상한을 셉니다(비용 가드).
  *  ③ **중계** — 키를 붙여 상류를 한 번 부르고, **원문 텍스트만** 그대로 돌려줍니다.
  *
  * 하지 않는 일이 더 중요합니다.
- *  · **가드 체인을 여기서 돌리지 않습니다.** 형식·근거·표현·길이 네 단은 지금처럼 기기 안에서
- *    돕니다(`src/lib/onlineCoach.ts`). 「받아 온 문장은 기기 안 가드를 지나야 화면에 닿는다」는
- *    서사가 서버를 하나 세웠다고 서버로 옮겨 가면 안 됩니다.
+ *  · **가드 체인을 여기서 돌리지 않습니다.** 코칭의 형식·근거·표현·길이 네 단도, 변주의 형식·
+ *    길이·숫자·표현 네 단도 지금처럼 기기 안에서 돕니다(`onlineCoach.ts`·`onlineVary.ts`).
+ *    「받아 온 문장은 기기 안 가드를 지나야 화면에 닿는다」는 서사가 서버를 하나 세웠다고
+ *    서버로 옮겨 가면 안 됩니다.
  *  · **발화와 응답을 로그에 남기지 않습니다.** 아래 어디에도 `console.*`이 없고, 예외 객체조차
  *    찍지 않습니다 — 상류 오류 메시지에 보낸 몸통이 딸려 오는 일이 흔하기 때문입니다.
  *    남길 수 있는 것은 「몇 번 불렀는가」뿐이고, 그것도 메모리 안에서만 셉니다.
@@ -32,6 +39,15 @@ import {
   type CoachDocRef,
   type OnlineCoachRequest,
 } from "@/lib/onlineCoach";
+import {
+  VARY_ANCHOR_MAX,
+  VARY_MAX_RECENT_LINES,
+  VARY_PERSONA_MAX,
+  VARY_RECENT_LINE_MAX,
+  buildVarySystemPrompt,
+  buildVaryUserPrompt,
+  type LineVaryRequest,
+} from "@/lib/onlineVary";
 
 /* ── 상한 ──────────────────────────────────────────────── */
 
@@ -48,11 +64,30 @@ const MAX_DOCS = 16;
 const MAX_DOC_ID_LENGTH = 48;
 const MAX_DOC_TITLE_LENGTH = 160;
 
+/* 변주 쪽 상한 — 나가는 것은 시나리오 요약·인물 프로필·검수 앵커·직전 인물 대사뿐입니다.
+   값은 `src/lib/onlineVary.ts`가 한 자리에 들고 있습니다(보내는 쪽과 받는 쪽이 같은 수를 봅니다). */
+const MAX_PERSONA_LENGTH = VARY_PERSONA_MAX;
+const MAX_ANCHOR_LENGTH = VARY_ANCHOR_MAX;
+const MAX_RECENT_LINE_LENGTH = VARY_RECENT_LINE_MAX;
+
 /** 상류를 기다리는 상한(ms). 넘으면 조용히 폴백입니다 — 훈련을 붙잡아 두지 않습니다. */
 const UPSTREAM_TIMEOUT_MS = 6_000;
 
 /** 상류에 거는 생성 상한. 코칭은 1~2문장이라 이 이상 받아 봐야 가드가 버립니다. */
 const UPSTREAM_MAX_TOKENS = 400;
+
+/**
+ * 변주의 생성 상한 — 대사 한 줄을 다시 쓰는 일이라 코칭보다 짧습니다.
+ * 길게 받아 봐야 기기 안 길이 가드(앵커의 160%)가 버립니다.
+ */
+const UPSTREAM_VARY_MAX_TOKENS = 200;
+
+/**
+ * 온도 — 코칭은 사실을 짚는 일이라 낮게, 변주는 **말맛을 바꾸는 일**이라 조금 높게 둡니다.
+ * 높인 만큼 새 사실이 섞일 여지도 커지는데, 그 자리는 기기 안 숫자·길이 가드가 받습니다.
+ */
+const COACH_TEMPERATURE = 0.2;
+const VARY_TEMPERATURE = 0.7;
 
 /** 호출 한도 — IP 하나 기준 */
 const PER_IP_PER_MINUTE = 6;
@@ -146,6 +181,39 @@ function readCoachRequest(body: unknown): OnlineCoachRequest | undefined {
   return { scenarioSummary, cuePrompt, utterance, indicators, docs };
 }
 
+/** 직전 인물 대사 목록 — 빈 배열을 허용합니다(첫 대사에는 앞선 대사가 없습니다). */
+function readRecentLines(value: unknown): string[] | undefined {
+  if (!Array.isArray(value) || value.length > VARY_MAX_RECENT_LINES) return undefined;
+  const out: string[] = [];
+  for (const item of value) {
+    const line = readField(item, MAX_RECENT_LINE_LENGTH);
+    if (line === undefined) return undefined;
+    out.push(line);
+  }
+  return out;
+}
+
+/**
+ * 변주 요청 — 코칭과 **같은 규율**입니다. 기대 형태만 통과시키고, 아는 칸만 새로 조립합니다.
+ *
+ * 여기에 `utterance` 칸이 **없다는 사실**이 이 절의 전부입니다. 대사를 다시 쓰는 데 학습자의
+ * 말은 필요하지 않고, 필요하지 않은 것은 상류에 닿을 자리도 두지 않습니다.
+ */
+function readVaryRequest(body: unknown): LineVaryRequest | undefined {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) return undefined;
+  const record = body as Record<string, unknown>;
+
+  const scenarioSummary = readField(record.scenarioSummary, MAX_SUMMARY_LENGTH);
+  const persona = readField(record.persona, MAX_PERSONA_LENGTH);
+  const anchor = readField(record.anchor, MAX_ANCHOR_LENGTH);
+  if (!scenarioSummary || !persona || !anchor) return undefined;
+
+  const recentLines = readRecentLines(record.recentLines);
+  if (!recentLines) return undefined;
+
+  return { scenarioSummary, persona, anchor, recentLines };
+}
+
 /* ── 호출 한도 ─────────────────────────────────────────── */
 
 /**
@@ -225,15 +293,23 @@ function clientIp(request: Request): string {
 
 /* ── 상류 중계 ─────────────────────────────────────────── */
 
+/** 상류에 실어 보낼 한 덩어리 — 프롬프트 두 벌과 이 작업에 맞춘 생성 상한입니다. */
+interface RelayPrompt {
+  system: string;
+  user: string;
+  maxTokens: number;
+  temperature: number;
+}
+
 /**
  * 상류를 한 번 부르고 **원문 텍스트만** 꺼냅니다. 실패·지연·낯선 모양은 전부 `undefined`이고,
- * 그 하나가 화면에서는 「아무 일도 없었음」이 됩니다(결정론 코칭이 이미 떠 있습니다).
+ * 그 하나가 화면에서는 「아무 일도 없었음」이 됩니다(검수 코칭·검수 앵커가 이미 떠 있습니다).
  *
- * 프롬프트와 주소 꼴은 `src/lib/onlineCoach.ts`가 들고 있습니다 — 상류와의 계약은 한 파일에만
- * 적어 두고, 이 라우트는 거기에 **키와 한도만** 얹습니다.
+ * 프롬프트와 주소 꼴은 `src/lib/onlineCoach.ts`·`src/lib/onlineVary.ts`가 들고 있습니다 —
+ * 상류와의 계약은 그 두 파일에만 적어 두고, 이 라우트는 거기에 **키와 한도만** 얹습니다.
  */
 async function relay(
-  coachRequest: OnlineCoachRequest,
+  prompt: RelayPrompt,
   config: CoachServerConfig,
 ): Promise<string | undefined> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -246,12 +322,12 @@ async function relay(
       signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
       body: JSON.stringify({
         model: config.model,
-        temperature: 0.2,
-        max_tokens: UPSTREAM_MAX_TOKENS,
+        temperature: prompt.temperature,
+        max_tokens: prompt.maxTokens,
         stream: false,
         messages: [
-          { role: "system", content: buildSystemPrompt(coachRequest) },
-          { role: "user", content: buildUserPrompt(coachRequest) },
+          { role: "system", content: prompt.system },
+          { role: "user", content: prompt.user },
         ],
       }),
     });
@@ -274,11 +350,44 @@ function json(body: Record<string, unknown>, status = 200): Response {
   });
 }
 
+/** 이 요청이 청하는 일 — `task`가 없으면 코칭입니다(옛 계약을 그대로 둡니다). */
+function readTask(body: unknown): "coach" | "vary" | undefined {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) return undefined;
+  const task = (body as Record<string, unknown>).task;
+  if (task === undefined || task === "coach") return "coach";
+  if (task === "vary") return "vary";
+  // 모르는 작업 이름은 400입니다 — 조용히 코칭으로 처리하면 계약이 흐려집니다.
+  return undefined;
+}
+
+/** 이 요청의 프롬프트 두 벌을 짭니다. 기대 형태가 아니면 `undefined`(= 400). */
+function promptFor(task: "coach" | "vary", body: unknown): RelayPrompt | undefined {
+  if (task === "vary") {
+    const varyRequest = readVaryRequest(body);
+    if (!varyRequest) return undefined;
+    return {
+      system: buildVarySystemPrompt(varyRequest),
+      user: buildVaryUserPrompt(varyRequest),
+      maxTokens: UPSTREAM_VARY_MAX_TOKENS,
+      temperature: VARY_TEMPERATURE,
+    };
+  }
+
+  const coachRequest: OnlineCoachRequest | undefined = readCoachRequest(body);
+  if (!coachRequest) return undefined;
+  return {
+    system: buildSystemPrompt(coachRequest),
+    user: buildUserPrompt(coachRequest),
+    maxTokens: UPSTREAM_MAX_TOKENS,
+    temperature: COACH_TEMPERATURE,
+  };
+}
+
 /**
- * 온라인 코칭 한 문장을 중계합니다.
+ * 코칭 한 문장 또는 대사 한 줄을 중계합니다(`task`로 갈립니다).
  *
  * 돌려주는 모양은 넷입니다. 400 하나를 빼면 전부 200인데, 클라이언트에게 이 넷은 모두
- * 「코칭이 붙거나 · 조용히 결정론으로 돌아가거나」 둘 중 하나라서 오류로 다룰 것이 없기 때문입니다.
+ * 「문장이 붙거나 · 조용히 검수 문장으로 돌아가거나」 둘 중 하나라서 오류로 다룰 것이 없기 때문입니다.
  *  · `{ status: "ok", content }`   — 상류 원문. 가드는 **기기 안에서** 이 문장을 검사합니다.
  *  · `{ status: "unconfigured" }`  — 서버에 주소·모델이 없습니다(기본 빌드).
  *  · `{ status: "rate_limited" }`  — 한도를 넘었습니다. 잠시 뒤 다시 청하면 됩니다.
@@ -301,15 +410,19 @@ export async function POST(request: Request): Promise<Response> {
     return json({ status: "invalid" }, 400);
   }
 
-  const coachRequest = readCoachRequest(body);
-  if (!coachRequest) return json({ status: "invalid" }, 400);
+  const task = readTask(body);
+  if (!task) return json({ status: "invalid" }, 400);
+
+  const prompt = promptFor(task, body);
+  if (!prompt) return json({ status: "invalid" }, 400);
 
   const config = readConfig();
   if (!config) return json({ status: "unconfigured" });
 
+  // 한도는 두 작업이 하나를 나눠 씁니다 — 비용은 요청 수로 나갑니다.
   if (!takeSlot(clientIp(request), config.dailyCap)) return json({ status: "rate_limited" });
 
-  const content = await relay(coachRequest, config);
+  const content = await relay(prompt, config);
   if (content === undefined) return json({ status: "upstream" });
   return json({ status: "ok", content });
 }

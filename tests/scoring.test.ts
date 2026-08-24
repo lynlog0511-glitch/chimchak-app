@@ -3,6 +3,10 @@
  *
  * 판정 우선순위의 마지막 단계(내부 산식)와 "같은 항목은 낮은 점수를 남긴다"는 누적 원칙을 고정한다.
  * 점수는 화면에 나오지 않으므로 여기가 아니면 어긋난 것을 알아챌 자리가 없다.
+ *
+ * 파일 끝에는 세는 함수가 하나 더 붙어 있다 — coverage.ts의 unexploredBranches(안 가 본 갈래).
+ * 점수가 아니라 「지나온 자리에 몇 갈래가 남았는가」이지만, 화면에 수가 나가는 계산이라
+ * 판정·채점과 같은 자리에서 회귀를 잡는다.
  */
 
 import { describe, expect, it } from "vitest";
@@ -17,7 +21,9 @@ import {
   normalizedScore,
   toDisplay,
 } from "@/engine/scoring";
-import type { SessionEvent } from "@/types";
+import { unexploredBranches } from "@/engine/coverage";
+import type { BranchDef, SessionEvent, SessionState } from "@/types";
+import { makeScenario } from "./_fixtures";
 
 describe("누적", () => {
   it("같은 항목은 낮은 점수를 남긴다", () => {
@@ -122,5 +128,98 @@ describe("문구 모으기", () => {
 
   it("피드백이 없는 이벤트는 건너뛴다", () => {
     expect(collectGreenChecks([{ turnId: "T1", viaButton: false, at: 0 }])).toEqual([]);
+  });
+});
+
+/* ── 안 가 본 갈래 (src/engine/coverage.ts) ───────────────── */
+
+const scenario = makeScenario();
+
+/** 뼈대 시나리오 CUE-1의 갈래 — b-cf(⚑CF)와 b-flat(defaultBranchId)은 권유 대상이 아니다. */
+function branchOf(id: string): BranchDef {
+  const branch = scenario.turns[0].cue?.branches.find((b) => b.id === id);
+  if (!branch) throw new Error(`_fixtures에 분기 ${id}가 없습니다`);
+  return branch;
+}
+
+/** 「CUE-1에서 이 분기들을 골랐다」만 담은 세션 — 세는 함수는 이벤트 외에 아무것도 보지 않는다. */
+function sessionPicking(branchIds: string[]): SessionState {
+  return {
+    scenarioId: scenario.id,
+    currentTurnId: "T2",
+    gauge: 0,
+    status: "ended",
+    events: branchIds.map((branchId, index) => ({
+      turnId: "T1",
+      cueId: "CUE-1",
+      viaButton: true,
+      at: index,
+      feedback: {
+        branchId,
+        branchLabel: branchId,
+        ok: true,
+        criticalFail: false,
+        message: "",
+        gaugeDelta: 0,
+        rubricHits: [],
+      },
+    })),
+    scores: {},
+    cfCount: 0,
+    retrainAdvice: false,
+    retriesUsed: 0,
+    startedAt: 0,
+  };
+}
+
+/** 권유 대상 5갈래 — b-cf(⚑CF)·b-flat(중립)을 뺀 나머지 전부. */
+const SUGGESTABLE = ["b-ok", "b-rise", "b-calm", "b-advice", "b-protocol"];
+
+describe("안 가 본 갈래", () => {
+  it("지나온 자리에 남은 갈래를 센다 (일부 탐험)", () => {
+    const session = sessionPicking(["b-ok"]);
+    expect(unexploredBranches(scenario, session)).toBe(SUGGESTABLE.length - 1);
+
+    // 결정론 — 같은 입력이면 몇 번을 불러도 같은 수이고, 세션을 건드리지 않는다.
+    const before = JSON.stringify(session);
+    expect(unexploredBranches(scenario, session)).toBe(SUGGESTABLE.length - 1);
+    expect(JSON.stringify(session)).toBe(before);
+
+    // 지나지 않은 자리는 애초에 세지 않는다 — 이벤트가 없으면 0이다.
+    expect(unexploredBranches(scenario, sessionPicking([]))).toBe(0);
+  });
+
+  it("재시도로 고른 갈래도 모두 가 본 것으로 친다 (전부 탐험)", () => {
+    expect(unexploredBranches(scenario, sessionPicking(SUGGESTABLE))).toBe(0);
+    // 같은 갈래를 두 번 골라도 셈이 흔들리지 않는다.
+    expect(unexploredBranches(scenario, sessionPicking([...SUGGESTABLE, "b-ok"]))).toBe(0);
+  });
+
+  it("⚑CF·중립 갈래는 「가 볼 길」로 세지 않는다", () => {
+    // ⚑CF와 중립만 고른 회차 — 권유 대상 5갈래가 그대로 남는다(둘은 분모에도 없다).
+    expect(unexploredBranches(scenario, sessionPicking(["b-cf", "b-flat"]))).toBe(SUGGESTABLE.length);
+
+    // 권유 대상이 b-ok 하나뿐인 CUE로 좁혀 보면, 그 하나를 고른 순간 0이 된다.
+    const cueTurn = scenario.turns[0];
+    const cue = cueTurn.cue;
+    if (!cue) throw new Error("_fixtures의 T1에 CUE가 없습니다");
+    const narrowed = makeScenario({
+      turns: [
+        {
+          ...cueTurn,
+          cue: {
+            ...cue,
+            branches: [
+              branchOf("b-ok"),
+              branchOf("b-cf"), // ⚑CF
+              branchOf("b-flat"), // defaultBranchId (무응답·미분류 자리)
+              { ...branchOf("b-calm"), id: "b-calm-n" }, // …-n 표기의 중립 분기
+            ],
+          },
+        },
+        ...scenario.turns.slice(1),
+      ],
+    });
+    expect(unexploredBranches(narrowed, sessionPicking(["b-ok"]))).toBe(0);
   });
 });

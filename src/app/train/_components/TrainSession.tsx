@@ -6,6 +6,14 @@ import { useModalDismiss, useOverlayTransition } from "@/components/useModalDism
 import { cx } from "@/components/utils";
 import { buildRecord, currentCue, currentTurn, protocolIdOf, resolveEnding } from "@/engine";
 import { startCueCoaching } from "@/lib/onlineCoach";
+import {
+  VARY_ADAPTER_NOTE,
+  VARY_MAX_RECENT_LINES,
+  isLineVaryActive,
+  isVariableSpeaker,
+  varyLine,
+} from "@/lib/onlineVary";
+import { subscribeSettings } from "@/lib/settings";
 import { isRecognitionSupported, primeVoices, speak, stopSpeaking } from "@/lib/speech";
 import { useWakeLock } from "@/lib/wakeLock";
 import {
@@ -58,12 +66,40 @@ import {
 const SPEAKING_HOLD_MS = 800;
 
 /**
+ * 대사 변주를 기다리는 **화면 쪽** 상한(ms).
+ *
+ * 이미 있던 「말하는 중」 800ms와 **겹칩니다** — 변주는 그 박자 안에서 끝나야 값이 있습니다.
+ * 400ms가 더 붙을 수 있는 것이 전부이고, 그 안에 오지 않으면 검수 앵커로 그대로 넘어갑니다.
+ * 늦게 도착한 답은 화면을 건드리지 못하고 보관소에만 들어갑니다(같은 지점을 다시 하실 때 씁니다) —
+ * 이미 편 대사를 뒤늦게 갈아 끼우면 읽고 계신 문장이 눈앞에서 바뀝니다.
+ */
+const VARY_LINE_HOLD_MS = 1200;
+
+/**
  * 「말하는 중」을 붙일 대사인지.
  * 상황 안내(system)와 검수된 고정 안내(protocol)는 사람이 말을 고르는 자리가 아니므로 그대로 폅니다.
  */
 function isSpokenLine(item: LogItem | undefined): item is Extract<LogItem, { kind: "line" }> {
   if (!item || item.kind !== "line") return false;
   return item.speaker === "elder" || item.speaker === "guardian" || item.speaker === "dispatcher";
+}
+
+/**
+ * 변주 요청에 실어 보낼 직전 맥락 두어 줄.
+ *
+ * 담는 것은 **인물·상황 대사뿐**입니다. 학습자 발화(`kind: "learner"`)는 여기서 걸러집니다 —
+ * 맥락으로 실으면 편하지만, 그 순간 「기기 밖으로 나가는 말씀은 미분류 턴의 가명처리된 한 문장뿐」
+ * 이라는 약속이 조용히 넓어집니다. 넓히지 않는 쪽을 고른 자리이고, 이 함수가 그 경계입니다.
+ */
+function recentContextLines(log: LogItem[], exceptKey: string): string[] {
+  const out: string[] = [];
+  for (let i = log.length - 1; i >= 0 && out.length < VARY_MAX_RECENT_LINES; i -= 1) {
+    const item = log[i];
+    if (!item || item.kind !== "line" || item.key === exceptKey) continue;
+    if (item.text.trim().length === 0) continue;
+    out.push(`${item.speakerName}: ${item.text}`);
+  }
+  return out.reverse();
 }
 
 /** 화면 움직임을 줄여 달라고 설정하신 분인지 (DialogueLog의 스크롤 규칙과 같은 질의입니다) */
@@ -201,6 +237,38 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   const pendingLineRef = useRef<string>("");
   /** 이미 펴 드린 마지막 대사 — 같은 대사를 두 번 붙들지 않습니다 */
   const shownLineRef = useRef<string>("");
+
+  /* ── 대사 변주 (온라인 모드) ──────────────────────────────
+     로그가 들고 있는 것은 언제나 검수 앵커입니다. 다시 쓰인 문장은 여기 따로 담아 두고,
+     말풍선과 낭독만 그 문장을 봅니다 — 판정·게이지·기록은 앵커도 변주도 보지 않습니다.
+
+     같은 것을 상태와 ref 두 벌로 드는 이유는 하나입니다: 화면은 렌더에서 읽고(상태),
+     낭독 효과는 **펴지는 그 순간** 읽습니다(ref). ref가 없으면 변주가 도착한 커밋과 대사가
+     펴지는 커밋 사이에서 자막과 소리가 한 문장 어긋날 수 있습니다. */
+  const [variations, setVariations] = useState<ReadonlyMap<string, string>>(() => new Map());
+  const variationsRef = useRef<Map<string, string>>(new Map());
+  /** 온라인 모드가 켜져 있고 이 시나리오가 변주 대상인지 (응급 유형은 통째로 빠집니다) */
+  const [varyOn, setVaryOn] = useState(false);
+
+  const applyVariation = useCallback((key: string, text: string) => {
+    variationsRef.current.set(key, text);
+    setVariations(new Map(variationsRef.current));
+  }, []);
+
+  /** 회차가 바뀌면 비웁니다 — 로그 키는 회차마다 0부터 다시 세므로 남겨 두면 남의 대사에 붙습니다. */
+  const resetVariations = useCallback(() => {
+    if (variationsRef.current.size === 0) return;
+    variationsRef.current.clear();
+    setVariations(new Map());
+  }, []);
+
+  /* 서버에서는 설정을 알 수 없으므로 「꺼짐」으로 그린 뒤 마운트한 다음 실제 값으로 바꿉니다
+     (기본값이 꺼짐이라 서버 렌더 결과와 첫 클라이언트 렌더가 어긋나지 않습니다 — /safety와 같은 규칙). */
+  useEffect(() => {
+    const read = () => setVaryOn(isLineVaryActive(scenario));
+    read();
+    return subscribeSettings(read);
+  }, [scenario]);
 
   /**
    * ⚑CF 시트에서 고르신 대안 문장.
@@ -344,10 +412,15 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
    * 붙드는 것은 **로그 맨 끝의 인물 대사** 하나뿐입니다. 뒤에 코칭이 이미 붙은 대사는
    * 붙들면 코칭까지 함께 가려지므로 그대로 폅니다(반응 대사 → 코칭 → 「말하는 중」 → 다음 대사 순서).
    * 낭독 효과보다 **먼저** 선언돼 있어야 같은 커밋에서 ref가 채워집니다 — 순서를 바꾸지 마세요.
+   *
+   * 온라인 모드를 켜신 경우, 이 박자 **안에서** 대사 변주를 청합니다(어르신·보호자 대사만).
+   * 붙드는 시간이 없는 세 경우(소리 끔·움직임 줄임·시연 빨리감기)에는 청하지 않습니다 —
+   * 그때 변주를 기다리면 그것은 겹치는 연출이 아니라 **새로 만든 지연**입니다.
    */
   useEffect(() => {
     const tail = state.log[state.log.length - 1];
-    const key = isSpokenLine(tail) ? tail.key : "";
+    const spoken = isSpokenLine(tail) ? tail : undefined;
+    const key = spoken?.key ?? "";
 
     const reveal = () => {
       if (key.length > 0) shownLineRef.current = key;
@@ -368,9 +441,48 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
 
     pendingLineRef.current = key;
     setPendingLineKey(key);
-    const timer = window.setTimeout(reveal, SPEAKING_HOLD_MS);
-    return () => window.clearTimeout(timer);
-  }, [state.log, ttsOn]);
+
+    let cancelled = false;
+    let revealed = false;
+    let timer = 0;
+
+    const revealNow = () => {
+      if (cancelled || revealed) return;
+      revealed = true;
+      window.clearTimeout(timer);
+      reveal();
+    };
+    const holdFor = (ms: number) => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(revealNow, Math.max(0, ms));
+    };
+
+    const target = spoken && varyOn && isVariableSpeaker(spoken.speaker) ? spoken : undefined;
+    if (!target) {
+      holdFor(SPEAKING_HOLD_MS);
+    } else {
+      const startedAt = Date.now();
+      /* 상한을 먼저 걸어 둡니다 — 답이 늦어도 화면은 1200ms에서 반드시 다음으로 넘어갑니다. */
+      holdFor(VARY_LINE_HOLD_MS);
+      void varyLine({
+        scenario,
+        speaker: target.speaker,
+        anchor: target.text,
+        recentLines: recentContextLines(state.log, key),
+      }).then((outcome) => {
+        // 이미 편 대사는 바꾸지 않습니다 — 늦게 온 답은 보관소에만 남아 다음 방문에 쓰입니다.
+        if (cancelled || revealed) return;
+        if (outcome.varied) applyVariation(key, outcome.text);
+        // 남은 박자는 그대로 지킵니다 — 변주가 빨리 왔다고 대사가 튀어나오면 안 됩니다.
+        holdFor(SPEAKING_HOLD_MS - (Date.now() - startedAt));
+      });
+    }
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [applyVariation, scenario, state.log, ttsOn, varyOn]);
 
   useEffect(() => {
     let lastLine: Extract<LogItem, { kind: "line" }> | undefined;
@@ -392,7 +504,9 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     const key = lastLine.key;
     let cancelled = false;
     setSpeakingKey(key);
-    void speak(lastLine.text).then(() => {
+    /* 화면에 선 문장을 그대로 읽습니다 — 변주된 대사는 동봉 음성 매니페스트에 없으므로
+       speak()가 브라우저 낭독으로 넘어갑니다(정상 경로입니다. 자막과 소리는 언제나 같습니다). */
+    void speak(variationsRef.current.get(key) ?? lastLine.text).then(() => {
       if (cancelled) return;
       setSpeakingKey((current) => (current === key ? "" : current));
     });
@@ -504,13 +618,14 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
        첫 대사가 「말하는 중」 없이 튀어나옵니다. */
     shownLineRef.current = "";
     pendingLineRef.current = "";
+    resetVariations();
     setCheckpoint(null);
     setAtBriefing(false);
     setCriticalScene(null);
     setChosenAlternative("");
     dispatch({ type: "start" });
     scrollToTop();
-  }, [scenario.id, scrollToTop]);
+  }, [resetVariations, scenario.id, scrollToTop]);
 
   /**
    * 시연 프리셋 — `/train/[id]?demo=cf|l3|end`.
@@ -542,6 +657,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     spokenKeyRef.current = "";
     shownLineRef.current = "";
     pendingLineRef.current = "";
+    resetVariations();
     clearProgress(scenario.id);
     setCheckpoint(null);
     setAtBriefing(false);
@@ -549,7 +665,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     setChosenAlternative("");
     dispatch({ type: "restart" });
     scrollToTop();
-  }, [scenario.id, scrollToTop]);
+  }, [resetVariations, scenario.id, scrollToTop]);
 
   /**
    * ⚑CF 시트를 닫고 같은 장면으로 돌아갑니다.
@@ -569,12 +685,13 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     spokenKeyRef.current = "";
     shownLineRef.current = "";
     pendingLineRef.current = "";
+    resetVariations();
     dispatch({ type: "resume", progress: checkpoint });
     setCheckpoint(null);
     setAtBriefing(false);
     setChosenAlternative("");
     scrollToTop();
-  }, [checkpoint, scrollToTop]);
+  }, [checkpoint, resetVariations, scrollToTop]);
 
   /**
    * ‹ — 브리핑으로 돌아갑니다.
@@ -735,9 +852,12 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
                 </p>
                 {/* 생성 자리 한 줄 — 가상 인물 고지와 같은 문법(같은 크기·같은 자리)으로 답니다.
                     이 화면이 「생성 0건」이라고 적는 까닭과, 경량 LLM 어댑터가 어디부터 붙는지가
-                    같은 문장 안에 있어야 소개와 화면 표기가 어긋나 보이지 않습니다. */}
+                    같은 문장 안에 있어야 소개와 화면 표기가 어긋나 보이지 않습니다.
+
+                    온라인 모드를 켜신 세션에서는 문장을 갈아 세웁니다 — 「대사는 검수된 시나리오
+                    문장」이라는 단언을 그대로 두면, 바로 아래 말풍선의 「변주」 표기와 어긋납니다. */}
                 <p className="mt-1 text-center text-[0.6875rem] leading-[1.6] text-ink-muted">
-                  {GENERATION_ADAPTER_NOTE}
+                  {varyOn ? VARY_ADAPTER_NOTE : GENERATION_ADAPTER_NOTE}
                 </p>
 
                 {/* 고지는 로그 위에 한 번 둡니다 — 예전에는 입력 도크 안에 상주해
@@ -755,6 +875,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
                   pendingLineKey={pendingLineKey}
                   onTailOffscreen={composing ? handleTailOffscreen : undefined}
                   scrollToTailRef={scrollToTailRef}
+                  variations={variations}
                 />
 
                 {/* 규칙 엔진 시연 진입 — 컴포저 밖, 대화 로그 바로 아래입니다.

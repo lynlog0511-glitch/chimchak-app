@@ -21,10 +21,12 @@ import {
   BANNED_PHRASES,
   COACHING_MAX_LENGTH,
   COACH_ENDPOINT,
+  MODEL_IDENTITY_WORDS,
   applyGuards,
   buildCoachRequest,
   chatCompletionsUrl,
   citableDocRefs,
+  findBannedExpression,
   readChatCompletionContent,
   requestOnlineCoaching,
   type OnlineCoachRequest,
@@ -181,11 +183,67 @@ describe("가드 체인", () => {
     expect(outcome.blocked).toBe("phrase");
   });
 
-  it("③ 스스로의 정체를 밝히면 막는다", () => {
+  it("③ 반대로 붙여 써도 빠져나가지 못한다 (양쪽 공백을 지우고 대조한다)", () => {
+    /* 늘리는 우회(「증상  완화」)만 막고 줄이는 우회(「증상완화」)를 열어 두면
+       체에 구멍이 하나 남는다 — 한국어에서 띄어쓰기는 붙여도 그대로 읽힌다. */
+    for (const phrase of ["증상완화", "AI주치의", "인지개선", "임상적으로검증된"]) {
+      const outcome = applyGuards(`{"coaching":"${phrase} 사례입니다.","docId":"DOC-GUIDE-001"}`);
+      expect(outcome.blocked, phrase).toBe("phrase");
+      expect(outcome.message, phrase).toBe(NO_SOURCE_MESSAGE);
+    }
+  });
+
+  it("③ 스스로의 정체를 밝히면 막는다 (목록 전수)", () => {
     /* 모델 이름은 이제 브라우저가 알지 못한다(서버 환경변수에만 있다).
-       남은 방어선은 일반 명사 목록이고, 그 목록이 실제로 도는지를 잰다. */
-    const outcome = applyGuards('{"coaching":"저는 언어 모델이라 확답은 어렵습니다.","docId":"DOC-GUIDE-001"}');
-    expect(outcome.blocked).toBe("phrase");
+       남은 방어선은 일반 명사 목록이고, 그 목록이 **항목마다** 도는지를 잰다. */
+    for (const word of MODEL_IDENTITY_WORDS) {
+      const outcome = applyGuards(
+        `{"coaching":"저는 ${word}이라 확답은 어렵습니다.","docId":"DOC-GUIDE-001"}`,
+      );
+      expect(outcome.blocked, word).toBe("phrase");
+    }
+  });
+
+  it("③ 붙여 쓴 정체어와 대문자로 적은 영어 상투구도 막는다", () => {
+    for (const head of ["저는 언어모델이라", "As an AI, 저는"]) {
+      const outcome = applyGuards(
+        `{"coaching":"${head} 확답은 어렵습니다.","docId":"DOC-GUIDE-001"}`,
+      );
+      expect(outcome.blocked, head).toBe("phrase");
+    }
+  });
+
+  it("③ 이 체는 시나리오 대사·검수 코칭을 한 줄도 걸지 않는다 (과탐 전수 확인)", () => {
+    /* 목록에 단독 일반 명사(「인공지능」·「챗봇」…)를 더할 때마다 물어야 하는 것은 하나다 —
+       **우리가 이미 화면에 띄우고 있는 문장이 여기 걸리지 않는가.** 걸리는 낱말을 넣으면
+       그날부터 정상 문장이 조용히 고정 문구로 바뀐다. 그래서 데이터를 전수로 훑는다. */
+    let checked = 0;
+    for (const scenario of getActiveScenarios()) {
+      const lines: string[] = [];
+      for (const turn of scenario.turns) {
+        lines.push(turn.text);
+        for (const branch of turn.cue?.branches ?? []) {
+          lines.push(branch.aiReaction, branch.coaching ?? "", branch.praise ?? "");
+        }
+      }
+      for (const line of lines) {
+        if (line.trim().length === 0) continue;
+        checked += 1;
+        expect(findBannedExpression(line), `${scenario.id} · ${line}`).toBeUndefined();
+      }
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+
+  it("③ 정상 코칭 문장은 이 단을 그대로 지난다 (과탐 확인)", () => {
+    for (const coaching of [
+      "먼저 어르신의 마음을 한 번 더 알아드려 보세요.",
+      "다음에는 이유를 여쭤본 뒤에 함께 앉아 보시면 좋겠습니다.",
+      "관찰하신 내용을 사실대로 기록에 남겨 주세요.",
+    ]) {
+      const outcome = applyGuards(`{"coaching":"${coaching}","docId":"DOC-GUIDE-001"}`);
+      expect(outcome.status, coaching).toBe("ok");
+    }
   });
 
   it("④ 길이 상한을 넘으면 막는다", () => {

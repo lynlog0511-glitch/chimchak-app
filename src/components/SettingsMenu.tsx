@@ -7,6 +7,7 @@ import {
   FONT_SCALE_OPTIONS,
   ONLINE_COACHING_NOTICE,
   ONLINE_COACHING_OPTIONS,
+  ONLINE_MODE_LABEL,
   SPEECH_RATE_OPTIONS,
   SPEECH_RATE_VALUE,
   getSettings,
@@ -132,7 +133,7 @@ function SettingsPanel({
       ref={panelRef}
       role="dialog"
       aria-modal="true"
-      aria-label="표시·음성·온라인 코칭 설정"
+      aria-label="표시·음성·온라인 모드 설정"
       /* 세션 헤더의 액션 줄은 `whitespace-nowrap`이라, 팝오버 안 문장이 한 줄로 늘어나지 않도록
          여기서 줄바꿈을 되돌립니다. */
       style={toScreen ? { top: `${screenTop}px` } : undefined}
@@ -198,17 +199,21 @@ function SettingsPanel({
         </p>
       </div>
 
-      {/* ── 온라인 코칭 (실험) ────────────────────────────────
+      {/* ── 온라인 모드 (실험) ────────────────────────────────
           기본은 꺼짐입니다. 켜기 전까지 이 앱이 기기 밖으로 보내는 요청은 0건이고,
-          켠 뒤에도 달라지는 것은 **코칭 문장 한 덩어리**뿐입니다 — 판정·게이지·기록은
-          그대로 결정론 엔진이 내린 값입니다(/safety의 「AI가 쓰이는 자리」 표와 같은 사실).
+          켠 뒤에 달라지는 것은 **코칭 문장**과 **어르신·보호자 대사의 말맛** 둘뿐입니다 —
+          판정·게이지·기록은 그대로 결정론 엔진이 내린 값입니다
+          (/safety의 「AI가 쓰이는 자리」 표와 같은 사실).
+
+          절 이름에 두 자리를 다 적는 이유는 하나입니다: 스위치는 하나인데 여는 문이 둘이면,
+          이름이 하나만 말하는 순간 나머지 하나는 사용자가 허락한 적 없는 일이 됩니다.
 
           한때 이 자리에는 주소·모델 이름·API 키 입력칸 셋이 있었습니다. 지금은 없습니다 —
           키는 서버 환경변수에만 두고 브라우저는 같은 도메인 `/api/coach`만 부릅니다.
           그래서 사용자가 고를 것이 스위치 하나로 줄었고, 켜기에 조건이 붙지 않습니다. */}
       <div className="mt-5 border-t border-line pt-4">
         <p id={onlineLabelId} className="chim-label text-ink">
-          온라인 코칭 (실험)
+          {ONLINE_MODE_LABEL}
         </p>
         <div role="group" aria-labelledby={onlineLabelId} className="mt-2 flex gap-2">
           {ONLINE_COACHING_OPTIONS.map((option) => (
@@ -225,8 +230,10 @@ function SettingsPanel({
         </p>
         <p className="mt-3 text-[0.7813rem] leading-[1.5] text-ink-muted">
           켜도 판정·게이지·기록은 달라지지 않습니다. 미분류로 넘어간 턴에만 코칭 문장이 한 줄
-          더해지고, 근거 가드를 통과하지 못한 문장은 화면에 나가지 않습니다. 연결이 준비돼 있지
-          않으면 아무것도 나가지 않고 검수 코칭만 남습니다.
+          더해지고, 근거 가드를 통과하지 못한 문장은 화면에 나가지 않습니다. 대사 변주는
+          형식·길이·숫자·금지 표현, 그리고 앵커에 없던 위험 신호(판정 규칙 엔진을 그대로 다시
+          씁니다)를 기기 안에서 확인한 뒤에만 화면에 서고, 한 단이라도 지나지 못하면 검수 문장이
+          그대로 나옵니다. 연결이 준비돼 있지 않으면 아무것도 나가지 않습니다.
         </p>
       </div>
 
@@ -260,7 +267,8 @@ function SettingsPanel({
  * 담는 것은 셋입니다.
  * - **글자 크기**: 루트 font-size를 16/18/20px로 바꿉니다. 토큰이 전부 rem이라 화면이 통째로 비례합니다.
  * - **음성 빠르기**: `speak()`의 기본 rate가 됩니다. 고르는 즉시 예시 문장을 한 번 읽어 확인시켜 줍니다.
- * - **온라인 코칭 (실험)**: 기본 꺼짐. 켜기 전에는 이 앱이 기기 밖으로 요청을 보내지 않습니다.
+ * - **온라인 모드 (실험)**: 기본 꺼짐. 켜기 전에는 이 앱이 기기 밖으로 요청을 보내지 않습니다.
+ *   스위치 하나가 코칭 한 문장과 어르신·보호자 대사 변주 두 자리를 함께 엽니다.
  *   여기 있는 이유는 하나입니다 — 발화가 밖으로 나가는 스위치는 사용자 손에 있어야 하고,
  *   그 사실을 스위치 바로 옆에서 문장으로 밝혀야 합니다(`ONLINE_COACHING_NOTICE`).
  *   주소·모델 이름·API 키 입력칸 셋은 없어졌습니다. 키를 브라우저에 두지 않기로 하면서

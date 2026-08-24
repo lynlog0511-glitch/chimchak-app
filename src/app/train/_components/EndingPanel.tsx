@@ -5,7 +5,7 @@ import { ChevronGlyph, StatusMark, STATUS_MARK_LABEL, type StatusMarkKind } from
 import Link from "next/link";
 import { BigButton, useSourceDoc } from "@/components";
 import { cx } from "@/components/utils";
-import type { TracedFeedback } from "@/engine";
+import { unexploredBranches, type TracedFeedback } from "@/engine";
 import { loadSessions } from "@/lib/storage";
 import type { EndingDef, Scenario, SessionEvent, SessionRecord, SessionState } from "@/types";
 import {
@@ -425,6 +425,9 @@ export function EndingPanel({
   );
   const best = useMemo(() => pickBestMoment(session.events), [session.events]);
 
+  /* 안 가 본 길 — 지나온 자리에 남은 갈래 수. 엔진의 순수 함수가 세고, 여기서는 옮기기만 합니다. */
+  const unexplored = useMemo(() => unexploredBranches(scenario, session), [scenario, session]);
+
   /* 가장 잘한 순간으로 세운 문장은 아래 목록에서 뺍니다 — 같은 문장이 두 번 서면
      강조가 아니라 중복으로 읽힙니다. 「잘한 것 N」의 N은 둘을 합한 수 그대로입니다. */
   const greens = useMemo(
@@ -553,6 +556,17 @@ export function EndingPanel({
 
       {/* 이번 훈련의 흐름 — 접힌 채로 둡니다(주인공은 위 두 목록입니다). */}
       {timeline.length > 0 && <SessionTimeline rows={timeline} situations={situations} />}
+
+      {/* 안 가 본 길 — 한 줄. 아래 버튼(같은 장면 다시 · 다음 상황으로)으로 그대로 이어지는
+          자리라 새 버튼을 달지 않고 문구만 둡니다. 남은 갈래 수는 「몇 곳이 남았는가」이지
+          점수가 아니고(위 「잘한 것 N」과 같은 셈법), 전부 가 보셨으면 달성으로만 적습니다. */}
+      {timeline.length > 0 && (
+        <p className="mt-4 rounded-card bg-paper-2 px-[15px] py-3.5 text-[0.9375rem] leading-[1.6] text-ink-soft">
+          {unexplored > 0
+            ? `이번에 고르지 않은 갈래가 ${unexplored}곳 남아 있습니다 — 같은 상황도 다른 대답이면 다르게 흘러갑니다.`
+            : "이 상황의 갈래를 전부 가 보셨습니다."}
+        </p>
+      )}
 
       {/* 다음 행동 — 문법에 따라 「다음 상황으로」 또는 「같은 장면 다시」가 주인공이 됩니다.
           훈련 → 보고 → 성장의 순환이 마지막 힌지에서 끊기지 않도록 **두 마무리 모두**

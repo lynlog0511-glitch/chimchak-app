@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, type RefObject } from "react";
 import { WaveBars } from "@/components";
 import { cx } from "@/components/utils";
+import { VARIED_LINE_LABEL, VARIED_LINE_NOTE } from "@/lib/onlineVary";
 import { EMOTION_RING, EMOTION_TEXT, type EmotionLevel } from "./constants";
 import { InlineCoaching } from "./InlineCoaching";
 import { RecordDraftPreview } from "./RecordDraftPreview";
@@ -58,6 +59,14 @@ export interface DialogueLogProps {
   onTailOffscreen?: (offscreen: boolean) => void;
   /** 「이어지는 코칭 보기」를 누르셨을 때 로그 끝으로 데려갈 함수를 담아 둘 자리 */
   scrollToTailRef?: RefObject<(() => void) | null>;
+  /**
+   * 이번 세션에서 **같은 뜻으로 다시 쓰인** 대사 — 로그 키 → 화면에 세울 문장.
+   *
+   * 로그가 들고 있는 것은 언제나 검수 앵커입니다(`sessionMachine`은 대사를 만들지 않습니다).
+   * 여기 담긴 키의 말풍선만 그 문장 대신 이 문장을 펴고, 그 사실을 「변주」 표기로 밝힙니다 —
+   * 바뀐 것을 조용히 바꾸지 않는 것이 이 prop이 있는 까닭입니다(`src/lib/onlineVary.ts`).
+   */
+  variations?: ReadonlyMap<string, string>;
   className?: string;
 }
 
@@ -158,17 +167,21 @@ function LineBubble({
   live,
   emotion,
   speaking,
+  variedText,
 }: {
   item: LineItem;
   live: boolean;
   emotion?: DialogueEmotion;
   speaking?: boolean;
+  /** 검수 앵커 대신 이 문장을 폅니다 — 있으면 「변주」 표기가 함께 붙습니다 */
+  variedText?: string;
 }) {
   const character = isCharacter(item.speaker);
   const protocol = item.speaker === "protocol";
   const system = item.speaker === "system";
+  const varied = variedText !== undefined && variedText !== item.text;
   /* 저작용 분기 id는 화면에 내지 않습니다 — 데이터는 그대로입니다. */
-  const text = stripInternalIds(item.text);
+  const text = stripInternalIds(variedText ?? item.text);
   const note = item.note ? stripInternalIds(item.note) : undefined;
 
   const trigger = item.triggerName ? (
@@ -241,12 +254,27 @@ function LineBubble({
             )}
           </div>
 
+          {/* 출처 한 줄 — 이 말풍선의 문장이 어디서 왔는지를 적는 자리입니다.
+              대사가 다시 쓰였으면 그 사실도 여기 한 낱말로 붙습니다(문자만 — 아이콘·이모지 없음).
+              「없는 것을 있다고 하지 않는다」의 반대 방향입니다: 있는 것을 숨기지 않습니다. */}
           <p className="mt-1 text-[0.6875rem] leading-[1.45] text-ink-faint">
-            {protocol
-              ? "검수된 고정 안내 · AI 생성 아님"
-              : character
-                ? `AI 생성 · 가상 인물${live ? " · 방금" : ""}`
-                : ""}
+            {protocol ? (
+              "검수된 고정 안내 · AI 생성 아님"
+            ) : character ? (
+              <>
+                AI 생성 · 가상 인물
+                {varied && (
+                  <>
+                    {" · "}
+                    <span className="font-semibold">{VARIED_LINE_LABEL}</span>
+                    <span className="sr-only"> — {VARIED_LINE_NOTE}</span>
+                  </>
+                )}
+                {live && " · 방금"}
+              </>
+            ) : (
+              ""
+            )}
           </p>
         </div>
       </div>
@@ -366,6 +394,9 @@ function latestLineKey(items: LogItem[]): string {
  * 새 대사는 곧바로 튀어나오지 않고 **「말하는 중」 빈 말풍선**을 한 박자 거쳐 들어섭니다
  * (`pendingLineKey` — 시간을 재는 것은 부모인 TrainSession입니다). 붙들려 있는 동안에는
  * 그 대사를 목록에서 빼고 세므로, 자동 스크롤이 아직 보이지 않는 대사를 미리 당기지 않습니다.
+ *
+ * 온라인 모드에서 같은 뜻으로 다시 쓰인 대사는 `variations`가 들고 옵니다. 이 컴포넌트가 하는
+ * 일은 둘뿐입니다 — 그 문장을 펴는 것, 그리고 **바뀌었다는 사실을 말풍선에 적는 것**입니다.
  */
 export function DialogueLog({
   items,
@@ -378,6 +409,7 @@ export function DialogueLog({
   pendingLineKey,
   onTailOffscreen,
   scrollToTailRef,
+  variations,
   className,
 }: DialogueLogProps) {
   const endRef = useRef<HTMLDivElement | null>(null);
@@ -527,6 +559,7 @@ export function DialogueLog({
                   live={item.key === lineKey}
                   emotion={emotion}
                   speaking={speaking}
+                  variedText={variations?.get(item.key)}
                 />
               </div>
             );

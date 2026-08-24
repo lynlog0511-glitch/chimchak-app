@@ -82,14 +82,30 @@ export const BANNED_PHRASES: readonly string[] = [
  * 특정 이름을 대조하지 않는 이유는 이제 하나 더 있습니다 — 상류 모델 이름은 서버 환경변수에만
  * 있고 브라우저는 그 이름을 아예 모릅니다. 대신 프롬프트 규칙 4가 자기 소개를 금지하고,
  * 그래도 새어 나오는 일반 명사를 이 목록이 받습니다.
+ *
+ * 대사 변주(`src/lib/onlineVary.ts`)도 **같은 목록**을 봅니다 — 어르신 입에서 이 낱말이
+ * 나오는 순간 「가상 인물의 말」이 아니라 「모델의 말」이 되므로, 거르는 체는 하나여야 합니다.
+ *
+ * 대조는 **양쪽 공백을 전부 지우고** 합니다(`stripSpaces`). 그래서 「언어모델」처럼 붙여 쓴 꼴을
+ * 따로 적어 둘 필요가 없어졌고, 한때 나란히 적혀 있던 붙임형 항목은 걷어 냈습니다 —
+ * 같은 말을 두 줄로 적어 두면 어느 날 한 줄만 고쳐집니다.
+ * 마찬가지로 「인공지능 모델」도 뺐습니다: 아래 단독 「인공지능」이 그 안에 이미 들어 있습니다.
+ *
+ * 단독 일반 명사를 넣을 때의 기준은 하나입니다 — **어르신·보호자·코칭의 정상 문장에
+ * 나올 일이 없는 낱말인가**. 아래 넷은 활성 시나리오 6종의 대사·분기 반응·코칭 문구를
+ * 전수로 훑어 한 번도 나오지 않는 것을 확인하고 넣었습니다(과탐 0건).
  */
-const MODEL_IDENTITY_WORDS: readonly string[] = [
+export const MODEL_IDENTITY_WORDS: readonly string[] = [
   "LLM",
   "언어 모델",
-  "언어모델",
-  "인공지능 모델",
   "AI 모델",
   "생성형 AI",
+  "인공지능",
+  "챗봇",
+  "에이아이",
+  "어시스턴트",
+  // 영어 상투구 — 대조할 때 양쪽을 소문자로 접으므로 여기에는 소문자로만 적습니다.
+  "as an ai",
 ];
 
 /* ── 결과 모양 ─────────────────────────────────────────── */
@@ -314,8 +330,11 @@ function fallbackOutcome(reason: OnlineCoachFallback): OnlineCoachOutcome {
   return { status: "fallback", message: "", fallback: reason, steps: [] };
 }
 
-/** 코드 울타리·앞뒤 군말을 걷어내고 JSON 한 덩어리만 꺼냅니다. */
-function extractJson(raw: string): Record<string, unknown> | undefined {
+/**
+ * 코드 울타리·앞뒤 군말을 걷어내고 JSON 한 덩어리만 꺼냅니다.
+ * 대사 변주도 같은 함수로 형식을 봅니다 — 상류가 군말을 붙이는 버릇은 작업이 달라도 같습니다.
+ */
+export function extractJson(raw: string): Record<string, unknown> | undefined {
   const text = raw.replace(/```[a-zA-Z]*/g, "").trim();
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
@@ -330,8 +349,47 @@ function extractJson(raw: string): Record<string, unknown> | undefined {
 }
 
 /** 대조는 공백을 하나로 눌러 놓고 합니다 — 「증상  완화」로 띄어 쓰면 빠져나가지 않게. */
-function squash(text: string): string {
+export function squash(text: string): string {
   return text.replace(/\s+/g, " ").trim();
+}
+
+/**
+ * 금지 표현·정체어 대조 전용 정규화 — 공백을 **하나도 남기지 않고** 지웁니다.
+ *
+ * `squash`는 여러 칸을 한 칸으로 눌러 「증상  완화」를 잡아 주지만, 반대쪽으로 붙여 쓴
+ * 「증상완화」·「AI주치의」는 그대로 빠져나갔습니다 — 한국어에서 띄어쓰기는 붙여도 읽히는
+ * 쪽이라, 늘리는 우회만 막고 줄이는 우회를 열어 두면 체에 구멍이 하나 남습니다.
+ * 그래서 **찾는 말과 찾을 자리 양쪽**에서 공백을 지우고 대조합니다(코칭·변주 공통).
+ *
+ * 문장을 화면에 낼 때는 쓰지 않습니다 — 검사용 사본을 만드는 함수입니다.
+ *
+ * @example stripSpaces("증상  완화"); // "증상완화"
+ * @example stripSpaces("AI 주치의");  // "AI주치의"
+ */
+export function stripSpaces(text: string): string {
+  return text.replace(/\s+/g, "");
+}
+
+/**
+ * 금지 표현 8종과 모델 정체어를 한 번에 봅니다 — **코칭과 변주가 같은 체를 씁니다.**
+ *
+ * 걸린 말을 그대로 돌려줍니다(없으면 undefined). 돌려주는 것은 목록에 적힌 **원문**이라,
+ * 화면·기록에 뜨는 사유가 목록과 글자 그대로 같습니다.
+ *
+ * @example findBannedExpression("증상완화에 좋대요");        // "증상 완화"
+ * @example findBannedExpression("저는 인공지능이라서요");     // "인공지능"
+ * @example findBannedExpression("이유를 여쭤봐 주세요");      // undefined
+ */
+export function findBannedExpression(text: string): string | undefined {
+  const flat = stripSpaces(text);
+  for (const phrase of BANNED_PHRASES) {
+    if (flat.includes(stripSpaces(phrase))) return phrase;
+  }
+  const lowered = flat.toLowerCase();
+  for (const word of MODEL_IDENTITY_WORDS) {
+    if (lowered.includes(stripSpaces(word).toLowerCase())) return word;
+  }
+  return undefined;
 }
 
 /**
@@ -370,16 +428,9 @@ export function applyGuards(
   }
   steps.push(step("evidence", true, evidence.docId ? `${evidence.docId} 확인` : "근거 없음"));
 
-  /* ③ 표현 — 금지 표현 8종과 모델 정체 노출을 함께 봅니다. */
-  const flat = squash(coaching);
-  for (const phrase of BANNED_PHRASES) {
-    if (flat.includes(phrase)) return blockedOutcome("phrase", steps, `「${phrase}」`);
-  }
-  for (const word of MODEL_IDENTITY_WORDS) {
-    if (flat.toLowerCase().includes(word.toLowerCase())) {
-      return blockedOutcome("phrase", steps, `「${word}」`);
-    }
-  }
+  /* ③ 표현 — 금지 표현 8종과 모델 정체 노출을 함께 봅니다(양쪽 공백을 지우고 대조합니다). */
+  const banned = findBannedExpression(coaching);
+  if (banned) return blockedOutcome("phrase", steps, `「${banned}」`);
   steps.push(step("phrase", true));
 
   /* ④ 길이 — 1~2문장을 넘어서면 버립니다. */

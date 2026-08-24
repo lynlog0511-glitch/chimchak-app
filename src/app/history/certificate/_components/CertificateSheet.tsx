@@ -371,7 +371,7 @@ export function CertificateSheet() {
 
             {isPreview && (
               <p className="mb-[12px] rounded-[12px] bg-warn-soft px-[12px] py-[10px] text-[0.875rem] leading-[1.7] font-bold text-warn-ink">
-                예시 미리보기 — 시연용 예시 기록 {demoCount}회가 섞여 있습니다. 이 문서는 발급되지
+                예시 미리보기 — 체험용 예시 기록 {demoCount}회가 섞여 있습니다. 이 문서는 발급되지
                 않았으며 증빙으로 쓸 수 없습니다. 성장 기록 위쪽 안내줄에서 예시를 지우시면 실제
                 이수 사실로 다시 만들어집니다.
               </p>
@@ -435,7 +435,7 @@ export function CertificateSheet() {
                 숫자만 옮겨 적히고 예시라는 사실은 종이에서 사라집니다. */}
             {isPreview && (
               <p className="mt-[6px] text-[0.7813rem] leading-[1.7] font-bold text-warn-ink">
-                이 합계에는 시연용 예시 <span className="chim-num">{demoCount}</span>회가 포함되어
+                이 합계에는 체험용 예시 <span className="chim-num">{demoCount}</span>회가 포함되어
                 있습니다 — 이 기기의 실제 이수 시수 누계에는 반영되지 않은 회차입니다.
               </p>
             )}

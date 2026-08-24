@@ -139,7 +139,7 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
             id="demo-notice-title"
             className="text-[0.9375rem] leading-[1.45] font-extrabold text-warn-ink"
           >
-            시연용 예시 기록이 표시되고 있습니다
+            체험용 예시 기록이 표시되고 있습니다
           </h2>
           <p className="mt-[5px] text-[0.8438rem] leading-[1.7] text-ink-soft">
             화면 확인을 위해 심어 둔 {DEMO_SEED_SUMMARY}이 아래 목록에 섞여 있습니다. 해당 행에는

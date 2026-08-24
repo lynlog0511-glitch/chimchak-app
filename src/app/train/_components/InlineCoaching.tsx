@@ -1,11 +1,16 @@
 "use client";
 
-import { useId, useState } from "react";
-import { useSourceDoc } from "@/components";
+import { useEffect, useId, useState } from "react";
+import { SourceChip, useSourceDoc } from "@/components";
 import { ChevronGlyph, StatusMark, STATUS_MARK_LABEL, type StatusMarkKind } from "@/components/icons";
 import { cx } from "@/components/utils";
 import { getRubricItem } from "@/data/rubric";
 import type { FeedbackTrace, TracedFeedback } from "@/engine";
+import {
+  getCoaching,
+  subscribeCoaching,
+  type OnlineCoachOutcome,
+} from "@/lib/onlineCoach";
 import {
   COACH_HEAD,
   COACH_HEAD_TEXT,
@@ -89,6 +94,67 @@ function pathNote(trace: FeedbackTrace): string {
   }
 }
 
+/* ── 온라인 코칭 (설정에서 켠 경우에만) ────────────────────
+   기본 빌드에서는 이 아래가 통째로 렌더되지 않습니다 — 붙을 코칭이 없기 때문입니다.
+   켠 경우에도 **판정·게이지·기록은 이미 결정론 엔진이 내린 그대로**이고, 여기 붙는 것은
+   문장 한 덩어리뿐입니다. 그 사실을 라벨에 그대로 적습니다. */
+
+/**
+ * 이 판정에 붙은 온라인 코칭을 구독합니다.
+ *
+ * 열쇠는 판정 결과 객체 자체입니다(`@/lib/onlineCoach`의 WeakMap). 대화 로그를 통과하는
+ * prop 배선을 새로 뚫지 않으려는 선택이고, 화면을 벗어나면 코칭도 함께 사라집니다.
+ * 응답이 늦어도 이 훅은 아무것도 막지 않습니다 — 도착하기 전까지는 그냥 없는 것입니다.
+ */
+function useOnlineCoaching(feedback: TracedFeedback): OnlineCoachOutcome | undefined {
+  const [outcome, setOutcome] = useState<OnlineCoachOutcome | undefined>(undefined);
+  useEffect(() => {
+    setOutcome(getCoaching(feedback));
+    return subscribeCoaching(() => setOutcome(getCoaching(feedback)));
+  }, [feedback]);
+  return outcome;
+}
+
+/** 라벨 한 줄 — 무엇이 이 문장을 썼고, 가드를 지났는지 지지 못했는지 그대로 적습니다. */
+const ONLINE_HEAD_PASSED = "경량 LLM 코칭 · 근거 가드 통과";
+const ONLINE_HEAD_BLOCKED = "경량 LLM 코칭 · 근거 가드가 막았습니다";
+
+function OnlineCoachingBlock({ outcome }: { outcome: OnlineCoachOutcome }) {
+  const blocked = outcome.status === "blocked";
+  /* 가드가 실제로 돌았다는 사실을 문장으로 남깁니다 — 지난 단은 이름으로, 막힌 단은 사유로.
+     이 줄이 없으면 「근거 가드 통과」가 그냥 붙여 둔 라벨처럼 읽힙니다. */
+  const passedSteps = outcome.steps.filter((step) => step.passed).map((step) => step.label);
+  return (
+    <div className="mt-2 rounded-card bg-paper-2 px-3.5 py-3">
+      <p
+        className={cx(
+          "text-[0.6875rem] leading-[1.45] font-bold",
+          blocked ? "text-warn-ink" : "text-ink-muted",
+        )}
+      >
+        {blocked ? ONLINE_HEAD_BLOCKED : ONLINE_HEAD_PASSED}
+      </p>
+      <p className="mt-1 text-[0.9375rem] leading-[1.6] text-ink">{outcome.message}</p>
+      {blocked ? (
+        <p className="mt-1 text-[0.7813rem] leading-[1.5] text-ink-muted">
+          차단 사유 · {outcome.blockedLabel}
+          {passedSteps.length > 0 && ` (지난 단 — ${passedSteps.join(" · ")})`}
+        </p>
+      ) : (
+        <>
+          {outcome.docId && <SourceChip docId={outcome.docId} className="mt-1.5" />}
+          <p className="mt-1 text-[0.7813rem] leading-[1.5] text-ink-muted">
+            지난 단 — {passedSteps.join(" · ")}
+          </p>
+        </>
+      )}
+      <p className="mt-1.5 text-[0.6875rem] leading-[1.5] text-ink-muted">
+        판정·게이지·기록은 위 결정론 판정 그대로입니다 — 이 문장만 더해졌습니다.
+      </p>
+    </div>
+  );
+}
+
 /**
  * 턴 판정 — **카드가 아니라 대화 흐름에 붙는 인라인 한 덩어리**입니다 (시안 4a⑤).
  *
@@ -106,6 +172,7 @@ export function InlineCoaching({ feedback, gaugeLabel, className }: InlineCoachi
   const doc = useSourceDoc(feedback.docId);
   const chip = gaugeDeltaChip(gaugeLabel, feedback.gaugeDelta);
   const trace = feedback.trace;
+  const online = useOnlineCoaching(feedback);
 
   /* 걸린 루브릭 항목 — 행동지표 문장만 가져옵니다. 점수·앵커는 내부 전용이라 읽지 않습니다. */
   const basis = (trace?.itemIds ?? []).flatMap((itemId) => {
@@ -145,6 +212,10 @@ export function InlineCoaching({ feedback, gaugeLabel, className }: InlineCoachi
 
         {/* 코칭 문장 — 이 덩어리의 주인공입니다 (시안 15px). */}
         <p className="mt-[3px] text-[0.9375rem] leading-[1.6] text-ink-soft">{feedback.message}</p>
+
+        {/* 온라인 코칭을 켠 경우에만 한 덩어리가 더 붙습니다. 기다리는 동안에는 아무것도
+            그리지 않습니다 — 스피너로 흐름을 막지 않고, 검수 코칭이 먼저 자리를 지킵니다. */}
+        {online && <OnlineCoachingBlock outcome={online} />}
 
         {/* 근거 문서 라벨과 토글을 한 덩어리로 묶어 **행 전체**를 누를 수 있게 합니다.
             예전에는 밑줄 텍스트만 27px이라, 48px을 지키는 이 앱에서 유일하게 손가락이

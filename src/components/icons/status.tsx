@@ -1,4 +1,4 @@
-import { CHECK_PATH } from "./glyphs";
+import { CHECK_PATH, CHECK_PATH_IN_CIRCLE } from "./glyphs";
 import { IconBase, type IconProps } from "./IconBase";
 
 /* ─────────────────────────────────────────────────────────────
@@ -15,12 +15,14 @@ export function IconCheck({ className, strokeWidth }: IconProps) {
   );
 }
 
-/** 원 안의 체크 */
+/** 원 안의 체크 — 체크 기하는 `StatusMark`의 채운 원 안 체크와 **같은 상수**를 씁니다.
+    (2026-08-24: 여기에만 자체 좌표 `m8.3 12.2 2.5 2.5 4.9-5.2`가 따로 있어,
+     같은 화면에 두 종류의 원 안 체크가 나란히 설 수 있었습니다 — mi45가 없앤 이원화의 재발.) */
 export function IconCheckCircle({ className, strokeWidth }: IconProps) {
   return (
     <IconBase className={className} strokeWidth={strokeWidth}>
       <circle cx="12" cy="12" r="8.2" />
-      <path d="m8.3 12.2 2.5 2.5 4.9-5.2" />
+      <path d={CHECK_PATH_IN_CIRCLE} />
     </IconBase>
   );
 }
@@ -94,11 +96,17 @@ export function IconArrowRight({ className, strokeWidth }: IconProps) {
   );
 }
 
+/* 셰브론 3형제 — 2026-08-24 교정.
+   세 도형 다 팔 길이는 5.8로 같았는데 **중심이 저마다 어긋나** 있었습니다
+   (아래 12.3 · 오른쪽 12.3 · 왼쪽 11.7). 24 상자 안에서 광학 중심이 다르면
+   같은 행에 나란히 놓았을 때 한쪽만 아래로/왼쪽으로 처져 보이고, 회전을 걸면 축까지 어긋납니다.
+   이제 셋 다 중심이 정확히 (12,12)이고, `glyphs.tsx`의 `ChevronGlyph`(6→18 · 9→15)와 같은 결입니다. */
+
 /** 아래 화살표 머리 — 접이식 열림 표시 */
 export function IconChevronDown({ className, strokeWidth }: IconProps) {
   return (
     <IconBase className={className} strokeWidth={strokeWidth}>
-      <path d="m6.2 9.4 5.8 5.8 5.8-5.8" />
+      <path d="m6.2 9.1 5.8 5.8 5.8-5.8" />
     </IconBase>
   );
 }
@@ -107,7 +115,7 @@ export function IconChevronDown({ className, strokeWidth }: IconProps) {
 export function IconChevronRight({ className, strokeWidth }: IconProps) {
   return (
     <IconBase className={className} strokeWidth={strokeWidth}>
-      <path d="m9.4 6.2 5.8 5.8-5.8 5.8" />
+      <path d="m9.1 6.2 5.8 5.8-5.8 5.8" />
     </IconBase>
   );
 }
@@ -116,7 +124,7 @@ export function IconChevronRight({ className, strokeWidth }: IconProps) {
 export function IconChevronLeft({ className, strokeWidth }: IconProps) {
   return (
     <IconBase className={className} strokeWidth={strokeWidth}>
-      <path d="M14.6 6.2 8.8 12l5.8 5.8" />
+      <path d="M14.9 6.2 9.1 12l5.8 5.8" />
     </IconBase>
   );
 }

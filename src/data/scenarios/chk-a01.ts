@@ -27,7 +27,7 @@ import type { Scenario } from "@/types";
  * (CUE-T2 전화 구간만 문맥이 달라 따로 씁니다.)
  */
 const UNCLEAR_COACHING =
-  "잘 전달되지 않았습니다. 한 문장으로 짧게 다시 말씀하시거나, 아래 버튼에서 골라 주세요.";
+  "잘 전달되지 않았습니다. 지금 하신 말씀은 판정에 넣지 않았으니, 하시려던 말을 한 문장으로 짧게 다시 하시거나 아래 버튼에서 골라 주세요.";
 
 /** CO-02 ⚑CF 인터럽트 고정 문구 — 노인복지법 제39조의9 금지행위 고지 + 대안 3개. */
 const CF_RESTRAINT_MESSAGE =
@@ -216,7 +216,7 @@ export const CHK_A01: Scenario = {
             aiReactionNote: "목소리가 커지십니다.",
             rubricHits: [{ itemId: "RE-02", score: 1 }],
             coaching:
-              "사실을 바로잡기 전에 감정을 먼저 인정해 주세요. 현실을 직면시키면 초조가 커집니다.",
+              "사실을 바로잡기 전에 \"애기 밥 챙기셔야 하는구나\" 하고 마음을 먼저 되돌려 주세요. 현실을 직면시키면 초조가 커집니다.",
             docId: "DOC-GUIDE-001",
             next: "T-1",
           },
@@ -246,7 +246,8 @@ export const CHK_A01: Scenario = {
               { itemId: "CO-02", score: 3 },
             ],
             praise: "몸에 손을 대지 않으신 점은 지켜졌습니다.",
-            coaching: "지시형 대신 두 개 이하의 선택지를 드려 보세요.",
+            coaching:
+              "지시 대신 \"지금 나가실까요, 물 한 잔 드시고 나가실까요?\"처럼 선택지를 두 개만 드려 보세요.",
             docId: "DOC-GUIDE-001",
             next: "T-1",
           },
@@ -277,7 +278,8 @@ export const CHK_A01: Scenario = {
             aiReaction: "이 사람이 왜 안 비켜…",
             aiReactionNote: "혼잣말을 하십니다. 돌발 변수 T-1이 앞당겨 발동합니다.",
             rubricHits: [{ itemId: "RE-01", score: 1 }],
-            coaching: "말이 막히면 짧게라도 감정을 먼저 되돌려 주세요.",
+            coaching:
+              "말이 막히면 \"많이 급하시죠\" 한마디만 먼저 건네 보세요. 답을 찾는 사이에도 어르신은 기다려 주십니다.",
             docId: "DOC-GUIDE-001",
             triggerId: "T-1",
             next: "T-1",
@@ -366,7 +368,8 @@ export const CHK_A01: Scenario = {
               { itemId: "RE-07", score: 2 },
               { itemId: "RE-08", score: 1 },
             ],
-            coaching: "낮은 톤으로 한 문장씩 말씀해 주세요. 큰 소리는 초조를 키웁니다.",
+            coaching:
+              "한 걸음 다가가 눈높이를 맞추고 낮은 톤으로 한 문장씩만 말씀해 주세요. 어르신은 큰 소리에 더 흥분하십니다.",
             docId: "DOC-GUIDE-001",
             next: "T2",
           },
@@ -409,7 +412,8 @@ export const CHK_A01: Scenario = {
               { itemId: "RE-09", score: 1 },
               { itemId: "SA-01", score: 1 },
             ],
-            coaching: "문이 열리기 전에 대체 행동을 먼저 제안해 주세요.",
+            coaching:
+              "문이 열리기 전 3초 안에 \"저랑 같이 나가요, 외투부터 입으실까요?\" 하고 함께 할 일을 먼저 놓아 주세요.",
             docId: "DOC-GUIDE-001",
             next: "end:E-위기",
           },
@@ -652,7 +656,8 @@ export const CHK_A01: Scenario = {
             gaugeDelta: 1,
             aiReaction: "오늘은 좀 어떠셨어요?",
             rubricHits: [{ itemId: "SA-04", score: 2 }],
-            coaching: "전화를 받기 전에 어르신 위치와 안전을 먼저 확인해 주세요.",
+            coaching:
+              "전화를 받기 전에 \"잠시만요\" 하고 어르신이 어디 계신지부터 눈으로 확인해 주세요.",
             docId: "DOC-GUIDE-001",
             next: "T3",
           },
@@ -668,7 +673,8 @@ export const CHK_A01: Scenario = {
               { itemId: "SA-04", score: 1 },
               { itemId: "CL-02", score: 1 },
             ],
-            coaching: "통화보다 어르신 시야 확보가 먼저입니다.",
+            coaching:
+              "자리를 옮기기 전에 어르신을 시야 안에 두시거나, \"5분 뒤 다시 걸겠습니다\" 하고 통화를 먼저 끊어 주세요.",
             docId: "DOC-GUIDE-001",
             triggerId: "T-1",
             next: "T-1B",
@@ -682,7 +688,7 @@ export const CHK_A01: Scenario = {
             aiReaction: "…여보세요? 안 들리세요?",
             rubricHits: [],
             coaching:
-              "전화를 어떻게 하실지 한 문장으로 말씀해 주시거나, 아래 버튼에서 골라 주세요.",
+              "지금 하신 말씀은 판정에 넣지 않았습니다. 전화를 지금 받으실지 뒤로 미루실지 한 문장으로 말씀하시거나, 아래 버튼에서 골라 주세요.",
             docId: "DOC-GUIDE-001",
             next: "T3",
           },
@@ -748,7 +754,8 @@ export const CHK_A01: Scenario = {
             gaugeDelta: 1,
             aiReaction: "왜 자꾸 소리를 질러!",
             rubricHits: [{ itemId: "RE-08", score: 1 }],
-            coaching: "낮은 톤으로 한 문장씩 말씀해 주세요.",
+            coaching:
+              "목소리를 높이는 대신 \"제가 여기 있어요\" 한 문장으로 낮춰 주세요. 통화 중이라도 톤이 먼저 전해집니다.",
             docId: "DOC-GUIDE-001",
             next: "T3",
           },
@@ -788,7 +795,8 @@ export const CHK_A01: Scenario = {
             aiReaction: "…다녀올게.",
             aiReactionNote: "도어락이 열리고 어르신이 현관 밖으로 나가십니다.",
             rubricHits: [{ itemId: "RE-09", score: 1 }],
-            coaching: "통화는 나중에 할 수 있지만, 문은 다시 닫을 수 없습니다.",
+            coaching:
+              "통화는 뒤로 미룰 수 있습니다. \"잠시 후 다시 걸겠습니다\" 하고 끊은 뒤 어르신 곁으로 먼저 가 주세요.",
             docId: "DOC-GUIDE-001",
             next: "end:E-위기",
           },
@@ -884,7 +892,8 @@ export const CHK_A01: Scenario = {
             gaugeDelta: 0,
             aiReaction: "…뭐 해. 문 안 열어줘?",
             rubricHits: [{ itemId: "RE-04", score: 2 }],
-            coaching: "기다리기만 하면 상황이 그대로 유지됩니다. 함께 할 것을 하나 제안해 보세요.",
+            coaching:
+              "기다리는 동안 상황은 그대로입니다. \"사진첩 같이 볼까요?\"처럼 지금 함께 할 일을 하나만 꺼내 주세요.",
             docId: "DOC-GUIDE-001",
             next: "T4",
           },
@@ -988,7 +997,8 @@ export const CHK_A01: Scenario = {
               { itemId: "CO-08", score: 3 },
             ],
             praise: "보고 대상이라고 판단하신 점은 맞습니다.",
-            coaching: "시각과 현재 상태를 덧붙이면 기록으로 바로 옮길 수 있습니다.",
+            coaching:
+              "\"16시 40분\"과 \"지금은 소파에 앉아 계십니다\" 두 마디만 덧붙이면 그대로 기록지에 옮겨집니다.",
             docId: "DOC-NOTI-002",
             next: "T5",
           },
@@ -1014,7 +1024,8 @@ export const CHK_A01: Scenario = {
               { itemId: "CL-03", score: 2 },
               { itemId: "CO-08", score: 3 },
             ],
-            coaching: "감정 형용사 대신 보고 들은 사실만 적어 주세요. 기록은 나중에 나를 지킵니다.",
+            coaching:
+              "\"힘들었다\" 대신 \"현관에서 문고리를 잡고 계셨다\"처럼 보고 들은 것만 적어 주세요. 사실만 남은 기록이 나중에 나를 지킵니다.",
             docId: "DOC-NOTI-002",
             next: "T5",
           },
@@ -1030,7 +1041,8 @@ export const CHK_A01: Scenario = {
               { itemId: "CL-01", score: 1 },
               { itemId: "CL-03", score: 1 },
             ],
-            coaching: "이탈 시도는 급여제공기록지 기재 대상입니다. 짧게라도 남겨 주세요.",
+            coaching:
+              "현관 이탈 시도는 급여제공기록지 특이사항란 기재 대상입니다. \"16시 40분 귀가 요구, 화장실 안내 후 진정\" 한 줄이면 됩니다.",
             docId: "DOC-NOTI-002",
             next: "T5",
           },
@@ -1092,7 +1104,8 @@ export const CHK_A01: Scenario = {
             gaugeDelta: 0,
             aiReaction: "제안이 기록에 반영되었습니다.",
             rubricHits: [{ itemId: "CL-04", score: 2 }],
-            coaching: "몇 시에 무엇을 하겠다는 형태로 바꿔 보세요.",
+            coaching:
+              "\"15시 30분에 화장실 안내를 하겠습니다\"처럼 몇 시에 무엇을 하겠다는 형태로 바꿔 보세요.",
             docId: "DOC-GUIDE-001",
             next: "T6",
           },
@@ -1105,7 +1118,7 @@ export const CHK_A01: Scenario = {
             aiReaction: "제안 없이 기록이 마감되었습니다.",
             rubricHits: [{ itemId: "CL-04", score: 1 }],
             coaching:
-              "원인을 확인하지 않으면 같은 상황이 30분 뒤 반복됩니다. 작은 것 하나만 정해 보세요.",
+              "원인을 짚어 두지 않으면 같은 일이 30분 뒤 다시 옵니다. \"내일은 16시에 거실 불을 먼저 켜겠습니다\" 하나만 정해 보세요.",
             docId: "DOC-GUIDE-001",
             next: "T6",
           },
@@ -1160,7 +1173,8 @@ export const CHK_A01: Scenario = {
               { itemId: "CL-05", score: 4 },
               { itemId: "RE-09", score: 3 },
             ],
-            praise: "고칠 점을 한 문장으로 정리하셨습니다.",
+            praise:
+              "고칠 점을 스스로 짚어 한 문장으로 남기셨습니다. 이 한 줄이 다음 회차의 첫 대응이 됩니다.",
             next: "end:E-성공",
           },
           {
@@ -1184,7 +1198,8 @@ export const CHK_A01: Scenario = {
             gaugeDelta: 0,
             aiReaction: "오늘 훈련을 마쳤습니다.",
             rubricHits: [{ itemId: "CL-05", score: 2 }],
-            coaching: "무엇을 어떻게 바꿀지 한 가지만 문장으로 정해 보세요.",
+            coaching:
+              "\"다음엔 사실을 바로잡기 전에 감정을 먼저 인정하겠습니다\"처럼, 바꿀 것 하나만 문장으로 남겨 보세요.",
             next: "end:E-부분",
           },
           {

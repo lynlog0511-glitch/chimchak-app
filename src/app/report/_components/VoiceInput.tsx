@@ -8,7 +8,7 @@ import type {
 } from "react";
 import { BigButton, MicButton, StatusDot, WaveBars } from "@/components";
 import { createRecognizer, type Recognizer } from "@/lib/speech";
-import { EXAMPLE_NOTICE, EXAMPLE_PARTIAL, EXAMPLE_WANDERING } from "./examples";
+import { EXAMPLE_NOTICE, REPORT_EXAMPLES } from "./examples";
 
 export interface VoiceInputProps {
   value: string;
@@ -36,6 +36,13 @@ function appendUtterance(base: string, added: string): string {
   if (head.length === 0) return tail;
   return `${head} ${tail}`;
 }
+
+/**
+ * 예시 채우기 버튼의 공통 클래스 — 기존 두 버튼이 쓰던 값 그대로입니다(48px 타깃 포함).
+ * 글자색만 갈립니다: 맨 앞 한 종은 잉크로 세우고(시연에서 먼저 누르는 문장), 나머지는 한 단 물러섭니다.
+ */
+const EXAMPLE_BUTTON_CLASS =
+  "flex min-h-[48px] items-center rounded-[14px] bg-paper-2 px-4 text-[0.8438rem] font-semibold transition-colors duration-150 active:bg-neutral-line";
 
 /**
  * 1단계 입력 화면 (v4 언어 · 시안 4a⑦·4b의 마이크와 녹음 패널을 그대로 씁니다).
@@ -241,20 +248,19 @@ export function VoiceInput({
         />
 
         <div className="mt-[10px] flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => onChange(EXAMPLE_WANDERING)}
-            className="flex min-h-[48px] items-center rounded-[14px] bg-paper-2 px-4 text-[0.8438rem] font-semibold text-ink transition-colors duration-150 active:bg-neutral-line"
-          >
-            예시 문장 넣기 (배회 대응 보고)
-          </button>
-          <button
-            type="button"
-            onClick={() => onChange(EXAMPLE_PARTIAL)}
-            className="flex min-h-[48px] items-center rounded-[14px] bg-paper-2 px-4 text-[0.8438rem] font-semibold text-ink-soft transition-colors duration-150 active:bg-neutral-line"
-          >
-            빈 칸이 있는 예시
-          </button>
+          {REPORT_EXAMPLES.map((example, index) => (
+            <button
+              key={example.id}
+              type="button"
+              onClick={() => onChange(example.text)}
+              /* 라벨만으로는 이 예시로 무엇을 보는지가 화면에 남지 않아, 표가 들고 있는 한 줄 설명을
+                 접근성 이름 뒤에 이어 붙입니다(보이는 라벨이 이름의 앞머리라 음성 조작과도 어긋나지 않습니다). */
+              aria-label={`${example.label} — ${example.hint}`}
+              className={`${EXAMPLE_BUTTON_CLASS} ${index === 0 ? "text-ink" : "text-ink-soft"}`}
+            >
+              {example.label}
+            </button>
+          ))}
           <button
             type="button"
             onClick={() => onChange("")}

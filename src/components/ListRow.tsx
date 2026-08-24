@@ -69,7 +69,12 @@ export function ListRow({
     s.row,
     s.gap,
     divider && "border-b border-line",
-    (href || onClick) && "transition-colors duration-150 active:bg-paper-2",
+    /* 누를 수 있는 행에만 면 반응을 답니다. hover는 2026-08-24 추가 —
+       데스크톱에서 「이 행이 눌리는 행인지」를 알려 주는 신호가 `›` 하나뿐이었습니다.
+       색은 눌림과 같은 paper-2 한 단만 씁니다: 행이 커지거나 밀리면 목록 전체가 출렁입니다.
+       (`.chim-press`의 축소는 쓰지 않습니다 — 전폭 행이 줄었다 늘면 헤어라인이 함께 움직입니다.) */
+    (href || onClick) &&
+      "transition-colors duration-150 ease-soft hover:bg-paper-2 active:bg-paper-2",
     className,
   );
 
@@ -77,7 +82,9 @@ export function ListRow({
     <>
       {leading}
       <span className="min-w-0 flex-1">
-        <span className={cx("block font-bold text-ink", s.title)}>{title}</span>
+        {/* 행간 1.45 = 가이드 §2의 「밀집」 단. 이 자리는 지금까지 body의 1.6을 물려받아
+            두 줄로 접히는 제목만 다른 화면보다 성기게 앉았습니다(3단 사다리에 없는 값). */}
+        <span className={cx("block leading-[1.45] font-bold text-ink", s.title)}>{title}</span>
         {subtitle && (
           <span className={cx("mt-[2px] block leading-[1.45] text-ink-muted", s.subtitle)}>
             {subtitle}

@@ -1,4 +1,5 @@
 import { cx } from "@/components";
+import { StatusMark } from "@/components/icons";
 
 /**
  * 데스크톱 홈 오른쪽 「실물 증거」 카드 (시안 7c).
@@ -11,8 +12,16 @@ import { cx } from "@/components";
  * 데이터를 읽어 오지 않고 상수로 두는 이유는, 이 카드가 **정지 화면**이기 때문입니다 —
  * 시나리오 표를 클라이언트로 끌어오지 않으려는 것이기도 합니다.
  *
- * px·hex는 시안 그대로입니다: 폭 360 · 보더 1px · r18 · 그림자 `0 8px 30px rgba(25,31,30,.06)`
+ * px·hex는 시안 그대로입니다: 폭 360 · 보더 1px · 그림자 `0 8px 30px rgba(25,31,30,.06)`
  * (가이드 §3이 허용하는 그림자 3곳 중 하나) · 말풍선 r4/14/14/14 · 본문 13.5px.
+ *
+ * 2026-08-24 시각 통일 — 홈에 함께 서는 카드들과 한 언어로 맞춘 세 가지입니다.
+ *  1. 카드 라운드 18 → 14. 홈의 다른 카드(「하던 훈련」·첫 방문 안내·3계층 밴드)가 전부 14라
+ *     이 카드만 둥글어 다른 앱에서 오려 붙인 것처럼 보였습니다(가이드 §3 「카드·버튼 14px」).
+ *     안쪽 말풍선 14는 그대로 둡니다 — 바깥보다 안쪽이 더 둥글면 모서리가 겹쳐 보입니다.
+ *  2. 행간을 1.45/1.6 두 단으로 정리(가이드 §2 8/6 교정의 3단 사다리).
+ *  3. 코칭 마크를 손으로 그린 원+텍스트 ✓에서 `StatusMark`(훈련 화면과 같은 컴포넌트)로.
+ *     폰트가 그리던 체크와 앱의 다른 체크(SVG)가 한 화면에서 굵기·기울기가 달랐습니다(mi45).
  */
 
 /** 박 어르신 T1 원문 — 한 글자도 바꾸지 않습니다. */
@@ -33,12 +42,12 @@ export function SessionPreviewCard({ className }: SessionPreviewCardProps) {
   return (
     <figure
       className={cx(
-        "w-[360px] flex-none rounded-[18px] border border-line px-5 pt-5 pb-4",
+        "w-[360px] flex-none rounded-card border border-line px-5 pt-5 pb-4",
         "shadow-[0_8px_30px_rgba(25,31,30,0.06)]",
         className,
       )}
     >
-      <figcaption className="mb-3 text-[0.7188rem] leading-[1.4] font-bold tracking-[0.05em] text-ink-muted">
+      <figcaption className="mb-3 text-[0.7188rem] leading-[1.45] font-bold tracking-[0.05em] text-ink-muted">
         실제 훈련 화면 — 한 턴이면 첫 판정이 옵니다
       </figcaption>
 
@@ -50,7 +59,7 @@ export function SessionPreviewCard({ className }: SessionPreviewCardProps) {
         >
           박
         </span>
-        <p className="rounded-[4px_14px_14px_14px] bg-paper-2 px-3 py-[9px] text-[0.8438rem] leading-[1.55] text-ink">
+        <p className="rounded-[4px_14px_14px_14px] bg-paper-2 px-3 py-[9px] text-[0.8438rem] leading-[1.6] text-ink">
           <span className="sr-only">박 어르신(가상 인물): </span>
           {ELDER_LINE}
         </p>
@@ -58,21 +67,21 @@ export function SessionPreviewCard({ className }: SessionPreviewCardProps) {
 
       {/* 학습자 — 틸 면 + 딥 텍스트. 채움이 아니라 면입니다(채움은 CTA·마이크 전용). */}
       <div className="mb-3 flex justify-end">
-        <p className="max-w-[85%] rounded-[14px_4px_14px_14px] bg-brand-tint px-3 py-[9px] text-[0.8438rem] leading-[1.55] text-brand-on-tint">
+        <p className="max-w-[85%] rounded-[14px_4px_14px_14px] bg-brand-tint px-3 py-[9px] text-[0.8438rem] leading-[1.6] text-brand-on-tint">
           <span className="sr-only">나의 대답: </span>
           {LEARNER_LINE}
         </p>
       </div>
 
       {/* 코칭 한 줄 — 박스 없이 헤어라인 위에 ✓ 배지 + 한 문장 + 출처(v4 §4.4). */}
-      <div className="flex gap-[7px] border-t border-line pt-[11px]">
-        <span
-          aria-hidden
-          className="relative top-[1px] flex h-[15px] w-[15px] flex-none items-center justify-center rounded-chip bg-ok text-[0.5938rem] font-extrabold text-white"
-        >
-          ✓
-        </span>
-        <p className="text-[0.7813rem] leading-[1.55] text-ink-soft">
+      {/* gap 5px — 마크가 18px 상자 안의 12.9px 원이라 좌우로 2.5px씩 여백을 이미 갖고 있습니다.
+          시안의 7px을 그대로 두면 광학 간격이 9.5px가 되어 문장이 한 칸 밀려 보입니다. */}
+      <div className="flex gap-[5px] border-t border-line pt-[11px]">
+        {/* 판정 마크는 훈련 화면이 쓰는 것과 **같은 컴포넌트**입니다 — 손으로 그린 원+텍스트 ✓ 대신.
+            여기는 「실제 훈련 화면」이라고 적어 둔 카드라, 마크가 실물과 다르면 그 문장이 거짓이 됩니다.
+            뜻은 옆의 「충족」이 전하므로 라벨 없이 마크만 세웁니다(마크 단독 아님). */}
+        <StatusMark kind="met" size="sm" className="relative top-[1px]" />
+        <p className="text-[0.7813rem] leading-[1.6] text-ink-soft">
           <b className="font-bold text-ok-ink">충족</b> — {PRAISE}{" "}
           <span className="text-tertiary">· {PRAISE_DOC}</span>
         </p>

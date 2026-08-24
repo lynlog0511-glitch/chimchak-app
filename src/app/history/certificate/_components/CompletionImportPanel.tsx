@@ -64,6 +64,14 @@ export function CompletionImportPanel({ onImported }: CompletionImportPanelProps
   const inputRef = useRef<HTMLInputElement>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [imported, setImported] = useState<CompletionImport[]>([]);
+  /**
+   * 파일을 읽고 대조하는 동안인지.
+   *
+   * 파일 읽기는 비동기라 큰 파일에서는 잠깐 아무 일도 일어나지 않는 구간이 생깁니다.
+   * 그 사이 화면이 그대로면 한 번 더 고르시게 되고, 두 번째 선택이 첫 번째와 겹칩니다.
+   * 그동안은 고르기 칸을 잠그고 「읽는 중」이라고 적습니다 — 판정과 합치는 규칙은 그대로입니다.
+   */
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     setImported(loadCompletionImports());
@@ -125,6 +133,25 @@ export function CompletionImportPanel({ onImported }: CompletionImportPanelProps
     [onImported],
   );
 
+  /**
+   * 고르신 파일 하나를 처리하는 동안 화면 상태를 잠그는 껍데기입니다.
+   * 판정·합치기는 전부 `handleFile`에 그대로 있고, 여기서는 「읽는 중」 표시만 켰다 끕니다.
+   */
+  const runImport = useCallback(
+    async (file: File) => {
+      // 지난 안내는 먼저 지웁니다 — 새 파일을 고르셨는데 이전 성공 문장이 남아 있으면
+      // 그 문장이 이번 결과처럼 읽힙니다.
+      setNotice(null);
+      setBusy(true);
+      try {
+        await handleFile(file);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [handleFile],
+  );
+
   return (
     <section
       data-noprint
@@ -143,38 +170,49 @@ export function CompletionImportPanel({ onImported }: CompletionImportPanelProps
         파일은 가져오지 않습니다.
       </p>
 
+      {/* 읽는 동안에는 잠깁니다 — 라벨 낱말도 함께 바뀌어 「눌러도 아무 일이 없다」로 읽히지
+          않게 합니다. 터치 타깃 48px과 초점 테두리는 두 상태 모두 그대로입니다. */}
       <label
         htmlFor="completion-import-file"
-        className="mt-[12px] inline-flex min-h-[48px] cursor-pointer items-center justify-center gap-2 rounded-[14px] border border-line-strong bg-white px-5 py-2.5 text-[1.0625rem] font-semibold text-ink focus-within:outline focus-within:outline-[3px] focus-within:outline-offset-2 focus-within:outline-brand-700"
+        aria-disabled={busy}
+        className={
+          busy
+            ? "mt-[12px] inline-flex min-h-[48px] cursor-not-allowed items-center justify-center gap-2 rounded-[14px] border border-line-strong bg-white px-5 py-2.5 text-[1.0625rem] font-semibold text-ink opacity-45"
+            : "mt-[12px] inline-flex min-h-[48px] cursor-pointer items-center justify-center gap-2 rounded-[14px] border border-line-strong bg-white px-5 py-2.5 text-[1.0625rem] font-semibold text-ink focus-within:outline focus-within:outline-[3px] focus-within:outline-offset-2 focus-within:outline-brand-700"
+        }
       >
-        이수 사실 파일 고르기
+        {busy ? "파일을 읽는 중입니다…" : "이수 사실 파일 고르기"}
         <input
           ref={inputRef}
           id="completion-import-file"
           type="file"
           accept=".csv,text/csv"
+          disabled={busy}
           className="sr-only"
           onChange={(event) => {
             const file = event.target.files?.[0];
             // 같은 파일을 다시 고르실 수 있도록 값을 비웁니다(두 번째 선택이 조용히 무시되지 않게).
             if (inputRef.current) inputRef.current.value = "";
-            if (file) void handleFile(file);
+            if (file) void runImport(file);
           }}
         />
       </label>
 
-      {notice && (
-        <p
-          aria-live="polite"
-          className={
-            notice.tone === "ok"
-              ? "mt-[10px] text-[0.8438rem] leading-[1.6] font-semibold text-ok-ink"
-              : "mt-[10px] text-[0.8438rem] leading-[1.6] font-semibold text-warn-ink"
-          }
-        >
-          {notice.text}
-        </p>
-      )}
+      {/* 안내줄은 **언제나 자리에 있습니다** — 문장이 생길 때 상자까지 함께 생기면
+          화면 낭독기가 바뀐 줄을 읽어 주지 못하는 브라우저가 있습니다. */}
+      <div role="status" aria-live="polite">
+        {notice && (
+          <p
+            className={
+              notice.tone === "ok"
+                ? "mt-[10px] text-[0.8438rem] leading-[1.6] font-semibold text-ok-ink"
+                : "mt-[10px] text-[0.8438rem] leading-[1.6] font-semibold text-warn-ink"
+            }
+          >
+            {notice.text}
+          </p>
+        )}
+      </div>
 
       {imported.length > 0 && (
         <div className="mt-[12px] border-t border-line pt-[10px]">

@@ -46,15 +46,31 @@ export function TabBar({ active, className }: TabBarProps) {
                 aria-current={isActive ? "page" : undefined}
                 className={cx(
                   "flex min-h-[48px] items-center justify-center rounded-field px-1 text-center text-[0.8438rem] leading-[1.3]",
-                  "transition-colors duration-150 active:bg-paper-2",
+                  "transition-colors duration-150 ease-soft active:bg-paper-2",
                   isActive
                     ? item.danger
-                      ? "font-bold text-danger-ink"
-                      : "font-bold text-brand-800"
-                    : "font-semibold text-ink-soft",
+                      ? "text-danger-ink"
+                      : "text-brand-800"
+                    : "text-ink-soft",
                 )}
               >
-                {item.label}
+                {/* 굵기(600→700)가 바뀌면 글자 폭도 함께 바뀝니다 — 탭을 옮길 때마다 라벨이
+                    좌우로 미세하게 흔들리던 자리입니다. 보이지 않는 bold 사본으로 **굵을 때의 폭**을
+                    미리 잡아 두면, 색만 150ms에 걸쳐 바뀌고 글자는 제자리에 섭니다.
+                    사본은 visibility:hidden이라 접근성 트리에도 오르지 않습니다(aria-hidden은 이중 안전). */}
+                <span className="grid">
+                  <span aria-hidden className="invisible col-start-1 row-start-1 font-bold">
+                    {item.label}
+                  </span>
+                  <span
+                    className={cx(
+                      "col-start-1 row-start-1",
+                      isActive ? "font-bold" : "font-semibold",
+                    )}
+                  >
+                    {item.label}
+                  </span>
+                </span>
               </Link>
             </li>
           );

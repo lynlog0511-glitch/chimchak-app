@@ -247,7 +247,7 @@ export const CHK_A02: Scenario = {
             aiReactionNote: "목소리가 커지십니다.",
             rubricHits: [{ itemId: "RE-02", score: 1 }],
             coaching:
-              "사실을 바로잡기 전에 마음을 먼저 인정해 주세요. 새벽에는 현실 직면이 더 크게 옵니다.",
+              "\"차 나가야 한다는 생각에 마음이 급하시겠어요\" 하고 마음을 먼저 인정해 주세요. 새벽에는 현실 직면이 더 크게 옵니다.",
             docId: "DOC-GUIDE-001",
             next: "T-N1",
           },
@@ -274,7 +274,8 @@ export const CHK_A02: Scenario = {
               { itemId: "CO-02", score: 3 },
             ],
             praise: "새벽에도 어르신 몸에 손을 대지 않으신 선은 지켜졌습니다.",
-            coaching: "지시형 대신, 이 시각에 드릴 수 있는 선택지를 두 개만 놓아 보세요.",
+            coaching:
+              "\"지금 나가실까요, 따뜻한 물 한 잔 하고 나가실까요?\"처럼 이 시각에 드릴 수 있는 선택지를 두 개만 놓아 보세요.",
             docId: "DOC-GUIDE-001",
             next: "T-N1",
           },
@@ -303,7 +304,8 @@ export const CHK_A02: Scenario = {
             aiReaction: "…비켜 봐요, 늦는다니까.",
             aiReactionNote: "자동문 버튼 쪽으로 손을 뻗으십니다. 돌발 변수 N-1이 앞당겨 발동합니다.",
             rubricHits: [{ itemId: "RE-01", score: 1 }],
-            coaching: "말이 막히면 짧게라도 마음을 먼저 되돌려 주세요.",
+            coaching:
+              "말이 막히면 \"오래 하시던 일이라 마음이 쓰이시죠\" 한마디만 먼저 건네 보세요.",
             docId: "DOC-GUIDE-001",
             triggerId: "N-1",
             next: "T-N1",
@@ -389,7 +391,8 @@ export const CHK_A02: Scenario = {
               { itemId: "RE-07", score: 2 },
               { itemId: "RE-08", score: 1 },
             ],
-            coaching: "낮은 톤으로 한 문장씩 말씀해 주세요. 야간에는 소리가 더 크게 옵니다.",
+            coaching:
+              "목소리를 낮추고 한 걸음 다가가 한 문장씩만 말씀해 주세요. 야간에는 소리가 주무시는 여덟 분 방까지 그대로 갑니다.",
             docId: "DOC-GUIDE-001",
             next: "T2",
           },
@@ -422,7 +425,8 @@ export const CHK_A02: Scenario = {
               { itemId: "RE-09", score: 1 },
               { itemId: "SA-01", score: 1 },
             ],
-            coaching: "자동문이 열리기 전에, 함께 할 다른 일을 하나 먼저 놓아 주세요.",
+            coaching:
+              "자동문이 열리기 전에 \"신발부터 같이 신으실까요?\" 하고 함께 할 일을 하나 먼저 놓아 주세요. 문이 열리면 경보가 울립니다.",
             docId: "DOC-GUIDE-001",
             next: "end:E-위기",
           },
@@ -553,7 +557,8 @@ export const CHK_A02: Scenario = {
             gaugeDelta: 1,
             aiReaction: "내가 애야? 밤길도 못 다녀?",
             rubricHits: [{ itemId: "RE-02", score: 2 }],
-            coaching: "설명으로 이기려 하기보다, 무엇이 불편하신지 먼저 여쭤 주세요.",
+            coaching:
+              "설명으로 이기려 하기보다 \"어디 불편하신 데 있으세요?\" 하고 먼저 여쭤 주세요. 새벽 각성의 원인은 대개 몸에 있습니다.",
             docId: "DOC-GUIDE-001",
             next: "T3",
           },
@@ -787,7 +792,8 @@ export const CHK_A02: Scenario = {
               { itemId: "RE-08", score: 1 },
               { itemId: "CO-07", score: 2 },
             ],
-            coaching: "낮은 톤으로 짧게 답해 드리면 두 분 모두 덜 놀라십니다.",
+            coaching:
+              "\"아무 일 없어요, 편히 주무세요\" 한 문장이면 됩니다. 낮은 톤으로 짧게 답해 드리면 두 분 모두 덜 놀라십니다.",
             docId: "DOC-LAW-003",
             next: "T4",
           },
@@ -801,7 +807,8 @@ export const CHK_A02: Scenario = {
             aiReaction: "…나 때문에 다 깼구먼.",
             aiReactionNote: "복도에 서 계신 분이 늘고, 최 어르신이 더 서두르십니다.",
             rubricHits: [{ itemId: "SA-04", score: 2 }],
-            coaching: "부르셨을 때 짧게라도 대답해 드리면 복도가 조용해집니다.",
+            coaching:
+              "\"아무 일 없어요\" 한마디만 돌려드려도 복도가 조용해집니다. 대답이 없으면 나와 보시는 분이 늘어납니다.",
             docId: "DOC-LAW-003",
             next: "T4",
           },
@@ -896,7 +903,7 @@ export const CHK_A02: Scenario = {
             aiReaction: "…뭘 그렇게 보고만 있어.",
             rubricHits: [{ itemId: "RE-04", score: 2 }],
             coaching:
-              "기다리기만 하면 어르신은 현관 앞에 그대로 서 계십니다. 함께 할 일을 하나 놓아 주세요.",
+              "기다리는 동안 어르신은 현관 앞에 그대로 서 계십니다. \"복도 한 바퀴만 같이 걸으실까요?\" 하고 함께 할 일을 하나 놓아 주세요.",
             docId: "DOC-GUIDE-001",
             next: "T5",
           },
@@ -1030,7 +1037,8 @@ export const CHK_A02: Scenario = {
               { itemId: "CO-05", score: 2 },
             ],
             praise: "야간 이탈 시도를 일지에 남길 일이라고 판단하신 점은 맞습니다.",
-            coaching: "시각과 통증 여부를 덧붙이면 다음 근무자가 그대로 이어받을 수 있습니다.",
+            coaching:
+              "\"새벽 2시 10분\"과 \"무릎 통증 호소\" 두 마디만 덧붙이면 아침 근무자가 그대로 이어받습니다.",
             docId: "DOC-NOTI-002",
             next: "T6",
           },
@@ -1064,7 +1072,8 @@ export const CHK_A02: Scenario = {
               { itemId: "CL-01", score: 1 },
               { itemId: "CL-03", score: 1 },
             ],
-            coaching: "야간 이탈 시도와 통증 호소는 기록 대상입니다. 짧게라도 남겨 주세요.",
+            coaching:
+              "야간 이탈 시도와 통증 호소는 근무 일지 기재 대상입니다. \"02시 10분 현관 앞, 무릎 통증, 당직 보고\" 한 줄이면 됩니다.",
             docId: "DOC-NOTI-002",
             next: "T6",
           },
@@ -1127,7 +1136,8 @@ export const CHK_A02: Scenario = {
             gaugeDelta: 0,
             aiReaction: "제안이 기록에 반영되었습니다.",
             rubricHits: [{ itemId: "CL-04", score: 2 }],
-            coaching: "취침 전 몇 시에 무엇을 하겠다는 형태로 바꿔 보세요.",
+            coaching:
+              "\"21시에 무릎이 어떠신지 여쭙겠습니다\"처럼 몇 시에 무엇을 하겠다는 형태로 바꿔 보세요.",
             docId: "DOC-GUIDE-001",
             next: "T7",
           },
@@ -1140,7 +1150,7 @@ export const CHK_A02: Scenario = {
             aiReaction: "제안 없이 기록이 마감되었습니다.",
             rubricHits: [{ itemId: "CL-04", score: 1 }],
             coaching:
-              "원인을 확인하지 않으면 같은 시각에 다시 반복됩니다. 작은 것 하나만 정해 보세요.",
+              "원인을 짚어 두지 않으면 내일 새벽 같은 시각에 다시 옵니다. \"취침 전에 통증을 한 번 여쭙겠습니다\" 하나만 정해 보세요.",
             docId: "DOC-GUIDE-001",
             next: "T7",
           },
@@ -1218,7 +1228,8 @@ export const CHK_A02: Scenario = {
             gaugeDelta: 0,
             aiReaction: "오늘 훈련을 마쳤습니다.",
             rubricHits: [{ itemId: "CL-05", score: 2 }],
-            coaching: "다음 야간 근무에서 무엇을 어떻게 바꿀지, 한 가지만 문장으로 정해 보세요.",
+            coaching:
+              "\"못 나가시게 하기 전에 어디가 불편하신지부터 여쭙겠습니다\"처럼, 다음 야간 근무에서 바꿀 것 하나를 문장으로 정해 보세요.",
             next: "end:E-부분",
           },
           {

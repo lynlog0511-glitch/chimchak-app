@@ -82,15 +82,22 @@ export function ResumeCard({ scenarios, className }: ResumeCardProps) {
       href={scenario.href}
       aria-label={`하던 훈련 이어서 하기 — ${scenario.title}, ${stepLabel}`}
       className={cx(
-        "flex min-h-[48px] items-center gap-[10px] rounded-[14px] bg-paper-2 px-[15px] py-[13px]",
-        "transition-colors duration-150 ease-soft active:bg-neutral-line",
+        // 라운드·면·좌우 여백은 홈의 다른 회색 카드(첫 방문 안내·3계층 밴드)와 같은 값입니다.
+        "flex min-h-[48px] items-center gap-[10px] rounded-card bg-paper-2 px-[15px] py-[14px]",
+        // 눌림 = 면 한 단 + 1.5% 축소를 한 박자에. hover는 마우스에서 「눌리는 카드」임을 알립니다.
+        // 대비: ink #191f1e 위 neutral-line 13.4:1 · ink-muted 4.94:1 — 둘 다 AA 통과.
+        "chim-press hover:bg-neutral-line active:bg-neutral-line",
         className,
       )}
     >
       <span className="min-w-0 flex-1">
-        <span className="block text-[0.75rem] leading-[1.5] text-ink-muted">하던 훈련</span>
-        <span className="mt-[2px] block text-[0.9063rem] leading-[1.4] font-bold text-ink">
-          {scenario.title} <span className="font-medium text-ink-muted">· {stepLabel}</span>
+        {/* 행간은 3단 사다리(1.3/1.45/1.6)의 「밀집」 단으로 맞췄습니다 — 1.5·1.4가 섞여 있던 자리입니다. */}
+        <span className="block text-[0.75rem] leading-[1.45] text-ink-muted">하던 훈련</span>
+        <span className="mt-[2px] block text-[0.9063rem] leading-[1.45] font-bold text-ink">
+          {scenario.title}{" "}
+          {/* 진행 위치는 세션마다 바뀌는 숫자라 자리폭을 고정합니다 —
+              한 자리에서 두 자리로 넘어갈 때 제목 줄이 흔들리지 않게. */}
+          <span className="chim-num font-medium text-ink-muted">· {stepLabel}</span>
         </span>
       </span>
       <span aria-hidden className="flex-none text-[0.875rem] font-bold text-brand-700">

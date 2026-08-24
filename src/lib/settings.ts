@@ -1,9 +1,13 @@
 /**
- * 침착(ChimChak) 표시·음성 설정.
+ * 침착(ChimChak) 표시·음성·온라인 코칭 설정.
  *
  * 원칙
- * - 기기 안(localStorage)에만 저장한다. 서버 전송·외부 API 호출은 0건이다.
- * - 저장하는 것은 **취향값 두 개뿐**이다(글자 크기·음성 빠르기). 발화 원문·개인정보는 들어오지 않는다.
+ * - 기기 안(localStorage)에만 저장한다. 저장한 값이 어디론가 전송되는 일은 없다.
+ * - 담기는 것은 셋이다: 취향값 두 개(글자 크기·음성 빠르기)와 **온라인 코칭 스위치 하나**.
+ *   스위치는 켜짐/꺼짐 한 칸뿐이고 기본값은 꺼짐이다. 예전에는 여기에 사용자가 입력한
+ *   엔드포인트 주소·모델 이름·API 키가 함께 담겼다 — 지금 그 셋은 서버 환경변수로 옮겼고,
+ *   브라우저에는 어떤 키도 두지 않는다(src/app/api/coach/route.ts).
+ * - 발화 원문·개인정보는 여기 들어오지 않는다.
  * - SSR 가드: 서버 렌더링 중에는 조용히 기본값으로 동작하고 document를 건드리지 않는다.
  * - 글자 크기는 html의 font-size를 바꾸는 방식이다. 디자인 토큰과 컴포넌트가 전부 rem 기준이라
  *   루트 한 곳만 올리면 화면 전체가 비례해서 커진다(글자·터치 타겟·여백이 함께 커진다).
@@ -21,16 +25,35 @@ export type FontScale = "standard" | "large" | "xlarge";
 /** 음성 빠르기 — 느리게 0.8 / 표준 0.95 / 빠르게 1.1 */
 export type SpeechRate = "slow" | "standard" | "fast";
 
+/**
+ * 온라인 코칭(경량 LLM) 스위치 — **기본은 꺼짐**이다.
+ *
+ * 칸이 하나뿐인 이유가 이 절의 전부다. 상류 주소·모델 이름·키는 서버 환경변수에만 있고,
+ * 브라우저는 그 셋을 알지 못한 채 같은 도메인 `/api/coach`만 부른다. 사용자가 정하는 것은
+ * 「내 발화를 밖으로 내보낼 것인가」 하나이고, 그 하나는 사용자 손에 있어야 한다.
+ */
+export interface OnlineCoachingSettings {
+  enabled: boolean;
+}
+
 export interface ChimchakSettings {
   fontScale: FontScale;
   speechRate: SpeechRate;
+  onlineCoaching: OnlineCoachingSettings;
 }
 
 export const SETTINGS_KEY = "chimchak.settings.v1";
 
+/**
+ * 온라인 코칭 기본값 — 서버에 무엇이 설정돼 있든 항상 꺼짐에서 출발한다.
+ * 켜는 것은 사람이 하는 일이고, 이 기본값이 화면들이 적어 둔 「생성 호출 0건」의 기준이다.
+ */
+export const DEFAULT_ONLINE_COACHING: OnlineCoachingSettings = { enabled: false };
+
 export const DEFAULT_SETTINGS: ChimchakSettings = {
   fontScale: "standard",
   speechRate: "standard",
+  onlineCoaching: DEFAULT_ONLINE_COACHING,
 };
 
 /** 루트 font-size(px). rem 기반이라 이 값 하나가 화면 전체 비율을 정한다. */
@@ -89,14 +112,37 @@ function isSpeechRate(value: unknown): value is SpeechRate {
   return value === "slow" || value === "standard" || value === "fast";
 }
 
+/**
+ * 온라인 코칭 설정을 안전한 범위로 되돌린다.
+ *
+ * 읽는 칸은 `enabled` 하나뿐이다. 예전 방식으로 저장된 주소·모델 이름·키가 아직 남아 있어도
+ * **조용히 버린다** — 다시 저장하는 순간 그 칸들은 사라지고, 그 사이에도 어디에도 쓰이지 않는다.
+ * (키를 옮기지 않고 버리는 쪽을 고른 이유: 서버로 올려 줄 자리가 없고, 올려 줘서도 안 된다.)
+ */
+function normalizeOnlineCoaching(raw: unknown): OnlineCoachingSettings {
+  if (typeof raw !== "object" || raw === null) return { ...DEFAULT_ONLINE_COACHING };
+  return { enabled: (raw as Record<string, unknown>).enabled === true };
+}
+
 /** 저장된 값이 낡았거나 손상됐어도 기본값으로 안전하게 메운다. */
 function normalize(raw: unknown): ChimchakSettings {
-  if (typeof raw !== "object" || raw === null) return { ...DEFAULT_SETTINGS };
+  if (typeof raw !== "object" || raw === null) return freshDefaults();
   const record = raw as Record<string, unknown>;
   return {
     fontScale: isFontScale(record.fontScale) ? record.fontScale : DEFAULT_SETTINGS.fontScale,
     speechRate: isSpeechRate(record.speechRate) ? record.speechRate : DEFAULT_SETTINGS.speechRate,
+    onlineCoaching: normalizeOnlineCoaching(record.onlineCoaching),
   };
+}
+
+/** 중첩된 객체까지 새로 만든 기본값 — 얕은 복사로 기본값 객체가 공유되지 않게 한다. */
+function freshDefaults(): ChimchakSettings {
+  return { ...DEFAULT_SETTINGS, onlineCoaching: { ...DEFAULT_ONLINE_COACHING } };
+}
+
+/** 밖으로 내보내는 복사본 — 호출자가 손대도 캐시가 흔들리지 않게 한다. */
+function copy(settings: ChimchakSettings): ChimchakSettings {
+  return { ...settings, onlineCoaching: { ...settings.onlineCoaching } };
 }
 
 /* ── 읽기·쓰기 ─────────────────────────────────────────── */
@@ -109,13 +155,13 @@ function normalize(raw: unknown): ChimchakSettings {
  */
 export function loadSettings(): ChimchakSettings {
   const storage = getStorage();
-  if (!storage) return { ...DEFAULT_SETTINGS };
+  if (!storage) return freshDefaults();
   try {
     const raw = storage.getItem(SETTINGS_KEY);
-    if (!raw) return { ...DEFAULT_SETTINGS };
+    if (!raw) return freshDefaults();
     return normalize(JSON.parse(raw));
   } catch {
-    return { ...DEFAULT_SETTINGS };
+    return freshDefaults();
   }
 }
 
@@ -126,10 +172,10 @@ export function loadSettings(): ChimchakSettings {
  * const settings = getSettings();
  */
 export function getSettings(): ChimchakSettings {
-  if (cache) return { ...cache };
+  if (cache) return copy(cache);
   const loaded = loadSettings();
   if (getStorage()) cache = loaded;
-  return { ...loaded };
+  return copy(loaded);
 }
 
 /**
@@ -190,7 +236,7 @@ export function initSettings(): ChimchakSettings {
 
 function emit(settings: ChimchakSettings): void {
   for (const listener of listeners) {
-    listener({ ...settings });
+    listener(copy(settings));
   }
 }
 
@@ -206,7 +252,7 @@ export function updateSettings(next: ChimchakSettings): ChimchakSettings {
   saveSettings(settings);
   applySettings(settings);
   emit(settings);
-  return { ...settings };
+  return copy(settings);
 }
 
 /**
@@ -246,4 +292,49 @@ export function subscribeSettings(listener: Listener): () => void {
  */
 export function getSpeechRateValue(): number {
   return SPEECH_RATE_VALUE[getSettings().speechRate];
+}
+
+/* ── 온라인 코칭 (실험) ────────────────────────────────── */
+
+/**
+ * 설정 화면에 그대로 쓰는 고지 — 무엇이 어디로 나가는지 한 문장으로 밝힌다.
+ * 두 번째 문장이 이 절의 약속이다: 나가는 것은 문장 하나뿐이고, 판정·게이지·기록은 기기 안에 남는다.
+ */
+export const ONLINE_COACHING_NOTICE =
+  "켜면 인식이 닿지 않은 발화가 가명처리된 뒤 침착 서버를 거쳐 경량 LLM으로 전송됩니다. 기기 밖으로 나가는 것은 그 문장뿐입니다.";
+
+/** 켜고 끄는 두 낱말 — 다른 설정과 같은 두 칸 형식을 쓴다. */
+export const ONLINE_COACHING_OPTIONS: ReadonlyArray<{ value: boolean; label: string }> = [
+  { value: false, label: "끄기" },
+  { value: true, label: "켜기" },
+];
+
+/** 지금 스위치 상태 (복사본) */
+export function getOnlineCoaching(): OnlineCoachingSettings {
+  return getSettings().onlineCoaching;
+}
+
+/**
+ * 스위치를 바꾼다.
+ *
+ * @example setOnlineCoaching({ enabled: true });
+ */
+export function setOnlineCoaching(patch: Partial<OnlineCoachingSettings>): ChimchakSettings {
+  const current = getSettings();
+  return updateSettings({
+    ...current,
+    onlineCoaching: { ...current.onlineCoaching, ...patch },
+  });
+}
+
+/**
+ * 이 기기에서 온라인 코칭을 켜 두었는지.
+ *
+ * 「켜져 있다」와 「실제로 문장이 온다」는 이제 다른 말이다 — 서버에 상류 설정이 없으면 요청은
+ * 그대로 조용히 결정론 코칭으로 되돌아가고, 브라우저는 그 사실을 미리 알 방법이 없다.
+ * 그래서 이 함수가 답하는 것은 **사용자가 무엇을 허락했는가** 하나뿐이고, /safety의 표는
+ * 그 사실을 그대로 적는다.
+ */
+export function isOnlineCoachingActive(settings: ChimchakSettings = getSettings()): boolean {
+  return settings.onlineCoaching.enabled;
 }

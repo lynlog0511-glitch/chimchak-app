@@ -1,16 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import Link from "next/link";
 import {
   DEFAULT_SETTINGS,
   FONT_SCALE_OPTIONS,
+  ONLINE_COACHING_NOTICE,
+  ONLINE_COACHING_OPTIONS,
   SPEECH_RATE_OPTIONS,
   SPEECH_RATE_VALUE,
   getSettings,
+  setOnlineCoaching,
   setSetting,
   subscribeSettings,
   type ChimchakSettings,
   type FontScale,
+  type OnlineCoachingSettings,
   type SpeechRate,
 } from "@/lib/settings";
 import { isSpeechPlaybackSupported, speak, stopSpeaking } from "@/lib/speech";
@@ -35,6 +40,9 @@ interface OptionButtonProps {
  * 선택 상태는 **틸 채움 + 흰 글자**입니다(brand-700은 흰 글자에서 AA를 넘습니다).
  * 비선택은 회색 면 — 보더를 두르지 않습니다(§1-4, §5).
  * 터치 타겟 48px은 여기서도 불변입니다.
+ *
+ * 「고를 수 없는 보기」는 이 팝오버에 더 이상 없습니다 — 온라인 코칭 켜기에 붙어 있던
+ * 연결값 조건이 서버 프록시로 옮겨 가면서 사라졌습니다.
  */
 function OptionButton({ label, selected, onSelect }: OptionButtonProps) {
   return (
@@ -82,7 +90,10 @@ interface SettingsPanelProps {
   screenTop: number;
   onFontScale: (value: FontScale) => void;
   onSpeechRate: (value: SpeechRate) => void;
+  onOnlineCoaching: (patch: Partial<OnlineCoachingSettings>) => void;
   onDismiss: () => void;
+  /** 팝오버 안 링크로 화면을 옮길 때 — 닫기만 하고 초점은 트리거로 되돌리지 않습니다. */
+  onNavigate: () => void;
 }
 
 /**
@@ -101,13 +112,17 @@ function SettingsPanel({
   screenTop,
   onFontScale,
   onSpeechRate,
+  onOnlineCoaching,
   onDismiss,
+  onNavigate,
 }: SettingsPanelProps) {
   const panelRef = useRef<HTMLDivElement | null>(null);
   const fontLabelRef = useRef<HTMLParagraphElement | null>(null);
   const fontLabelId = `${panelId}-font`;
   const speechLabelId = `${panelId}-speech`;
+  const onlineLabelId = `${panelId}-online`;
   const toScreen = align === "screen";
+  const online = settings.onlineCoaching;
 
   useModalDismiss({ panelRef, initialFocusRef: fontLabelRef, onDismiss });
 
@@ -117,7 +132,7 @@ function SettingsPanel({
       ref={panelRef}
       role="dialog"
       aria-modal="true"
-      aria-label="표시·음성 설정"
+      aria-label="표시·음성·온라인 코칭 설정"
       /* 세션 헤더의 액션 줄은 `whitespace-nowrap`이라, 팝오버 안 문장이 한 줄로 늘어나지 않도록
          여기서 줄바꿈을 되돌립니다. */
       style={toScreen ? { top: `${screenTop}px` } : undefined}
@@ -125,6 +140,9 @@ function SettingsPanel({
         "z-50 w-[min(20rem,calc(100vw-2rem))] whitespace-normal",
         toScreen ? "fixed right-3" : "absolute top-full right-0 mt-2",
         "rounded-panel bg-white p-4 shadow-panel",
+        /* 글자 크기 「아주 크게」에서는 세 절과 고지 문장만으로도 팝오버가 화면을 넘칩니다.
+           밖으로 밀려나는 대신 여기서만 세로로 스크롤합니다(실측 기준). */
+        "max-h-[calc(100dvh-5rem)] overflow-y-auto overscroll-contain",
         /* 등장 180ms — 예전에는 이 팝오버만 모션이 0ms라 「툭」 나타났습니다.
            바텀시트(240ms)와 팝오버(180ms) 두 단만 씁니다(모션 감사 6). */
         "animate-pop-in",
@@ -180,9 +198,52 @@ function SettingsPanel({
         </p>
       </div>
 
+      {/* ── 온라인 코칭 (실험) ────────────────────────────────
+          기본은 꺼짐입니다. 켜기 전까지 이 앱이 기기 밖으로 보내는 요청은 0건이고,
+          켠 뒤에도 달라지는 것은 **코칭 문장 한 덩어리**뿐입니다 — 판정·게이지·기록은
+          그대로 결정론 엔진이 내린 값입니다(/safety의 「AI가 쓰이는 자리」 표와 같은 사실).
+
+          한때 이 자리에는 주소·모델 이름·API 키 입력칸 셋이 있었습니다. 지금은 없습니다 —
+          키는 서버 환경변수에만 두고 브라우저는 같은 도메인 `/api/coach`만 부릅니다.
+          그래서 사용자가 고를 것이 스위치 하나로 줄었고, 켜기에 조건이 붙지 않습니다. */}
+      <div className="mt-5 border-t border-line pt-4">
+        <p id={onlineLabelId} className="chim-label text-ink">
+          온라인 코칭 (실험)
+        </p>
+        <div role="group" aria-labelledby={onlineLabelId} className="mt-2 flex gap-2">
+          {ONLINE_COACHING_OPTIONS.map((option) => (
+            <OptionButton
+              key={option.label}
+              label={option.label}
+              selected={online.enabled === option.value}
+              onSelect={() => onOnlineCoaching({ enabled: option.value })}
+            />
+          ))}
+        </div>
+        <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink-soft">
+          {ONLINE_COACHING_NOTICE}
+        </p>
+        <p className="mt-3 text-[0.7813rem] leading-[1.5] text-ink-muted">
+          켜도 판정·게이지·기록은 달라지지 않습니다. 미분류로 넘어간 턴에만 코칭 문장이 한 줄
+          더해지고, 근거 가드를 통과하지 못한 문장은 화면에 나가지 않습니다. 연결이 준비돼 있지
+          않으면 아무것도 나가지 않고 검수 코칭만 남습니다.
+        </p>
+      </div>
+
       <p className="mt-5 rounded-field bg-paper-2 px-3 py-2 text-[0.9375rem] leading-[1.6] text-ink-soft">
         설정은 이 기기에만 저장됩니다.
       </p>
+
+      {/* 처음 오신 분이 가장 자주 여는 화면이 설정입니다 — 글자를 키우려고 들어왔다가
+          「그래서 이걸 어떻게 쓰는가」를 물을 자리가 여기밖에 없습니다. 버튼으로 세우지 않고
+          조용한 텍스트 한 줄로만 둡니다(설정을 고치러 온 분의 흐름을 끊지 않으려고요). */}
+      <Link
+        href="/guide"
+        onClick={onNavigate}
+        className="mt-1 inline-flex min-h-[48px] items-center text-[0.8438rem] leading-[1.45] font-semibold text-ink-muted underline decoration-1 underline-offset-[3px] transition-colors duration-150 hover:text-brand-800"
+      >
+        처음 오신 분께
+      </Link>
     </div>
   );
 }
@@ -196,9 +257,16 @@ function SettingsPanel({
  * 세션 안에 진입점이 없으면, 대사가 작다고 느낀 분이 훈련을 나갔다가 홈까지 가서 설정하고
  * 다시 들어와야 합니다 — 노안이 있는 분께는 그 길이 사실상 막힌 길입니다(평가 UI/UX mi5 · 초보 m2).
  *
- * 담는 것은 두 가지뿐입니다.
+ * 담는 것은 셋입니다.
  * - **글자 크기**: 루트 font-size를 16/18/20px로 바꿉니다. 토큰이 전부 rem이라 화면이 통째로 비례합니다.
  * - **음성 빠르기**: `speak()`의 기본 rate가 됩니다. 고르는 즉시 예시 문장을 한 번 읽어 확인시켜 줍니다.
+ * - **온라인 코칭 (실험)**: 기본 꺼짐. 켜기 전에는 이 앱이 기기 밖으로 요청을 보내지 않습니다.
+ *   여기 있는 이유는 하나입니다 — 발화가 밖으로 나가는 스위치는 사용자 손에 있어야 하고,
+ *   그 사실을 스위치 바로 옆에서 문장으로 밝혀야 합니다(`ONLINE_COACHING_NOTICE`).
+ *   주소·모델 이름·API 키 입력칸 셋은 없어졌습니다. 키를 브라우저에 두지 않기로 하면서
+ *   그 셋이 서버 환경변수로 옮겨 갔고, 사용자가 고를 것은 켜기/끄기 하나만 남았습니다.
+ *
+ * 맨 아래에는 「처음 오신 분께」(/guide)로 가는 조용한 텍스트 링크 한 줄이 있습니다.
  *
  * 형태는 v3 문법입니다: 흰 면·무보더·팝오버 그림자(shadow-panel), 라벨 15px, 버튼 48px,
  * 선택은 틸 채움 하나로만 알립니다(체크 아이콘·보더·색 바 없음).
@@ -272,6 +340,11 @@ export function SettingsMenu({
     void speak(SAMPLE_TEXT, { rate: SPEECH_RATE_VALUE[value] });
   };
 
+  /** 스위치는 누르는 즉시 저장합니다 — 「저장」 버튼을 따로 두지 않습니다. */
+  const changeOnlineCoaching = (patch: Partial<OnlineCoachingSettings>): void => {
+    setSettingsState(setOnlineCoaching(patch));
+  };
+
   return (
     <div ref={rootRef} className={cx("relative", className)}>
       <button
@@ -307,7 +380,11 @@ export function SettingsMenu({
           screenTop={screenTop}
           onFontScale={chooseFontScale}
           onSpeechRate={chooseSpeechRate}
+          onOnlineCoaching={changeOnlineCoaching}
           onDismiss={dismiss}
+          /* 링크로 화면을 옮기는 길입니다 — 닫되 초점을 트리거로 되돌리지 않습니다.
+             되돌리면 새 화면이 그려진 뒤 초점만 헤더 버튼에 남아 읽는 순서가 뒤집힙니다. */
+          onNavigate={() => close(false)}
         />
       )}
     </div>

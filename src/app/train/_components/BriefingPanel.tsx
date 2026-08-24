@@ -53,6 +53,14 @@ function objectiveText(raw: string): string {
     .trim();
 }
 
+/**
+ * 제약 조건에서 코드 표기를 걷어냅니다 — 「C1 서비스 종료 20분 전입니다 …」 → 「서비스 종료 20분 전입니다 …」
+ * (학습목표의 `objectiveText`와 같은 규칙입니다 — 데이터는 그대로 두고 표시부에서만 지웁니다.)
+ */
+function constraintText(raw: string): string {
+  return raw.replace(/^C\d+\s*/, "").trim();
+}
+
 /** 「박 어르신 (가상 인물)」 → 「박 어르신」 — 한 줄 소개에서 괄호가 두 번 나오지 않게 합니다. */
 function plainName(name: string): string {
   return name.replace(/\s*\((?:가상 인물|사용자 본인)\)\s*/g, " ").trim();
@@ -163,7 +171,8 @@ function ResumeBlock({
  * 시나리오 시작 전 브리핑 = 시안 6f.
  *
  * **시작 버튼이 첫 화면 안에 들어옵니다** — 기본 노출은 네 가지뿐입니다:
- * 상황 지문 카드 · 인물 한 줄 · 고정 문구 · 「훈련 시작하기」.
+ * 상황 지문 카드(지문 · 지금 걸려 있는 것 한 줄 · 인물 한 줄) · 고정 문구 ·
+ * 누르기 전 안내 두 줄 · 「훈련 시작하기」.
  * 학습목표·인물 상세·응답 방법(마이크 권한 안내)·설계(루브릭 코드·근거 문서·제약 조건)는
  * 전부 ⌄ 접힘 안에 있습니다.
  */
@@ -184,6 +193,14 @@ export function BriefingPanel({
     .join(" · ");
 
   const cast = castLine(scenario.personas);
+  /**
+   * 상황 한 줄 더 — 이 장면에서 **지금 몸으로 걸리는 것** 하나입니다.
+   *
+   * 지문은 눈에 보이는 것(시각·자리·기온)을 적고, 이 줄은 그 위에 얹힌 압박을 적습니다
+   * (「서비스 종료 20분 전」·「야간 단독 근무」). 새로 지어낸 문장이 아니라 시나리오
+   * 데이터의 제약 조건 첫 항목 그대로이고, 나머지 제약은 아래 「이 훈련의 설계 보기」에 있습니다.
+   */
+  const pressure = scenario.constraints[0] ? constraintText(scenario.constraints[0]) : "";
   /** 이어할 진행이 남아 있는 화면인지 — 아래 주 버튼의 뜻이 「처음부터」로 바뀝니다. */
   const resuming = Boolean(checkpoint && onResume);
 
@@ -225,6 +242,11 @@ export function BriefingPanel({
       {/* 상황 지문 — 이 화면에서 면(paper-2)을 쓰는 곳은 여기 하나입니다. */}
       <div className="mt-[14px] rounded-[14px] bg-paper-2 px-4 py-[16px]">
         <p className="text-[0.9375rem] leading-[1.6] text-ink">{scenario.context}</p>
+        {pressure && (
+          <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink-soft">
+            <b className="font-bold text-ink">지금 걸려 있는 것</b> · {pressure}
+          </p>
+        )}
         {cast && <p className="mt-2 text-[0.7813rem] leading-[1.6] text-ink-muted">{cast}</p>}
       </div>
 
@@ -242,23 +264,30 @@ export function BriefingPanel({
         틀려도 벌점은 없습니다.
       </p>
 
-      {/* 겁을 없애는 문장은 **결정하는 자리 바로 위**에 둡니다 —
-          화면 맨 아래 11.5px 각주로는 시작 버튼을 누르는 순간 눈에 들어오지 않았습니다. */}
-      <p className="mt-[14px] text-[1rem] leading-[1.6] font-semibold text-ink-soft">
-        마이크가 없어도 버튼만으로 끝까지 할 수 있어요.
-      </p>
+      {/* 누르기 전에 알아 두실 것 두 줄 — 한 덩어리로 묶어 둡니다.
+          예전에는 두 줄이 서로 떨어진 문단이라, 아래 시작 버튼까지 네 덩어리가 같은 간격으로
+          늘어서 있었습니다(어느 것이 「읽을 것」이고 어느 것이 「할 것」인지 형태가 말해 주지 않았습니다).
+          지금은 읽을 것끼리 붙이고, 할 것 앞에만 한 단 넓은 여백을 둡니다.
 
-      {/* 소리 예고 — 시작 버튼을 누르는 순간 대사가 그대로 재생됩니다(TrainSession의 ttsOn 기본값).
-          어르신 댁이나 대중교통에서 누르는 분께는 이 사실이 먼저 필요합니다(평가 초보 m4).
-          끄는 자리(세션 헤더의 「소리 끄기」)까지 같은 줄에 알려 드립니다. */}
-      <p className="mt-1.5 text-[0.9375rem] leading-[1.6] text-ink-soft">
-        시작하면 어르신 목소리가 나옵니다 — 소리 끄기는 화면 위에 있어요.
-      </p>
+          ① 겁을 없애는 문장은 **결정하는 자리 바로 위**에 둡니다 —
+             화면 맨 아래 11.5px 각주로는 시작 버튼을 누르는 순간 눈에 들어오지 않았습니다.
+          ② 소리 예고 — 시작 버튼을 누르는 순간 대사가 그대로 재생됩니다(TrainSession의 ttsOn 기본값).
+             어르신 댁이나 대중교통에서 누르는 분께는 이 사실이 먼저 필요합니다(평가 초보 m4).
+             끄는 자리(세션 헤더의 「소리 끄기」)까지 같은 줄에 알려 드립니다. */}
+      <div className="mt-[14px] space-y-1.5">
+        <p className="text-[1rem] leading-[1.6] font-semibold text-ink-soft">
+          마이크가 없어도 버튼만으로 끝까지 할 수 있어요.
+        </p>
+        <p className="text-[0.9375rem] leading-[1.6] text-ink-soft">
+          시작하면 어르신 목소리가 나옵니다 — 소리 끄기는 화면 위에 있어요.
+        </p>
+      </div>
 
       {/* 시작 버튼은 접힘보다 위, 첫 화면 안에 있습니다(시안 6f의 핵심).
           진행하던 훈련이 남아 있을 때는 이 버튼이 곧 「처음부터」입니다 —
-          라벨을 그대로 두면 화면에서 가장 큰 버튼이 위의 이어하기를 조용히 지웁니다. */}
-      <div className="mt-2">
+          라벨을 그대로 두면 화면에서 가장 큰 버튼이 위의 이어하기를 조용히 지웁니다.
+          위 문단들과의 간격(20px)이 이 화면에서 가장 넓습니다 — 버튼이 제 구역에 혼자 섭니다. */}
+      <div className="mt-5">
         {/* 첫 탭의 제스처 콜스택 안에서 오디오 잠금을 풀어야 아이폰에서 이후 자동 낭독이 됩니다. */}
         <BigButton
           onClick={() => {

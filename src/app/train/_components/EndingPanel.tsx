@@ -1,16 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronGlyph } from "@/components/icons";
+import { ChevronGlyph, StatusMark, STATUS_MARK_LABEL, type StatusMarkKind } from "@/components/icons";
 import Link from "next/link";
 import { BigButton, useSourceDoc } from "@/components";
 import { cx } from "@/components/utils";
 import type { TracedFeedback } from "@/engine";
 import { loadSessions } from "@/lib/storage";
-import type { EndingDef, Scenario, SessionRecord, SessionState } from "@/types";
-import { pickNextTraining, type NextTrainingPick } from "@/app/history/_components/HistoryBoard";
+import type { EndingDef, Scenario, SessionEvent, SessionRecord, SessionState } from "@/types";
+import {
+  nextTrainingSentence,
+  pickNextTraining,
+  type NextTrainingPick,
+} from "@/app/history/_components/HistoryBoard";
+import { stripInternalIds } from "./DialogueLog";
 import { splitLawSentences } from "./constants";
-import { cfVerdictSourceLine, durationText, scenarioHref } from "./constants";
+import { cfVerdictSourceLine, durationText, scenarioHref, situationOrdinal } from "./constants";
 
 export interface EndingPanelProps {
   scenario: Scenario;
@@ -161,6 +166,168 @@ function FoldedList({
   );
 }
 
+/* ── 이번 훈련의 흐름 (턴별 판정 나열) ────────────────────── */
+
+interface TimelineRow {
+  key: string;
+  /** 몇째 상황이었는지 — 같은 자리를 다시 하신 턴은 같은 번호를 씁니다(세션 헤더와 같은 셈법) */
+  ordinal: string;
+  kind: StatusMarkKind;
+  /** 그 자리에서 고르신 갈래의 이름 — 저작용 분기 id는 화면에서 걷어냅니다 */
+  label: string;
+  /** 같은 상황을 다시 하신 자리인지 */
+  again: boolean;
+}
+
+/**
+ * 갈래 이름을 화면 낱말로 다듬습니다 — 저작용 표기만 걷어내고 문구는 그대로 둡니다.
+ *
+ * 시나리오 데이터의 label에는 저작자용 주석이 괄호로 붙어 있습니다:
+ * 「눕히기 (의식 있는 상태에서) (⚑CF)」·「등을 세게 두드림 (경고 — ⚑CF 아님)」.
+ * ⚑CF는 설계 문서의 표기이지 화면 낱말이 아니므로(화면에서는 판정어 「즉시 중단」이 그 자리를
+ * 대신합니다), 그 표기가 든 괄호만 통째로 뗍니다. 사람이 읽는 괄호는 건드리지 않습니다.
+ *
+ * @example cleanBranchLabel("눕히기 (의식 있는 상태에서) (⚑CF)") // "눕히기 (의식 있는 상태에서)"
+ * @example cleanBranchLabel("대체 행동 유도 (동의를 구하고 함께 움직임)") // 그대로
+ */
+function cleanBranchLabel(raw: string): string {
+  return stripInternalIds(raw)
+    .replace(/\s*\([^)]*(?:⚑|\bCF\b)[^)]*\)/g, "")
+    .trim();
+}
+
+/** 판정 → 표준 마크. 판정은 엔진이 이미 내려 둔 것을 그대로 옮기기만 합니다. */
+function markKind(feedback: NonNullable<SessionEvent["feedback"]>): StatusMarkKind {
+  if (feedback.criticalFail) return "stop";
+  return feedback.ok ? "met" : "coach";
+}
+
+/**
+ * 세션 이벤트를 시간순으로 옮깁니다 — 여기서 다시 재는 것은 아무것도 없습니다.
+ *
+ * 담기는 것은 **순서 · 판정어 · 그때 고른 갈래 이름** 셋뿐입니다.
+ * 점수·등급·개수 비교는 만들지 않고(브리프 §3-1), 말씀하신 원문도 옮기지 않습니다
+ * (세션 메모리에는 있지만 화면에 옮기지 않는 것은 기록으로 남지 않는 값이기 때문입니다).
+ */
+function buildTimeline(events: readonly SessionEvent[]): TimelineRow[] {
+  const numbers = new Map<string, number>();
+  const rows: TimelineRow[] = [];
+
+  events.forEach((event, index) => {
+    const feedback = event.feedback;
+    if (!feedback) return;
+    const cueId = event.cueId ?? event.turnId;
+    const seen = numbers.has(cueId);
+    if (!seen) numbers.set(cueId, numbers.size + 1);
+    rows.push({
+      key: `${cueId}-${index}`,
+      ordinal: situationOrdinal(numbers.get(cueId) ?? rows.length + 1),
+      kind: markKind(feedback),
+      label: cleanBranchLabel(feedback.branchLabel ?? ""),
+      again: seen,
+    });
+  });
+
+  return rows;
+}
+
+/**
+ * 이번 훈련의 흐름 — 기본은 접혀 있습니다.
+ *
+ * 엔딩의 주인공은 「잘한 것」과 「다시 볼 것」이고, 이 목록은 그 뒤에서 **순서를 확인하는 자리**입니다.
+ * 마크를 한 줄로 늘어놓지 않고 행으로 세우는 까닭도 같습니다 — ✓··✓·· 가 가로로 붙으면
+ * 그 자체가 성적표처럼 읽힙니다.
+ */
+function SessionTimeline({ rows, situations }: { rows: TimelineRow[]; situations: number }) {
+  return (
+    <details className="group mt-4 border-t border-line">
+      <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 rounded-field px-0.5 text-[0.7813rem] leading-[1.45] font-bold text-ink-muted transition-colors duration-150 active:bg-paper-2 [&::-webkit-details-marker]:hidden">
+        <span>이번 훈련의 흐름 — 상황 {situations}개</span>
+        <ChevronGlyph size="sm" className="flex-none text-ink-ghost group-open:rotate-180" />
+      </summary>
+      <p className="px-0.5 pb-1 text-[0.7813rem] leading-[1.6] text-ink-muted">
+        판정이 난 순서를 그대로 옮긴 것입니다 — 점수도 등급도 아닙니다.
+      </p>
+      <ul className="pb-1">
+        {rows.map((row) => (
+          <li key={row.key} className="border-t border-line px-0.5 py-2.5">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <StatusMark kind={row.kind} label={STATUS_MARK_LABEL[row.kind]} size="sm" quiet />
+              <span className="text-[0.7813rem] leading-[1.45] font-semibold text-ink-muted">
+                {row.ordinal} 상황{row.again ? " · 다시" : ""}
+              </span>
+            </div>
+            {row.label.length > 0 && (
+              <p className="mt-1 text-[0.9375rem] leading-[1.6] text-ink-soft">{row.label}</p>
+            )}
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+/* ── 가장 잘한 순간 ───────────────────────────────────────── */
+
+interface BestMoment {
+  ordinal: string;
+  label: string;
+  /** 그때 드린 강화 문구 — 시나리오 데이터의 검수 문장 그대로입니다 */
+  message: string;
+}
+
+/**
+ * 이 턴의 루브릭 최고점 — **고르는 데만** 쓰는 내부 값입니다.
+ * 어떤 형태로도 화면에 나가지 않습니다(브리프 §3-1 · 판정 산식은 엔진 소관이라 손대지 않습니다).
+ */
+function topScore(feedback: NonNullable<SessionEvent["feedback"]>): number {
+  let top = 0;
+  for (const hit of feedback.rubricHits) {
+    if (hit.score > top) top = hit.score;
+  }
+  return top;
+}
+
+/**
+ * 「가장 잘한 순간」 한 곳.
+ *
+ * 충족으로 판정된 턴 가운데 루브릭이 가장 높게 본 자리를 고르고, 같으면 어르신 상태를
+ * 더 내려놓은 쪽을, 그것도 같으면 **먼저** 해내신 쪽을 남깁니다.
+ * 고르는 기준일 뿐 화면에 나가는 것은 순서·갈래 이름·검수된 강화 문구 셋뿐입니다.
+ */
+function pickBestMoment(events: readonly SessionEvent[]): BestMoment | undefined {
+  const numbers = new Map<string, number>();
+  let best: { moment: BestMoment; score: number; delta: number } | undefined;
+
+  for (const event of events) {
+    const feedback = event.feedback;
+    if (!feedback) continue;
+    const cueId = event.cueId ?? event.turnId;
+    if (!numbers.has(cueId)) numbers.set(cueId, numbers.size + 1);
+    if (!feedback.ok || feedback.criticalFail) continue;
+    const message = stripInternalIds(feedback.message ?? "").trim();
+    if (message.length === 0) continue;
+
+    const score = topScore(feedback);
+    const delta = feedback.gaugeDelta;
+    const better =
+      !best || score > best.score || (score === best.score && delta < best.delta);
+    if (!better) continue;
+
+    best = {
+      score,
+      delta,
+      moment: {
+        ordinal: situationOrdinal(numbers.get(cueId) ?? 1),
+        label: cleanBranchLabel(feedback.branchLabel ?? ""),
+        message,
+      },
+    };
+  }
+
+  return best?.moment;
+}
+
 /**
  * 다시 볼 장면 — ⚑CF가 있었던 지점을 그때의 근거 그대로 다시 보여 줍니다 (시안 6b).
  * 문구·근거·대안은 전부 규칙 사전과 시나리오 데이터의 고정 문구이고, 여기서 새로 짓지 않습니다.
@@ -226,6 +393,12 @@ function CriticalSceneCard({
  *
  * ✓ 또는 ↺ 원 하나 + 제목 + 소요시간으로 시작해 「잘한 것」과 「다시 볼 것」만 남깁니다.
  * 점수·등급·순위·백분위는 어떤 형태로도 보여 주지 않습니다(브리프 §3-1).
+ *
+ * 그 위아래로 이번 회차를 되짚는 세 가지가 더 있습니다 — 전부 엔진이 남긴 이벤트를 옮긴 것이고,
+ * 여기서 새로 판정하거나 문장을 짓지 않습니다:
+ *  · 「가장 잘한 순간」 — 충족 턴 하나를 순서·갈래 이름과 함께 카드로 세웁니다(목록에서는 뺍니다).
+ *  · 「이번 훈련의 흐름」 — 턴별 판정어를 순서대로 편 접힘(마크를 가로로 늘어놓지 않습니다).
+ *  · 「다음엔 —」 — 성장 기록과 같은 순수 함수(`nextTraining`)가 고른 추천 한 줄.
  */
 export function EndingPanel({
   scenario,
@@ -241,9 +414,23 @@ export function EndingPanel({
   const verdict = record.verdict;
   const shape = VERDICT_SHAPE[verdict];
   const mark = VERDICT_MARK[verdict];
-  const greens = record.greenChecks;
   const coachings = record.coachingPoints;
   const spent = durationText(record.startedAt, record.endedAt);
+
+  /* 이번 회차의 흐름과 가장 잘한 순간 — 둘 다 엔진이 남긴 이벤트를 옮기기만 합니다. */
+  const timeline = useMemo(() => buildTimeline(session.events), [session.events]);
+  const situations = useMemo(
+    () => new Set(timeline.map((row) => row.ordinal)).size,
+    [timeline],
+  );
+  const best = useMemo(() => pickBestMoment(session.events), [session.events]);
+
+  /* 가장 잘한 순간으로 세운 문장은 아래 목록에서 뺍니다 — 같은 문장이 두 번 서면
+     강조가 아니라 중복으로 읽힙니다. 「잘한 것 N」의 N은 둘을 합한 수 그대로입니다. */
+  const greens = useMemo(
+    () => (best ? record.greenChecks.filter((item) => item !== best.message) : record.greenChecks),
+    [best, record.greenChecks],
+  );
 
   /**
    * 다음 훈련 추천 — 이 기기에 쌓인 이력에 방금 마친 회차를 얹어 고릅니다.
@@ -329,13 +516,28 @@ export function EndingPanel({
         {/* 이 줄만 15px입니다 — 「다시 볼 것」(12.5px)보다 먼저·크게 읽혀야 하는 자리라,
             같은 h3라고 해서 같은 크기로 통일하지 않습니다. */}
         <h3 className="mb-1.5 text-[0.9375rem] leading-[1.45] font-bold text-ok-ink">
-          잘한 것{greens.length > 0 && ` ${greens.length}`}
+          잘한 것{record.greenChecks.length > 0 && ` ${record.greenChecks.length}`}
         </h3>
-        <FoldedList
-          items={greens}
-          withCheck
-          emptyText="이번에는 충족으로 기록된 항목이 없습니다. 아래 한 가지만 들고 다시 해보시면 충분합니다."
-        />
+        {/* 가장 잘한 순간 — 그 자리에서 드린 검수 문구를 순서·갈래 이름과 함께 다시 폅니다.
+            새 문장을 짓지 않고, 목록 맨 위 한 줄을 카드로 세운 것뿐입니다.
+            면은 이 화면의 다른 카드와 같은 `paper-2`입니다 — 뜻은 머리말 색(ok-ink)이 전합니다
+            (초록 면을 하나 더 만들면 위 ✓ 원과 함께 화면이 초록으로 두 번 말합니다). */}
+        {best && (
+          <div className="mb-2 rounded-card bg-paper-2 px-[15px] py-3.5">
+            <p className="text-[0.7813rem] leading-[1.45] font-bold text-ok-ink">
+              가장 잘한 순간 — {best.ordinal} 상황
+              {best.label.length > 0 && ` · ${best.label}`}
+            </p>
+            <p className="mt-1.5 text-[0.9375rem] leading-[1.6] text-ink">{best.message}</p>
+          </div>
+        )}
+        {(greens.length > 0 || !best) && (
+          <FoldedList
+            items={greens}
+            withCheck
+            emptyText="이번에는 충족으로 기록된 항목이 없습니다. 아래 한 가지만 들고 다시 해보시면 충분합니다."
+          />
+        )}
       </section>
 
       <section className="mt-4">
@@ -348,6 +550,9 @@ export function EndingPanel({
           emptyText="따로 짚어 드릴 것이 없습니다. 지금처럼 이어가 주세요."
         />
       </section>
+
+      {/* 이번 훈련의 흐름 — 접힌 채로 둡니다(주인공은 위 두 목록입니다). */}
+      {timeline.length > 0 && <SessionTimeline rows={timeline} situations={situations} />}
 
       {/* 다음 행동 — 문법에 따라 「다음 상황으로」 또는 「같은 장면 다시」가 주인공이 됩니다.
           훈련 → 보고 → 성장의 순환이 마지막 힌지에서 끊기지 않도록 **두 마무리 모두**
@@ -366,6 +571,15 @@ export function EndingPanel({
           <BigButton onClick={onRestart} size="lg" block>
             같은 장면 다시 해보기 — 벌점 없음
           </BigButton>
+        )}
+
+        {/* 다음 추천 한 줄 — 성장 기록과 **같은 순수 함수**가 고른 이유를 그대로 적습니다
+            (`nextTraining`). 앞으로 가는 마무리에서는 위 버튼이 어디로 가는지의 까닭이 되고,
+            다시 보는 마무리에서는 오늘 이후를 가리키는 조용한 한 줄로 남습니다. */}
+        {suggestion && (
+          <p className="mt-2 text-center text-[0.9375rem] leading-[1.6] text-ink-soft">
+            다음엔 — {nextTrainingSentence(suggestion)}
+          </p>
         )}
 
         <div className="mt-2 flex gap-2">

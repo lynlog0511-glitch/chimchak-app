@@ -44,6 +44,14 @@ export interface DialogueLogProps {
   /** 새 내용이 쌓일 때 자동으로 자리를 잡을지 (엔딩에서는 화면이 직접 자리를 잡습니다) */
   autoScroll?: boolean;
   /**
+   * 아직 펴지 않고 「말하는 중」으로 붙들어 둔 대사의 키.
+   *
+   * 로그의 **맨 끝 항목**이 이 키를 가진 인물 대사일 때만 듣습니다 — 그 자리에는 대사 대신
+   * 같은 모양의 빈 말풍선과 점 셋을 두고, 부모가 시간을 다 재면 그때 대사가 들어섭니다.
+   * 뒤에 이미 코칭이 붙은 대사는 붙들지 않습니다(코칭까지 함께 가려지기 때문입니다).
+   */
+  pendingLineKey?: string;
+  /**
    * 로그 끝(새 대사 아래로 이어지는 코칭·돌발 변수)이 화면 밖에 있는지 알려 줍니다 —
    * 컴포저 위 「이어지는 코칭 보기 ↓」 앵커용입니다.
    */
@@ -246,6 +254,76 @@ function LineBubble({
   );
 }
 
+/**
+ * 「말하는 중」 점 셋.
+ *
+ * 새 속도를 만들지 않으려고 파형 막대와 **같은 루프**(`chim-wave-bar` 900ms)를 씁니다 —
+ * 점마다 110ms씩 늦게 출발해 왼쪽에서 오른쪽으로 한 번씩 부풀었다 가라앉습니다.
+ * 이모지도 문자 기호도 아닌 도형이고, 뜻은 옆의 「말하는 중」(sr-only)이 전합니다.
+ * reduced-motion에서는 전역 규칙이 즉시 멈춥니다 — 그래도 이 자리는 부모가 아예
+ * 붙들지 않으므로(TrainSession), 점이 멈춘 채 남아 있는 화면은 생기지 않습니다.
+ */
+function SpeakingDots() {
+  return (
+    <span aria-hidden className="flex items-end gap-[5px]">
+      {[0, 1, 2].map((index) => (
+        <span
+          key={index}
+          className="chim-wave-bar block h-[7px] w-[7px] rounded-full bg-brand-400"
+          style={{ animationDelay: `${index * 110}ms` }}
+        />
+      ))}
+    </span>
+  );
+}
+
+/**
+ * 대사가 들어서기 직전의 빈 말풍선 (시안 4a 말풍선 + 「말하는 중」).
+ *
+ * 예전에는 응답을 보내는 순간 다음 대사가 통째로 튀어나왔습니다 — 어르신이 말을 고르는
+ * 시간이 화면에 없어서, 대화라기보다 카드가 넘어가는 느낌이었습니다.
+ * 자리·아바타·이름줄은 실제 대사와 **같은 모양**이라, 대사가 들어설 때 자리가 튀지 않습니다.
+ */
+function PendingBubble({ item, emotion }: { item: LineItem; emotion?: DialogueEmotion }) {
+  const showEmotion = emotion && hasEmotion(item.speaker);
+
+  return (
+    <div className="animate-pop-in">
+      <div className="flex gap-2.5">
+        <SpeakerAvatar
+          speaker={item.speaker}
+          name={item.speakerName}
+          ring={showEmotion ? EMOTION_RING[emotion.level] : undefined}
+        />
+
+        <div className="min-w-0 max-w-[85%]">
+          <div className="mb-[4px] flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-[0.7813rem] leading-[1.45] text-ink-muted">
+            <span>{item.speakerName}</span>
+            {showEmotion && (
+              <>
+                <span aria-hidden>·</span>
+                <span className={cx("font-semibold", EMOTION_TEXT[emotion.level])}>
+                  {emotion.word}
+                </span>
+              </>
+            )}
+          </div>
+
+          {/* 크기는 실제 대사 한 줄과 같습니다 — 같은 글자 크기·행간·여백을 걸고, 점이 놓이는 줄만
+              1.6em로 잡아 둡니다. 픽셀 고정값을 쓰면 「크게」·「아주 크게」에서 이 자리만 안 자라
+              대사가 들어설 때 말풍선이 한 번 튑니다. */}
+          <div className="rounded-[4px_18px_18px_18px] bg-paper-2 px-[15px] py-[12px] text-[1.0625rem] leading-[1.6]">
+            <span className="flex h-[1.6em] items-center">
+              <SpeakingDots />
+              <span className="sr-only">말하는 중</span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function LearnerBubble({ item }: { item: Extract<LogItem, { kind: "learner" }> }) {
   return (
     <div className="animate-fade-up flex justify-end">
@@ -284,6 +362,10 @@ function latestLineKey(items: LogItem[]): string {
  *
  * 스크롤은 바깥(모바일은 페이지, md↑는 세션 본문)이 담당합니다. 새 인물 대사가 붙으면
  * **그 대사를 가시 띠 맨 위**에 세우고, 아래로 이어지는 코칭·돌발 변수는 앵커로 부릅니다.
+ *
+ * 새 대사는 곧바로 튀어나오지 않고 **「말하는 중」 빈 말풍선**을 한 박자 거쳐 들어섭니다
+ * (`pendingLineKey` — 시간을 재는 것은 부모인 TrainSession입니다). 붙들려 있는 동안에는
+ * 그 대사를 목록에서 빼고 세므로, 자동 스크롤이 아직 보이지 않는 대사를 미리 당기지 않습니다.
  */
 export function DialogueLog({
   items,
@@ -293,6 +375,7 @@ export function DialogueLog({
   bottomInset = 0,
   tailInset = 0,
   autoScroll = true,
+  pendingLineKey,
   onTailOffscreen,
   scrollToTailRef,
   className,
@@ -304,9 +387,29 @@ export function DialogueLog({
   /** 이미 맨 위에 세워 드린 대사 — 같은 턴 안에서 두 번 끌어당기지 않습니다. */
   const settledLineRef = useRef<string | null>(null);
 
-  const lineKey = latestLineKey(items);
-  /* 로그 끝을 가리키는 표 — 개수까지 넣어 「처음부터 다시」로 로그가 줄어든 경우도 새 상태로 봅니다. */
-  const tailKey = `${items.length}:${items[items.length - 1]?.key ?? ""}`;
+  /**
+   * 「말하는 중」으로 붙들고 있는 마지막 대사.
+   *
+   * 조건은 셋입니다 — 로그의 **맨 끝**이고, 인물 대사이고, 부모가 지목한 키일 것.
+   * 그 대사만 목록에서 빼고 같은 자리에 빈 말풍선을 세웁니다. 아래 스크롤·앵커 계산이
+   * 전부 「보이는 것」 기준으로 돌아야 하므로, 여기서 한 번만 갈라 두고 그 뒤로는
+   * `shown`만 씁니다(붙들린 대사가 자동 스크롤을 미리 당기지 않게).
+   */
+  const tail = items[items.length - 1];
+  const held =
+    pendingLineKey &&
+    tail &&
+    tail.kind === "line" &&
+    tail.key === pendingLineKey &&
+    isCharacter(tail.speaker)
+      ? tail
+      : undefined;
+  const shown = held ? items.slice(0, -1) : items;
+
+  const lineKey = latestLineKey(shown);
+  /* 로그 끝을 가리키는 표 — 개수까지 넣어 「처음부터 다시」로 로그가 줄어든 경우도 새 상태로 봅니다.
+     붙들고 있는 대사는 아직 로그 끝이 아니므로 `shown` 기준으로 셉니다. */
+  const tailKey = `${shown.length}:${shown[shown.length - 1]?.key ?? ""}`;
 
   /** 로그 끝(이어지는 코칭)까지 데려갑니다 — 컴포저 위 앵커가 부릅니다. */
   const goToTail = useCallback(() => {
@@ -407,7 +510,7 @@ export function DialogueLog({
       aria-label="대화 기록"
       className={cx("space-y-[18px]", className)}
     >
-      {items.map((item) => {
+      {shown.map((item) => {
         switch (item.kind) {
           case "line":
             return (
@@ -461,6 +564,8 @@ export function DialogueLog({
             return null;
         }
       })}
+      {/* 대사가 들어서기 직전 — 같은 자리에 빈 말풍선과 점 셋만 둡니다. */}
+      {held && <PendingBubble item={held} emotion={emotion} />}
       {/* 스크롤 바닥 — 하단에 도킹된 컴포저 높이만큼 여백을 두고 멈춥니다.
           앵커를 눌러 여기까지 왔을 때는 「가려졌다」고 보는 띠(`tailInset`)도 반드시 넘어서야
           앵커가 제 할 일을 마치고 사라집니다 — 그래서 둘 중 큰 값을 씁니다. */}

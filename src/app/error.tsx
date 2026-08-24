@@ -28,8 +28,10 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
         subtitle="잠시 후 다시 시도해 주세요"
       />
 
-      <div className="mt-[16px] rounded-[14px] bg-paper-2 px-[15px] py-[14px]">
-        <p className="text-[0.8438rem] leading-[1.65] text-ink">
+      {/* 404 화면과 같은 처리 — 이 문단은 각주가 아니라 다음 행동을 고르려고 읽는 문장입니다.
+          13.5px → 15px(가이드 §7-8의 가독 하한), 행간 1.65 → 본문 단 1.6. */}
+      <div className="mt-[16px] rounded-card bg-paper-2 px-[15px] py-[14px]">
+        <p className="text-[0.9375rem] leading-[1.6] text-ink">
           이 오류는 이 기기 안에서만 발생한 것이며, 저장된 훈련 기록에는 영향을 주지 않습니다.
           급하신 상황이라면 아래에서 응급 안내를 바로 여실 수 있습니다.
         </p>

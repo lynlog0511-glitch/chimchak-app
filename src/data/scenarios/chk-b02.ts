@@ -385,7 +385,8 @@ export const CHK_B02: Scenario = {
             aiReaction: "…컥…",
             aiReactionNote: "상태 진술 없이 시간이 지나갑니다.",
             rubricHits: [{ itemId: "SA-05", score: 1 }],
-            coaching: "소리 내어 관찰을 말하면, 그 문장이 곧 119 신고 문장이 됩니다.",
+            coaching:
+              "\"기침 하고 계시고 목소리 나오십니다\"처럼 소리 내어 말씀해 보세요. 그 문장이 곧 119 신고 문장이 됩니다.",
             docId: "DOC-GUIDE-004",
             next: "T3",
           },
@@ -828,7 +829,8 @@ export const CHK_B02: Scenario = {
               { itemId: "CL-02", score: 2 },
               { itemId: "RE-06", score: 2 },
             ],
-            coaching: "책임을 다투기 전에 시각과 관찰을 먼저 전달해 주세요.",
+            coaching:
+              "\"12시 20분 죽 한 숟갈, 12시 22분 신고\"처럼 시각과 관찰부터 전해 주세요. 책임은 그다음 자리입니다.",
             docId: "DOC-LAW-007",
             next: "T6",
           },
@@ -847,7 +849,8 @@ export const CHK_B02: Scenario = {
             gaugeDelta: 0,
             aiReaction: "지금 저한테 화내시는 거예요?",
             rubricHits: [{ itemId: "RE-06", score: 1 }],
-            coaching: "맞대응 대신 사실 진술과 보고 절차로 이동해 주세요.",
+            coaching:
+              "맞대응 대신 \"확인된 사실 그대로 기관에도 보고드리겠습니다\" 한 문장으로 절차 쪽으로 옮겨 주세요.",
             docId: "DOC-LAW-007",
             next: "T6",
           },
@@ -868,7 +871,8 @@ export const CHK_B02: Scenario = {
             gaugeDelta: 0,
             aiReaction: "…듣고 계세요?",
             rubricHits: [{ itemId: "RE-06", score: 2 }],
-            coaching: "짧게라도 확인된 사실 한 문장을 전해 주세요.",
+            coaching:
+              "듣고만 계시더라도 \"12시 22분에 119에 신고했습니다\" 한 문장은 전해 주세요.",
             docId: "DOC-LAW-007",
             next: "T6",
           },
@@ -938,7 +942,8 @@ export const CHK_B02: Scenario = {
               { itemId: "CO-05", score: 2 },
               { itemId: "CL-03", score: 2 },
             ],
-            coaching: "언제, 누구에게, 무엇을 기재할지까지 정해 두시면 기록이 남습니다.",
+            coaching:
+              "\"지금 센터에 전화드리고 기록지 특이사항란에 적겠습니다\"처럼 언제·누구에게·무엇을까지 정해 주세요.",
             docId: "DOC-NOTI-002",
             next: "T7",
           },
@@ -954,7 +959,8 @@ export const CHK_B02: Scenario = {
               { itemId: "CO-05", score: 1 },
               { itemId: "CL-03", score: 1 },
             ],
-            coaching: "응급 이송은 기관 보고와 기록지 기재 대상입니다.",
+            coaching:
+              "응급 이송은 기관 보고와 급여제공기록지 기재 대상입니다. 이송이 끝난 지금 바로 한 줄 남겨 주세요.",
             docId: "DOC-NOTI-002",
             next: "T7",
           },
@@ -1024,7 +1030,8 @@ export const CHK_B02: Scenario = {
               { itemId: "CL-04", score: 2 },
               { itemId: "CL-05", score: 2 },
             ],
-            coaching: "무엇을 어떻게 바꿀지 한 가지만 문장으로 정해 보세요.",
+            coaching:
+              "\"한 숟갈마다 삼키신 것을 확인하겠습니다\"처럼, 다음 식사에서 바꿀 것 하나를 문장으로 정해 보세요.",
             docId: "DOC-GUIDE-001",
             next: "end:E-부분",
           },
@@ -1039,7 +1046,8 @@ export const CHK_B02: Scenario = {
               { itemId: "CL-04", score: 1 },
               { itemId: "CL-05", score: 1 },
             ],
-            coaching: "식사 속도 조절처럼 작은 것 하나만 정해도 다음이 달라집니다.",
+            coaching:
+              "\"삼키신 것을 확인하고 다음 숟갈을 드리겠습니다\" 하나만 정해 두셔도 다음 식사가 달라집니다.",
             docId: "DOC-GUIDE-001",
             next: "end:E-부분",
           },

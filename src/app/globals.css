@@ -446,6 +446,33 @@
     animation: chim-wave 900ms var(--ease-soft) infinite;
   }
 
+  /* ── 눌림 (2026-08-24 추가) ──────────────────────────────────
+     채움 버튼·마이크·이어서 카드가 **손끝에 답하는** 유일한 표현입니다.
+     1.5% 축소는 레이아웃 밖 변형이라 옆 요소를 밀지 않고, 시선을 끌지도 않습니다 —
+     누른 사람의 손가락 아래에서만 읽히는 크기이고, 색 전환과 같은 150ms 박자로 함께 돕니다.
+     그림자는 더하지 않습니다: §3이 허용한 그림자 3곳에 버튼은 들어 있지 않습니다.
+
+     ※ transition-property를 여기서 통째로 선언합니다 — 이 클래스를 쓰는 요소에
+       Tailwind `transition-colors`를 함께 걸지 마세요. 유틸리티 레이어가 뒤라서 이겨 버리고,
+       그러면 색만 전이되고 transform은 즉시 튑니다.
+     ※ reduced-motion에서는 전이를 끊는 것만으로 부족합니다. 전역 규칙이 duration만 0으로 만들면
+       「즉시 튀는」 축소가 그대로 남아 오히려 더 큰 움직임이 됩니다 — 그래서 변형 자체를 없앱니다. */
+  .chim-press {
+    transition-property: color, background-color, border-color, transform;
+    transition-duration: 150ms;
+    transition-timing-function: var(--ease-soft);
+  }
+
+  .chim-press:active:not(:disabled) {
+    transform: scale(0.985);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .chim-press:active:not(:disabled) {
+      transform: none;
+    }
+  }
+
   /* ── 타입 스케일 ─────────────────────────────────────────────
      루트 16px 기준. Tailwind 유틸(text-*)이 더 뒤 레이어라 언제든 덮어쓸 수 있습니다.
      시안은 대부분 px를 직접 지정합니다 — 이 스케일은 아직 전환하지 않은 화면의 기준선입니다.

@@ -94,6 +94,21 @@ const TIERS: readonly { label: string; mobileTail?: string; deskTail: string; ba
   },
 ];
 
+/** 화면 맨 아래 조용한 링크 셋 — 탭바에 자리가 없는 세 화면으로 가는 문입니다.
+    「처음 오신 분께」를 맨 앞에 두는 이유는, 이 줄에서 유일하게 **처음 오신 분이 찾는** 문이기 때문입니다. */
+const FOOT_LINKS: readonly { href: string; label: string }[] = [
+  { href: "/guide", label: "처음 오신 분께" },
+  { href: "/safety", label: "안전·개인정보 설계" },
+  { href: "/for-orgs", label: "기관 도입 안내" },
+];
+
+/** 링크들이 한 글자도 다르지 않게 생기도록 클래스를 한 곳에 둡니다.
+    구분자(·)는 흰 지면 대비 3.22:1(ink-ghost)로 도형 기준 3:1을 넘깁니다. */
+const FOOT_LINK_CLASS =
+  "inline-flex min-h-[48px] items-center justify-center rounded-field px-2 " +
+  "text-[0.7813rem] font-semibold text-ink-muted underline underline-offset-4 " +
+  "transition-colors duration-150 ease-soft hover:text-brand-800 active:bg-paper-2";
+
 /** 체크포인트는 시나리오 id만 저장합니다 — 제목·경로는 여기서 붙여 넘깁니다. */
 const RESUME_SCENARIOS: readonly ResumeScenario[] = SCENARIOS.map((scenario) => ({
   id: scenario.id,
@@ -117,7 +132,7 @@ export default function Home() {
 
       {/* 히어로 — 고정 문구가 이 화면의 주인공입니다. 큰 글자는 이것 하나뿐입니다.
           lg↑에서 왼쪽 문구 / 오른쪽 미리보기 카드로 갈라집니다(시안 7c). */}
-      <section className="pt-[22px] pb-5 lg:flex lg:items-center lg:gap-12 lg:pt-14 lg:pb-12">
+      <section className="pt-[22px] lg:flex lg:items-center lg:gap-12 lg:pt-14 lg:pb-12">
         <div className="lg:min-w-0 lg:flex-1">
           {/* 줄바꿈: 모바일은 시안 5a대로 두 줄로 끊고, lg↑에서는 그 <br>을 접어
               472px 칸 안에서 자연스럽게 세 줄로 앉게 둡니다(문장은 그대로입니다). */}
@@ -169,13 +184,21 @@ export default function Home() {
         <SessionPreviewCard className="hidden lg:block" />
       </section>
 
-      {/* 처음 오신 분께만 — 「마이크 없이 버튼만으로 4분」을 시작 버튼 바로 아래에서 알려 드립니다.
-          닫으시면 이 기기에 그 사실만 남고(chimchak.visited.v1) 다시 나타나지 않습니다.
-          두 번째 방문부터는 이 자리가 통째로 비어 위아래 간격도 생기지 않습니다. */}
-      <FirstVisitHint className="mb-3 lg:max-w-[560px]" />
+      {/* 조건부 회색 카드 두 장이 사는 자리 — 둘 다 나타나지 않는 날이 더 많습니다.
+          위 간격을 히어로가 아니라 **이 묶음이** 들고 있는 것이 요점입니다:
+          비면 `:empty`로 통째로 접혀 padding까지 함께 사라지므로, 카드 유무와 관계없이
+          히어로 아래 첫 간격은 언제나 20px입니다. (예전에는 히어로 pb-5 + 다음 섹션 pt-5가
+          겹쳐 카드가 없는 날만 40px로 벌어졌습니다 — 첫 화면 리듬이 방문마다 달랐습니다.)
+          카드 사이 10px은 「같은 식구」로 묶어 읽히게 하려는 값이고,
+          다음 섹션과의 20px과 대비되어 묶음의 경계를 만듭니다. */}
+      <div className="flex flex-col gap-[10px] pt-5 empty:hidden lg:max-w-[560px] lg:pt-0">
+        {/* 처음 오신 분께만 — 「마이크 없이 버튼만으로 4분」을 시작 버튼 바로 아래에서 알려 드립니다.
+            닫으시면 이 기기에 그 사실만 남고(chimchak.visited.v1) 다시 나타나지 않습니다. */}
+        <FirstVisitHint />
 
-      {/* 하던 훈련 — 체크포인트가 있을 때만 나타납니다(없으면 이 자리가 통째로 비어 있습니다). */}
-      <ResumeCard scenarios={RESUME_SCENARIOS} className="lg:max-w-[560px]" />
+        {/* 하던 훈련 — 체크포인트가 있을 때만 나타납니다. */}
+        <ResumeCard scenarios={RESUME_SCENARIOS} />
+      </div>
 
       {/* 세 가지를 합니다 — 아이콘 없이 [제목 + 부제] + `›` (v4 §2)
           2단 히어로가 서는 폭에서는 히어로 한 줄과 상단 네비가 같은 일을 하므로 접습니다. */}
@@ -199,11 +222,15 @@ export default function Home() {
           md↑에서는 제목이 왼쪽에 서고 막대 셋이 가로 밴드가 됩니다(시안 7c). */}
       <section
         aria-labelledby="home-tiers"
-        className="mt-[14px] rounded-[14px] bg-paper-2 px-[15px] py-[14px] lg:mt-6 lg:flex lg:items-center lg:gap-[14px] lg:px-5 lg:py-4"
+        className="mt-[14px] rounded-card bg-paper-2 px-[15px] py-[14px] lg:mt-6 lg:flex lg:items-center lg:gap-[14px] lg:px-5 lg:py-4"
       >
+        {/* `tracking-normal`은 자간 0을 되돌려 놓는 한 줄입니다 — globals.css의 base가 h1~h4에
+            -0.02em을 걸어 두는데, 그 값은 큰 제목(22~40px)을 위한 것입니다.
+            13.5px 라벨에까지 걸리면 글자가 서로 붙어 이 줄만 다른 13.5px 문장들보다 답답해집니다
+            (가이드 §2 역할표: 보조 설명 letter-spacing 0). */}
         <h2
           id="home-tiers"
-          className="text-[0.8438rem] leading-[1.45] font-bold text-ink lg:flex-none lg:text-[0.8438rem]"
+          className="text-[0.8438rem] leading-[1.45] font-bold tracking-normal text-ink lg:flex-none lg:text-[0.8438rem]"
         >
           위험할수록 AI의 지분을 줄입니다
         </h2>
@@ -223,22 +250,27 @@ export default function Home() {
         </ul>
       </section>
 
-      {/* 화면 맨 아래 — 안전·개인정보 설계로 가는 작은 링크 하나와 인라인 고지 한 줄(v4 §0).
+      {/* 화면 맨 아래 — 탭바에 자리가 없는 두 화면으로 가는 작은 링크와 인라인 고지 한 줄(v4 §0).
           이 화면의 유일한 고지라 faint(#b6bcb9) 대신 읽히는 톤을 씁니다. */}
       <div className="mt-6 pb-3 lg:mt-4">
-        <p className="text-center">
-          <Link
-            href="/safety"
-            className="inline-flex min-h-[48px] items-center justify-center rounded-field px-2 text-[0.7813rem] font-semibold text-ink-muted underline underline-offset-4 transition-colors duration-150 hover:text-brand-800 active:bg-paper-2"
-          >
-            안전·개인정보 설계
-          </Link>
-          <Link
-            href="/for-orgs"
-            className="inline-flex min-h-[48px] items-center justify-center rounded-field px-2 text-[0.7813rem] font-semibold text-ink-muted underline underline-offset-4 transition-colors duration-150 hover:text-brand-800 active:bg-paper-2"
-          >
-            기관 도입 안내
-          </Link>
+        {/* 링크 사이에 가운뎃점을 세웁니다 — 밑줄 친 문장들이 16px 간격으로만 떨어져 있어
+            좁은 화면에서 한 문장으로 붙어 읽혔습니다. 점은 3계층 밴드·데스크톱 히어로 한 줄에서
+            이미 쓰는 구분자라 새 기호를 들이지 않습니다(장식이므로 aria-hidden).
+            셋이 되면서 좁은 화면에서는 한 줄에 담기지 않으므로 접히게 둡니다 —
+            줄 높이는 링크마다 붙은 48px 타깃이 만들어 별도 세로 간격을 주지 않습니다. */}
+        <p className="flex flex-wrap items-center justify-center">
+          {FOOT_LINKS.map((link, i) => (
+            <Fragment key={link.href}>
+              {i > 0 && (
+                <span aria-hidden className="text-[0.7813rem] text-ink-ghost">
+                  ·
+                </span>
+              )}
+              <Link href={link.href} className={FOOT_LINK_CLASS}>
+                {link.label}
+              </Link>
+            </Fragment>
+          ))}
         </p>
         <InlineDisclaimer
           size="md"

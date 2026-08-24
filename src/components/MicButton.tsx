@@ -87,7 +87,13 @@ export function MicButton({
       onKeyUp={onKeyUp}
       className={cx(
         "flex flex-none flex-col items-center justify-center rounded-full",
-        "transition-colors duration-150 ease-soft",
+        // 눌림 = 딥 채움 + 1.5% 축소를 한 박자(150ms)에 — `.chim-press`가 둘을 함께 전이시킵니다.
+        // (여기에 `transition-colors`를 다시 걸면 축소가 즉시 튑니다. globals.css 주석 참조)
+        "chim-press",
+        // 포커스 링 offset을 2px → 5px로. 기본값이면 링이 마이크의 틸 링(md 3px) 위에 겹쳐
+        // 그려져 「지금 포커스가 여기」라는 신호가 장식과 뒤섞입니다.
+        // 대비: md는 5px 밖이 흰 지면(brand-600 3.72:1) · lg는 tint 링 위(3.30:1) — 도형 기준 3:1 통과.
+        "focus-visible:outline-offset-[5px]",
         "disabled:cursor-not-allowed disabled:opacity-45",
         // 누르는 순간 곧바로 눌림 색으로 갑니다 — 상태(pressed)가 부모를 돌아 오기 전에도 손끝에 답합니다.
         isDeep ? "bg-mic-deep" : "bg-brand-600 active:bg-mic-deep",

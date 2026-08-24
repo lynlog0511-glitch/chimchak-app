@@ -265,7 +265,7 @@ export const CHK_C02: Scenario = {
               { itemId: "RE-06", score: 2 },
             ],
             coaching:
-              "확인되지 않은 일을 먼저 인정하면 사실과 책임이 뒤섞입니다. 본 것부터 말씀해 주세요.",
+              "확인되지 않은 일을 먼저 인정하면 사실과 책임이 뒤섞입니다. \"제가 오늘 뵀을 때는 멍이 없었습니다\"처럼 본 것부터 말씀해 주세요.",
             docId: "DOC-NOTI-002",
             next: "T2",
           },
@@ -371,7 +371,8 @@ export const CHK_C02: Scenario = {
               { itemId: "RE-05", score: 2 },
               { itemId: "CO-04", score: 2 },
             ],
-            coaching: "공감 다음에 무엇을 어떻게 확인하고 남길지까지 말씀해 주세요.",
+            coaching:
+              "공감 뒤에 \"오늘 멍도 보이는 그대로 기록하고 센터에 보고드리겠습니다\"까지 이어 주세요.",
             docId: "DOC-GUIDE-006",
             next: "T-C1",
           },
@@ -508,7 +509,7 @@ export const CHK_C02: Scenario = {
               { itemId: "RE-05", score: 2 },
             ],
             coaching:
-              "왜 할 수 없는지 근거를 한 문장으로 말씀해 주세요. 근거가 없으면 같은 요구가 다시 옵니다.",
+              "\"노인복지법이 금지하는 신체 자유 제한이라 해 드릴 수 없습니다\"처럼 근거를 한 문장으로 붙여 주세요. 근거가 없으면 같은 요구가 다시 옵니다.",
             docId: "DOC-GUIDE-006",
             next: "T3",
           },
@@ -594,7 +595,8 @@ export const CHK_C02: Scenario = {
               { itemId: "RE-06", score: 2 },
               { itemId: "CO-04", score: 2 },
             ],
-            coaching: "애원 대신 보고와 인수인계를 말씀하시면 상황이 개인에서 절차로 넘어갑니다.",
+            coaching:
+              "애원 대신 \"센터에 그대로 보고드리고 인수인계를 준비하겠습니다\" 하고 절차를 말씀해 주세요.",
             docId: "DOC-NOTI-002",
             next: "T-C2",
           },
@@ -687,7 +689,7 @@ export const CHK_C02: Scenario = {
             aiReactionNote: "고개를 숙이십니다.",
             rubricHits: [{ itemId: "CO-07", score: 1 }],
             coaching:
-              "어르신 앞에서의 다툼은 어르신의 존엄과 안정에 영향을 줍니다. 자리를 먼저 옮겨 주세요.",
+              "\"잠시 저쪽에서 말씀 나누실까요?\" 하고 자리부터 옮겨 주세요. 어르신은 이 다툼을 당신 탓으로 들으십니다.",
             docId: "DOC-LAW-003",
             retrainAdvice: true,
             next: "T-C3",
@@ -723,7 +725,8 @@ export const CHK_C02: Scenario = {
             gaugeDelta: 1,
             aiReaction: "…내 말은 안 들리나 보네.",
             rubricHits: [{ itemId: "CO-07", score: 2 }],
-            coaching: "부르셨을 때 짧게라도 대답해 드리면 불안이 줄어듭니다.",
+            coaching:
+              "어르신이 부르시면 하던 말을 잠깐 멈추고 \"어머님, 괜찮아요\" 한마디를 먼저 드려 주세요.",
             docId: "DOC-LAW-003",
             next: "T-C3",
           },
@@ -933,7 +936,8 @@ export const CHK_C02: Scenario = {
               { itemId: "CO-05", score: 3 },
               { itemId: "CO-08", score: 4 },
             ],
-            praise: "시각과 사실만으로 정리하셨습니다. 그대로 기록지에 옮길 수 있습니다.",
+            praise:
+              "시각·요구·제가 드린 답이 순서대로 들어갔습니다. 당직 근무자가 이 문장만 보고 판단할 수 있습니다.",
             docId: "DOC-NOTI-002",
             next: "T5",
           },
@@ -950,7 +954,7 @@ export const CHK_C02: Scenario = {
               { itemId: "CL-03", score: 2 },
             ],
             coaching:
-              "감정 형용사는 빼고, 들은 말과 제가 한 말만 적어 주세요. 사실만 남은 기록이 나를 지킵니다.",
+              "\"억울했다\"는 빼고, 아드님이 하신 요구와 제가 드린 답을 들은 말 그대로 적어 주세요. 사실만 남은 기록이 나를 지킵니다.",
             docId: "DOC-NOTI-002",
             next: "T5",
           },
@@ -1018,7 +1022,7 @@ export const CHK_C02: Scenario = {
             gaugeDelta: 0,
             aiReaction: "제안이 기록에 반영되었습니다.",
             rubricHits: [{ itemId: "CL-04", score: 4 }],
-            praise: "실행 주체와 시점이 있는 제안입니다.",
+            praise: "실행 주체와 시점이 있는 제안입니다. 다음 방문부터 그대로 해 보실 수 있습니다.",
             docId: "DOC-GUIDE-006",
             next: "T6",
           },
@@ -1030,7 +1034,8 @@ export const CHK_C02: Scenario = {
             gaugeDelta: 0,
             aiReaction: "제안이 기록에 반영되었습니다.",
             rubricHits: [{ itemId: "CL-04", score: 2 }],
-            coaching: "무엇을 언제 어떻게 하겠다는 형태로 바꿔 보세요.",
+            coaching:
+              "\"방문 때마다 피부 상태를 확인해 기록하겠습니다\"처럼 무엇을 언제 하겠다는 형태로 바꿔 보세요.",
             docId: "DOC-GUIDE-006",
             next: "T6",
           },
@@ -1095,7 +1100,7 @@ export const CHK_C02: Scenario = {
               { itemId: "CL-05", score: 4 },
               { itemId: "RE-08", score: 3 },
             ],
-            praise: "고칠 점을 한 문장으로 정리하셨습니다.",
+            praise: "다음에 무엇부터 나눠 말씀드릴지 스스로 정하셨습니다.",
             next: "end:E-충족",
           },
           {
@@ -1106,7 +1111,8 @@ export const CHK_C02: Scenario = {
             gaugeDelta: 0,
             aiReaction: "오늘 훈련을 마쳤습니다.",
             rubricHits: [{ itemId: "CL-05", score: 2 }],
-            coaching: "무엇을 어떻게 바꿀지 한 가지만 문장으로 정해 보세요.",
+            coaching:
+              "\"확인된 것과 확인되지 않은 것을 먼저 나눠 말씀드리겠습니다\"처럼, 다음에 바꿀 순서 하나를 정해 보세요.",
             next: "end:E-부분",
           },
           {

@@ -67,7 +67,13 @@ export function Card({
         TONE[tone],
         border && TONE_BORDER[tone],
         padded && "p-5 md:p-6",
-        hoverable && "transition-colors duration-150 ease-soft hover:bg-brand-50 active:bg-brand-50",
+        /* 2026-08-24: hover/active를 `brand-50`(옅은 틸) → 회색 두 단으로 바꿨습니다.
+           카드에 마우스를 얹었다고 화면의 틸 지분이 하나 늘어나면 §0의 「틸은 화면당 2곳 이하」가
+           포인터 위치에 따라 깨집니다. 눌림 표현은 회색 면(리스트 행·「하던 훈련」 카드)과 같은 결로
+           통일하고, 손끝의 답은 `.chim-press`의 1.5% 축소가 맡습니다.
+           대비: ink #191f1e 위 paper-2 14.7:1 · neutral-line 13.4:1 — 둘 다 AA 통과.
+           ※ tone="quiet"(이미 paper-2)인 카드에는 hoverable을 켜지 마세요 — hover가 무변화입니다. */
+        hoverable && "chim-press hover:bg-paper-2 active:bg-neutral-line",
         className,
       )}
     >

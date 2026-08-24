@@ -22,7 +22,7 @@ import type { Scenario } from "@/types";
 
 /** 중립 미분류 분기의 코칭 문구 — 감점이 아니라 **다시 말할 기회**입니다. */
 const UNCLEAR_COACHING =
-  "잘 전달되지 않았습니다. 한 문장으로 짧게 다시 말씀하시거나, 아래 버튼에서 골라 주세요.";
+  "잘 전달되지 않았습니다. 지금 하신 말씀은 판정에 넣지 않았으니, 한 문장으로 짧게 다시 말씀해 주시거나 아래 버튼에서 골라 주세요.";
 
 export const CHK_C01: Scenario = {
   id: "CHK-C01",
@@ -140,7 +140,8 @@ export const CHK_C01: Scenario = {
               { itemId: "RE-05", score: 1 },
               { itemId: "SA-08", score: 1 },
             ],
-            coaching: "한 번 수용하면 요구는 넓어집니다. 범위를 먼저 말씀드려 주세요.",
+            coaching:
+              "한 번 받아 드리면 요구는 곧 넓어집니다. \"제가 하는 일은 어머님 신체·일상 지원으로 정해져 있어요\" 하고 범위부터 말씀드려 주세요.",
             docId: "DOC-GUIDE-006",
             triggerId: "T-1P",
             next: "T-1P",
@@ -165,7 +166,8 @@ export const CHK_C01: Scenario = {
               { itemId: "RE-05", score: 2 },
             ],
             praise: "업무 범위를 분명히 하신 점은 지켜졌습니다.",
-            coaching: "불가 사유 앞에 공감 한 문장, 뒤에 대안 한 문장을 붙여 보세요.",
+            coaching:
+              "불가 사유 앞에 \"아드님 오신다니 신경 쓰이시겠어요\"를, 뒤에 \"어머님 반찬은 넉넉히 만들어 둘게요\"를 붙여 보세요.",
             docId: "DOC-GUIDE-006",
             next: "T2",
           },
@@ -178,7 +180,8 @@ export const CHK_C01: Scenario = {
             aiReaction: "금방이면 되잖아요.",
             aiReactionNote: "요구를 다시 하십니다.",
             rubricHits: [{ itemId: "RE-05", score: 2 }],
-            coaching: "시간을 이유로 미루면 다음에 또 요청받습니다. 범위를 말씀드려 주세요.",
+            coaching:
+              "시간을 이유로 미루면 다음 주에 같은 부탁이 다시 옵니다. 오늘 이 자리에서 업무 범위를 한 문장으로 말씀드려 주세요.",
             docId: "DOC-GUIDE-006",
             next: "T2",
           },
@@ -272,7 +275,8 @@ export const CHK_C01: Scenario = {
             aiReaction: "뭐라고요? 지금 나한테 대드는 거예요?",
             aiReactionNote: "목소리가 커집니다. 옆방까지 들립니다.",
             rubricHits: [{ itemId: "RE-06", score: 1 }],
-            coaching: "톤을 올리면 대화가 다툼이 됩니다. 중단 요청 한 문장으로 끊어 주세요.",
+            coaching:
+              "톤을 올리면 다툼이 되고 옆방 어르신께도 들립니다. \"그 말씀은 어렵습니다\" 한 문장으로 끊고 하던 일로 돌아가 주세요.",
             docId: "DOC-LAW-007",
             triggerId: "T-2",
             next: "T3",
@@ -285,7 +289,8 @@ export const CHK_C01: Scenario = {
             gaugeDelta: 1,
             aiReaction: "죄송하면 해주면 되잖아요.",
             rubricHits: [{ itemId: "RE-06", score: 2 }],
-            coaching: "사과만으로는 경계가 생기지 않아 요구가 다시 옵니다.",
+            coaching:
+              "사과만 하면 경계가 생기지 않아 같은 요구가 다시 옵니다. \"선생님이라고 불러주시면 감사하겠습니다\"처럼 바라는 것을 한 문장으로 말씀해 주세요.",
             docId: "DOC-LAW-007",
             next: "T3",
           },
@@ -306,7 +311,8 @@ export const CHK_C01: Scenario = {
             gaugeDelta: 1,
             aiReaction: "말이 없으시네. 그럼 해주시는 걸로 알게요.",
             rubricHits: [{ itemId: "RE-06", score: 2 }],
-            coaching: "침묵은 동의로 읽힙니다. 짧게라도 경계를 말씀해 주세요.",
+            coaching:
+              "침묵은 동의로 읽힙니다. \"그건 제가 해 드릴 수 없어요\" 한 문장만이라도 소리 내어 주세요.",
             docId: "DOC-LAW-007",
             next: "T3",
           },
@@ -419,7 +425,8 @@ export const CHK_C01: Scenario = {
               { itemId: "RE-06", score: 2 },
               { itemId: "CO-04", score: 2 },
             ],
-            coaching: "애원 대신 보고 의사를 밝히면 상황이 개인에서 절차로 넘어갑니다.",
+            coaching:
+              "\"저도 오늘 일을 센터에 그대로 보고드리겠습니다\" 한 문장이면, 상황이 개인의 부탁에서 기관의 절차로 넘어갑니다.",
             docId: "DOC-NOTI-002",
             next: "T4",
           },
@@ -505,7 +512,7 @@ export const CHK_C01: Scenario = {
             aiReactionNote: "어르신 목소리가 더 불안해지십니다.",
             rubricHits: [{ itemId: "CO-07", score: 1 }],
             coaching:
-              "어르신 앞에서의 언쟁은 어르신의 존엄과 안정에 영향을 줍니다. 자리를 먼저 옮겨 주세요.",
+              "어르신 앞에서의 언쟁은 어르신의 존엄과 안정에 영향을 줍니다. \"잠시 이쪽에서 말씀 나누실까요?\" 하고 자리를 먼저 옮겨 주세요.",
             docId: "DOC-LAW-003",
             retrainAdvice: true,
             next: "T5",
@@ -543,7 +550,8 @@ export const CHK_C01: Scenario = {
             gaugeDelta: 1,
             aiReaction: "…아무도 대답을 안 해주네.",
             rubricHits: [{ itemId: "CO-07", score: 2 }],
-            coaching: "부르셨을 때 짧게라도 대답해 드리면 불안이 줄어듭니다.",
+            coaching:
+              "어르신이 부르시면 \"아무 일 없어요, 어머님\" 한마디를 먼저 드리고 대화를 이어 주세요.",
             docId: "DOC-LAW-003",
             next: "T5",
           },
@@ -622,7 +630,7 @@ export const CHK_C01: Scenario = {
               { itemId: "CO-08", score: 3 },
             ],
             coaching:
-              "감정 형용사는 빼고, 들은 말과 제가 한 말만 적어 주세요. 사실만 남은 기록이 나를 지킵니다.",
+              "\"무례하게\"·\"황당했다\" 같은 말은 빼고, 보호자께서 하신 말과 제가 드린 답만 그대로 적어 주세요.",
             docId: "DOC-NOTI-002",
             next: "T6",
           },
@@ -687,7 +695,7 @@ export const CHK_C01: Scenario = {
             gaugeDelta: 0,
             aiReaction: "제안이 기록에 반영되었습니다.",
             rubricHits: [{ itemId: "CL-04", score: 4 }],
-            praise: "실행 주체와 시점이 있는 제안입니다.",
+            praise: "실행 주체와 시점이 있는 제안입니다. 센터와 함께 바로 적용할 수 있습니다.",
             docId: "DOC-GUIDE-006",
             next: "T7",
           },
@@ -699,7 +707,8 @@ export const CHK_C01: Scenario = {
             gaugeDelta: 0,
             aiReaction: "제안이 기록에 반영되었습니다.",
             rubricHits: [{ itemId: "CL-04", score: 2 }],
-            coaching: "무엇을 언제 어떻게 하겠다는 형태로 바꿔 보세요.",
+            coaching:
+              "\"초기 방문 때 업무 범위 안내문을 드리겠습니다\"처럼 무엇을 언제 하겠다는 형태로 바꿔 보세요.",
             docId: "DOC-GUIDE-006",
             next: "T7",
           },
@@ -711,7 +720,8 @@ export const CHK_C01: Scenario = {
             gaugeDelta: 0,
             aiReaction: "제안 없이 기록이 마감되었습니다.",
             rubricHits: [{ itemId: "CL-04", score: 1 }],
-            coaching: "안내문 한 장이 다음 대화를 훨씬 쉽게 만듭니다.",
+            coaching:
+              "업무 범위 안내문 한 장을 초기 방문 때 드리는 것만으로도 다음 대화가 훨씬 쉬워집니다.",
             docId: "DOC-GUIDE-006",
             next: "T7",
           },
@@ -785,7 +795,8 @@ export const CHK_C01: Scenario = {
             gaugeDelta: 0,
             aiReaction: "오늘 훈련을 마쳤습니다.",
             rubricHits: [{ itemId: "CL-05", score: 2 }],
-            coaching: "무엇을 어떻게 바꿀지 한 가지만 문장으로 정해 보세요.",
+            coaching:
+              "\"거절 앞에 공감 한 문장을 먼저 붙이겠습니다\"처럼, 다음 대화에서 바꿀 말 하나를 정해 보세요.",
             next: "end:E-부분",
           },
           {

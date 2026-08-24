@@ -48,15 +48,29 @@ export function TopNav({ active, className }: TopNavProps) {
                     aria-current={isActive ? "page" : undefined}
                     className={cx(
                       "flex min-h-[48px] items-center rounded-field px-[10px] text-[0.8438rem] leading-[1.3]",
-                      "transition-colors duration-150 active:bg-paper-2",
+                      "transition-colors duration-150 ease-soft hover:bg-paper-2 active:bg-neutral-line",
                       isActive
                         ? item.danger
-                          ? "font-bold text-danger-ink"
-                          : "font-bold text-ink"
-                        : "font-medium text-ink-soft hover:text-brand-800",
+                          ? "text-danger-ink"
+                          : "text-ink"
+                        : "text-ink-soft hover:text-brand-800",
                     )}
                   >
-                    {item.label}
+                    {/* 탭바와 같은 처리 — 굵기(500→700)가 바뀌어도 라벨 폭이 그대로여야
+                        옆 항목들이 밀리지 않습니다. 가로로 늘어선 네비라 흔들림이 더 잘 보이는 자리입니다. */}
+                    <span className="grid">
+                      <span aria-hidden className="invisible col-start-1 row-start-1 font-bold">
+                        {item.label}
+                      </span>
+                      <span
+                        className={cx(
+                          "col-start-1 row-start-1",
+                          isActive ? "font-bold" : "font-medium",
+                        )}
+                      >
+                        {item.label}
+                      </span>
+                    </span>
                   </Link>
                 </li>
               );

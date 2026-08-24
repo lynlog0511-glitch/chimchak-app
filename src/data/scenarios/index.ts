@@ -6,7 +6,8 @@
  *   이 3종만으로 루브릭 30항목이 전수 1회 이상 실행되고, 생성 통제 3계층이 모두 통과됩니다.
  *
  * 알파 초안 — 현직 감수 대기
- *   CHK-A02 BPSD·중급 (야간 배회 + 보호자 부재) / CHK-C02 갈등·고급 (사고 책임 추궁·계약 해지 위협)
+ *   CHK-A02 BPSD·중급 (야간 배회 + 보호자 부재) / CHK-B01 응급·초급 (낙상 후 의식 있음) /
+ *   CHK-C02 갈등·고급 (사고 책임 추궁·계약 해지 위협)
  *   루브릭 30항목·규칙 사전·엔진을 그대로 재사용하고 **데이터만** 더한 확장입니다.
  *   대사 감수가 끝나지 않았다는 사실은 화면(/train 카드 라벨)에 그대로 적습니다.
  */
@@ -17,17 +18,19 @@ import { normalize } from "@/engine/rules";
 
 import { CHK_A01 } from "./chk-a01";
 import { CHK_A02 } from "./chk-a02";
+import { CHK_B01 } from "./chk-b01";
 import { CHK_B02 } from "./chk-b02";
 import { CHK_C01 } from "./chk-c01";
 import { CHK_C02 } from "./chk-c02";
 
 export { CHK_A01 } from "./chk-a01";
 export { CHK_A02 } from "./chk-a02";
+export { CHK_B01 } from "./chk-b01";
 export { CHK_B02, B02_PROTOCOL_RESUME_TURN_ID } from "./chk-b02";
 export { CHK_C01 } from "./chk-c01";
 export { CHK_C02 } from "./chk-c02";
 
-export const SCENARIOS: Scenario[] = [CHK_A01, CHK_A02, CHK_B02, CHK_C01, CHK_C02];
+export const SCENARIOS: Scenario[] = [CHK_A01, CHK_A02, CHK_B01, CHK_B02, CHK_C01, CHK_C02];
 
 /** 시나리오 id 로 조회합니다. 대소문자 구분 없이(예: "chk-a01") 찾습니다. */
 export function getScenario(id: string): Scenario | undefined {

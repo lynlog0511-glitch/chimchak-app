@@ -55,11 +55,15 @@ export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalI
       aria-labelledby="cf-title"
       ref={panelRef}
     >
-      {/* 딤 — 시트와 **같은 240ms**로 함께 들어오고 함께 나갑니다(레이어마다 속도가 다르면 하드컷 플래시로 읽힙니다). */}
+      {/* 딤 — 시트와 **같은 240ms**로 함께 들어오고 함께 나갑니다(레이어마다 속도가 다르면 하드컷 플래시로 읽힙니다).
+          강도는 0.5입니다(옛 0.32). 0.32에서는 뒤 대화가 그대로 읽혀서, 시트가 「위에 뜬 카드」로
+          보이고 훈련은 계속 흐르는 것처럼 읽혔습니다 — 이 시트는 흐름을 **멈춘** 자리이므로
+          뒤 화면이 확실히 물러나야 합니다(세션 배경도 같은 순간 .25로 내려앉습니다).
+          종료 확인 모달의 딤(ink/55)과도 이제 한 문법입니다. */}
       <div
         aria-hidden
         className={cx(
-          "absolute inset-0 bg-[rgba(25,31,30,0.32)] transition-opacity duration-[240ms] ease-out",
+          "absolute inset-0 bg-[rgba(25,31,30,0.5)] transition-opacity duration-[240ms] ease-out",
           entered ? "opacity-100" : "opacity-0",
         )}
       />
@@ -84,7 +88,18 @@ export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalI
             「멈춰 세웠다」는 상태가 손끝에서 부정됩니다(모션 감사 3). */}
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-3">
           <div className="flex items-center gap-2">
-            <span aria-hidden className="h-[10px] w-[10px] flex-none rounded-full bg-danger" />
+            {/* 붉은 점 하나가 시트와 **같은 240ms** 동안 제 크기로 벌어집니다 —
+                「멈춤」을 말로 적기 전에 형태로 한 번 말하는 자리입니다. 새 속도를 만들지 않으려고
+                시트·딤과 같은 값을 쓰고, 움직이는 것은 크기 하나뿐입니다(색·위치는 그대로).
+                reduced-motion에서는 전역 규칙이 전이를 끊어 처음부터 제 크기로 서 있습니다. */}
+            <span
+              aria-hidden
+              className={cx(
+                "h-[10px] w-[10px] flex-none rounded-full bg-danger",
+                "transition-transform duration-[240ms] ease-out",
+                entered ? "scale-100" : "scale-50",
+              )}
+            />
             <h2
               id="cf-title"
               className="text-[1.1875rem] leading-[1.3] font-extrabold tracking-[-0.01em] text-ink"

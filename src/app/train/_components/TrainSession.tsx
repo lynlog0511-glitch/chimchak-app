@@ -5,6 +5,7 @@ import { BigButton, InlineDisclaimer, SettingsMenu } from "@/components";
 import { useModalDismiss, useOverlayTransition } from "@/components/useModalDismiss";
 import { cx } from "@/components/utils";
 import { buildRecord, currentCue, currentTurn, protocolIdOf, resolveEnding } from "@/engine";
+import { startCueCoaching } from "@/lib/onlineCoach";
 import { isRecognitionSupported, primeVoices, speak, stopSpeaking } from "@/lib/speech";
 import { useWakeLock } from "@/lib/wakeLock";
 import {
@@ -15,7 +16,7 @@ import {
   SESSION_SAVE_FAILED_BODY,
   type SessionProgress,
 } from "@/lib/storage";
-import type { EmergencyProtocol, Scenario } from "@/types";
+import type { CueDef, EmergencyProtocol, Scenario } from "@/types";
 import { BriefingPanel } from "./BriefingPanel";
 import { CriticalInterrupt } from "./CriticalInterrupt";
 import { CueResponder, DOCK_MAX_RATIO } from "./CueResponder";
@@ -44,6 +45,32 @@ import {
   type CriticalInterruptState,
   type LogItem,
 } from "./sessionMachine";
+
+/**
+ * 새 대사를 「말하는 중」으로 붙들어 두는 시간(ms).
+ *
+ * 어르신이 말을 고르는 짧은 사이입니다 — 대화의 박자를 만드는 것이 목적이지
+ * 기다리게 하는 것이 목적이 아니므로, 낭독 한 문장(수 초)보다 훨씬 짧게 잡습니다.
+ * 아래 세 경우에는 **한 프레임도 붙들지 않습니다** — 소리를 꺼 두셨을 때(세션 헤더의 「소리 끄기」),
+ * 움직임을 줄여 달라고 하셨을 때(`prefers-reduced-motion`), 시연 빨리감기 중일 때.
+ * 버튼만으로 완주하시는 분이 이 연출 때문에 느려지지 않도록, 끄는 자리를 화면 안에 둔 셈입니다.
+ */
+const SPEAKING_HOLD_MS = 800;
+
+/**
+ * 「말하는 중」을 붙일 대사인지.
+ * 상황 안내(system)와 검수된 고정 안내(protocol)는 사람이 말을 고르는 자리가 아니므로 그대로 폅니다.
+ */
+function isSpokenLine(item: LogItem | undefined): item is Extract<LogItem, { kind: "line" }> {
+  if (!item || item.kind !== "line") return false;
+  return item.speaker === "elder" || item.speaker === "guardian" || item.speaker === "dispatcher";
+}
+
+/** 화면 움직임을 줄여 달라고 설정하신 분인지 (DialogueLog의 스크롤 규칙과 같은 질의입니다) */
+function prefersReducedMotion(): boolean {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
 
 /**
  * 「종료」 확인 모달.
@@ -162,6 +189,18 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   const [speakingKey, setSpeakingKey] = useState("");
   const spokenKeyRef = useRef<string>("");
   const savedIdRef = useRef<string>("");
+
+  /**
+   * 아직 펴지 않고 「말하는 중」으로 붙들어 둔 대사 — 렌더용 상태와 같은 커밋 안에서 읽히는 표시(ref) 한 쌍입니다.
+   *
+   * 상태 하나로는 낭독을 막지 못합니다: 붙드는 효과가 `setState`를 부른 그 커밋에서
+   * 낭독 효과는 아직 **예전 값**을 보기 때문에, 붙들어 놓고도 소리가 먼저 나갑니다.
+   * 그래서 같은 값을 ref에도 즉시 적어 두고, 낭독 쪽은 ref로 판단합니다.
+   */
+  const [pendingLineKey, setPendingLineKey] = useState("");
+  const pendingLineRef = useRef<string>("");
+  /** 이미 펴 드린 마지막 대사 — 같은 대사를 두 번 붙들지 않습니다 */
+  const shownLineRef = useRef<string>("");
 
   /**
    * ⚑CF 시트에서 고르신 대안 문장.
@@ -299,6 +338,40 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     return () => stopSpeaking();
   }, []);
 
+  /**
+   * 새 대사가 도착하면 한 박자 붙듭니다 — 「말하는 중」 빈 말풍선 → 대사 + 낭독.
+   *
+   * 붙드는 것은 **로그 맨 끝의 인물 대사** 하나뿐입니다. 뒤에 코칭이 이미 붙은 대사는
+   * 붙들면 코칭까지 함께 가려지므로 그대로 폅니다(반응 대사 → 코칭 → 「말하는 중」 → 다음 대사 순서).
+   * 낭독 효과보다 **먼저** 선언돼 있어야 같은 커밋에서 ref가 채워집니다 — 순서를 바꾸지 마세요.
+   */
+  useEffect(() => {
+    const tail = state.log[state.log.length - 1];
+    const key = isSpokenLine(tail) ? tail.key : "";
+
+    const reveal = () => {
+      if (key.length > 0) shownLineRef.current = key;
+      pendingLineRef.current = "";
+      setPendingLineKey("");
+    };
+
+    if (key.length === 0 || shownLineRef.current === key) {
+      pendingLineRef.current = "";
+      setPendingLineKey("");
+      return undefined;
+    }
+    /* 소리를 꺼 두셨거나 · 움직임을 줄이셨거나 · 시연 빨리감기 중이면 곧바로 폅니다. */
+    if (!ttsOn || demoModeRef.current || prefersReducedMotion()) {
+      reveal();
+      return undefined;
+    }
+
+    pendingLineRef.current = key;
+    setPendingLineKey(key);
+    const timer = window.setTimeout(reveal, SPEAKING_HOLD_MS);
+    return () => window.clearTimeout(timer);
+  }, [state.log, ttsOn]);
+
   useEffect(() => {
     let lastLine: Extract<LogItem, { kind: "line" }> | undefined;
     for (let i = state.log.length - 1; i >= 0; i -= 1) {
@@ -309,6 +382,9 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
       }
     }
     if (!lastLine) return undefined;
+    /* 「말하는 중」으로 붙들고 있는 동안에는 읽지 않습니다 — 자막보다 소리가 먼저 나가면
+       화면에 없는 문장을 듣게 됩니다. 펴지는 순간 이 효과가 다시 돌아 그때 읽습니다. */
+    if (pendingLineRef.current === lastLine.key) return undefined;
     if (spokenKeyRef.current === lastLine.key) return undefined;
     spokenKeyRef.current = lastLine.key;
     if (!ttsOn) return undefined;
@@ -323,7 +399,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     return () => {
       cancelled = true;
     };
-  }, [state.log, ttsOn]);
+  }, [state.log, ttsOn, pendingLineKey]);
 
   const toggleTts = useCallback(() => {
     setTtsOn((value) => {
@@ -373,15 +449,45 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
 
   /* ── 조작 ─────────────────────────────────────────────── */
 
+  /**
+   * 방금 직접 말씀하신 발화와 그때의 장면.
+   * 온라인 코칭을 켠 경우, 판정이 **중립 미분류**로 떨어졌을 때만 이 한 쌍을 씁니다.
+   * (버튼으로 고르신 턴은 발화가 없으므로 여기 담기지 않습니다.)
+   */
+  const askedRef = useRef<{ utterance: string; cue: CueDef } | null>(null);
+
   const handleSubmit = useCallback(
     (input: { utterance?: string; branchId?: string; viaButton: boolean }) => {
       stopSpeaking();
       setSpeakingKey("");
       setChosenAlternative("");
+      const spoken = (input.utterance ?? "").trim();
+      askedRef.current = cue && spoken.length > 0 ? { utterance: spoken, cue } : null;
       dispatch({ type: "submit", input });
     },
-    [],
+    [cue],
   );
+
+  /**
+   * 온라인 코칭 — **미분류로 떨어진 턴에서만** 한 문장을 더 청합니다.
+   *
+   * 설정에서 꺼져 있거나(기본값) 오프라인이면 아무 일도 일어나지 않습니다. 판정·게이지·기록은
+   * 이 지점에서 이미 끝나 있고, 도착한 문장은 코칭 덩어리 아래에 붙기만 합니다
+   * (`InlineCoaching` — 근거 가드를 통과하지 못하면 고정 문구로 바뀝니다).
+   */
+  useEffect(() => {
+    const feedback = state.lastFeedback;
+    const asked = askedRef.current;
+    if (!feedback || !asked) return;
+    askedRef.current = null;
+    // 규칙 사전·분기 신호에 걸린 판정은 근거가 이미 분명합니다 — 덧붙이지 않습니다.
+    if (feedback.trace?.source !== "default") return;
+    void startCueCoaching(feedback, {
+      scenario,
+      cue: asked.cue,
+      utterance: asked.utterance,
+    });
+  }, [scenario, state.lastFeedback]);
 
   const closeExit = useCallback(() => setExitOpen(false), []);
 
@@ -394,6 +500,10 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   /** 처음부터 — 남아 있던 체크포인트는 지웁니다. */
   const handleStart = useCallback(() => {
     clearProgress(scenario.id);
+    /* 「처음부터」는 로그 키까지 되돌아갑니다 — 지난 회차에 이미 폈던 키라고 기억하고 있으면
+       첫 대사가 「말하는 중」 없이 튀어나옵니다. */
+    shownLineRef.current = "";
+    pendingLineRef.current = "";
     setCheckpoint(null);
     setAtBriefing(false);
     setCriticalScene(null);
@@ -430,6 +540,8 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     stopSpeaking();
     setSpeakingKey("");
     spokenKeyRef.current = "";
+    shownLineRef.current = "";
+    pendingLineRef.current = "";
     clearProgress(scenario.id);
     setCheckpoint(null);
     setAtBriefing(false);
@@ -455,6 +567,8 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     stopSpeaking();
     setSpeakingKey("");
     spokenKeyRef.current = "";
+    shownLineRef.current = "";
+    pendingLineRef.current = "";
     dispatch({ type: "resume", progress: checkpoint });
     setCheckpoint(null);
     setAtBriefing(false);
@@ -546,9 +660,11 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
           "flex min-h-[calc(100dvh_-_var(--chim-safe-t))] flex-col",
           "md:h-[calc(100dvh_-_var(--chim-safe-t))] md:min-h-0 md:overflow-hidden",
           /* 배경이 물러나는 것도 시트·딤과 **같은 240ms**입니다 — 예전에는 여기만 0s 하드컷이라
-             ⚑CF의 첫 프레임이 「멈춰 세웠다」가 아니라 「화면이 깜빡했다」로 읽혔습니다(모션 감사 2). */
+             ⚑CF의 첫 프레임이 「멈춰 세웠다」가 아니라 「화면이 깜빡했다」로 읽혔습니다(모션 감사 2).
+             물러나는 깊이는 시안 6c의 .25입니다(옛 구현값 .30에서 한 단 더 내려 딤 강화와 짝을 맞춥니다) —
+             ⚑CF는 이 앱에서 화면이 사람을 멈춰 세우는 유일한 자리라, 그 한 번은 분명해야 합니다. */
           "transition-opacity duration-[240ms] ease-out",
-          interrupted && "pointer-events-none opacity-30",
+          interrupted && "pointer-events-none opacity-25",
         )}
       >
         {/* 모바일에서 헤더를 상단에 도킹합니다 — 「종료」(이탈 경로)·진행바·계층 상태점은
@@ -636,6 +752,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
                   bottomInset={dockHeight}
                   tailInset={dockLimit}
                   autoScroll={!ended}
+                  pendingLineKey={pendingLineKey}
                   onTailOffscreen={composing ? handleTailOffscreen : undefined}
                   scrollToTailRef={scrollToTailRef}
                 />

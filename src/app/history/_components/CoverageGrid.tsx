@@ -57,6 +57,13 @@ export function CoverageGrid({
   }
 
   const pending = ORDER.filter((type) => !activeTypes.includes(type));
+  /**
+   * 다음 칸 — 지금 열려 있는 유형 가운데 아직 비어 있는 첫 칸입니다.
+   * 「—」만 보고는 그 칸이 못 여는 칸인지 아직 안 한 칸인지 갈리지 않아, 한 줄로 밝혀 둡니다.
+   * (베타 이연 유형은 애초에 후보가 아니므로 아래 「베타 편성 예정」 줄이 따로 맡습니다.)
+   */
+  const nextCell = ORDER.find((type) => activeTypes.includes(type) && counts[type] === 0);
+  const openCount = ORDER.filter((type) => activeTypes.includes(type)).length;
 
   return (
     <div className={className}>
@@ -115,6 +122,19 @@ export function CoverageGrid({
           );
         })}
       </ul>
+
+      {/* 다음 칸 안내 — 어느 칸을 채우면 되는지 한 줄로 짚어 둡니다(개수는 세지 않습니다). */}
+      {nextCell ? (
+        <p className="mt-[6px] text-[0.8438rem] leading-[1.6] text-ink-soft">
+          다음 칸은 「{TYPE_SHORT_LABELS[nextCell]}」이에요 — 아직 비어 있습니다.
+        </p>
+      ) : (
+        openCount > 0 && (
+          <p className="mt-[6px] text-[0.8438rem] leading-[1.6] text-ink-soft">
+            지금 열려 있는 칸은 모두 채우셨어요 — 이제부터는 같은 칸을 다시 채우는 연습입니다.
+          </p>
+        )
+      )}
 
       {/* 베타 이연 유형은 「—」로만 두면 이유를 알 수 없어, 아래 한 줄로 조용히 적어 둡니다. */}
       {pending.length > 0 && (

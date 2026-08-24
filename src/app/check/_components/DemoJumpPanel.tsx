@@ -62,6 +62,11 @@ export function DemoJumpPanel() {
         보여 드릴 장면 직전까지 자동으로 재생하고 손을 뗍니다. 마지막 선택은 발표자가 직접
         고르시는 것이라, 판정은 무대에서 엔진이 그 자리에서 합니다.
       </p>
+      {/* 위 칸과 헷갈리기 쉬운 자리입니다 — 두 도구는 서로 아무 관계가 없습니다. */}
+      <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
+        위 「시연용 예시 기록」과는 무관합니다 — 심지 않으셔도 이 세 경로는 그대로 열립니다. 예시
+        시드는 성장 기록·이수 확인서를 채우는 도구이고, 여기는 훈련 장면 자체를 여는 도구입니다.
+      </p>
 
       <ul className="chim-hairline mt-[10px] border-y border-line">
         {JUMP_ROWS.map((row) => (

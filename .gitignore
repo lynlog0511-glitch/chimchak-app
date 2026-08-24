@@ -14,9 +14,11 @@
 *.pem
 npm-debug.log*
 
-# env (현재 사용 안 함 — 향후 어댑터 연결 대비)
+# env — 온라인 코칭 서버 키 등은 로컬 .env.local·Vercel 환경변수로만 둡니다.
+# 예시 파일(.env.example)만 저장소에 남깁니다.
 .env
 .env.*
+!.env.example
 
 # local tooling
 .claude/

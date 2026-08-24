@@ -87,13 +87,14 @@ const PRINT_CSS = `
  * 파일을 만드는 곳은 브라우저 안이고 주소도 `blob:`이라 **외부로 나가는 요청이 없습니다**.
  * 담기는 것은 이수 사실뿐이며, 화면에 적으신 성명·소속은 파일에 넣지 않습니다(개인정보 최소).
  */
-function downloadCsv(summary: CompletionSummary, issuedAt: string): void {
+function downloadCsv(summary: CompletionSummary, issuedAt: string): string {
   const csv = buildCompletionCsv(summary, issuedAt);
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
+  const filename = `chimchak-completion-${summary.number}.csv`;
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `chimchak-completion-${summary.number}.csv`;
+  anchor.download = filename;
   anchor.rel = "noopener";
   /* 문서에 붙였다가 누르고, 폐기는 미룹니다.
      브라우저는 click()이 돌아온 **뒤에** 비동기로 이 주소를 읽어 갑니다 — 같은 태스크에서
@@ -107,6 +108,9 @@ function downloadCsv(summary: CompletionSummary, issuedAt: string): void {
     anchor.remove();
     URL.revokeObjectURL(url);
   }, 1000);
+  /* 돌려주는 것은 **파일 이름**이지 「내려받기가 끝났다」는 사실이 아닙니다 —
+     브라우저가 실제로 저장했는지는 페이지가 알 수 없으므로, 화면에도 그 선까지만 적습니다. */
+  return filename;
 }
 
 /**
@@ -215,6 +219,15 @@ export function CertificateSheet() {
   const [demoCount, setDemoCount] = useState(0);
   /** 인앱 브라우저(카카오톡·네이버 등) 안인지 — 인쇄 안내를 강조할지 결정합니다. */
   const [inApp, setInApp] = useState(false);
+  /**
+   * 내려받기 버튼을 누르신 뒤 화면에 남는 한 줄.
+   *
+   * 예전에는 눌러도 화면이 한 글자도 바뀌지 않았습니다 — 파일이 조용히 받아지는 브라우저에서는
+   * 「눌린 건가?」 싶어 두 번, 세 번 누르시게 됩니다(같은 파일이 여러 벌 쌓입니다).
+   * 적는 것은 **파일 이름과 어디서 찾는지**까지이고, 「저장되었습니다」라고는 적지 않습니다 —
+   * 브라우저가 실제로 저장했는지는 이 페이지가 알 수 없기 때문입니다.
+   */
+  const [downloadName, setDownloadName] = useState("");
 
   useEffect(() => {
     setSummary(buildCompletionSummary());
@@ -228,6 +241,9 @@ export function CertificateSheet() {
   const handleImported = useCallback(() => {
     setSummary(buildCompletionSummary());
     setIssuedAt(new Date().toISOString());
+    /* 합치고 나면 발급번호가 달라집니다 — 방금 받으신 파일 이름을 그대로 두면
+       화면이 이미 없는 번호를 가리키게 되므로 안내줄을 비웁니다. */
+    setDownloadName("");
   }, []);
 
   const isPreview = demoCount > 0;
@@ -242,7 +258,9 @@ export function CertificateSheet() {
       <style dangerouslySetInnerHTML={{ __html: PRINT_CSS }} />
 
       {!loaded ? (
-        <p className="mt-4 text-[0.8125rem] leading-[1.6] text-ink-soft">
+        /* 저장소는 마운트 뒤에 읽으므로 이 줄이 첫 화면입니다 — 화면을 못 보시는 분께도
+           「비어 있다」가 아니라 「읽는 중」이라고 먼저 알려 드립니다. */
+        <p role="status" className="mt-4 text-[0.8125rem] leading-[1.6] text-ink-soft">
           이 기기에 저장된 이수 사실을 불러오는 중입니다.
         </p>
       ) : lines.length === 0 ? (
@@ -254,6 +272,16 @@ export function CertificateSheet() {
             <p className="mt-[3px] text-[0.8125rem] leading-[1.6] text-ink-soft">
               시나리오를 하나 마치시면 이 자리에 시나리오·완료일·이수 횟수가 담긴 확인서가
               만들어집니다.
+            </p>
+            {/* 「인쇄 버튼이 왜 없지」로 끝나지 않게, 없는 이유를 화면이 먼저 답합니다 —
+                담길 줄이 없는 확인서를 인쇄하면 서명란만 있는 빈 종이가 나옵니다. */}
+            <p className="mt-[8px] text-[0.8125rem] leading-[1.6] text-ink-soft">
+              그때까지는 인쇄와 파일 내려받기를 열어 두지 않습니다. 담길 줄이 한 개도 없는 확인서는
+              이수 사실을 증명하지 못하고, 서명란만 있는 종이가 되기 때문입니다.
+            </p>
+            <p className="mt-[8px] text-[0.8125rem] leading-[1.6] text-ink-soft">
+              예전 기기에서 이미 이수하셨다면 아래 칸에서 <b className="font-bold text-ink">이수
+              사실 파일</b>을 고르시면 됩니다 — 합치고 나면 이 화면에서 바로 확인서가 만들어집니다.
             </p>
           </div>
           <BigButton href="/train" size="lg" block className="mt-4">
@@ -537,16 +565,35 @@ export function CertificateSheet() {
                 </p>
               </div>
             ) : (
-              <BigButton
-                variant="secondary"
-                block
-                className="mt-2"
-                onClick={() => {
-                  if (summary) downloadCsv(summary, issuedAt);
-                }}
-              >
-                이수 사실만 담긴 파일 내려받기
-              </BigButton>
+              <>
+                {/* 요약이 없으면 눌러도 아무 일이 일어나지 않는 버튼이 됩니다(onClick의 if).
+                    지금 이 가지는 줄이 하나 이상일 때만 그려지므로 실제로는 걸리지 않지만,
+                    「눌러도 아무 일이 없는 버튼」이 화면에 서 있을 수 있는 길 자체를 막아 둡니다. */}
+                <BigButton
+                  variant="secondary"
+                  block
+                  className="mt-2"
+                  disabled={!summary}
+                  onClick={() => {
+                    if (summary) setDownloadName(downloadCsv(summary, issuedAt));
+                  }}
+                >
+                  이수 사실만 담긴 파일 내려받기
+                </BigButton>
+                {/* 눌린 사실을 화면에 남깁니다. 「저장되었습니다」가 아니라 「내려받기를
+                    시작했습니다」까지만 적습니다 — 저장 여부는 이 페이지가 알 수 없습니다.
+                    빈 문자열일 때도 상자는 남겨 둬야 화면 낭독기가 바뀐 줄을 읽어 줍니다. */}
+                <div role="status" aria-live="polite">
+                  {downloadName.length > 0 && (
+                    <p className="mt-2 text-[0.8438rem] leading-[1.7] font-semibold text-ok-ink">
+                      내려받기를 시작했습니다 — 파일 이름{" "}
+                      <span className="font-bold break-all">{downloadName}</span>. 기기의
+                      「다운로드」 폴더에서 찾으실 수 있습니다. 보이지 않으면 카카오톡·네이버 등 앱
+                      안의 브라우저라 그렇습니다 — 다른 브라우저로 여신 뒤 다시 눌러 주십시오.
+                    </p>
+                  )}
+                </div>
+              </>
             )}
             <BigButton href="/history" variant="secondary" block className="mt-2">
               성장 기록으로 돌아가기

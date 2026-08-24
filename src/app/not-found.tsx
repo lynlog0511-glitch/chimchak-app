@@ -20,8 +20,12 @@ export default function NotFound() {
         subtitle="주소가 바뀌었거나, 아직 준비되지 않은 화면일 수 있습니다"
       />
 
-      <div className="mt-[16px] rounded-[14px] bg-paper-2 px-[15px] py-[14px]">
-        <p className="text-[0.8438rem] leading-[1.65] text-ink">
+      {/* 이 화면의 본문은 이 문단 하나뿐입니다 — 13.5px(보조 설명 단)에서 15px(읽는 단)로 올립니다.
+          가이드 §7-8은 15px 미만의 「읽어야 하는 문장」을 막고 메타·각주만 예외로 두는데,
+          길을 잃은 사람이 다음 행동을 고르려고 읽는 문장은 각주가 아닙니다.
+          행간도 3단 사다리에 없던 1.65에서 본문 단 1.6으로 내려 다른 화면과 맞췄습니다. */}
+      <div className="mt-[16px] rounded-card bg-paper-2 px-[15px] py-[14px]">
+        <p className="text-[0.9375rem] leading-[1.6] text-ink">
           급하신 상황이라면 아래에서 응급 안내를 바로 여실 수 있습니다. 응급 안내
           5종(낙상·기도폐쇄·의식 저하·경련·출혈)은 고정 문구로 되어 있고, 연결이 끊겨도
           열리도록 기기에 저장해 둡니다.

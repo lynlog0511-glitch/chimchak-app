@@ -19,6 +19,7 @@ import { nextTrainingSentence, pickNextTraining, trainHref } from "./nextTrainin
 import type { NextTrainingReason, ScenarioTypeMap } from "./nextTraining";
 import { ReportList } from "./ReportList";
 import { TrainingRow } from "./TrainingRow";
+import { WeeklySummaryCard } from "./WeeklySummaryCard";
 
 /* 다음 훈련 추천 규칙은 `./nextTraining`에 있습니다 — 성장 기록과 훈련 엔딩이 같은 순수 함수를 씁니다.
    훈련 엔딩 화면(`train/_components/EndingPanel`)이 이 파일 경로로 가져다 쓰고 있어,
@@ -26,6 +27,8 @@ import { TrainingRow } from "./TrainingRow";
 export {
   NEXT_TRAINING_CANDIDATES,
   NEXT_TRAINING_REASON_TEXT,
+  WEAKNESS_THEMES,
+  classifyCoaching,
   nextTrainingSentence,
   pickNextTraining,
   trainHref,
@@ -36,6 +39,8 @@ export type {
   NextTrainingReason,
   PickNextTrainingOptions,
   ScenarioTypeMap,
+  WeaknessTheme,
+  WeaknessThemeDef,
 } from "./nextTraining";
 
 /**
@@ -43,7 +48,7 @@ export type {
  * (성장 기록 화면은 시안 5c에 따라 아이콘 없이 문장형 추천 카드만 씁니다.)
  */
 export function NextTrainingReasonMark({ reason }: { reason: NextTrainingReason }) {
-  if (reason === "coaching") return <StatusMark kind="coach" size="sm" />;
+  if (reason === "coaching" || reason === "weakness") return <StatusMark kind="coach" size="sm" />;
   if (reason === "stale") {
     return <IconClock className="h-[18px] w-[18px] shrink-0 text-ink-muted" />;
   }
@@ -154,11 +159,11 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
         </section>
       )}
 
-      {/* 다음엔 이 장면 — 추천 규칙은 그대로, 문장 하나로만 말합니다. */}
+      {/* 다음엔 이 장면 — 추천 규칙은 순수 함수가 정하고, 여기서는 장면 이름과 이유 한 줄만 답니다. */}
       {suggestion && (
         <Link
           href={trainHref(suggestion.candidate.id)}
-          aria-label={`${suggestion.candidate.title} 훈련으로 가기 — ${suggestion.reasonText}`}
+          aria-label={`${suggestion.candidate.title} 훈련으로 가기 — ${nextTrainingSentence(suggestion)}`}
           className="mb-4 flex min-h-[48px] items-center gap-[10px] rounded-[14px] bg-tint px-[15px] py-[14px] transition-colors duration-150 active:bg-mint-200"
         >
           <span className="min-w-0 flex-1">
@@ -167,7 +172,12 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
             <span className="block text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-brand-700">
               다음엔 이 장면
             </span>
+            {/* 장면 이름을 먼저 세웁니다 — 어디로 가는지가 이유보다 먼저 읽혀야 합니다. */}
             <span className="mt-[2px] block text-[0.9375rem] leading-[1.4] font-bold text-brand-900">
+              {suggestion.candidate.title}
+            </span>
+            {/* 왜 이 장면인지 — 최근 코칭이 가리킨 항목을 그대로 문장으로 답니다(숫자 없음). */}
+            <span className="mt-[3px] block text-[0.8438rem] leading-[1.6] text-brand-800">
               {nextTrainingSentence(suggestion)}
             </span>
           </span>
@@ -176,6 +186,13 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
           </span>
         </Link>
       )}
+
+      {/* 이번 주 — 누계(커버리지)와 회차 목록 사이에 놓는 시간 축 한 장입니다. */}
+      <WeeklySummaryCard
+        records={sessions}
+        typeByScenarioId={typeByScenarioId}
+        className="mb-[18px]"
+      />
 
       <EyebrowLabel className="mb-2">유형별로 해 본 것</EyebrowLabel>
       <CoverageGrid

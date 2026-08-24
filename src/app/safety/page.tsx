@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { BigButton, InlineDisclaimer, PageShell, ScreenHeader, cx } from "@/components";
 import { StatusMark } from "@/components/icons";
+import { AiMap } from "./_components/AiMap";
 import { CountedFacts } from "./_components/CountedFacts";
 import { DocWhitelist } from "./_components/DocWhitelist";
 import { EvidenceFlow } from "./_components/EvidenceFlow";
@@ -21,7 +22,7 @@ import { VerificationLadder } from "./_components/VerificationLadder";
 export const metadata: Metadata = {
   title: "안전·개인정보 설계",
   description:
-    "3계층 생성통제, 기록 코칭 개인정보 경로, 폴백 매트릭스, 근거 문서 화이트리스트, 의료기기 경계, 접근권한 3등급, 루브릭 30항목과 감수 이력",
+    "3계층 생성통제, AI가 쓰이는 다섯 자리, 기록 코칭 개인정보 경로, 폴백 매트릭스, 근거 문서 화이트리스트, 의료기기 경계, 접근권한 3등급, 루브릭 30항목과 감수 이력",
 };
 
 /* ── 안전 설계 = 시안 7b ───────────────────────────────────────
@@ -46,12 +47,16 @@ export const metadata: Metadata = {
      → 「위험할수록 AI의 지분이 줄어듭니다」 생성 허용 범위 막대(퍼센트 없음 — 순서만)
      → 「지금 이 기기에서 — 실시간 계측」 두 칸
      → 「개인정보가 움직이는 길 — 한 줄뿐입니다」 3칩
-     → 그 아래로 상세(3계층 표·검증 계단 ①~④·개인정보 경로·폴백·화이트리스트
+     → 그 아래로 상세(3계층 표·AI 지도·검증 계단 ①~④·개인정보 경로·폴백·화이트리스트
        ·의료기기 경계·접근권한·루브릭 30항목과 감수 이력) → 기관 담당자용 요약 한 장.
+
+   [AI 지도] 02 절은 방향이 반대인 유일한 절입니다 — 무엇을 막았는지가 아니라 AI가 실제로
+   닿는 다섯 자리를 폅니다. 화면 곳곳의 「생성 호출 0건」이 기본 빌드 기준이라는 사실과,
+   설정에서 온라인 코칭을 켰을 때 달라지는 한 자리를 그 표가 스스로 밝힙니다.
 
    [검증 계단] 이 화면에는 성격이 다른 값이 셋 섞여 있습니다 — 지금 이 기기에서 잰 것,
    앱 밖 하네스에서 재어 옮겨 적은 것, 아직 재지 않은 것. 구분 없이 늘어놓으면 셋 다 같은
-   무게로 읽히므로, 02 절에서 계단 ①~④로 세우고 칸마다 출처를 문장으로 답니다.
+   무게로 읽히므로, 03 절에서 계단 ①~④로 세우고 칸마다 출처를 문장으로 답니다.
    ④(파일럿)에는 숫자가 한 칸도 없습니다 — 잴 항목만 미리 적어 둡니다.
 
    화면이 「지금 되는 것」과 「설계까지 한 것」을 같은 말투로 섞지 않도록,
@@ -66,6 +71,7 @@ export const metadata: Metadata = {
 /** 목차 칩 — 「의료기기 경계」는 근거 문서 다음에 이어서 읽히므로 칩을 따로 두지 않습니다. */
 const TOC: readonly TocItem[] = [
   { id: "tiers", label: "3계층" },
+  { id: "ai-map", label: "AI 지도" },
   { id: "ladder", label: "검증" },
   { id: "privacy", label: "데이터" },
   { id: "fallback", label: "폴백" },
@@ -445,6 +451,14 @@ export default function SafetyPage() {
             때려 본 기록과 함께 다시 나옵니다. 같은 케이스를 이 기기에서 지금 다시 돌려 보실 수
             있습니다.
           </p>
+          {/* 표가 「알파에는 생성 호출이 0건」이라고 적었으니, 그 말이 무엇을 기준으로 한
+              것인지도 같은 자리에서 밝혀 둡니다 — 바로 다음 절이 그 기준을 폅니다. */}
+          <p className="mt-2 text-[0.9375rem] leading-[1.65] text-ink-soft">
+            위 「생성 호출 0건」은 <b className="font-bold text-ink">기본 빌드 기준</b>입니다.
+            설정에서 온라인 코칭(실험)을 켜면 코칭 문장 한 자리가 열리는데, 어느 자리가 어떻게
+            달라지는지는 바로 아래 <b className="font-bold text-ink">AI 지도</b>가 그대로 적어
+            둡니다.
+          </p>
 
           {/* 흐름도 — 세로 스텝 목록은 그대로 보이고, 큰 다이어그램은 그 안에서 한 번 더 접힙니다. */}
           <div className="mt-6">
@@ -463,10 +477,21 @@ export default function SafetyPage() {
           </Note>
         </Section>
 
-        {/* 2. 검증 계단 — 「무엇을 어디까지 재 봤는가」. 이 화면에서 유일하게 모바일에서도 펴 두는 절입니다. */}
+        {/* 2. AI 지도 — 3계층이 「무엇을 잠갔는가」라면, 이 절은 「AI가 어디에 있는가」입니다.
+            둘을 붙여 두어야 잠근 자리와 열린 자리가 한 번에 읽힙니다. */}
+        <Section
+          id="ai-map"
+          num="02"
+          title="AI가 쓰이는 자리 — 다섯 곳뿐입니다"
+          lead="「AI 시뮬레이터」라고 소개해 놓고 화면에는 「생성 호출 0건」이라 적혀 있으면, 둘 중 하나는 거짓말로 읽힙니다. 그래서 AI가 닿는 자리 다섯 곳을 이름 붙여 세우고, 자리마다 지금 무엇이 돌고 있는지·설정에서 온라인 코칭을 켜면 무엇이 달라지는지·파일럿에서 무엇을 이어 붙일지를 나란히 적었습니다."
+        >
+          <AiMap />
+        </Section>
+
+        {/* 3. 검증 계단 — 「무엇을 어디까지 재 봤는가」. 이 화면에서 유일하게 모바일에서도 펴 두는 절입니다. */}
         <Section
           id="ladder"
-          num="02"
+          num="03"
           title="검증 계단 — 어디까지 재 봤는지"
           lead="「잘 될 겁니다」 대신 네 계단을 쌓았습니다. 칸마다 어디서 잰 값인지를 함께 적었습니다 — ①은 이 기기에서 지금 다시 돌릴 수 있고, ②·③은 앱 밖 하네스 실행 기록을 옮겨 적은 값이며, ④는 아직 재지 않았습니다. 재지 않은 칸에는 숫자를 넣지 않습니다."
           alwaysOpen
@@ -475,10 +500,10 @@ export default function SafetyPage() {
           <CountedFacts className="mt-6" />
         </Section>
 
-        {/* 3. 데이터 — 개인정보 경로 + 라이브 계측 상세 */}
+        {/* 4. 데이터 — 개인정보 경로 + 라이브 계측 상세 */}
         <Section
           id="privacy"
-          num="03"
+          num="04"
           title="털릴 데이터를 처음부터 만들지 않았습니다"
           lead="훈련에서 대화하는 상대는 전부 가상 인물이라, 훈련 단계에서는 개인정보 수집 자체가 일어나지 않습니다. 실제 어르신의 정보가 지나가는 길은 기록 코칭 하나뿐이고, 그 길에는 가명처리 관문이 두 개 있습니다."
         >
@@ -533,10 +558,10 @@ export default function SafetyPage() {
           </p>
         </Section>
 
-        {/* 4. 폴백 매트릭스 */}
+        {/* 5. 폴백 매트릭스 */}
         <Section
           id="fallback"
-          num="04"
+          num="05"
           title="어느 구간이 죽어도 훈련은 멈추지 않습니다"
           lead="장애는 일어난다고 보고 설계했습니다. 각 구간이 멈췄을 때 세션을 유지하는 방법을 미리 정해 두었습니다."
         >
@@ -598,10 +623,10 @@ export default function SafetyPage() {
           </Note>
         </Section>
 
-        {/* 5. 근거 문서 화이트리스트 */}
+        {/* 6. 근거 문서 화이트리스트 */}
         <Section
           id="docs"
-          num="05"
+          num="06"
           title="근거 문서 화이트리스트"
           lead="피드백에 붙는 근거는 아래 목록 안에서만 나옵니다. 목록 밖 문서는 인용하지 않고, 목록 밖 문서를 근거로 든 판정은 엔진이 멈춰 세웁니다."
         >
@@ -622,10 +647,10 @@ export default function SafetyPage() {
           </p>
         </Section>
 
-        {/* 6. 의료기기 경계 */}
+        {/* 7. 의료기기 경계 */}
         <Section
           id="boundary"
-          num="06"
+          num="07"
           title="의료기기 경계는 표현이 아니라 기능으로 지킵니다"
           lead="문구로 피해 가는 대신, 구조적으로 그 판단이 생기지 않게 만들었습니다."
         >
@@ -669,10 +694,10 @@ export default function SafetyPage() {
           </div>
         </Section>
 
-        {/* 7. 접근권한 3등급 */}
+        {/* 8. 접근권한 3등급 */}
         <Section
           id="access"
-          num="07"
+          num="08"
           title="접근권한 3등급"
           lead="내부 판정 결과가 인사평가로 흘러가면 아무도 솔직하게 실패하지 않습니다. 실패 없는 훈련은 효과가 0이 되기 때문에, 권한을 처음부터 나눠 두었습니다."
         >
@@ -750,10 +775,10 @@ export default function SafetyPage() {
           </Note>
         </Section>
 
-        {/* 8. 판정 기준과 감수 이력 — 「자산을 보여 달라」는 요청에 화면이 답하는 자리입니다. */}
+        {/* 9. 판정 기준과 감수 이력 — 「자산을 보여 달라」는 요청에 화면이 답하는 자리입니다. */}
         <Section
           id="rubric"
-          num="08"
+          num="09"
           title="루브릭 30항목과 감수 이력"
           lead="이 제품의 자산은 모델이 아니라 루브릭 30항목입니다. 감추고 믿어 달라고 하는 대신, 판정 기준 문장을 전부 펴 두고 누가 어디까지 감수했는지도 같이 적었습니다."
         >

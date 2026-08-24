@@ -32,7 +32,7 @@
  * 개발 서버에서는 서비스워커를 아예 등록하지 않으므로(SwRegister.tsx),
  * 치환되지 않은 플레이스홀더가 그대로 남아 있어도 문제가 없습니다.
  */
-const CACHE_NAME = "chimchak-0bfd5643e245";
+const CACHE_NAME = "chimchak-a9dd0f0b8024";
 
 /**
  * 오프라인에서도 반드시 열려야 하는 화면·자산 목록입니다.
@@ -59,11 +59,14 @@ const PRECACHE_URLS = [
   "/train",
   "/train/chk-a01",
   "/train/chk-a02",
+  "/train/chk-b01",
   "/train/chk-b02",
   "/train/chk-c01",
   "/train/chk-c02",
   "/report",
   "/history",
+  // 도움말도 오프라인에서 열립니다 — 처음 오신 분이 회선 없는 자리에서 헤매지 않게.
+  "/guide",
 
   "/manifest.webmanifest",
   "/icon.svg",

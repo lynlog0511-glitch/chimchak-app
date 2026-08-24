@@ -17,9 +17,14 @@ const isDev = process.env.NODE_ENV !== "production";
 /**
  * 콘텐츠 보안 정책(CSP).
  *
- * 이 앱은 외부 API를 부르지 않고(화면 코드 src/ 전체에 `fetch(` 0건 — 서비스워커의 동일 출처
- * 요청이 전부입니다), 외부 스크립트·폰트·이미지도 싣지 않습니다. 그래서 넓게 적어 둘 이유가
- * 없습니다 — 이미 참인 사실을 그대로 옮겼습니다.
+ * 이 앱은 외부 API를 부르지 않습니다. 화면 코드에서 `fetch(`를 쓰는 곳은 온라인 코칭
+ * 클라이언트(`src/lib/onlineCoach.ts`) 한 곳뿐이고, 그 한 줄이 부르는 주소는 같은 도메인의
+ * `/api/coach`입니다 — 상류 제공사는 그 뒤에서 **서버가** 부릅니다(`src/app/api/coach/route.ts`).
+ *
+ * 그래서 `connect-src`는 온라인 코칭을 켜든 끄든 `'self'` 하나입니다. 한때 여기에는
+ * `NEXT_PUBLIC_LLM_ORIGIN`을 읽어 허용 origin 한 칸을 더하는 분기가 있었습니다. 그 분기가
+ * 사라진 것이 서버 프록시 전환의 증명입니다 — 브라우저가 나갈 곳이 늘지 않았고, 늘 필요가
+ * 없어졌으므로 목록도 다시 좁아졌습니다.
  *
  * 좁히지 못한 자리는 두 곳이고, 둘 다 사유를 적어 둡니다.
  *
@@ -41,7 +46,8 @@ const CONTENT_SECURITY_POLICY = [
   "img-src 'self' data:",
   "media-src 'self' data:",
   "font-src 'self'",
-  // 개발 서버의 HMR 소켓(ws:)도 배포 빌드에서는 붙지 않습니다.
+  /* 개발 서버의 HMR 소켓(ws:)만 예외이고, 배포 빌드에서는 붙지 않습니다.
+     온라인 코칭을 켜도 이 줄은 그대로입니다 — 브라우저가 부르는 곳은 같은 출처뿐입니다. */
   `connect-src 'self'${isDev ? " ws:" : ""}`,
   "frame-ancestors 'none'",
   "base-uri 'self'",

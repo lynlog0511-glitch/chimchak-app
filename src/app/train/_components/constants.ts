@@ -7,7 +7,7 @@
 
 import type { BadgeTone } from "@/components";
 import type { StatusMarkKind } from "@/components/icons";
-import type { TracedFeedback } from "@/engine";
+import { getRule, type TracedFeedback } from "@/engine";
 import type { EndingDef, GaugeDef, PersonaDef, Scenario, ScenarioType, Tier, TurnDef } from "@/types";
 
 /** 첫 화면·훈련 시작 전 고정 문구 */
@@ -16,16 +16,11 @@ export const PRACTICE_LINE = "정답을 맞히는 시험이 아니라, 말이 �
 /** 가상 인물 고지 */
 export const FICTION_NOTICE = "등장인물은 전원 가상 인물이며 실존 인물·기관과 무관합니다.";
 
-/**
- * 생성 자리 고지 — 세션 화면이 「생성 0건」이라고 적는 까닭을 한 줄로 밝힙니다.
- *
- * 지금 화면에서 도는 것과 앞으로 붙일 것을 같은 문장 안에 둡니다. 「AI 시뮬레이터」라고
- * 소개해 놓고 화면에는 생성 호출이 0건이라 적으면 둘 중 하나가 거짓말로 읽히므로,
- * **어디까지가 데이터·규칙이고 어디부터가 어댑터 자리인지**를 사실대로 적습니다.
- * (안전 설계 페이지의 「교체형 어댑터 연결 지점」과 같은 사실을 가리킵니다.)
- */
-export const GENERATION_ADAPTER_NOTE =
-  "어르신 대사는 검수된 시나리오 문장이고, 판정은 규칙이 합니다. 경량 LLM 어댑터 자리는 근거 가드 검증을 통과한 구간부터 엽니다.";
+/* 생성 자리 고지(GENERATION_ADAPTER_NOTE·VARY_ADAPTER_NOTE 노출)는 2026-08-24에 세션 상단에서
+   걷어냈습니다. 「어댑터 자리」·「근거 가드 검증을 통과한 구간」은 심사·개발 상태를 말하는 문장이라,
+   어르신 대사 바로 위에 서면 훈련하러 오신 분이 읽을 것이 아니었습니다.
+   같은 사실은 /safety §02가 그대로 들고 있습니다 — 지운 것이 아니라 자리를 옮긴 것입니다.
+   말풍선 쪽 표기는 남습니다: 실제로 생성이 붙은 턴에만 「AI 생성」이 붙습니다(DialogueLog). */
 
 /** L3 진입 전환 문구 */
 export const PROTOCOL_HANDOFF_TITLE = "여기서부터 AI가 화면에서 빠집니다";
@@ -91,6 +86,84 @@ export const ROLE_LABEL: Record<PersonaDef["role"], string> = {
 /** 시나리오 상세 경로 — 라우트 파라미터는 소문자로 통일합니다. */
 export function scenarioHref(id: string): string {
   return `/train/${id.toLowerCase()}`;
+}
+
+/* ── 인물 아바타 한 글자 ───────────────────────────────────
+   세션 말풍선(DialogueLog)과 브리핑 인물 카드(BriefingPanel)가 **같은 한 글자**를 씁니다 —
+   브리핑에서 본 얼굴이 대화에서 그대로 나와야 「같은 사람」으로 읽힙니다.
+   두 화면이 각자 성씨를 뽑으면 언젠가 갈라지므로, 뽑는 규칙은 여기 한 곳에만 둡니다. */
+
+const ROLE_PREFIX = ["보호자", "요양보호사", "간호사", "센터장", "가족", "따님", "아드님"];
+
+/**
+ * 아바타에 새길 한 글자.
+ * 역할어("보호자" 등)와 괄호 주석을 걷어낸 뒤, 홀로 떨어져 있는 성씨 한 글자를 먼저 찾습니다.
+ *
+ * @example initialOf("박 어르신")     // "박"
+ * @example initialOf("보호자 김 씨")  // "김"
+ * @example initialOf("119 상황실")    // "상"
+ */
+export function initialOf(name: string): string {
+  let base = name.replace(/\([^)]*\)/g, " ").trim();
+  for (const word of ROLE_PREFIX) {
+    if (base.startsWith(word)) {
+      base = base.slice(word.length).trim();
+      break;
+    }
+  }
+  const surname = base.split(/\s+/).find((token) => /^[가-힣]$/.test(token));
+  if (surname) return surname;
+  const hangul = base.match(/[가-힣]/);
+  if (hangul) return hangul[0];
+  const other = base.match(/[A-Za-z0-9]/);
+  return other ? other[0] : "";
+}
+
+/* ── 돌발 변수 = 무대 지문 ─────────────────────────────────
+   시나리오 데이터의 `triggerName`은 저작용 표기입니다(「T-2 보호자 전화」·「N-1 자동문 버튼」).
+   그 표기를 대화 한가운데에 「돌발 변수 · T-2 보호자 전화」로 세우면, 훈련 중인 분이 읽는 것은
+   장면이 아니라 설계 문서의 색인이 됩니다.
+
+   그래서 데이터는 그대로 두고 **화면에서만** 무대 지문 한 줄로 바꿉니다 —
+   「그때, 전화가 옵니다」. 무슨 일이 일어났는지의 자세한 내용은 바로 아래 말풍선의 본문과
+   지문(`stageDirection`)이 이미 들고 있으므로, 이 줄이 하는 일은 **박자를 끊는 것** 하나입니다. */
+
+const TRIGGER_STAGE_LINE: Record<string, string> = {
+  /* CHK-A01 — 현관 앞 귀가 요구 */
+  "T-1 문고리": "그때, 어르신 손이 문 쪽으로 갑니다",
+  "T-3 젖은 옷 단서": "그때, 눈에 들어오는 것이 있습니다",
+  "T-2 보호자 전화": "그때, 전화가 옵니다",
+  /* CHK-A02 — 야간 배회 */
+  "N-1 자동문 버튼": "그때, 어르신 손이 문 쪽으로 갑니다",
+  "N-3 무릎 통증 단서": "그때, 눈에 들어오는 것이 있습니다",
+  "N-2 옆방 어르신": "그때, 옆방 문이 열립니다",
+  /* CHK-B01 — 낙상 후 관찰·보고 */
+  "F-1 일으켜 달라는 재촉": "그때, 어르신이 몸을 일으키려 하십니다",
+  "F-2 보호자 전화": "그때, 전화가 옵니다",
+  /* CHK-B02 — 사레·질식 */
+  "T-1 완전 기도폐쇄 전환": "그때, 소리가 멎습니다",
+  "T-2 보호자 추궁": "그때, 전화가 옵니다",
+  /* CHK-C01 — 업무 외 요구 + 폭언 */
+  "T-1' 요구 확대": "그때, 말이 이어집니다",
+  "T-1 센터장 압박": "그때, 말투가 달라집니다",
+  "T-2 어르신 청취": "그때, 어르신이 이쪽을 보십니다",
+  /* CHK-C02 — 원인을 모르는 멍 */
+  "C-1 억제 요구": "그때, 말투가 달라집니다",
+  "C-2 어르신 청취": "그때, 어르신이 이쪽을 보십니다",
+  "C-3 촬영 요구": "그때, 휴대전화가 올라옵니다",
+};
+
+/** 지문에 남는 마지막 안전망 — 표에 없는 돌발 변수가 들어와도 코드가 화면에 나가지 않습니다. */
+const TRIGGER_STAGE_FALLBACK = "그때, 상황이 하나 더 겹칩니다";
+
+/**
+ * 돌발 변수 이름 → 무대 지문 한 줄.
+ *
+ * @example triggerStageLine("T-2 보호자 전화") // "그때, 전화가 옵니다"
+ * @example triggerStageLine("Z-9 미정")        // "그때, 상황이 하나 더 겹칩니다"
+ */
+export function triggerStageLine(triggerName: string): string {
+  return TRIGGER_STAGE_LINE[triggerName.trim()] ?? TRIGGER_STAGE_FALLBACK;
 }
 
 /* ── 세션 헤더 (시안 4a 컴팩트 헤더) ───────────────────────── */
@@ -316,19 +389,36 @@ export function gaugeRailLabel(scenario: Scenario): string {
 /* ── ⚑CF 판정 주체 (시안 6c 근거 박스 · 가이드 §4.6) ───────── */
 
 /**
- * 판정 주체 한 줄 — 「판정: 규칙 사전 CF-RESTRAINT (AI 아님)」.
+ * 규칙 사전에서 발동한 규칙의 **한국어 이름** — 「신체 자유 제한」.
+ *
+ * 판정에 쓰인 규칙 id(`CF-RESTRAINT`)는 사전의 열쇠이지 사람이 읽는 이름이 아닙니다.
+ * 이름은 새로 짓지 않고 `src/engine/rules.ts`의 `label`을 그대로 가져옵니다 —
+ * 화면에 나가는 낱말과 판정을 실행한 규칙이 같은 원천을 가리키게 하려는 것입니다.
+ */
+function ruleNameOf(trace: TracedFeedback["trace"]): string | undefined {
+  const label = trace?.ruleLabel ?? (trace?.ruleId ? getRule(trace.ruleId)?.label : undefined);
+  return label && label.trim().length > 0 ? label.trim() : undefined;
+}
+
+/**
+ * 판정 주체 한 줄 — 「판정: 규칙 사전 — 신체 자유 제한 (AI 아님)」.
  *
  * 규칙 사전이 단독으로 잡은 판정과 시나리오 분기 데이터가 정한 판정은 주체가 다릅니다.
  * 둘 다 결정론이지만, 아닌 것을 「규칙 사전」이라고 적지는 않습니다.
  * (⚑CF 시트와 엔딩의 「다시 볼 장면」 카드가 같은 문장을 씁니다.)
  *
- * @example cfVerdictSourceLine(feedback) // "판정: 규칙 사전 CF-RESTRAINT (AI 아님)"
+ * 형식(「판정: … (AI 아님)」)은 고정입니다 — 바뀐 것은 규칙을 부르는 말뿐입니다.
+ * 얼어붙은 순간에 읽는 줄이 영문 코드일 이유가 없고, 「AI 아님」은 이 시트의 안전 증거라
+ * 한 글자도 줄이지 않습니다.
+ *
+ * @example cfVerdictSourceLine(feedback) // "판정: 규칙 사전 — 신체 자유 제한 (AI 아님)"
  */
 export function cfVerdictSourceLine(feedback: TracedFeedback): string {
   const trace = feedback.trace;
   const itemId = trace?.itemIds?.[0];
   if (trace?.source === "rule") {
-    return `판정: 규칙 사전 ${trace.ruleId ?? itemId ?? "⚑CF"} (AI 아님)`;
+    const name = ruleNameOf(trace);
+    return name ? `판정: 규칙 사전 — ${name} (AI 아님)` : "판정: 규칙 사전 (AI 아님)";
   }
   return `판정: 시나리오 규칙표 ${itemId ?? feedback.branchId} (AI 아님)`;
 }

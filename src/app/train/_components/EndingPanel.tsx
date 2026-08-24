@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ChevronGlyph, StatusMark, STATUS_MARK_LABEL, type StatusMarkKind } from "@/components/icons";
 import Link from "next/link";
 import { BigButton, useSourceDoc } from "@/components";
+import { BreathMark } from "@/components/BreathMark";
 import { cx } from "@/components/utils";
 import { unexploredBranches, type TracedFeedback } from "@/engine";
 import { loadSessions } from "@/lib/storage";
@@ -271,8 +272,14 @@ function SessionTimeline({ rows, situations }: { rows: TimelineRow[]; situations
 
 interface BestMoment {
   ordinal: string;
-  label: string;
-  /** 그때 드린 강화 문구 — 시나리오 데이터의 검수 문장 그대로입니다 */
+  /**
+   * 그때 드린 강화 문구 — 시나리오 데이터의 검수 문장 그대로입니다.
+   *
+   * 이 카드가 세우는 문장은 이것 하나뿐입니다. 예전에는 머리줄에 분기 이름(「대체 행동 유도
+   * (동의를 구하고 함께 움직임)」)이 함께 섰는데, 그것은 설계표의 개조식 항목 이름이라
+   * 「가장 잘한 순간」이라는 말과 나란히 놓이면 칭찬이 아니라 분류가 됩니다.
+   * 그 자리에 이미 검수된 **문장체 칭찬**이 있으니, 그 문장이 대신 말하게 둡니다.
+   */
   message: string;
 }
 
@@ -319,7 +326,6 @@ function pickBestMoment(events: readonly SessionEvent[]): BestMoment | undefined
       delta,
       moment: {
         ordinal: situationOrdinal(numbers.get(cueId) ?? 1),
-        label: cleanBranchLabel(feedback.branchLabel ?? ""),
         message,
       },
     };
@@ -456,8 +462,33 @@ export function EndingPanel({
 
   return (
     <div className={cx("animate-fade-up", className)}>
-      {/* 머리 — 원 하나와 제목. 판정 낱말은 세우지 않습니다(점수로 읽히지 않게). */}
+      {/* 머리 — 호흡 마크, 원 하나, 제목. 판정 낱말은 세우지 않습니다(점수로 읽히지 않게).
+
+          호흡 마크는 이 앱의 전역 유일 심볼입니다(홈 히어로·앱 아이콘과 같은 마크).
+          훈련이 끝난 자리에 그 마크를 세우는 것은 「끝까지 가셨어요」를 형태로 한 번 더 말하는
+          일이고, 점 셋이 차례로 들어오는 동안 화면이 한 박자 숨을 고릅니다.
+
+          모션은 새로 만들지 않습니다 — 등장은 이미 있는 두 단 중 가벼운 쪽(chim-pop-in 180ms)이고,
+          점마다 110ms씩 늦게 출발합니다(말하는 중 점 셋과 같은 간격). 움직임을 줄여 달라고
+          설정하신 분께는 규칙 자체가 적용되지 않아, 세 점이 처음부터 제자리에 서 있습니다.
+
+          틸 채움은 이 화면에서 여전히 **두 곳**입니다 — 판정 원 하나와 아래 주 버튼 하나.
+          호흡 마크는 면이 아니라 심볼이라 그 셈에 들지 않습니다(14px 높이의 점 셋). */}
       <div className="text-center">
+        <BreathMark
+          height={14}
+          className={cx(
+            "mx-auto mb-3",
+            /* 점마다 같은 등장(--animate-pop-in)에 110ms씩 늦은 출발만 얹습니다 —
+               `animation` 축약형에서 두 번째 시간값이 지연이라, 속도·이징·채움은 그대로 한 벌입니다.
+               `animation-delay`를 따로 걸지 않는 이유는 축약형이 뒤에 오면 지연을 0으로 되돌리기 때문입니다.
+               `motion-safe:`로 감싸 두었으므로, 움직임을 줄여 달라고 하신 분께는 규칙 자체가 적용되지
+               않습니다 — 세 점이 처음부터 제자리에 그대로 서 있습니다(지연된 등장도 없습니다). */
+            "motion-safe:[&>.breath-dot-1]:[animation:var(--animate-pop-in)]",
+            "motion-safe:[&>.breath-dot-2]:[animation:var(--animate-pop-in)_110ms]",
+            "motion-safe:[&>.breath-dot-3]:[animation:var(--animate-pop-in)_220ms]",
+          )}
+        />
         <span
           aria-hidden
           className={cx(
@@ -529,7 +560,6 @@ export function EndingPanel({
           <div className="mb-2 rounded-card bg-paper-2 px-[15px] py-3.5">
             <p className="text-[0.7813rem] leading-[1.45] font-bold text-ok-ink">
               가장 잘한 순간 — {best.ordinal} 상황
-              {best.label.length > 0 && ` · ${best.label}`}
             </p>
             <p className="mt-1.5 text-[0.9375rem] leading-[1.6] text-ink">{best.message}</p>
           </div>

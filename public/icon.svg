@@ -1,19 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-labelledby="chimchak-icon-title">
   <title id="chimchak-icon-title">침착 ChimChak</title>
-  <!-- 바탕: 지면색(#F7FAF9) — 마스커블 아이콘으로 잘려도 모서리가 비지 않게 채웁니다. -->
-  <rect width="512" height="512" fill="#F7FAF9"/>
-  <!-- 브랜드 틸 원 -->
-  <circle cx="256" cy="256" r="240" fill="#17948A"/>
-  <!-- 흰 글자 "침착" — 외부 폰트 없이 시스템 한글 스택만 사용합니다(오프라인 보장). -->
+  <!-- 바탕: 지면색(#ffffff = globals.css --color-paper) — 마스커블 아이콘으로 잘려도 모서리가 비지 않게 채웁니다.
+       manifest의 background_color와 같은 값입니다(설치 스플래시와 아이콘 바탕이 이어 보이도록). -->
+  <rect width="512" height="512" fill="#ffffff"/>
+  <!-- 브랜드 틸 원 (#17948a = --color-brand-600) -->
+  <circle cx="256" cy="256" r="240" fill="#17948a"/>
+  <!-- 흰 글자 "침착" — 외부 폰트 없이 시스템 한글 스택만 사용합니다(오프라인 보장).
+       호흡 마크가 아래에 한 줄 들어오면서 글자를 조금 줄이고 위로 올렸습니다.
+       마스커블 안전 영역(중심 반경 204.8) 안에 글자와 점이 모두 들어옵니다. -->
   <text
     x="256"
-    y="262"
+    y="222"
     text-anchor="middle"
     dominant-baseline="central"
     font-family="'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR','Nanum Gothic','Segoe UI',sans-serif"
-    font-size="172"
+    font-size="150"
     font-weight="700"
     letter-spacing="-4"
-    fill="#FFFFFF"
+    fill="#ffffff"
   >침착</text>
+  <!-- 호흡 마크 — 앱 안의 BreathMark(src/components/BreathMark.tsx)와 **같은 간격 비율**입니다.
+       원본 viewBox 96×16의 점 중심 10·38·74를 이 원 안으로 옮겨 놓은 값이라(배율 1.625),
+       점 사이가 45.5 → 58.5로 넓어집니다: 숨을 고르며 침착해지는 리듬.
+       앞 두 점은 흰 채움, 마지막 점만 테두리만 남깁니다 — 아직 고르는 중인 숨 하나입니다.
+       (앱 화면은 틸 지면이 아니라 흰 지면이라 색이 서로 반대입니다. 모양은 같습니다.) -->
+  <g aria-hidden="true">
+    <circle cx="204" cy="354" r="8" fill="#ffffff"/>
+    <circle cx="249.5" cy="354" r="8" fill="#ffffff"/>
+    <circle cx="308" cy="354" r="8" fill="#17948a" stroke="#ffffff" stroke-width="3"/>
+  </g>
 </svg>

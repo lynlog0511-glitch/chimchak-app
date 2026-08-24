@@ -19,9 +19,9 @@ import { cx } from "@/components/utils";
 /**
  * 규칙 엔진 검증 카드 — **인용치와 실측치를 나란히** 둡니다.
  *
- * 예전에는 기획서 검증 계단 ①의 숫자를 옮겨 적기만 했습니다. 옮겨 적은 값은 심사위원이
+ * 예전에는 설계 문서 검증 계단 ①의 숫자를 옮겨 적기만 했습니다. 옮겨 적은 값은 보시는 분이
  * 그 자리에서 반증할 수 없어서, 경계 케이스를 저장소에 커밋하고(src/data/ruleBoundaryCases.ts)
- * 버튼 한 번으로 **지금 이 브라우저에서** 다시 돌리게 했습니다. 위 칸은 기획서 값,
+ * 버튼 한 번으로 **지금 이 브라우저에서** 다시 돌리게 했습니다. 위 칸은 설계 문서 값,
  * 아래 칸은 방금 이 기기에서 잰 값입니다 — 섞지 않습니다.
  *
  * **둘을 크기로 갈라 놓았습니다**: 옮겨 적은 값은 작은 표(15px)에 그대로 두고,
@@ -38,7 +38,7 @@ export interface RuleEngineProofProps {
   className?: string;
 }
 
-/** 기획서 검증 계단 ① 실행 로그 — 옮겨 적은 값입니다(이 화면에서 잰 값이 아닙니다). */
+/** 설계 문서 검증 계단 ① 실행 로그 — 옮겨 적은 값입니다(이 화면에서 잰 값이 아닙니다). */
 const QUOTED_ROWS: readonly { k: string; v: string }[] = [
   { k: "경계 케이스", v: "30 / 30 전수 통과" },
   { k: "판정 지연 (p95)", v: "0.11 ms" },
@@ -151,13 +151,13 @@ export function RuleEngineProof({ className }: RuleEngineProofProps) {
       <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink-soft">
         규칙 사전과 시간 규칙이 단독으로 판정하는 {RULE_ENGINE_ITEM_IDS.length}항목(그중 안전
         직결 {RULE_ENGINE_CF_ITEM_IDS.length}항목)을 경계 문장으로 때려 본 기록입니다. 아래
-        「지금 돌려보기」를 누르면 같은 케이스를 이 기기에서 다시 돌립니다. 기획서 시점의
+        「지금 돌려보기」를 누르면 같은 케이스를 이 기기에서 다시 돌립니다. 설계 문서 시점의
         케이스는 30건이었고, 그 뒤 사투리 말씨·부정 표현 경계를 더해 지금은 실측 칸의 수만큼
         늘었습니다 — 그날 30건도 전부 그대로 들어 있습니다.
       </p>
 
       <p className="mt-4 text-[0.7813rem] leading-[1.5] font-bold tracking-[0.04em] text-ink-muted">
-        기획서 검증 계단 ① 실행 로그 — 옮겨 적은 값
+        설계 문서 검증 계단 ① 실행 로그 — 옮겨 적은 값
       </p>
       <dl className="chim-hairline mt-1 border-y border-line">
         {QUOTED_ROWS.map((row) => (
@@ -211,7 +211,7 @@ export function RuleEngineProof({ className }: RuleEngineProofProps) {
 
       {/* 출처와 한계를 같은 크기로 적습니다 — 두 칸의 숫자가 섞여 읽히면 안 되는 값입니다. */}
       <p className="mt-4 text-[0.7813rem] leading-[1.6] text-ink-muted">
-        위 칸은 기획서에 실린 값이고, 아래 칸은 방금 이 브라우저에서 잰 값입니다. 기기 성능에
+        위 칸은 설계 문서에 실린 값이고, 아래 칸은 방금 이 브라우저에서 잰 값입니다. 기기 성능에
         따라 지연 값은 달라집니다 — 통과 건수는 기기와 무관하게 같아야 합니다.
       </p>
     </section>

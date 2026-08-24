@@ -16,7 +16,6 @@ import {
   SAVE_FAILED_TITLE,
   SESSIONS_KEY,
   SESSION_SAVE_FAILED_BODY,
-  STORAGE_BLOCKED_NOTICE,
   canWriteStorage,
   clearAllProgress,
   clearProgress,
@@ -384,7 +383,7 @@ describe("저장 실패를 호출부가 알 수 있다", () => {
   });
 
   it("실패 문구는 무엇이 막혔는지 사실대로 적고 성공을 말하지 않는다", () => {
-    for (const text of [SAVE_FAILED_TITLE, SAVE_FAILED_BODY, SESSION_SAVE_FAILED_BODY, STORAGE_BLOCKED_NOTICE]) {
+    for (const text of [SAVE_FAILED_TITLE, SAVE_FAILED_BODY, SESSION_SAVE_FAILED_BODY]) {
       expect(text.length).toBeGreaterThan(0);
       expect(text).not.toContain("저장했습니다");
     }

@@ -1,5 +1,5 @@
 /**
- * 검증 계단 ①~④ — 기획서 표1의 네 계단을 화면이 그대로 인용하는 자리입니다.
+ * 검증 계단 ①~④ — 설계 문서 표1의 네 계단을 화면이 그대로 인용하는 자리입니다.
  *
  * 규칙 하나: **숫자를 지어내지 않습니다.**
  *  - ① 은 이 기기에서 버튼 한 번으로 다시 돌릴 수 있는 실행입니다(경계 케이스가 저장소에 있습니다).
@@ -23,7 +23,7 @@ export type LadderState = "measured" | "running";
 export type LadderOrigin = "in-app" | "external" | "not-yet";
 
 export interface LadderStep {
-  /** 계단 번호 — 기획서 표1 표기 그대로 */
+  /** 계단 번호 — 설계 문서 표1 표기 그대로 */
   no: string;
   /** 앵커·슬롯 식별자 */
   id: string;
@@ -95,7 +95,7 @@ export const VERIFICATION_LADDER: readonly LadderStep[] = [
     result:
       "8월 파일럿이 진행 중입니다. 1차 결과는 확보되는 대로 이 자리에 게시합니다 — 지금은 잴 항목만 미리 정해 두었습니다.",
     origin: "not-yet",
-    remaining: "본선까지 1차 결과를 확보합니다.",
+    remaining: "현직 교차 채점과 1차 결과 집계가 남아 있습니다.",
     state: "running",
   },
 ];
@@ -119,7 +119,7 @@ export const PILOT_PREREGISTERED: readonly { t: string; d: string }[] = [
 export const PILOT_SCOPE = "한 기관 한 팀(요양보호사 25명 안팎) · 기본 제안 4주";
 
 /**
- * ② 근거 가드 실측의 조건표 — 기획서 각주의 원값을 그대로 옮깁니다.
+ * ② 근거 가드 실측의 조건표 — 설계 문서 각주의 원값을 그대로 옮깁니다.
  *
  * 「목록 밖 인용」은 존재하지 않는 문서·인용이 허용되지 않은 자료·출처 표기가 없는 경우를
  * 함께 셉니다. 이 표의 숫자는 **전부 옮겨 적은 값**이며, 이 화면에서 잰 값이 아닙니다.

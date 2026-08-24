@@ -54,26 +54,32 @@ function pathBadge(trace: FeedbackTrace): string {
  * 버튼으로 고르신 턴은 규칙 사전이 아니라 시나리오 규칙표가 판정하므로 그대로 적습니다.
  */
 function pathQualifier(trace: FeedbackTrace): string | null {
-  if (trace.source === "button") return "선택지 그대로";
-  if (trace.source === "default") return "기본 응답";
+  if (trace.source === "button") return "고르신 보기 그대로";
+  if (trace.source === "default") return "기본 안내";
   return null;
 }
 
-/** 판정 경로 한 줄 라벨 — 무엇이 이 판정을 내렸는지 그대로 밝힙니다. */
+/**
+ * 판정 경로 한 줄 — 무엇이 이 판정을 내렸는지 **사람이 읽는 말로** 밝힙니다.
+ *
+ * 예전에는 「규칙 사전 단독 판정 (결정론 · 생성 없음)」처럼 설계 문서의 낱말이 그대로 있었습니다.
+ * 이 줄이 답하는 질문은 「왜 이 판정인가요?」이고, 그 질문을 누른 분이 알고 싶은 것은
+ * 판정기의 계보가 아니라 **내 말의 어디가 걸렸는가**입니다.
+ */
 function pathLabel(trace: FeedbackTrace): string {
   switch (trace.source) {
     case "rule":
-      return "규칙 사전 단독 판정 (결정론 · 생성 없음)";
+      return "말씀 속 표현이 규칙 사전에 그대로 있었습니다";
     case "criticalPattern":
     case "pattern":
       return trace.matchedPattern
-        ? `시나리오 규칙표 — 판정 신호 일치: 「${trace.matchedPattern}」`
-        : "시나리오 규칙표 — 판정 신호 일치";
+        ? `말씀 속 「${trace.matchedPattern}」가 이 상황에 적어 둔 갈래와 맞았습니다`
+        : "이 상황에 적어 둔 갈래와 맞았습니다";
     case "button":
-      return "시나리오 규칙표 — 고르신 선택지 그대로";
+      return "고르신 보기에 정해 둔 판정을 그대로 따랐습니다";
     case "default":
     default:
-      return "시나리오 규칙표 — 미분류, 기본 응답 처리";
+      return "적어 둔 갈래 어디에도 맞지 않아 기본 안내로 드렸습니다";
   }
 }
 
@@ -81,16 +87,16 @@ function pathLabel(trace: FeedbackTrace): string {
 function pathNote(trace: FeedbackTrace): string {
   switch (trace.source) {
     case "rule":
-      return "말씀 속 표현이 규칙 사전에 등재된 금지 표현과 그대로 맞았습니다. 이 판정에는 생성이 쓰이지 않습니다.";
+      return "규칙 사전은 미리 적어 둔 표입니다 — 이 판정에는 AI가 쓰이지 않았습니다.";
     case "criticalPattern":
-      return "안전 직결 분기의 판정 신호를 먼저 검사해 걸렀습니다.";
+      return "안전에 곧바로 걸리는 갈래를 먼저 살펴 걸렀습니다.";
     case "pattern":
-      return "시나리오 데이터에 적힌 분기 신호와 맞아, 그 분기의 고정 문구를 그대로 보여 드립니다.";
+      return "이 상황에 미리 적어 둔 문장을 그대로 보여 드립니다.";
     case "button":
-      return "고르신 보기에 시나리오 데이터가 미리 정해 둔 판정을 그대로 따랐습니다. 보기로 고르신 턴은 시나리오 규칙표가 판정하고, 규칙 사전은 직접 말씀하신 문장에 돕니다 — 둘 다 생성 없이 정해진 표를 따릅니다.";
+      return "보기로 고르신 턴은 이 상황의 표가 판정하고, 규칙 사전은 직접 말씀하신 문장에 돕니다 — 둘 다 AI 없이 정해 둔 표를 따릅니다.";
     case "default":
     default:
-      return "어느 판정 신호에도 걸리지 않아 기본 응답으로 처리했습니다. 조금 더 구체적으로 말씀해 보시면 판정이 달라집니다.";
+      return "조금 더 구체적으로 말씀해 보시면 판정이 달라집니다.";
   }
 }
 
@@ -115,9 +121,15 @@ function useOnlineCoaching(feedback: TracedFeedback): OnlineCoachOutcome | undef
   return outcome;
 }
 
-/** 라벨 한 줄 — 무엇이 이 문장을 썼고, 가드를 지났는지 지지 못했는지 그대로 적습니다. */
-const ONLINE_HEAD_PASSED = "경량 LLM 코칭 · 근거 가드 통과";
-const ONLINE_HEAD_BLOCKED = "경량 LLM 코칭 · 근거 가드가 막았습니다";
+/**
+ * 라벨 한 줄 — 무엇이 이 문장을 썼고, 가드를 지났는지 지지 못했는지 그대로 적습니다.
+ *
+ * 낱말은 말풍선의 표기와 하나로 맞춥니다(DialogueLog) — 실제로 생성이 붙은 자리에만 「AI 생성」이
+ * 붙고, 그 낱말은 화면 어디서나 같은 뜻입니다. 모델 계층을 가리키던 예전 표기는 훈련하시는 분께
+ * 아무것도 알려 주지 않는 개발 낱말이었습니다.
+ */
+const ONLINE_HEAD_PASSED = "AI 생성 코칭 · 근거 가드 통과";
+const ONLINE_HEAD_BLOCKED = "AI 생성 코칭 · 근거 가드가 막았습니다";
 
 function OnlineCoachingBlock({ outcome }: { outcome: OnlineCoachOutcome }) {
   const blocked = outcome.status === "blocked";
@@ -149,7 +161,7 @@ function OnlineCoachingBlock({ outcome }: { outcome: OnlineCoachOutcome }) {
         </>
       )}
       <p className="mt-1.5 text-[0.6875rem] leading-[1.5] text-ink-muted">
-        판정·게이지·기록은 위 결정론 판정 그대로입니다 — 이 문장만 더해졌습니다.
+        판정도, 어르신 상태도, 기록도 위 그대로입니다 — 이 문장 하나만 더해졌습니다.
       </p>
     </div>
   );
@@ -217,9 +229,14 @@ export function InlineCoaching({ feedback, gaugeLabel, className }: InlineCoachi
             그리지 않습니다 — 스피너로 흐름을 막지 않고, 검수 코칭이 먼저 자리를 지킵니다. */}
         {online && <OnlineCoachingBlock outcome={online} />}
 
-        {/* 근거 문서 라벨과 토글을 한 덩어리로 묶어 **행 전체**를 누를 수 있게 합니다.
+        {/* 근거 문서 칩과 토글을 한 덩어리로 묶어 **행 전체**를 누를 수 있게 합니다.
             예전에는 밑줄 텍스트만 27px이라, 48px을 지키는 이 앱에서 유일하게 손가락이
-            미끄러지는 컨트롤이었습니다(평가 UI/UX mi9 실측 · 완주 한 회에 7개 노출). */}
+            미끄러지는 컨트롤이었습니다(평가 UI/UX mi9 실측 · 완주 한 회에 7개 노출).
+
+            2026-08-24 — 이 줄에 상시 노출하던 판정 경로(「판정: 시나리오 규칙표 · 선택지 그대로」)는
+            접힘 안으로 내렸습니다. 사실을 지운 것이 아니라 자리를 옮긴 것입니다: 코칭 문장 바로 밑에서
+            매 턴 읽히던 것이 판정기의 이름이라, 정작 읽으셔야 할 코칭 한 문장과 같은 무게로 서 있었습니다.
+            겉에 남는 것은 「어느 문서에서 왔는가」 하나와 그 문을 여는 말 하나입니다. */}
         {trace ? (
           <button
             type="button"
@@ -228,22 +245,14 @@ export function InlineCoaching({ feedback, gaugeLabel, className }: InlineCoachi
             aria-controls={panelId}
             className="-mx-1.5 mt-1 flex min-h-[48px] w-full flex-wrap items-center gap-x-1.5 gap-y-0.5 rounded-field px-1.5 py-1 text-left text-[0.7813rem] leading-[1.45] text-ink-muted transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
           >
-            {/* 판정 경로는 접힘 안에 숨기지 않고 손잡이 줄에 상시 노출합니다.
-                버튼만으로 시연하는 동선에서도 「무엇이 판정했는가」가 매 턴 보여야, 화면의
-                단언(/safety 01)과 실제로 밟는 실행 경로가 어긋나지 않습니다. */}
-            <span className="min-w-0">
-              판정:{" "}
-              <span className="font-bold text-ink-soft">{pathBadge(trace)}</span>
-              {pathQualifier(trace) ? ` · ${pathQualifier(trace)}` : ""}
-            </span>
-            <span aria-hidden>·</span>
             {doc && (
-              <span className="min-w-0">
+              /* 문서명 칩 — 면 대신 헤어라인 하나로만 두릅니다. 행 전체가 눌리는 컨트롤이라
+                 여기에 면을 깔면 눌림 반응(paper-2)에 칩이 함께 잠깁니다. */
+              <span className="min-w-0 truncate rounded-[5px] border border-line-strong px-1.5 py-px text-[0.6875rem] leading-[1.45] font-semibold text-ink-muted">
                 <span aria-hidden>§ </span>
                 {doc.title}
               </span>
             )}
-            {doc && <span aria-hidden>·</span>}
             <span className="font-semibold underline decoration-1 underline-offset-[3px]">
               왜 이 판정인가요?
             </span>
@@ -273,28 +282,31 @@ export function InlineCoaching({ feedback, gaugeLabel, className }: InlineCoachi
             className="mt-2 space-y-2.5 rounded-card bg-paper-2 px-3.5 py-3 text-[0.7813rem] leading-[1.6] text-ink-soft"
           >
             <div>
-              <p className="text-[0.6875rem] font-bold text-ink-muted">판정 경로</p>
+              <p className="text-[0.6875rem] font-bold text-ink-muted">어떻게 정해졌나요</p>
               <p className="mt-0.5 font-bold text-ink">{pathLabel(trace)}</p>
               {trace.ruleLabel && (
                 <p className="mt-0.5">
-                  규칙: {trace.ruleLabel}
-                  {trace.ruleId ? ` (${trace.ruleId})` : ""}
-                  {trace.matchedPattern ? ` · 걸린 표현 「${trace.matchedPattern}」` : ""}
+                  규칙 사전에 적힌 이름 — {trace.ruleLabel}
+                  {trace.matchedPattern ? ` · 걸린 말 「${trace.matchedPattern}」` : ""}
                 </p>
               )}
               <p className="mt-0.5">{pathNote(trace)}</p>
               {/* 시간 규칙은 문장이 아니라 경과 초로 잽니다(timing.ts) — 잰 값을 그대로 적습니다. */}
               {typeof trace.callDelaySec === "number" && (
                 <p className="mt-0.5">
-                  시간 규칙 CO-03 — 응급 신호가 뜬 순간부터 119 연결까지 {trace.callDelaySec}초로
-                  재어 판정했습니다.
+                  응급 신호가 보인 순간부터 119에 연결하기까지 {trace.callDelaySec}초가 걸렸고, 그
+                  시간으로 판정했습니다.
                 </p>
               )}
               {trace.advisoryLabels && trace.advisoryLabels.length > 0 && (
-                <p className="mt-0.5">
-                  규칙 사전 코칭도 함께 적용되었습니다 — {trace.advisoryLabels.join(" · ")}
-                </p>
+                <p className="mt-0.5">함께 짚어 드린 것 — {trace.advisoryLabels.join(" · ")}</p>
               )}
+              {/* 겉줄에서 내려온 판정 경로 — 「무엇이 판정했는가」는 매 턴 그대로 남습니다.
+                  자리만 한 겹 뒤로 옮겼고, 셈법과 낱말은 /safety 01과 같습니다. */}
+              <p className="mt-0.5">
+                판정한 것 — <span className="font-bold text-ink-soft">{pathBadge(trace)}</span>
+                {pathQualifier(trace) ? ` · ${pathQualifier(trace)}` : ""}
+              </p>
             </div>
 
             {basis.length > 0 && (
@@ -322,8 +334,10 @@ export function InlineCoaching({ feedback, gaugeLabel, className }: InlineCoachi
               </div>
             )}
 
+            {/* 「외부로 나간 요청 0건」은 계측 문장이라 /safety가 실측과 함께 들고 있습니다.
+                여기 남는 것은 같은 사실을 사람 말로 한 줄로 줄인 것뿐입니다. */}
             <p className="border-t border-line pt-2 font-semibold text-ink-muted">
-              이 판정은 이 기기 안에서 끝났습니다 · 외부로 나간 요청 0건
+              이 확인은 기기 안에서 했습니다
             </p>
           </div>
         )}

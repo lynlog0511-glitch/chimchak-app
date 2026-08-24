@@ -8,7 +8,7 @@ import type {
 } from "react";
 import { BigButton, MicButton, StatusDot, WaveBars } from "@/components";
 import { createRecognizer, type Recognizer } from "@/lib/speech";
-import { EXAMPLE_NOTICE, REPORT_EXAMPLES } from "./examples";
+import { EXAMPLE_FILL_TITLE, EXAMPLE_NOTICE, REPORT_EXAMPLES } from "./examples";
 
 export interface VoiceInputProps {
   value: string;
@@ -247,20 +247,8 @@ export function VoiceInput({
           className="mt-[6px] w-full rounded-[14px] border border-line-strong bg-white p-[14px] text-[1.0625rem] leading-[1.6] text-ink placeholder:text-tertiary focus:border-brand-400"
         />
 
-        <div className="mt-[10px] flex flex-wrap gap-2">
-          {REPORT_EXAMPLES.map((example, index) => (
-            <button
-              key={example.id}
-              type="button"
-              onClick={() => onChange(example.text)}
-              /* 라벨만으로는 이 예시로 무엇을 보는지가 화면에 남지 않아, 표가 들고 있는 한 줄 설명을
-                 접근성 이름 뒤에 이어 붙입니다(보이는 라벨이 이름의 앞머리라 음성 조작과도 어긋나지 않습니다). */
-              aria-label={`${example.label} — ${example.hint}`}
-              className={`${EXAMPLE_BUTTON_CLASS} ${index === 0 ? "text-ink" : "text-ink-soft"}`}
-            >
-              {example.label}
-            </button>
-          ))}
+        {/* 지우기는 예시가 아니라 위 입력칸에 딸린 조작이라, 예시 목록에서 빼 칸 아래에 둡니다. */}
+        <div className="mt-[2px] flex justify-end">
           <button
             type="button"
             onClick={() => onChange("")}
@@ -269,6 +257,27 @@ export function VoiceInput({
           >
             지우기
           </button>
+        </div>
+
+        {/* 「예시로 채워 보기」는 여기서 한 번만 말하고, 버튼에는 상황 이름만 답니다. */}
+        <p className="mt-[6px] text-[0.8438rem] leading-[1.45] font-bold text-ink">
+          {EXAMPLE_FILL_TITLE}
+        </p>
+
+        <div className="mt-[6px] flex flex-wrap gap-2">
+          {REPORT_EXAMPLES.map((example, index) => (
+            <button
+              key={example.id}
+              type="button"
+              onClick={() => onChange(example.text)}
+              /* 라벨만으로는 이 예시로 무엇을 보는지가 화면에 남지 않아, 표가 들고 있는 한 줄 설명을
+                 접근성 이름 뒤에 이어 붙입니다(보이는 라벨이 이름의 앞머리라 음성 조작과도 어긋나지 않습니다). */
+              aria-label={`${example.label} ${EXAMPLE_FILL_TITLE} — ${example.hint}`}
+              className={`${EXAMPLE_BUTTON_CLASS} ${index === 0 ? "text-ink" : "text-ink-soft"}`}
+            >
+              {example.label}
+            </button>
+          ))}
         </div>
 
         <p className="mt-[8px] text-[0.6875rem] leading-[1.6] text-tertiary">{EXAMPLE_NOTICE}</p>

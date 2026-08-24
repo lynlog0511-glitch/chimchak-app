@@ -7,7 +7,7 @@ import Link from "next/link";
 import { BigButton, InlineDisclaimer, SourceChip } from "@/components";
 import { progressStepCount, type SessionProgress } from "@/lib/storage";
 import type { PersonaDef, Scenario, ScenarioType } from "@/types";
-import { FICTION_NOTICE, PRACTICE_LINE, ROLE_LABEL } from "./constants";
+import { FICTION_NOTICE, initialOf, PRACTICE_LINE, ROLE_LABEL } from "./constants";
 
 export interface BriefingPanelProps {
   scenario: Scenario;
@@ -59,6 +59,22 @@ function objectiveText(raw: string): string {
  */
 function constraintText(raw: string): string {
   return raw.replace(/^C\d+\s*/, "").trim();
+}
+
+/**
+ * 「이 훈련의 설계 보기」 안에서는 번호를 살려 두되, 코드가 아니라 **말**로 적습니다 —
+ * 「C1 서비스 종료 20분 전입니다」 → 「제약 1 · 서비스 종료 20분 전입니다」.
+ * 번호를 지우지 않는 이유는 이 접힘이 조건들을 서로 가리키며 읽는 자리이기 때문이고,
+ * C를 지우는 이유는 그 글자가 이 앱 어디에서도 설명되지 않는 저작용 표기이기 때문입니다.
+ *
+ * @example constraintDetail("C1 서비스 종료 20분 전입니다.") // "제약 1 · 서비스 종료 20분 전입니다."
+ * @example constraintDetail("현관 도어락은 안에서 열립니다.") // 그대로
+ */
+function constraintDetail(raw: string): string {
+  const text = raw.trim();
+  const match = /^C(\d+)\s*([\s\S]*)$/.exec(text);
+  if (!match) return text;
+  return `제약 ${match[1]} · ${match[2].trim()}`;
 }
 
 /** 「박 어르신 (가상 인물)」 → 「박 어르신」 — 한 줄 소개에서 괄호가 두 번 나오지 않게 합니다. */
@@ -324,16 +340,30 @@ export function BriefingPanel({
 
         <Fold title="등장인물 자세히">
           <p className="text-[0.7813rem] leading-[1.6] font-semibold text-ink-muted">{FICTION_NOTICE}</p>
+          {/* 인물 카드 머리에 38px 아바타 원 — 세션 말풍선의 아바타와 **같은 함수·같은 값**입니다
+              (`initialOf` · bg-paper-out · 13.5px w700 ink-soft). 브리핑에서 본 「박」이 몇 초 뒤
+              대화 왼쪽에 그대로 서 있어야, 두 화면이 같은 사람을 말하고 있다는 것이 형태로 읽힙니다.
+              사진도 아이콘도 없이 한 글자뿐인 것도 같은 이유입니다 — 얼굴을 지어내지 않습니다. */}
           <ul className="mt-3 space-y-3">
             {scenario.personas.map((persona) => (
-              <li key={persona.name}>
-                <p className="text-[0.8438rem] leading-[1.45] font-bold text-ink">
-                  {plainName(persona.name)}
-                  <span className="ml-2 text-[0.7813rem] font-semibold text-ink-muted">
-                    {ROLE_LABEL[persona.role]}
+              <li key={persona.name} className="flex gap-2.5">
+                <span
+                  aria-hidden
+                  className="flex h-[38px] w-[38px] flex-none items-center justify-center rounded-full bg-paper-out text-[0.8438rem] font-bold text-ink-soft"
+                >
+                  {initialOf(persona.name)}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[0.8438rem] leading-[1.45] font-bold text-ink">
+                    {plainName(persona.name)}
+                    <span className="ml-2 text-[0.7813rem] font-semibold text-ink-muted">
+                      {ROLE_LABEL[persona.role]}
+                    </span>
                   </span>
-                </p>
-                <p className="mt-1 text-[0.8438rem] leading-[1.6] text-ink-soft">{persona.profile}</p>
+                  <span className="mt-1 block text-[0.8438rem] leading-[1.6] text-ink-soft">
+                    {persona.profile}
+                  </span>
+                </span>
               </li>
             ))}
           </ul>
@@ -365,8 +395,11 @@ export function BriefingPanel({
 
         {/* 루브릭 코드·근거 문서·제약 조건은 전부 이 안에 있습니다(가이드 v4 §4.10). */}
         <Fold title="이 훈련의 설계 보기">
+          {/* 「루브릭」은 이 앱 어디에서도 사용자에게 설명한 적이 없는 낱말입니다.
+              가리키는 것은 같습니다 — 이 훈련에서 사람이 확인하는 항목들. 그러면 그 말로 적습니다.
+              (인라인 코칭의 접힘도 같은 낱말 「확인한 항목」을 씁니다.) */}
           <p className="text-[0.7813rem] leading-[1.6] font-bold tracking-[0.06em] text-ink-muted">
-            학습목표와 루브릭 항목
+            학습목표와 확인 항목
           </p>
           <ul className="mt-2 space-y-1.5">
             {scenario.objectives.map((objective) => (
@@ -392,7 +425,7 @@ export function BriefingPanel({
                 <span aria-hidden className="flex-none text-ink-ghost">
                   ·
                 </span>
-                <span>{constraint}</span>
+                <span>{constraintDetail(constraint)}</span>
               </li>
             ))}
           </ul>

@@ -34,7 +34,10 @@ export function PracticeCount({ scenarioId, className }: PracticeCountProps) {
 
   return (
     <span className={cx("chim-num text-[0.7813rem] leading-[1.45] text-ink-faint", className)}>
-      {count === null ? "" : count > 0 ? `해 본 횟수 ${count}` : "아직 안 해봄"}
+      {/* 아직 한 번도 안 하신 카드에 「아직 안 해봄」이라고 적으면, 고르기 전에 먼저 읽는 말이
+          결핍 판정이 됩니다. 같은 사실을 앞을 보는 말로 적습니다 — 아직 하지 않았다가 아니라,
+          이 카드는 첫 연습 앞이라는 말입니다. */}
+      {count === null ? "" : count > 0 ? `해 본 횟수 ${count}` : "첫 연습 전"}
     </span>
   );
 }

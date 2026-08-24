@@ -7,13 +7,13 @@ import { cx } from "@/components/utils";
 import { buildRecord, currentCue, currentTurn, protocolIdOf, resolveEnding } from "@/engine";
 import { startCueCoaching } from "@/lib/onlineCoach";
 import {
-  VARY_ADAPTER_NOTE,
   VARY_MAX_RECENT_LINES,
   isLineVaryActive,
   isVariableSpeaker,
   varyLine,
 } from "@/lib/onlineVary";
 import { subscribeSettings } from "@/lib/settings";
+import { getStageMode, subscribeStageMode } from "@/lib/stageMode";
 import { isRecognitionSupported, primeVoices, speak, stopSpeaking } from "@/lib/speech";
 import { useWakeLock } from "@/lib/wakeLock";
 import {
@@ -38,7 +38,6 @@ import {
   EMOTION_WORD,
   emotionLevel,
   FICTION_NOTICE,
-  GENERATION_ADAPTER_NOTE,
   SESSION_STATUS_ENDED,
   SESSION_STATUS_PROTOCOL,
   sessionSubtitle,
@@ -373,7 +372,20 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   /* ── 규칙 엔진 시연 (발표용) ────────────────────────────────
      여는 행은 컴포저 밖 — 대화 로그 아래에 있습니다. 컴포저 안에 두었을 때는 제안 버튼
      셋보다 아래로 밀려 어느 글자 크기에서도 노출 0px이었습니다(375×812 실측).
-     시트 자체와 「입력창에 채우기」는 그대로 CueResponder가 맡습니다. */
+     시트 자체와 「입력창에 채우기」는 그대로 CueResponder가 맡습니다.
+
+     2026-08-24 — 이 행은 **시연 스위치 뒤로** 들어갔습니다(`src/lib/stageMode.ts`).
+     라벨 그대로 발표·시연용 장치인데, 평상시에도 대화 끝에 남아 있어 훈련하러 오신 분이
+     자기 대화 아래에서 「발표·시연용」이라는 말을 읽게 되어 있었습니다. 스위치는 발표자 화면
+     (/check)에 있고, 꺼져 있는 동안 이 자리의 노출은 0px입니다 — 시트를 여는 문이 여기 하나뿐이라
+     행을 닫으면 시트도 함께 닫힙니다. */
+  /** 무대에서만 켜는 표시 — 서버·기본값은 꺼짐이라 첫 렌더가 어긋나지 않습니다. */
+  const [stageOn, setStageOn] = useState(false);
+  useEffect(() => {
+    setStageOn(getStageMode());
+    return subscribeStageMode(setStageOn);
+  }, []);
+
   const cueId = cue?.id;
   const demoExamples = useMemo(
     () => (cueId ? ruleDemoExamplesFor(scenario.type, cueId) : []),
@@ -846,19 +858,15 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
                 <p className="text-center text-[0.7813rem] leading-[1.6] text-tertiary">
                   {scenario.context}
                 </p>
-                {/* 가상 인물 고지 — 화면마다 한 번은 또렷하게 남습니다(말풍선의 「AI 생성 · 가상 인물」과 별도). */}
+                {/* 가상 인물 고지 — 화면마다 한 번은 또렷하게 남습니다(말풍선의 「가상 인물」과 별도). */}
                 <p className="mt-1 text-center text-[0.6875rem] leading-[1.6] text-ink-muted">
                   {FICTION_NOTICE}
                 </p>
-                {/* 생성 자리 한 줄 — 가상 인물 고지와 같은 문법(같은 크기·같은 자리)으로 답니다.
-                    이 화면이 「생성 0건」이라고 적는 까닭과, 경량 LLM 어댑터가 어디부터 붙는지가
-                    같은 문장 안에 있어야 소개와 화면 표기가 어긋나 보이지 않습니다.
-
-                    온라인 모드를 켜신 세션에서는 문장을 갈아 세웁니다 — 「대사는 검수된 시나리오
-                    문장」이라는 단언을 그대로 두면, 바로 아래 말풍선의 「변주」 표기와 어긋납니다. */}
-                <p className="mt-1 text-center text-[0.6875rem] leading-[1.6] text-ink-muted">
-                  {varyOn ? VARY_ADAPTER_NOTE : GENERATION_ADAPTER_NOTE}
-                </p>
+                {/* 여기 있던 생성 자리 고지(「…경량 LLM 어댑터 자리는 근거 가드 검증을 통과한
+                    구간부터 엽니다」)는 2026-08-24에 걷어냈습니다. 어르신 대사 바로 위 두 줄이
+                    개발 로드맵을 말하고 있었고, 훈련하러 오신 분이 읽을 문장이 아니었습니다.
+                    같은 사실은 /safety §02가 그대로 들고 있고, 이 화면에서는 실제로 생성이 붙은
+                    턴에만 말풍선이 「AI 생성」을 답니다 — 단언이 아니라 그 자리의 사실로 남깁니다. */}
 
                 {/* 고지는 로그 위에 한 번 둡니다 — 예전에는 입력 도크 안에 상주해
                     상시 안내문 넉 줄(141px)의 한 몫을 하고 있었습니다(평가 UI/UX m1). */}
@@ -882,7 +890,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
                     발표자가 찾는 자리이자, 평소에는 대화 끝에 조용히 남는 한 줄입니다.
                     헤어라인 하나로 대화와 갈라 둡니다 — 시연 장치가 대사처럼 읽히지 않게.
                     (시트는 body로 포털되므로 여기서 열어도 뜨는 자리는 같습니다.) */}
-                {composing && demoExamples.length > 0 && (
+                {stageOn && composing && demoExamples.length > 0 && (
                   <button
                     type="button"
                     onClick={() => setRuleDemoOpen(true)}
@@ -972,7 +980,8 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
                     ) : null
                   }
                   demoExamples={demoExamples}
-                  demoOpen={ruleDemoOpen}
+                  /* 스위치를 끄면 시트도 함께 닫힙니다 — 열어 둔 채 꺼도 화면에 남지 않게. */
+                  demoOpen={stageOn && ruleDemoOpen}
                   onDemoClose={closeRuleDemo}
                   onSubmit={handleSubmit}
                   onListeningChange={setListening}

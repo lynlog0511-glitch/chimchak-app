@@ -2,10 +2,14 @@ import { cx } from "@/components";
 import { StatusMark } from "@/components/icons";
 
 /**
- * 데스크톱 홈 오른쪽 「실물 증거」 카드 (시안 7c).
+ * 데스크톱 홈 오른쪽 「이렇게 진행됩니다」 카드 (시안 7c).
  *
  * 말로 설명하는 대신 **훈련 한 턴을 그대로** 보여 줍니다 —
  * 어르신 말풍선 하나, 내 대답 하나, 그리고 그 자리에서 붙는 코칭 한 줄.
+ *
+ * 이 카드는 **lg↑에서만** 섭니다. 숨김 클래스를 부르는 쪽에 맡기지 않고 여기 안에 둔 이유는,
+ * 360px 고정폭이 모바일 화면에서 가로 스크롤을 만들기 때문입니다 — 한 번 데스크톱 전용으로
+ * 정한 카드가 호출 한 줄의 실수로 모바일에 되살아나지 않게 합니다(가이드 §5).
  *
  * 안에 든 대사·코칭·출처는 지어낸 예시가 아니라 CHK-A01 「현관 앞, 집에 가야 해요」의
  * 검수된 원문입니다(`src/data/scenarios/chk-a01.ts` — T1 대사 / D1-c 감정 인정형 제안·칭찬 / DOC-GUIDE-001).
@@ -42,13 +46,21 @@ export function SessionPreviewCard({ className }: SessionPreviewCardProps) {
   return (
     <figure
       className={cx(
+        /* 데스크톱 전용입니다 — 숨김을 부르는 쪽이 아니라 **카드가 스스로** 들고 있습니다.
+           360px 고정폭 카드라 모바일에 서면 가로 스크롤이 생기고, 첫 화면의 주인공(고정 문구)
+           아래에 같은 크기의 글자 덩어리가 하나 더 붙어 위계가 무너집니다(가이드 §5). */
+        "hidden lg:block",
         "w-[360px] flex-none rounded-card border border-line px-5 pt-5 pb-4",
         "shadow-[0_8px_30px_rgba(25,31,30,0.06)]",
         className,
       )}
     >
+      {/* 예전 머리말은 「실제 훈련 화면 — 한 턴이면 첫 판정이 옵니다」였습니다.
+          「실제」·「첫 판정」은 이것이 진짜 화면임을 **심사자에게** 증명하는 말이라,
+          정작 처음 오신 분에게는 무엇을 보라는 안내가 되지 못했습니다.
+          카드가 하는 일(한 턴이 어떻게 굴러가는지 보여 주기)을 그대로 적습니다. */}
       <figcaption className="mb-3 text-[0.7188rem] leading-[1.45] font-bold tracking-[0.05em] text-ink-muted">
-        실제 훈련 화면 — 한 턴이면 첫 판정이 옵니다
+        이렇게 진행됩니다
       </figcaption>
 
       {/* 어르신 — 아바타 30px + 감정 링(불안). 말풍선은 화자 쪽 모서리만 4px입니다. */}
@@ -77,8 +89,8 @@ export function SessionPreviewCard({ className }: SessionPreviewCardProps) {
       {/* gap 5px — 마크가 18px 상자 안의 12.9px 원이라 좌우로 2.5px씩 여백을 이미 갖고 있습니다.
           시안의 7px을 그대로 두면 광학 간격이 9.5px가 되어 문장이 한 칸 밀려 보입니다. */}
       <div className="flex gap-[5px] border-t border-line pt-[11px]">
-        {/* 판정 마크는 훈련 화면이 쓰는 것과 **같은 컴포넌트**입니다 — 손으로 그린 원+텍스트 ✓ 대신.
-            여기는 「실제 훈련 화면」이라고 적어 둔 카드라, 마크가 실물과 다르면 그 문장이 거짓이 됩니다.
+        {/* 코칭 마크는 훈련 화면이 쓰는 것과 **같은 컴포넌트**입니다 — 손으로 그린 원+텍스트 ✓ 대신.
+            여기는 훈련 한 턴을 그대로 옮겨 둔 카드라, 마크가 실물과 다르면 카드가 거짓말을 합니다.
             뜻은 옆의 「충족」이 전하므로 라벨 없이 마크만 세웁니다(마크 단독 아님). */}
         <StatusMark kind="met" size="sm" className="relative top-[1px]" />
         <p className="text-[0.7813rem] leading-[1.6] text-ink-soft">

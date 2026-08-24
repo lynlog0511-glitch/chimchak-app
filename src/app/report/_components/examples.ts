@@ -14,7 +14,11 @@
 export interface ReportExample {
   /** 목록 key */
   id: string;
-  /** 버튼 라벨 */
+  /**
+   * 버튼에 보이는 짧은 부제.
+   * 「예시로 채워 보기」는 목록 머리에 한 번만 적고, 버튼은 상황 이름만 답니다 —
+   * 다섯 칸에 같은 앞머리를 다섯 번 되풀이하면 무엇이 다른지가 오히려 안 보입니다.
+   */
   label: string;
   /** 이 예시로 무엇을 보여 주는지 (한 줄) */
   hint: string;
@@ -66,35 +70,38 @@ export const EXAMPLE_NIGHT =
 export const REPORT_EXAMPLES: ReportExample[] = [
   {
     id: "wandering",
-    label: "예시 문장 넣기 (배회 대응 보고)",
+    label: "배회 대응",
     hint: "5요소가 모두 채워진 보고입니다",
     text: EXAMPLE_WANDERING,
   },
   {
     id: "partial",
-    label: "빈 칸이 있는 예시",
+    label: "빈 칸이 있는 보고",
     hint: "시각·조치·현재 상태가 비어 있습니다",
     text: EXAMPLE_PARTIAL,
   },
   {
     id: "choking",
-    label: "응급 이송 보고 예시",
+    label: "응급 이송",
     hint: "한 문장에 기관명이 둘 나옵니다",
     text: EXAMPLE_CHOKING,
   },
   {
     id: "conflict",
-    label: "보호자 요구 보고 예시",
+    label: "보호자 요구",
     hint: "들은 말과 제가 드린 답이 나뉘어 있습니다",
     text: EXAMPLE_CONFLICT,
   },
   {
     id: "night",
-    label: "야간 근무 일지 예시",
+    label: "야간 근무",
     hint: "대상자가 아닌 동료 이름도 함께 가려집니다",
     text: EXAMPLE_NIGHT,
   },
 ];
+
+/** 예시 목록 머리에 한 번 적는 이름 — 버튼의 접근성 이름도 이 말로 끝납니다. */
+export const EXAMPLE_FILL_TITLE = "예시로 채워 보기";
 
 /** 예시 아래에 함께 노출하는 고지 문구입니다. */
 export const EXAMPLE_NOTICE =

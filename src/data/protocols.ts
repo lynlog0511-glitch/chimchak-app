@@ -379,9 +379,6 @@ export const PROTOCOL_OFFLINE_READY_NOTICE =
 export const PROTOCOL_OFFLINE_PENDING_NOTICE =
   "기기 저장이 아직 준비되지 않았습니다 — 응급 안내 5종을 한 번씩 열어 두시면 연결이 끊겨도 열립니다";
 
-/** 주소 카드 옆에 붙는 고지입니다. 실제 주소가 아님을 화면에서 분명히 합니다. */
-export const PROTOCOL_ADDRESS_NOTICE = "훈련용 더미 주소 · 실제 주소 아님";
-
 /** 프로토콜 id 로 조회합니다. 대소문자 구분 없이(예: "p-02") 찾습니다. */
 export function getProtocol(id: string): EmergencyProtocol | undefined {
   const key = id.trim().toUpperCase();

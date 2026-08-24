@@ -60,7 +60,7 @@ export function CoverageGrid({
   /**
    * 다음 칸 — 지금 열려 있는 유형 가운데 아직 비어 있는 첫 칸입니다.
    * 「—」만 보고는 그 칸이 못 여는 칸인지 아직 안 한 칸인지 갈리지 않아, 한 줄로 밝혀 둡니다.
-   * (베타 이연 유형은 애초에 후보가 아니므로 아래 「베타 편성 예정」 줄이 따로 맡습니다.)
+   * (아직 열지 않은 유형은 애초에 후보가 아니므로 아래 「준비 중」 줄이 따로 맡습니다.)
    */
   const nextCell = ORDER.find((type) => activeTypes.includes(type) && counts[type] === 0);
   const openCount = ORDER.filter((type) => activeTypes.includes(type)).length;
@@ -71,6 +71,15 @@ export function CoverageGrid({
         {ORDER.map((type, index) => {
           const done = counts[type];
           const recent = lastAt[type];
+          /* 칸 하나를 한 줄로 읽어 드립니다.
+             예전에는 「최근 8.24」(눈)와 「최근 이수일 8월 24일」(낭독기)이 따로 적혀 있어,
+             화면 글을 그대로 옮기면 같은 날짜가 두 번 나왔습니다. 적는 곳을 하나로 모으고,
+             칸 안의 조각은 모두 장식으로 돌립니다. */
+          const cellLabel =
+            done > 0
+              ? `${TYPE_SHORT_LABELS[type]} ${done}회` +
+                (recent ? ` · 최근 이수일 ${formatShortDate(recent)}` : "")
+              : `${TYPE_SHORT_LABELS[type]} 아직 해보지 않으셨습니다`;
           return (
             <li
               key={type}
@@ -79,25 +88,20 @@ export function CoverageGrid({
                 index > 0 && "border-l border-line",
               )}
             >
+              {/* 낭독기용 한 줄 — li의 aria-label은 브라우즈 모드에서 무시하는 보조기술이 있어
+                  sr-only 텍스트로 둡니다. 눈에 보이는 조각들은 전부 장식(aria-hidden)입니다. */}
+              <span className="sr-only">{cellLabel}</span>
               <p
+                aria-hidden
                 className={cx(
                   "chim-num text-[1.0625rem] leading-[1.2] font-extrabold",
                   done > 0 ? "text-brand-800" : "text-ink-faint",
                 )}
               >
-                {done > 0 ? (
-                  <>
-                    {done}
-                    <span className="sr-only">회</span>
-                  </>
-                ) : (
-                  <>
-                    <span aria-hidden>—</span>
-                    <span className="sr-only">아직 해보지 않으셨습니다</span>
-                  </>
-                )}
+                {done > 0 ? done : "—"}
               </p>
               <p
+                aria-hidden
                 className={cx(
                   "mt-[1px] text-[0.7813rem] leading-[1.4]",
                   done > 0 ? "text-ink-muted" : "text-ink-faint",
@@ -106,17 +110,8 @@ export function CoverageGrid({
                 {TYPE_SHORT_LABELS[type]}
               </p>
               {/* 기간 축 한 줄 — 칸 높이가 들쭉날쭉해지지 않도록 빈 칸도 자리는 지킵니다. */}
-              <p className="mt-[2px] text-[0.6875rem] leading-[1.4] text-ink-muted">
-                {recent ? (
-                  <>
-                    <span aria-hidden className="chim-num">
-                      최근 {formatTinyDate(recent)}
-                    </span>
-                    <span className="sr-only">최근 이수일 {formatShortDate(recent)}</span>
-                  </>
-                ) : (
-                  <span aria-hidden>&nbsp;</span>
-                )}
+              <p aria-hidden className="chim-num mt-[2px] text-[0.6875rem] leading-[1.4] text-ink-muted">
+                {recent ? `최근 ${formatTinyDate(recent)}` : " "}
               </p>
             </li>
           );
@@ -136,10 +131,10 @@ export function CoverageGrid({
         )
       )}
 
-      {/* 베타 이연 유형은 「—」로만 두면 이유를 알 수 없어, 아래 한 줄로 조용히 적어 둡니다. */}
+      {/* 아직 열지 않은 유형은 「—」로만 두면 이유를 알 수 없어, 아래 한 줄로 조용히 적어 둡니다. */}
       {pending.length > 0 && (
         <p className="mt-[6px] text-[0.8438rem] leading-[1.5] text-tertiary">
-          {pending.map((type) => TYPE_SHORT_LABELS[type]).join(" · ")}은 베타 편성 예정입니다
+          {pending.map((type) => TYPE_SHORT_LABELS[type]).join(" · ")}은 준비 중입니다
         </p>
       )}
     </div>

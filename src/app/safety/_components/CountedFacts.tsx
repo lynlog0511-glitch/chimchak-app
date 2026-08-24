@@ -7,7 +7,7 @@ import { JUDGE_LABEL } from "./judgeLabel";
 import { cx } from "@/components/utils";
 
 /**
- * 기획서에 적은 숫자를 **이 화면이 직접 세어** 보여 주는 칸입니다.
+ * 설계 문서에 적은 숫자를 **이 화면이 직접 세어** 보여 주는 칸입니다.
  *
  * 문서에는 「상황 42개」·「분기 172개」·「판정 주체 배정」 같은 숫자가 적혀 있는데, 화면에도
  * 같은 숫자를 문장으로 옮겨 적으면 두 곳이 조용히 어긋납니다(시나리오를 하나 더하면 문서만
@@ -54,7 +54,7 @@ export function CountedFacts({ className }: CountedFactsProps) {
       className={cx("rounded-card bg-paper-2 p-4", className)}
     >
       <h3 id="counted-facts-title" className="text-[1.0625rem] leading-[1.4] font-extrabold text-ink">
-        기획서에 적은 숫자를 이 기기에서 다시 셉니다
+        설계 문서에 적은 숫자를 이 기기에서 다시 셉니다
       </h3>
       <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink-soft">
         아래 값은 문장에 적어 둔 상수가 아닙니다. 이 화면이 열릴 때 앱에 실린 시나리오·루브릭

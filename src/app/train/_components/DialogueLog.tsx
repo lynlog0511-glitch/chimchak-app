@@ -4,7 +4,13 @@ import { useCallback, useEffect, useRef, type RefObject } from "react";
 import { WaveBars } from "@/components";
 import { cx } from "@/components/utils";
 import { VARIED_LINE_LABEL, VARIED_LINE_NOTE } from "@/lib/onlineVary";
-import { EMOTION_RING, EMOTION_TEXT, type EmotionLevel } from "./constants";
+import {
+  EMOTION_RING,
+  EMOTION_TEXT,
+  initialOf,
+  triggerStageLine,
+  type EmotionLevel,
+} from "./constants";
 import { InlineCoaching } from "./InlineCoaching";
 import { RecordDraftPreview } from "./RecordDraftPreview";
 import type { LogItem } from "./sessionMachine";
@@ -93,31 +99,8 @@ function hasEmotion(speaker: Speaker): boolean {
   return speaker === "elder" || speaker === "guardian";
 }
 
-/**
- * 아바타에 새길 한 글자.
- * 역할어("보호자" 등)와 괄호 주석을 걷어낸 뒤, 홀로 떨어져 있는 성씨 한 글자를 먼저 찾습니다.
- *
- * @example initialOf("박 어르신")     // "박"
- * @example initialOf("보호자 김 씨")  // "김"
- * @example initialOf("119 상황실")    // "상"
- */
-const ROLE_PREFIX = ["보호자", "요양보호사", "간호사", "센터장", "가족", "따님", "아드님"];
-
-function initialOf(name: string): string {
-  let base = name.replace(/\([^)]*\)/g, " ").trim();
-  for (const word of ROLE_PREFIX) {
-    if (base.startsWith(word)) {
-      base = base.slice(word.length).trim();
-      break;
-    }
-  }
-  const surname = base.split(/\s+/).find((token) => /^[가-힣]$/.test(token));
-  if (surname) return surname;
-  const hangul = base.match(/[가-힣]/);
-  if (hangul) return hangul[0];
-  const other = base.match(/[A-Za-z0-9]/);
-  return other ? other[0] : "";
-}
+/* 아바타 한 글자를 뽑는 규칙은 `constants.ts`에 있습니다 —
+   브리핑 인물 카드가 같은 함수로 같은 글자를 그립니다(같은 사람은 같은 얼굴이어야 합니다). */
 
 /**
  * 화자 아바타 — 38px 원 하나 (시안 4a).
@@ -168,6 +151,7 @@ function LineBubble({
   emotion,
   speaking,
   variedText,
+  showFiction = false,
 }: {
   item: LineItem;
   live: boolean;
@@ -175,6 +159,14 @@ function LineBubble({
   speaking?: boolean;
   /** 검수 앵커 대신 이 문장을 폅니다 — 있으면 「변주」 표기가 함께 붙습니다 */
   variedText?: string;
+  /**
+   * 이 말풍선에 「가상 인물」을 적을지.
+   *
+   * 첫 인물 대사와 **화자가 바뀐 자리**에만 붙습니다. 같은 사람이 이어 말하는 동안 매 줄마다
+   * 되풀이하면 고지가 배경 무늬가 되어 정작 읽어야 할 때 읽히지 않습니다(고지는 유지하되
+   * 빈도만 줄이는 자리 — 문구는 한 글자도 바꾸지 않습니다).
+   */
+  showFiction?: boolean;
 }) {
   const character = isCharacter(item.speaker);
   const protocol = item.speaker === "protocol";
@@ -184,9 +176,12 @@ function LineBubble({
   const text = stripInternalIds(variedText ?? item.text);
   const note = item.note ? stripInternalIds(item.note) : undefined;
 
+  /* 돌발 변수 — 설계 표기(「T-2 보호자 전화」)가 아니라 무대 지문 한 줄로 섭니다.
+     자리·크기는 상황 안내 지문과 같은 단(12.5px 가운데)이고, 색은 한 단 더 물러난 ink-faint입니다 —
+     이 줄은 읽어야 할 내용이 아니라 **박자**이기 때문입니다. */
   const trigger = item.triggerName ? (
-    <p className="mb-2 text-center text-[0.7813rem] leading-[1.45] font-bold text-warn-ink">
-      돌발 변수 · {item.triggerName}
+    <p className="mb-2 text-center text-[0.7813rem] leading-[1.6] text-ink-faint">
+      {triggerStageLine(item.triggerName)}
     </p>
   ) : null;
 
@@ -254,28 +249,39 @@ function LineBubble({
             )}
           </div>
 
-          {/* 출처 한 줄 — 이 말풍선의 문장이 어디서 왔는지를 적는 자리입니다.
-              대사가 다시 쓰였으면 그 사실도 여기 한 낱말로 붙습니다(문자만 — 아이콘·이모지 없음).
-              「없는 것을 있다고 하지 않는다」의 반대 방향입니다: 있는 것을 숨기지 않습니다. */}
-          <p className="mt-1 text-[0.6875rem] leading-[1.45] text-ink-faint">
-            {protocol ? (
-              "검수된 고정 안내 · AI 생성 아님"
-            ) : character ? (
-              <>
-                AI 생성 · 가상 인물
+          {/* 출처 한 줄 — 이 말풍선의 문장이 **실제로 어디서 왔는지**만 적는 자리입니다.
+              예전에는 인물 대사마다 「AI 생성 · 가상 인물」이 붙었는데, 기본 빌드에서 그 문장은
+              검수된 시나리오 데이터를 그대로 편 것이라 「AI 생성」이 사실이 아니었습니다 —
+              매 줄마다 붙는 부정확한 표기는 정작 진짜 생성이 붙은 턴에서 아무 신호도 주지 못합니다.
+              지금 규칙은 둘입니다:
+               · 「AI 생성」은 이번 턴에 실제로 생성이 붙었을 때만(= 대사 변주). 코칭 쪽 생성은
+                 인라인 코칭 덩어리가 자기 자리에서 같은 낱말로 밝힙니다(InlineCoaching).
+               · 「가상 인물」은 첫 대사와 화자가 바뀐 자리에만(문구는 그대로, 빈도만 줄입니다).
+              둘 다 없으면 이 줄은 아예 그리지 않습니다 — 빈 각주 자리가 남지 않게.
+              「방금」은 표기의 꼬리말이라 표기가 있을 때만 따라 붙습니다. 홀로 남으면 매 턴 마지막
+              말풍선에 각주 한 줄이 새로 생기는데, 그 줄이 말하는 「가장 아래가 가장 최근」은
+              대화 화면에서 이미 자리가 말하고 있습니다. */}
+          {protocol ? (
+            <p className="mt-1 text-[0.6875rem] leading-[1.45] text-ink-faint">
+              검수된 고정 안내 · AI 생성 아님
+            </p>
+          ) : (
+            character &&
+            (varied || showFiction) && (
+              <p className="mt-1 flex flex-wrap items-baseline gap-x-1.5 text-[0.6875rem] leading-[1.45] text-ink-faint">
                 {varied && (
-                  <>
-                    {" · "}
-                    <span className="font-semibold">{VARIED_LINE_LABEL}</span>
+                  <span>
+                    AI 생성 · <span className="font-semibold">{VARIED_LINE_LABEL}</span>
                     <span className="sr-only"> — {VARIED_LINE_NOTE}</span>
-                  </>
+                  </span>
                 )}
-                {live && " · 방금"}
-              </>
-            ) : (
-              ""
-            )}
-          </p>
+                {varied && showFiction && <span aria-hidden>·</span>}
+                {showFiction && <span>가상 인물</span>}
+                {live && <span aria-hidden>·</span>}
+                {live && <span>방금</span>}
+              </p>
+            )
+          )}
         </div>
       </div>
     </div>
@@ -352,6 +358,13 @@ function PendingBubble({ item, emotion }: { item: LineItem; emotion?: DialogueEm
   );
 }
 
+/**
+ * 내가 한 말.
+ *
+ * 「내 응답 · 버튼 선택」 각주는 걷어냈습니다 — 오른쪽에 붙은 틴트 말풍선이 이미 「내 말」이라고
+ * 말하고 있고, 버튼으로 골랐는지 말로 했는지는 방금 그렇게 하신 분이 가장 잘 아십니다.
+ * (판정 경로가 입력 방식에 따라 갈린다는 사실은 코칭의 「왜 이 판정인가요?」 안에 남아 있습니다.)
+ */
 function LearnerBubble({ item }: { item: Extract<LogItem, { kind: "learner" }> }) {
   return (
     <div className="animate-fade-up flex justify-end">
@@ -361,9 +374,6 @@ function LearnerBubble({ item }: { item: Extract<LogItem, { kind: "learner" }> }
         >
           {item.text}
         </div>
-        <p className="mt-1 text-right text-[0.6875rem] leading-[1.45] text-ink-faint">
-          내 응답 · {item.viaButton ? "버튼 선택" : "말하기·직접 입력"}
-        </p>
       </div>
     </div>
   );
@@ -373,6 +383,29 @@ function LearnerBubble({ item }: { item: Extract<LogItem, { kind: "learner" }> }
 function scrollBehavior(): ScrollBehavior {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") return "auto";
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+}
+
+/**
+ * 「가상 인물」 고지를 적을 말풍선의 키.
+ *
+ * 첫 인물 대사와 **화자가 바뀐 자리**만 담습니다. 같은 분이 이어 말하는 동안에는 다시 적지
+ * 않습니다 — 고지는 사라지지 않고, 되풀이만 그칩니다(문구 자체는 한 글자도 바뀌지 않습니다).
+ * 검수된 고정 안내(protocol)가 한 번 지나가면 흐름이 끊긴 것으로 보고 다음 인물 대사에 다시 답니다.
+ */
+function fictionStampKeys(items: LogItem[]): Set<string> {
+  const keys = new Set<string>();
+  let previous: Speaker | null = null;
+  for (const item of items) {
+    if (item.kind !== "line") continue;
+    if (item.speaker === "protocol") {
+      previous = null;
+      continue;
+    }
+    if (!isCharacter(item.speaker)) continue;
+    if (item.speaker !== previous) keys.add(item.key);
+    previous = item.speaker;
+  }
+  return keys;
 }
 
 /** 마지막 대사 항목의 키 — 감정 링·TTS 표시가 붙는 자리입니다. */
@@ -439,6 +472,8 @@ export function DialogueLog({
   const shown = held ? items.slice(0, -1) : items;
 
   const lineKey = latestLineKey(shown);
+  /* 「가상 인물」이 붙는 자리 — 목록이 바뀔 때마다 한 번만 훑습니다(항목 수십 개 규모입니다). */
+  const fictionKeys = fictionStampKeys(shown);
   /* 로그 끝을 가리키는 표 — 개수까지 넣어 「처음부터 다시」로 로그가 줄어든 경우도 새 상태로 봅니다.
      붙들고 있는 대사는 아직 로그 끝이 아니므로 `shown` 기준으로 셉니다. */
   const tailKey = `${shown.length}:${shown[shown.length - 1]?.key ?? ""}`;
@@ -560,6 +595,7 @@ export function DialogueLog({
                   emotion={emotion}
                   speaking={speaking}
                   variedText={variations?.get(item.key)}
+                  showFiction={fictionKeys.has(item.key)}
                 />
               </div>
             );

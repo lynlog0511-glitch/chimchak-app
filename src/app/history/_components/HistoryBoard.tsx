@@ -142,7 +142,7 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
             시연용 예시 기록이 표시되고 있습니다
           </h2>
           <p className="mt-[5px] text-[0.8438rem] leading-[1.7] text-ink-soft">
-            발표 시연을 위해 심어 둔 {DEMO_SEED_SUMMARY}이 아래 목록에 섞여 있습니다. 해당 행에는
+            화면 확인을 위해 심어 둔 {DEMO_SEED_SUMMARY}이 아래 목록에 섞여 있습니다. 해당 행에는
             「예시」 표시가 붙고, 이수 확인서에는 「예시 미리보기」로 인쇄됩니다. 실제 이수 시수
             누계에는 들어가지 않습니다.
           </p>
@@ -288,7 +288,8 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
           직무교육·정기평가 내부 증빙용입니다.
         </p>
         <p className="mt-[8px] text-[0.8438rem] leading-[1.7] text-ink-soft">
-          훈련 대사는 가상 인물의 AI 생성 문장이며, 말씀하신 발화 원문은 어디에도 저장하지 않습니다.
+          훈련 속 인물은 전원 가상이며, 대사는 검수된 문장을 바탕으로 합니다. 말씀하신 발화 원문은
+          어디에도 저장하지 않습니다.
         </p>
 
         <div className="mt-[14px] border-t border-line pt-[12px]">

@@ -149,7 +149,8 @@ export function TrainingRow({ record, typeLabel }: TrainingRowProps) {
           </p>
           {/* 안심 문구 — 캡션 등급(11.5px tertiary)에서 읽히는 등급으로 올려 둡니다. */}
           <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
-            대사는 가상 인물의 AI 생성 문장이며, 말씀하신 발화 원문은 저장하지 않습니다.
+            훈련 속 인물은 전원 가상이며, 대사는 검수된 문장을 바탕으로 합니다. 말씀하신 발화 원문은
+            저장하지 않습니다.
           </p>
         </div>
       )}

@@ -125,9 +125,8 @@ function isInAppBrowser(): boolean {
   return /KAKAOTALK|NAVER|Instagram|FB[AV]|Line\//i.test(navigator.userAgent);
 }
 
-/** 인용 가능한 근거 문서와 인용에서 뺀 문서 — 목록의 출처는 `src/data/docs.ts` 하나입니다. */
+/** 인용 가능한 근거 문서 — 목록의 출처는 `src/data/docs.ts` 하나입니다. */
 const CITABLE_DOCS = SOURCE_DOCS.filter((doc) => CITABLE_DOC_IDS.includes(doc.id));
-const EXCLUDED_DOCS = SOURCE_DOCS.filter((doc) => !CITABLE_DOC_IDS.includes(doc.id));
 
 /**
  * 부록 · 판정 근거 문서 목록 — **인쇄물에 함께 실립니다**.
@@ -136,8 +135,9 @@ const EXCLUDED_DOCS = SOURCE_DOCS.filter((doc) => !CITABLE_DOC_IDS.includes(doc.
  * 앱 화면에만 있으면 종이만 남은 자리에서는 확인할 방법이 없어서, 목록을 확인서 뒷장에
  * 그대로 붙입니다. 목록은 앱이 쓰는 화이트리스트에서 만들어지므로 두 벌이 되지 않습니다.
  *
- * 인용에서 뺀 문서도 **사유와 함께** 적습니다 — 목록에 있다는 사실과 인용할 수 있다는 사실은
- * 다른 이야기이고, 그 차이가 저작권 판단의 핵심입니다.
+ * 인용에서 **뺀** 문서의 라이선스 설명은 여기 싣지 않습니다 — 이수 사실을 확인하는 종이에
+ * 저작권 판단까지 얹으면 읽을 사람이 읽어야 할 줄을 잃습니다. 같은 내용은 앱의 안전·법적
+ * 근거 화면에 그대로 있고, 이 부록은 「무엇을 근거로 삼았는가」에만 답합니다.
  */
 function SourceDocAppendix() {
   return (
@@ -147,7 +147,7 @@ function SourceDocAppendix() {
       </p>
       <p className="mt-[6px] text-[0.7813rem] leading-[1.7] text-ink-soft">
         이 훈련의 피드백은 아래 목록 안에서만 근거를 붙입니다. 목록 밖 문서를 근거로 든 판정은
-        엔진이 멈춰 세우고 확인 안내로 넘깁니다.
+        앱이 멈춰 세우고 확인 안내로 넘깁니다.
       </p>
       <ol className="mt-[8px]">
         {CITABLE_DOCS.map((doc, index) => (
@@ -157,12 +157,6 @@ function SourceDocAppendix() {
           </li>
         ))}
       </ol>
-      {EXCLUDED_DOCS.map((doc) => (
-        <p key={doc.id} className="mt-[8px] text-[0.7813rem] leading-[1.7] text-ink-soft">
-          <b className="font-bold text-ink">인용 제외 · {doc.title}</b>
-          {doc.note ? ` — ${doc.note}` : ""}
-        </p>
-      ))}
     </div>
   );
 }
@@ -525,8 +519,8 @@ export function CertificateSheet() {
                 말씀하신 발화 원문은 저장하지 않습니다.
               </p>
               <p className="mt-[6px] text-[0.7813rem] leading-[1.7] text-ink-soft">
-                훈련 시나리오의 인물·기관은 전원 가상이고 대사는 AI가 생성한 문장입니다. 실제
-                인물·기관과 무관합니다.
+                훈련 속 인물은 전원 가상이며, 대사는 검수된 문장을 바탕으로 합니다. 실제 인물·기관과
+                무관합니다.
               </p>
               <InlineDisclaimer size="md" tone="readable" className="mt-[10px]" />
             </div>

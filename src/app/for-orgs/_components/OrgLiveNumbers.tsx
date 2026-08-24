@@ -155,7 +155,7 @@ export function OrgLiveNumbers() {
     <div>
       {demoSeeded && (
         <p className="mt-[8px] text-[0.8438rem] leading-[1.6] font-semibold text-warn-ink">
-          지금은 발표용 예시 기록이 섞여 있는 값입니다 — 아래 「예시 지우기」를 누르시면 실측만
+          지금은 예시 기록이 섞여 있는 값입니다 — 아래 「예시 지우기」를 누르시면 실측만
           남습니다.
         </p>
       )}

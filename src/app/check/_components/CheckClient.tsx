@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { BigButton } from "@/components";
 import { StatusMark, type StatusMarkKind } from "@/components/icons";
 import { cx } from "@/components/utils";
+import { getStageMode, setStageMode, subscribeStageMode } from "@/lib/stageMode";
 import type { CheckResult, CheckStatus } from "./checks";
 import { loadingResults, primeMicrophonePermission, runAllChecks } from "./checks";
 
@@ -87,6 +88,8 @@ export function CheckClient() {
   const [results, setResults] = useState<CheckResult[]>(loadingResults());
   const [checking, setChecking] = useState(false);
   const [priming, setPriming] = useState(false);
+  // 시연 스위치 — 마운트 전에는 항상 꺼짐으로 그려 SSR과 어긋나지 않게 합니다.
+  const [stageOn, setStageOn] = useState(false);
 
   const runChecks = useCallback(() => {
     setChecking(true);
@@ -108,6 +111,8 @@ export function CheckClient() {
   useEffect(() => {
     setMounted(true);
     runChecks();
+    setStageOn(getStageMode());
+    return subscribeStageMode(setStageOn);
   }, [runChecks]);
 
   const failCount = mounted ? results.filter((r) => r.status === "fail").length : 0;
@@ -154,6 +159,29 @@ export function CheckClient() {
           />
         ))}
       </ul>
+
+      {/* 시연 스위치 — 무대 장치(규칙 엔진 예시 문장 시트)를 여닫는 유일한 문입니다.
+          훈련 화면에는 이 스위치가 없어, 켜는 행위 자체가 발표자 동선(/check)에만 남습니다. */}
+      <div className="chim-hairline mt-[16px] border-t border-line pt-[14px]">
+        <div className="flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-[0.8438rem] leading-[1.45] font-extrabold text-ink">
+              시연 스위치 · {mounted && stageOn ? "켜짐" : "꺼짐"}
+            </p>
+            <p className="mt-[3px] text-[0.7813rem] leading-[1.6] text-ink-soft">
+              켜면 훈련 화면 입력줄 옆에 「규칙 엔진 시험해 보기」 시트가 열립니다. 이 기기에만
+              저장되고, 훈련하러 오신 분의 화면에는 스위치도 시트도 없습니다.
+            </p>
+          </div>
+          <BigButton
+            variant="secondary"
+            aria-pressed={mounted && stageOn}
+            onClick={() => setStageMode(!stageOn)}
+          >
+            {mounted && stageOn ? "끄기" : "켜기"}
+          </BigButton>
+        </div>
+      </div>
     </div>
   );
 }

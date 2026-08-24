@@ -824,7 +824,7 @@ export const CHK_A01: Scenario = {
       text: "…그러면 잠깐만 들어갔다 나가자.",
       cue: {
         id: "CUE-3",
-        prompt: "안전한 대체 행동으로 유도하세요.",
+        prompt: "어르신을 안전한 행동으로 이끌어 볼까요?",
         waitSec: 8,
         // 미분류를 감점 분기(D3-c 그냥 기다림)에 매핑하지 않습니다 — 중립 분기로 받습니다.
         defaultBranchId: "D3-n",

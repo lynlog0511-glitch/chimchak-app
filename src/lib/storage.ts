@@ -139,19 +139,13 @@ export const SESSION_SAVE_FAILED_BODY =
   "브라우저에서 사이트 데이터 저장이 막혀 있어 이번 회차가 기록에 남지 않았습니다. 성장 기록과 이수 확인서에도 이 회차는 세지 않습니다.";
 
 /**
- * 앱이 열릴 때 한 번 알리는 문구 — 훈련을 마친 뒤가 아니라 **시작 전에** 알리려는 자리다.
- */
-export const STORAGE_BLOCKED_NOTICE =
-  "이 브라우저는 사이트 데이터 저장이 막혀 있어, 훈련 기록과 보고 기록이 이 기기에 남지 않습니다. 시연은 그대로 진행하실 수 있습니다.";
-
-/**
  * 이 기기에 쓸 수 있는지 실제로 한 번 재 본다(시험 키를 썼다가 지운다).
  *
  * `/check`의 저장소 항목이 하던 일과 같은 방식이고, 화면이 부팅 시 한 줄 고지를 띄울지
  * 정하는 데 쓰라고 여기에 둔다. 앱 데이터 키는 건드리지 않는다.
  *
  * @example
- * if (!canWriteStorage()) show(STORAGE_BLOCKED_NOTICE);
+ * if (!canWriteStorage()) showBootNotice();
  */
 export function canWriteStorage(): boolean {
   const storage = getStorage();

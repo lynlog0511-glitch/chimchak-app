@@ -87,7 +87,7 @@ export const VARY_RECENT_LINE_MAX = 300;
 export const VARIED_LINE_LABEL = "변주";
 
 /** 그 표기가 뜻하는 것 — 보조기술에는 문장으로 전합니다. */
-export const VARIED_LINE_NOTE = "경량 LLM이 검수 대사를 같은 뜻으로 바꿔 말했습니다";
+export const VARIED_LINE_NOTE = "AI가 검수 대사를 같은 뜻으로 바꿔 말했습니다";
 
 /**
  * 온라인 모드를 켠 세션의 생성 자리 고지.

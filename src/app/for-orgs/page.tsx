@@ -202,7 +202,7 @@ export default function ForOrgsPage() {
           <StateRow
             plan
             title={`나머지 시나리오 ${TOTAL_COUNT - ACTIVE_COUNT}종`}
-            desc={`전체 ${TOTAL_COUNT}종이 열리면 같은 방식으로 1인당 약 ${PROJECTED_MINUTES}분이 됩니다 — 열린 ${ACTIVE_COUNT}종의 소요를 그대로 곱한 추정치이지 실측치가 아닙니다. 위험 판단 유형은 동작 교정으로 오인될 위험을 통제하기 어려워 베타로 미뤘습니다.`}
+            desc={`전체 ${TOTAL_COUNT}종이 열리면 같은 방식으로 1인당 약 ${PROJECTED_MINUTES}분이 됩니다 — 열린 ${ACTIVE_COUNT}종의 소요를 그대로 곱한 추정치이지 실측치가 아닙니다. 위험 판단 유형은 동작 교정으로 오인될 위험을 통제하기 어려워 다음 단계로 미뤘습니다.`}
           />
           <StateRow
             plan
@@ -255,7 +255,7 @@ export default function ForOrgsPage() {
               <span className="chim-num">1</span>. 무상 파일럿 — 범위와 기간
             </p>
             <p className="mt-[3px] text-[0.8438rem] leading-[1.7] text-ink-soft">
-              한 기관 한 팀(요양보호사 25명 안팎)이 알파 {ACTIVE_COUNT}종과 응급 {PROTOCOL_COUNT}종을
+              한 기관 한 팀(요양보호사 25명 안팎)이 훈련 {ACTIVE_COUNT}종과 응급 {PROTOCOL_COUNT}종을
               각자 기기에서 씁니다. 계정을 만들지 않고 설치도 필요 없습니다. 기본 제안은 4주이며 기관
               일정에 맞춰 조정합니다.
             </p>
@@ -283,7 +283,7 @@ export default function ForOrgsPage() {
         {/* 가격을 적지 않는 화면이라도 「그래서 얼마냐」에 침묵하면 감추는 것처럼 보입니다.
             공표한 기준가와 그 값이 아직 확정이 아니라는 사실만 한 줄로 밝힙니다. */}
         <p className="mt-[10px] text-[0.8438rem] leading-[1.7] text-ink-soft">
-          가격 원칙 · 기획서에 공표한 기준가(기관 연 90만 원부터, 팀 결정가)는 파일럿 실측을 보고
+          가격 원칙 · 설계 문서에 공표한 기준가(기관 연 90만 원부터, 팀 결정가)는 파일럿 실측을 보고
           확정합니다. 이 화면은 견적서가 아니므로 기관별 조건은 협의 자리에서 다룹니다.
         </p>
         <p className="mt-[8px] text-[0.8438rem] leading-[1.7] text-ink-soft">
@@ -292,8 +292,7 @@ export default function ForOrgsPage() {
           없으므로, 그 전에 남겨 두시는 편이 안전합니다.
         </p>
         <p className="mt-[8px] text-[0.8438rem] leading-[1.7] text-ink-soft">
-          도입 문의 경로는 협의 단계에서 별도로 안내드립니다. 이 배포본은 시연용이라 연락처를 화면에
-          싣지 않았습니다.
+          도입 문의 경로는 협의 단계에서 안내드립니다.
         </p>
       </Section>
 

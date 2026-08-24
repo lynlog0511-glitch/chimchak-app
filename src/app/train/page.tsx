@@ -8,7 +8,6 @@ import {
   getMatrixRow,
   MATRIX_LEVEL_LABELS,
   MATRIX_TYPE_LABELS,
-  MATRIX_TYPE_NOTES,
   SCENARIO_MATRIX,
 } from "@/data/matrix";
 import { getActiveScenarios, SCENARIOS } from "@/data/scenarios";
@@ -76,33 +75,59 @@ const CARD_SUMMARY: Record<string, string> = {
 const FIRST_CARD_HINT = "처음이라면 여기부터";
 
 /**
- * 대사 감수가 끝나지 않은 시나리오 — eyebrow 끝에 상태를 그대로 적습니다.
+ * 카드 한 글자 마커 — 응급 5종 목록과 같은 스캔 장치입니다(42px · radius 12).
+ *
+ * 아이콘도 이모지도 쓰지 않습니다. 옆 제목이 뜻을 전하므로 마커는 **어디쯤인지 눈이 먼저 찾는
+ * 표식**이고, 보조기술에는 읽히지 않습니다. 글자는 그 상황에서 가장 먼저 보이는 장면 하나입니다.
+ */
+const CARD_MARK: Record<string, string> = {
+  "CHK-A01": "현", // 현관
+  "CHK-A02": "새", // 새벽
+  "CHK-B01": "손", // 내미신 손
+  "CHK-B02": "사", // 사레
+  "CHK-C01": "반", // 반찬
+  "CHK-C02": "멍",
+};
+
+/**
+ * 대사 감수가 끝나지 않은 시나리오 — 카드 하단에 한 줄로 적습니다.
  *
  * 「열렸다」와 「감수까지 끝났다」는 다른 말입니다. 둘을 같은 얼굴로 두면 나머지 표기의
  * 신뢰도 함께 떨어지므로, 감수 대기 상태를 카드에서 먼저 밝힙니다.
  * (/safety 「현직 감수 현황」의 시나리오 대사 줄과 같은 사실을 가리킵니다.)
  *
+ * 자리는 2026-08-24에 옮겼습니다 — 예전에는 eyebrow 끝에 「알파 초안 — 현직 감수 대기」로
+ * 붙어, 제목보다 먼저 읽히는 자리에서 개발 단계 이름을 말하고 있었습니다.
+ * 사실은 그대로 두고 **말과 자리만** 바꿉니다: 뜻은 「사람이 더 볼 것이 남았다」 하나뿐이고,
+ * 그 말이 연습을 막지 않도록 카드 맨 아래 각주 단으로 내립니다.
+ *
  * 목록은 손으로 적지 않습니다 — 원천은 시나리오 데이터의 `reviewPending` 필드 하나이고,
  * /check 「시나리오 감수 상태」 항목도 같은 필드를 셉니다(8/24 단일화).
  */
-const REVIEW_PENDING_LABEL = "알파 초안 — 현직 감수 대기";
+const REVIEW_PENDING_LABEL = "전문가 검토를 받고 있어요";
 const REVIEW_PENDING_IDS: string[] = SCENARIOS.filter((s) => s.reviewPending).map((s) => s.id);
 
-/** 베타로 이연한 유형 — 「준비 중」으로만 두면 이유를 알 수 없어 편성표 아래 한 줄로 적습니다. */
-const DEFERRED_TYPE_LABEL = "④ 위험 판단";
+/** 편성표 아래 한 줄 — 잠긴 칸이 언제 열리는지만 답합니다(자세한 사유는 /safety가 들고 있습니다). */
+const MATRIX_PENDING_NOTE = "준비 중인 상황은 전문가 검토가 끝나는 대로 열립니다.";
 
 function levelLabelOf(level: 1 | 2 | 3): string {
   return MATRIX_LEVEL_LABELS.find((l) => l.level === level)?.label ?? "";
+}
+
+/**
+ * 편성표 제목에서 저작용 코드를 걷어냅니다 — 데이터는 그대로 두고 표시부에서만 지웁니다
+ * (카드의 `stripInternalIds`와 같은 규칙입니다).
+ *
+ * @example matrixTitle("A01 현관 앞 귀가 요구") // "현관 앞 귀가 요구"
+ */
+function matrixTitle(raw: string): string {
+  return raw.replace(/^[A-Z]\d{2}\s+/, "").trim();
 }
 
 export default function TrainIndexPage() {
   const scenarios = getActiveScenarios();
   const openCount = SCENARIO_MATRIX.filter((cell) => cell.scenarioId).length;
   const lockedCount = SCENARIO_MATRIX.length - openCount;
-  /** 열린 칸 중 대사 감수까지 끝난 종수 — 손으로 적지 않고 감수 대기 목록에서 빼서 셉니다. */
-  const reviewedCount = SCENARIO_MATRIX.filter(
-    (cell) => cell.scenarioId && !REVIEW_PENDING_IDS.includes(cell.scenarioId),
-  ).length;
 
   return (
     <PageShell sourceDocs={SOURCE_DOCS}>
@@ -115,10 +140,11 @@ export default function TrainIndexPage() {
             TYPE_SHORT[scenario.type],
             `약 ${scenario.durationMin}분`,
             index === 0 ? FIRST_CARD_HINT : null,
-            REVIEW_PENDING_IDS.includes(scenario.id) ? REVIEW_PENDING_LABEL : null,
           ]
             .filter((part): part is string => Boolean(part))
             .join(" · ");
+          const reviewPending = REVIEW_PENDING_IDS.includes(scenario.id);
+          const mark = CARD_MARK[scenario.id] ?? scenario.title.slice(0, 1);
 
           return (
             <Link
@@ -131,23 +157,45 @@ export default function TrainIndexPage() {
                  뷰포트 진입에는 받지 않고, 손가락이 올라간(hover) 뒤에 받습니다. */
               prefetch={false}
               aria-label={`${scenario.title} — 브리핑 열기`}
-              className="block rounded-[14px] bg-paper-2 px-4 py-[15px] transition-colors duration-150 ease-soft active:bg-neutral-line"
+              className="flex items-start gap-[12px] rounded-[14px] bg-paper-2 px-4 py-[15px] transition-colors duration-150 ease-soft active:bg-neutral-line"
             >
-              <span className="block text-[0.75rem] leading-[1.5] font-bold text-ink-muted">
-                {eyebrow}
+              {/* 한 글자 마커 — 응급 목록과 같은 42px·radius 12·17px w800입니다.
+                  다른 점은 면 하나뿐입니다: 응급은 붉은 면 위 danger-ink이고, 여기는 카드가 이미
+                  paper-2라 같은 값을 쓰면 마커가 카드에 잠깁니다. 그래서 마커가 카드의 지면(흰 면)을
+                  가져가고 글자는 ink-soft로 둡니다 — 관계(한 단 다른 중립 면 + ink-soft)는 같습니다. */}
+              <span
+                aria-hidden
+                className="flex h-[42px] w-[42px] flex-none items-center justify-center rounded-[12px] bg-paper text-[1.0625rem] leading-[1.3] font-extrabold text-ink-soft"
+              >
+                {mark}
               </span>
-              <span className="mt-[4px] block text-[1.0625rem] leading-[1.4] font-bold text-ink">
-                {scenario.title}
-              </span>
-              <span className="mt-[4px] block text-[0.8438rem] leading-[1.55] text-ink-soft">
-                {CARD_SUMMARY[scenario.id] ?? scenario.summary}
-              </span>
-              <span className="mt-[10px] flex items-center gap-3">
-                {/* 해 본 횟수는 기기(localStorage)에서만 읽습니다 — 마운트 뒤에 채워집니다. */}
-                <PracticeCount scenarioId={scenario.id} />
-                <span aria-hidden className="ml-auto text-[0.875rem] leading-none font-bold text-brand-700">
-                  연습하기 ›
+
+              <span className="min-w-0 flex-1">
+                <span className="block text-[0.75rem] leading-[1.5] font-bold text-ink-muted">
+                  {eyebrow}
                 </span>
+                <span className="mt-[4px] block text-[1.0625rem] leading-[1.4] font-bold text-ink">
+                  {scenario.title}
+                </span>
+                <span className="mt-[4px] block text-[0.8438rem] leading-[1.55] text-ink-soft">
+                  {CARD_SUMMARY[scenario.id] ?? scenario.summary}
+                </span>
+                <span className="mt-[10px] flex items-center gap-3">
+                  {/* 해 본 횟수는 기기(localStorage)에서만 읽습니다 — 마운트 뒤에 채워집니다. */}
+                  <PracticeCount scenarioId={scenario.id} />
+                  <span
+                    aria-hidden
+                    className="ml-auto text-[0.875rem] leading-none font-bold text-brand-700"
+                  >
+                    연습하기 ›
+                  </span>
+                </span>
+                {/* 감수 대기 — 카드에서 가장 조용한 줄입니다. 연습을 막는 말이 아니라 사실 한 줄입니다. */}
+                {reviewPending && (
+                  <span className="mt-[6px] block text-[0.75rem] leading-[1.5] text-ink-faint">
+                    {REVIEW_PENDING_LABEL}
+                  </span>
+                )}
               </span>
             </Link>
           );
@@ -184,7 +232,9 @@ export default function TrainIndexPage() {
                       <span
                         className={`min-w-0 flex-1 text-[0.8125rem] leading-[1.5] ${open ? "font-semibold text-ink" : "text-ink-muted"}`}
                       >
-                        {cell.title}
+                        {/* 저작용 코드(A01·B01·C00)는 화면에 내지 않습니다 — 난이도와 제목만 남깁니다.
+                            데이터(`src/data/matrix.ts`)는 그대로이고, 지우는 것은 표시부뿐입니다. */}
+                        {matrixTitle(cell.title)}
                       </span>
                       <span
                         className={`flex-none text-[0.7188rem] leading-[1.5] font-semibold ${open ? "text-brand-700" : "text-ink-faint"}`}
@@ -198,13 +248,14 @@ export default function TrainIndexPage() {
             </section>
           ))}
 
+          {/* 여기 있던 두 문단(루브릭 30항목·생성 통제 3계층이 한 번씩 지나간다는 문단과,
+              ④ 위험 판단 유형의 베타 이연 사유 문단)은 2026-08-24에 걷어냈습니다.
+              둘 다 사실이지만 **심사에 답하는 문장**이라, 연습할 상황을 고르시는 화면에서
+              가장 마지막으로 읽히는 자리를 차지하고 있었습니다.
+              같은 내용은 /safety가 근거·실측과 함께 그대로 들고 있습니다 — 지운 것이 아니라
+              자리를 옮긴 것이고, 이 화면에는 「언제 열리는가」 한 줄만 남깁니다. */}
           <p className="mt-[10px] text-[0.7188rem] leading-[1.6] text-ink-faint">
-            감수를 마친 {reviewedCount}종만으로 루브릭 30항목이 한 번씩 실행되고, 생성 통제 3계층(L1·L2·L3)이
-            모두 지나갑니다. 뒤에 더한 {REVIEW_PENDING_IDS.length}종은 같은 30항목과 같은 규칙 사전을 그대로
-            쓰고 데이터만 더한 것이며, 대사는 {REVIEW_PENDING_LABEL} 상태입니다. 잠긴 칸도 같은 방식으로
-            늘립니다.
-            <br />
-            {MATRIX_TYPE_SHORT[DEFERRED_TYPE_LABEL]} 유형은 {MATRIX_TYPE_NOTES[DEFERRED_TYPE_LABEL]}
+            {MATRIX_PENDING_NOTE}
           </p>
         </div>
       </details>

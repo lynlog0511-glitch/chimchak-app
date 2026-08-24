@@ -29,7 +29,7 @@ export const GATE_OFFLINE_BODY =
 
 export const GATE_UNCONFIGURED_TITLE = "서버에 연결이 준비돼 있지 않습니다";
 export const GATE_UNCONFIGURED_BODY =
-  "온라인 모드는 켜져 있지만, 이 배포에는 서버 쪽 AI 연결이 설정돼 있지 않아 아무것도 나가지 않았습니다. 검증 훈련은 그대로 열립니다.";
+  "온라인 모드는 켜져 있지만, 이 배포에는 서버 쪽 AI 연결이 설정돼 있지 않아 외부 AI로는 아무것도 전달되지 않았습니다. 침착 서버까지 갔던 요청은 저장 없이 버려졌습니다. 검증 훈련은 그대로 열립니다.";
 
 export const GATE_TRAIN_CTA = "검증 훈련으로 가기";
 export const GATE_SETTINGS_HINT = "온라인 모드는 화면 오른쪽 위 「설정」에서 켜고 끄실 수 있습니다.";
@@ -42,7 +42,12 @@ export const SEED_HINT_LABEL = "상황 만들기 (비워 두셔도 됩니다)";
 export const SEED_HINT_PLACEHOLDER = "예: 목욕을 한사코 거부하십니다";
 export const SEED_HINT_NOTE =
   "적어 주신 한 줄이 장면을 만드는 데 그대로 쓰입니다. 실제 어르신의 성함·기관명은 적지 말아 주십시오.";
-export const SEED_START = "상황 만들기";
+/**
+ * 시작 버튼 — 이 버튼을 누르는 것이 **동의 의사를 표시하는 행위**입니다.
+ * 바로 위에 선 고지 목록(`FREE_CONSENT_LINES`)을 읽고 누르는 자리이므로, 라벨이
+ * 「상황 만들기」로만 적혀 있으면 동의 없이 첫 전송이 일어나는 화면이 됩니다.
+ */
+export const SEED_START = "안내에 동의하고 시작";
 export const SEED_MAKING = "상황을 만들고 있습니다…";
 
 /** 상황을 못 받았을 때 — 고정 장면을 대신 세우지 않고 못 만들었다고 적습니다. */

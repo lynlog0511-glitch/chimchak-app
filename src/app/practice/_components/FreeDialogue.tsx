@@ -100,7 +100,7 @@ export function FreeDialogue({
         </p>
         <p className="mt-1 text-[0.9375rem] leading-[1.6] text-ink-soft">{persona}</p>
         <p className="mt-2 text-[0.6875rem] leading-[1.45] text-ink-faint">
-          이 상황과 인물은 경량 LLM이 방금 만든 것입니다 · 가상 인물
+          이 상황과 인물은 AI가 방금 만든 것입니다 · 가상 인물
         </p>
       </section>
 

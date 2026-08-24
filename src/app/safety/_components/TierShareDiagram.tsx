@@ -115,8 +115,8 @@ export function TierShareDiagram({ className }: TierShareDiagramProps) {
       </ul>
 
       <p className="mt-4 border-t border-line pt-3 text-[0.9375rem] leading-[1.6] text-ink-muted">
-        막대는 비율이 아니라 잠근 범위의 순서입니다 — 넓음 · 좁힘 · 없음. 근거 문서가
-        화이트리스트 밖이면 판정을 멈추고 「공식 지침에서 근거를 찾지 못했습니다」로 넘깁니다.
+        막대는 비율이 아니라 잠근 범위의 순서입니다 — 넓음 · 좁힘 · 없음. 근거 문서가 목록
+        밖이면 판정을 멈추고 「공식 지침에서 근거를 찾지 못했습니다」로 넘깁니다.
       </p>
     </div>
   );

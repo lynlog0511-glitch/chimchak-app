@@ -1,8 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { BigButton, InlineDisclaimer, PageShell, ScreenHeader, cx } from "@/components";
+import {
+  BigButton,
+  INLINE_DISCLAIMER_TEXT,
+  InlineDisclaimer,
+  PageShell,
+  ScreenHeader,
+  cx,
+} from "@/components";
 import { StatusMark } from "@/components/icons";
+import { PROTOCOL_NOTICE } from "@/data/protocols";
 import { AiMap } from "./_components/AiMap";
 import { CountedFacts } from "./_components/CountedFacts";
 import { DocWhitelist } from "./_components/DocWhitelist";
@@ -22,7 +30,7 @@ import { VerificationLadder } from "./_components/VerificationLadder";
 export const metadata: Metadata = {
   title: "안전·개인정보 설계",
   description:
-    "3계층 생성통제, AI가 쓰이는 여섯 자리, 기록 코칭 개인정보 경로, 폴백 매트릭스, 근거 문서 화이트리스트, 의료기기 경계, 접근권한 3등급, 루브릭 30항목과 감수 이력",
+    "3계층 생성통제, AI가 쓰이는 여섯 자리, 기록 코칭 개인정보 경로, 장애 대비표, 근거 문서 목록, 의료기기 경계, 접근권한 3등급, 루브릭 30항목과 감수 이력",
 };
 
 /* ── 안전 설계 = 시안 7b ───────────────────────────────────────
@@ -74,7 +82,7 @@ const TOC: readonly TocItem[] = [
   { id: "ai-map", label: "AI 지도" },
   { id: "ladder", label: "검증" },
   { id: "privacy", label: "데이터" },
-  { id: "fallback", label: "폴백" },
+  { id: "fallback", label: "대비" },
   { id: "docs", label: "근거 문서" },
   { id: "access", label: "접근권한" },
 ];
@@ -270,7 +278,7 @@ const PRIVACY_STEPS = [
   {
     step: "추론",
     desc: "학습에 쓰이지 않는 조건으로만 처리합니다.",
-    plan: "지금 배포본에는 추론 구간 자체가 없습니다 — 경량 LLM 연결 시 이 조건으로 계약합니다.",
+    plan: "지금 배포본에는 추론 구간 자체가 없습니다 — 외부 AI 연결 시 이 조건으로 계약합니다.",
   },
   { step: "2차 가명처리", desc: "저장 직전에 한 번 더 검사합니다." },
   {
@@ -280,20 +288,35 @@ const PRIVACY_STEPS = [
   },
 ];
 
+/**
+ * 의료기기 경계 — 표의 첫 칸이 **사용 목적**인 데에는 이유가 있습니다.
+ *
+ * 해당 여부를 정하는 것은 「누가 쓰는가」가 아니라 「무엇을 목적으로 하는가」입니다.
+ * 의사가 쓰는 진단 소프트웨어도 사용자는 환자가 아니지만 의료기기입니다 — 사용자를
+ * 기준으로 적으면 경계를 증명하려는 표가 틀린 기준부터 내놓게 됩니다.
+ * 목적 열거는 조문의 낱말을 그대로 씁니다(진단·치료·경감·처치·예방).
+ */
 const NOT_MEDICAL = [
-  { k: "대상", v: "환자가 아니라 돌봄 제공자입니다." },
+  {
+    k: "목적",
+    v: "사용 목적이 질병의 진단·치료·경감·처치·예방이 아니라 돌봄 제공자의 교육·훈련입니다.",
+  },
   { k: "데이터", v: "훈련에서 다루는 인물은 전원 가상 인물입니다." },
-  { k: "출력", v: "진단이나 처방이 아니라 교육적 피드백입니다." },
+  { k: "출력", v: "질병의 진단·치료·경감·처치·예방 목적의 출력이 아니라 교육적 피드백입니다." },
   {
     k: "응급",
     v: "고정 스크립트만 재생하므로 개별 대상자에 대한 판단이 구조적으로 생기지 않습니다.",
   },
 ];
 
+/** 위 표가 어느 조문과 맞물리는지 — 표 끝에 한 줄로 답니다. */
+const NOT_MEDICAL_LAW_REF =
+  "대응 조항 · 「의료기기법」 제2조 제1항(사용 목적 기준)·제26조 제7항 · 식약처 「의료기기와 개인용 건강관리(웰니스) 제품 판단기준」";
+
 const DOC_RULES = [
   {
     t: "① 목록 밖은 인용하지 않습니다",
-    d: "화이트리스트에 없는 문서는 근거로 쓰지 않습니다.",
+    d: "목록에 없는 문서는 근거로 쓰지 않습니다.",
   },
   {
     t: "② 없으면 멈춥니다",
@@ -316,7 +339,7 @@ const INSTITUTION_ITEMS: readonly { t: string; d: string }[] = [
   },
   {
     t: "기록 초안",
-    d: "말로 보고하면 가명처리된 기록 초안이 나옵니다 — 기록에 드는 시간이 줄어듭니다.",
+    d: "말로 보고하면 가명처리된 기록 초안이 나옵니다 — 기록 작성에 드는 시간의 변화는 파일럿에서 재기로 한 항목이며, 실측 전에는 단정하지 않습니다.",
   },
   {
     t: "관리자에게는 이수 여부만",
@@ -410,7 +433,7 @@ export default function SafetyPage() {
                   // 「변주」는 경량 LLM(교체형 어댑터)이 붙는 베타의 일이라 계획 배지를 답니다.
                   <>
                     검수된 고정 대사를 그대로 재생합니다. 지금 배포본에는 생성 호출이 0건이고,
-                    경량 LLM(교체형 어댑터) 연결 지점만 비워 두었습니다. 대본 범위 안의 변주{" "}
+                    AI(교체형 어댑터) 연결 지점만 비워 두었습니다. 대본 범위 안의 변주{" "}
                     <PlanTag />
                   </>,
                   "대본 밖 상황을 지어내지 않고, 실존 인물·기관을 언급하지 않습니다.",
@@ -426,12 +449,11 @@ export default function SafetyPage() {
                 cells: [
                   "턴별 피드백",
                   <>
-                    지금 배포본은 사전 매핑된 근거 문서에 묶인 검수 문장을 씁니다. 화이트리스트
-                    검색{" "}
+                    지금 배포본은 사전 매핑된 근거 문서에 묶인 검수 문장을 씁니다. 목록 검색{" "}
                     <PlanTag />
                   </>,
                   "근거 없는 판정이나 추측을 내놓지 않습니다.",
-                  "근거 문서가 화이트리스트 밖이면 판정을 멈추고 「공식 지침에서 근거를 찾지 못했습니다. 담당 간호사 또는 기관에 확인해 주세요.」로 넘깁니다.",
+                  "근거 문서가 목록 밖이면 판정을 멈추고 「공식 지침에서 근거를 찾지 못했습니다. 담당 간호사 또는 기관에 확인해 주세요.」로 넘깁니다.",
                 ],
               },
               {
@@ -468,9 +490,9 @@ export default function SafetyPage() {
           </div>
 
           <Note tone="danger" className="mt-5">
+            {/* 위 고정 고지와 같은 규율입니다 — 실물 상수를 보간합니다. */}
             <p className="text-[0.9375rem] leading-[1.65] font-bold text-danger-ink">
-              응급 화면에는 「이 안내는 사전 검수된 고정 문구입니다 · AI 생성 아님」을 상시
-              표시하고, 119 버튼을 항상 노출합니다.
+              응급 화면에는 「{PROTOCOL_NOTICE}」을 상시 표시하고, 119 버튼을 항상 노출합니다.
             </p>
             <p className="mt-2 text-[0.9375rem] leading-[1.65] text-ink">
               몸에 손이 닿는 술기는 화면으로 지도하지 않습니다. 해당 구간에서는 「이 부분은 119
@@ -568,8 +590,8 @@ export default function SafetyPage() {
           lead="장애는 일어난다고 보고 설계했습니다. 각 구간이 멈췄을 때 세션을 유지하는 방법을 미리 정해 두었습니다."
         >
           <DataRows
-            caption="폴백 매트릭스 요약"
-            columns={["즉시 폴백 (세션 유지)", "복구 · 검증"]}
+            caption="장애 대비표 요약"
+            columns={["즉시 대비 동작 (세션 유지)", "복구 · 검증"]}
             rows={[
               {
                 head: "음성 인식 · 역할 대사 생성 장애",
@@ -621,16 +643,16 @@ export default function SafetyPage() {
           <Note tone="quiet" className="mt-5">
             <p className="text-[0.9375rem] leading-[1.65] text-ink">
               마이크가 없거나 음성 인식이 되지 않는 환경에서도 모든 훈련을 버튼만으로 끝까지 진행할
-              수 있습니다. 버튼 폴백은 예비 수단이 아니라 1급 경로입니다.
+              수 있습니다. 버튼 경로는 예비 수단이 아니라 1급 경로입니다.
             </p>
           </Note>
         </Section>
 
-        {/* 6. 근거 문서 화이트리스트 */}
+        {/* 6. 근거 문서 목록 */}
         <Section
           id="docs"
           num="06"
-          title="근거 문서 화이트리스트"
+          title="근거 문서 목록"
           lead="피드백에 붙는 근거는 아래 목록 안에서만 나옵니다. 목록 밖 문서는 인용하지 않고, 목록 밖 문서를 근거로 든 판정은 엔진이 멈춰 세웁니다."
         >
           <DocWhitelist />
@@ -668,14 +690,20 @@ export default function SafetyPage() {
             ))}
           </dl>
 
+          <p className="mt-3 text-[0.7813rem] leading-[1.6] text-ink-faint">
+            {NOT_MEDICAL_LAW_REF}
+          </p>
+
           <div className="mt-5 space-y-2">
             <Note tone="warn" title="전 화면 고정 고지" collapsible>
+              {/* 인용은 **상수 보간**입니다 — 손으로 옮겨 적으면 어느 날 실물과 한 글자가
+                  어긋나고, 고지 이행을 주장하는 문장의 인용이 실물과 다른 것이 실사에서
+                  가장 먼저 잡힙니다. 상수를 보간하면 다시는 어긋나지 않습니다. */}
               <p className="text-[0.9375rem] leading-[1.65] text-ink">
-                「본 서비스는 훈련·교육 목적이며 119 신고 및 의료인의 진단·처방을 대체하지
-                않습니다.」를 모든 화면에 표시합니다. 효과를 단정하는 표현, 임상 판정을 흉내 내는
-                표현, 처치를 지시하는 표현 등 8종은 금지 표현 목록으로 정해 두고 화면 문구에서
-                배제했습니다(지금 배포본은 작성 규율과 품질 점검으로 지키며, 노출 0건을
-                확인했습니다. 생성 문구 후검증 필터는 다음 단계에서 붙입니다).
+                「{INLINE_DISCLAIMER_TEXT}.」를 모든 화면에 표시합니다. 효과를 단정하는 표현, 임상
+                판정을 흉내 내는 표현, 처치를 지시하는 표현 등 8종은 금지 표현 목록으로 정해 두고
+                화면 문구에서 배제했습니다(지금 배포본은 작성 규율과 품질 점검으로 지키며, 노출
+                0건을 확인했습니다. 생성 문구 후검증 필터는 다음 단계에서 붙입니다).
               </p>
             </Note>
             <Note tone="quiet" title="오채점은 비대칭으로 다룹니다" collapsible>
@@ -683,9 +711,9 @@ export default function SafetyPage() {
                 맞는 대응에 {COACH}을 주는 것보다, 틀린 대응에 {MET}을 주는 쪽이 훨씬 위험합니다.
                 후자는 0건을 목표로 합니다. 확신이 낮을 때 판정을 「보류」로 표시하는 단계는 설계에
                 넣어 두었고, 지금 배포본에서는 아직 구현하지 않았습니다. 대신 지금은 근거 문서가
-                화이트리스트 밖이면 판정을 멈추고 「공식 지침에서 근거를 찾지 못했습니다」를
-                띄웁니다. 이 가드는 위 검증 계단 ①의 「규칙 엔진 경계 케이스」 재실행에 매번 함께
-                들어가며, 위에서 직접 돌려 보실 수 있습니다.
+                목록 밖이면 판정을 멈추고 「공식 지침에서 근거를 찾지 못했습니다」를 띄웁니다. 이
+                가드는 위 검증 계단 ①의 「규칙 엔진 경계 케이스」 재실행에 매번 함께 들어가며,
+                위에서 직접 돌려 보실 수 있습니다.
               </p>
             </Note>
             <Note tone="brand">

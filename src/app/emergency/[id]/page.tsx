@@ -34,6 +34,22 @@ function situationText(situation: string): string {
   );
 }
 
+/**
+ * 이 안내가 현직 감수를 마쳤는지 — **표시 전용 분기**입니다.
+ *
+ * 판정 기준은 /safety의 검수 계보 표(`ReviewLedger`)와 같습니다(`reviewed`가 「감수 완료」로
+ * 시작하는가). 데이터의 `reviewed` 원문을 그대로 세우지 않는 이유는 두 가지입니다 —
+ * 원문에는 화면 밖 진행 상태를 가리키는 내부 표기가 섞여 있고, 사용자가 알아야 할 것은
+ * 「현직이 봤는가 · 아직인가」와 「어느 쪽이든 고정 문구다」 둘뿐입니다.
+ *
+ * **데이터는 건드리지 않습니다.** 위 치환표와 같은 규율입니다.
+ */
+function reviewLine(reviewed: string): string {
+  return reviewed.startsWith("감수 완료")
+    ? "현직 감수 완료 · 고정 문구 · 생성 호출 없음"
+    : "초안 · 현직 감수 대기 — 고정 문구·생성 0건 원칙은 동일하게 적용됩니다";
+}
+
 /** 프로토콜 5종을 정적 경로로 미리 만들어 둡니다(서비스워커 precache 목록과 동일). */
 export function generateStaticParams(): Array<{ id: string }> {
   return PROTOCOLS.map((protocol) => ({ id: protocol.id.toLowerCase() }));
@@ -68,15 +84,19 @@ export default async function ProtocolPage({ params }: PageParams) {
 
       {/* 이 안내를 언제 쓰는지 — 재생을 방해하지 않도록 아래에 조용히 둡니다.
 
-          예전에는 이 아래에 「검수 상태 · 감수 완료 · 고정 문구(변형 불가) · 생성 호출 없음」이
-          한 줄 더 붙어 있었습니다. 지운 것은 **사실이 아니라 중복**입니다 — 같은 사실을
-          재생기 바로 아래 각주(`ProtocolFootnote`)가 이미 말하고 있어, 한 화면에서 두 번
-          단언하는 동안 정작 사용자가 알아야 할 「이럴 때 씁니다」가 그 사이에 묻혔습니다.
-          검수 계보와 감수 상태의 전문은 /safety 검증 계단이 그대로 들고 있습니다. */}
+          그 아래 한 줄은 **이 안내 하나의 감수 상태**입니다. 한때 이 자리에 있던 줄은
+          다섯 종에 같은 문장을 달아 중복이었고, 그래서 지웠습니다. 지금 다시 세우는 줄은
+          프로토콜마다 다릅니다 — 현직 감수를 마친 것은 아직 한 종뿐이고, 공통 각주
+          (`PROTOCOL_NOTICE`)는 다섯 종 전부에 참인 것(고정 문구 재생·생성 호출 없음)만
+          말하도록 감수 단언을 내려놓았기 때문입니다. 두 줄이 서로 다른 일을 하므로 중복이 아닙니다.
+          검수 계보의 전문은 /safety 검증 계단이 그대로 들고 있습니다. */}
       <section className="mt-8">
         <EyebrowLabel>이럴 때 씁니다</EyebrowLabel>
         <p className="mt-1.5 text-[0.9375rem] leading-[1.6] text-ink-soft">
           {situationText(protocol.situation)}
+        </p>
+        <p className="mt-2.5 text-[0.8438rem] leading-[1.6] text-ink-muted">
+          {reviewLine(protocol.reviewed)}
         </p>
       </section>
 

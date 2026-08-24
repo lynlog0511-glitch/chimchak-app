@@ -16,7 +16,7 @@ import { OfflineStatus } from "./_components/OfflineStatus";
 export const metadata: Metadata = {
   title: "응급 안내",
   description:
-    "응급 상황에서 해야 할 일을 음성과 큰 자막으로 차례로 안내합니다. 고정 문구만 재생하며, 연결이 끊겨도 열립니다.",
+    "응급 상황에서 119 신고와 관찰·확인 절차를 음성과 큰 자막으로 차례로 안내합니다. 고정 문구만 재생하며, 연결이 끊겨도 열립니다.",
 };
 
 /**

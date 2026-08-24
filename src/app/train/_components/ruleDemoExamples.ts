@@ -31,7 +31,7 @@ export const RULE_DEMO_TITLE = "규칙 엔진 시험해 보기 (발표·시연�
 
 /** 접이식 안을 여는 설명 한 줄 */
 export const RULE_DEMO_NOTE =
-  "이 문장들은 규칙 엔진(LLM 밖 결정론 판정)이 무엇을 잡는지 보여 드리기 위한 예시입니다.";
+  "이 문장들은 규칙 엔진(AI 밖 결정론 판정)이 무엇을 잡는지 보여 드리기 위한 예시입니다.";
 
 /** 자동 전송하지 않는다는 안내 */
 export const RULE_DEMO_HINT =

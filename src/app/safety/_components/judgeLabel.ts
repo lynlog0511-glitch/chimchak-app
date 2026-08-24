@@ -9,6 +9,6 @@ import type { RubricItem } from "@/types";
  */
 export const JUDGE_LABEL: Record<RubricItem["judge"], { short: string; long: string }> = {
   rule: { short: "규칙", long: "규칙 — 규칙 사전·시간 규칙이 판정" },
-  llm: { short: "AI", long: "AI — 경량 LLM(교체형 어댑터) 자리" },
+  llm: { short: "AI", long: "AI — 교체형 어댑터 자리" },
   both: { short: "공동", long: "공동 — 두 경로가 함께 판정" },
 };

@@ -14,8 +14,9 @@
  *    대사 변주(`onlineVary.ts`)가 지키던 「학습자 발화는 담지 않는다」가 여기서는 성립하지
  *    않습니다 — 즉흥 연기의 상대가 무슨 말을 들었는지 모르면 연기가 되지 않기 때문입니다.
  *    그래서 그 사실을 시작 전 화면에 그대로 적고, 켜는 것도 시작하는 것도 사람이 합니다.
- *  · 나가지 않는 것 — 원문 그대로의 발화입니다. 발화는 **가명처리를 지나서** 나갑니다
- *    (`engine/masking.ts`). 성명·번호·기관명·주소는 침착 서버에 닿기 전에 가려집니다.
+ *  · 나가지 않는 것 — 원문 그대로의 발화와 원문 그대로의 시드 한 줄입니다. 둘 다
+ *    **가림 처리를 지나서** 나갑니다(`engine/masking.ts`). 성명·번호·기관명·주소·생년으로
+ *    보이는 표현을 규칙으로 찾아 가리되, 빠짐없이 찾는다고 보증하는 장치는 아닙니다.
  *  · 남지 않는 것 — 대화 전체입니다. 저장소에 쓰는 것은 연습 횟수 한 칸뿐이고
  *    (`FREE_PRACTICE_KEY`), 대화는 화면을 벗어나면 사라집니다.
  *
@@ -125,12 +126,18 @@ export function freeLevelLabel(level: FreeLevel): string {
 /**
  * 시드를 요청에 실을 한 줄로 폅니다.
  *
+ * **적어 주신 한 줄은 여기서 가명처리를 거칩니다**(engine/masking.ts). 세 요청
+ * (`buildSetupRequest`·`buildReplyRequest`·`buildSummaryRequest`)이 모두 이 함수를 지나므로,
+ * 가림을 여기 한 자리에 두면 어느 요청에서도 원문이 실려 나가지 않습니다.
+ * 가리는 것이 먼저이고 자르는 것이 나중인 순서에도 이유가 있습니다 — 먼저 자르면 이름이
+ * 경계에서 토막 나 규칙이 놓칩니다.
+ *
  * @example seedLine({ type: "BPSD", level: 2, hint: "목욕을 거부하십니다" })
  * // "치매 행동 · 중급 — 목욕을 거부하십니다"
  */
 export function seedLine(seed: FreeSeed): string {
   const head = `${freeTypeLabel(seed.type)} · ${freeLevelLabel(seed.level)}`;
-  const hint = seed.hint.trim().slice(0, FREE_HINT_MAX);
+  const hint = maskText(seed.hint.trim()).masked.slice(0, FREE_HINT_MAX);
   return hint.length > 0 ? `${head} — ${hint}` : head;
 }
 
@@ -206,8 +213,8 @@ export const FREE_FICTION_NOTICE =
  * 다르다는 사실부터 적습니다.
  */
 export const FREE_CONSENT_LINES: readonly string[] = [
-  "자유 연습에서는 대화가 경량 LLM으로 전송됩니다. 검증 훈련과 달리 기기 밖으로 나갑니다.",
-  "말씀은 가명처리를 지나서 나갑니다 — 성명·번호·기관명·주소는 서버에 닿기 전에 가려집니다.",
+  "자유 연습에서는 대화가 외부 AI로 전송됩니다. 검증 훈련과 달리 기기 밖으로 나갑니다.",
+  "하신 말씀과 「상황 만들기」에 적어 주신 한 줄은 모두 기기 안 가림 처리를 지나서 나갑니다 — 성명·번호·기관명·주소·생년으로 보이는 표현을 규칙으로 찾아 가립니다. 다만 모든 표현을 빠짐없이 찾는다고 보증하지는 못하니, 실제 인물의 정보는 적지도 말씀하지도 말아 주십시오.",
   "대화는 저장되지 않습니다. 화면을 벗어나면 사라지고, 기기에 남는 것은 연습 횟수 하나뿐입니다.",
   "채점하지 않습니다 — 판정도 게이지도 기록도 남기지 않고, 성장 기록에도 올라가지 않습니다.",
   "마이크를 쓰시면 음성 인식은 브라우저 기능이라 제조사 서버를 경유할 수 있습니다. 타이핑만 쓰시면 이 구간이 없습니다.",

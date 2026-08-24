@@ -22,6 +22,7 @@ import {
   FREE_BLOCK_LABEL,
   FREE_ENDPOINT,
   FREE_FALLBACK_LINE,
+  FREE_HINT_MAX,
   FREE_HISTORY_LINE_MAX,
   FREE_HISTORY_MAX_LINES,
   FREE_LINE_MAX,
@@ -167,6 +168,24 @@ describe("요청 몸통", () => {
     expect(history[0]).not.toContain("1234");
     // 인물 대사는 이미 밖에서 만들어져 온 문장이라 가리지 않는다.
     expect(history[1]).toContain("010");
+  });
+
+  it("「상황 만들기」 한 줄도 가명처리를 지나 나간다 (세 요청 모두 같은 시드 한 줄을 쓴다)", () => {
+    const seed: FreeSeed = { ...SEED, hint: "010-1234-5678로 연락 오십니다" };
+    const scene: FreeSceneContext = { ...SCENE, seed };
+    const requests = [buildSetupRequest(seed), buildReplyRequest(scene), buildSummaryRequest(scene)];
+    for (const request of requests) {
+      expect(request.seed).toContain("[번호]");
+      expect(request.seed).not.toContain("1234");
+    }
+  });
+
+  it("시드 한 줄은 **가리고 나서** 자른다 (먼저 자르면 이름이 경계에서 토막 나 규칙이 놓친다)", () => {
+    // 자르기가 먼저면 번호가 상한 자리에서 반토막 나 「1234」가 그대로 실려 나간다.
+    const hint = `${filler(FREE_HINT_MAX - 8)}010-1234-5678`;
+    const line = seedLine({ ...SEED, hint });
+    expect(line).toContain("[번호]");
+    expect(line).not.toContain("1234");
   });
 
   it("대화가 길어져도 마지막 몇 줄만 나가고, 한 줄 길이도 상한을 넘지 않는다", () => {

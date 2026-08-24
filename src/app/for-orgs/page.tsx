@@ -123,7 +123,7 @@ export default function ForOrgsPage() {
           />
           <StateRow
             title="판정 근거 문서 목록"
-            desc="루브릭 30항목과 근거 문서 화이트리스트를 화면에 펴 두었습니다. 기관 감사에서 「근거가 무엇이냐」는 질문에 그대로 답하실 수 있습니다."
+            desc="루브릭 30항목과 근거 문서 목록을 화면에 펴 두었습니다. 기관 감사에서 「근거가 무엇이냐」는 질문에 그대로 답하실 수 있습니다."
           />
         </ul>
         <div className="mt-4 flex flex-col gap-2">

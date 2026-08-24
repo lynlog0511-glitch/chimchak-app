@@ -145,9 +145,9 @@ export function LiveProofPanel({ className }: LiveProofPanelProps) {
 
           {cache.status === "empty" && (
             <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink-soft">
-              지금 이 실행에서는 기기에 저장된 항목이 없습니다. 응급 화면 저장은 프로덕션
-              실행에서 이뤄집니다. 개발 서버에서는 화면이 낡은 채로 남는 것을 막으려고 일부러
-              등록하지 않습니다.
+              지금 이 실행에서는 기기에 저장된 항목이 없습니다. 응급 화면은 배포본 실행에서
+              자동으로 저장되며, 화면 확인용 실행에서는 낡은 화면이 남는 것을 막으려고 일부러
+              저장하지 않습니다.
             </p>
           )}
 
@@ -210,7 +210,7 @@ export function LiveProofPanel({ className }: LiveProofPanelProps) {
 
       <p className="mt-3 text-[0.7813rem] leading-[1.6] text-ink-faint">
         ※ 세는 범위는 브라우저 표준 계측(리소스 타이밍)이 잡는 것 — 이 화면이 불러온
-        문서·스크립트·스타일·이미지·글꼴과 fetch·XHR 요청입니다. 브라우저 내장 음성 인식처럼
+        문서·스크립트·스타일·이미지·글꼴과 화면 코드가 직접 보내는 요청입니다. 브라우저 내장 음성 인식처럼
         페이지 리소스가 아닌 경로는 여기에 잡히지 않아, 아래 개인정보 경로 항목에 따로 적어
         두었습니다.
       </p>

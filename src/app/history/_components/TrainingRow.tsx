@@ -143,7 +143,7 @@ export function TrainingRow({ record, typeLabel }: TrainingRowProps) {
           )}
 
           <p className="mt-[12px] text-[0.7813rem] leading-[1.5] text-tertiary">
-            대화 <span className="chim-num">{record.turnCount}</span>턴
+            주고받은 대화 <span className="chim-num">{record.turnCount}</span>번
             {record.retriesUsed > 0 && " · 다시 해보기 사용"} · 마친 시각{" "}
             {formatDateTime(record.endedAt)}
           </p>

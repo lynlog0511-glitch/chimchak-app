@@ -79,7 +79,7 @@ function ReportRow({ report }: { report: StoredReport }) {
             {isExample && <span className="font-bold text-warn-ink">예시 · </span>}
             {formatShortDate(report.createdAt)} · 가명처리 2단 통과
             {isDisplayableElapsed(report.elapsedSec) &&
-              ` · ${formatElapsedDuration(report.elapsedSec)} 만에 작성`}
+              ` · ${formatElapsedDuration(report.elapsedSec)} 동안 작성`}
           </span>
           <span className="mt-[2px] line-clamp-2 block text-[1.0625rem] leading-[1.35] font-bold text-ink">
             {firstSentence(report.maskedText)}

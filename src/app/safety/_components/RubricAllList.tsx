@@ -67,7 +67,7 @@ export function RubricAllList({ className }: RubricAllListProps) {
         </p>
         <p className="mt-2 text-[0.7813rem] leading-[1.6] text-ink-muted">
           항목 앞의 표는 판정 주체 배정입니다 — {JUDGE_LABEL.rule.long} · {JUDGE_LABEL.llm.long} ·{" "}
-          {JUDGE_LABEL.both.long}. 알파에는 생성 호출이 0건이라, AI로 배정한 항목도 지금은 검수된
+          {JUDGE_LABEL.both.long}. 지금 배포본에는 생성 호출이 0건이라, AI로 배정한 항목도 검수된
           시나리오 규칙표가 판정합니다.
         </p>
 

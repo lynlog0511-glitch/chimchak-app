@@ -196,7 +196,7 @@ export function RuleEngineProof({ className }: RuleEngineProofProps) {
           </dl>
           <p aria-live="polite" className="mt-3 text-[0.9375rem] leading-[1.6] text-ink">
             {failed === 0
-              ? `${result.total}건 전수 통과했습니다. 케이스 목록은 저장소(src/data/ruleBoundaryCases.ts)에 그대로 있습니다.`
+              ? `${result.total}건 전수 통과했습니다. 케이스 목록은 앱 안에 그대로 담겨 있어, 언제 다시 돌려도 같은 목록으로 검사합니다.`
               : `${failed}건이 기대와 다르게 판정됐습니다.`}
           </p>
           {result.groups

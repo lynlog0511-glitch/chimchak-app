@@ -141,7 +141,9 @@ export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: Dr
       </div>
 
       <div className="mt-6 rounded-[14px] bg-paper-2 px-4 py-[14px]">
-        <p className="text-[0.8438rem] leading-[1.45] font-bold text-ink">확정은 사용자가 누릅니다</p>
+        <p className="text-[0.8438rem] leading-[1.45] font-bold text-ink">
+          확정은 직접 누르셔야 저장됩니다
+        </p>
         <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
           확정 직전에 2차 가명처리를 한 번 더 돌리고, 이 기기의 저장소에만 남깁니다. 최종 기록의
           내용과 책임은 작성하신 분에게 있습니다.
@@ -152,8 +154,8 @@ export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: Dr
           <span className="mr-[6px] inline-flex items-center rounded-chip border border-line-strong px-[7px] py-[1px] align-[2px] text-[0.6875rem] leading-[1.45] font-bold whitespace-nowrap text-ink-soft">
             계획
           </span>
-          기관 시스템 연동은 설계까지 마쳤고 아직 구현하지 않았습니다. 연동하게 되더라도 확정
-          버튼을 누르신 뒤에만 전달되도록 설계했습니다.
+          기관 시스템으로 보내는 기능은 아직 없습니다. 나중에 생기더라도 확정 버튼을 누르신
+          뒤에, 가려진 글만 나갑니다.
         </p>
       </div>
 

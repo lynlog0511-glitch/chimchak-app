@@ -5,7 +5,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "침착 ChimChak — 돌보는 사람을 훈련시키는 AI 시뮬레이터",
+    default: "침착 ChimChak — 돌보는 사람을 위한 상황 훈련",
     template: "%s · 침착 ChimChak",
   },
   description:
@@ -22,9 +22,9 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "침착 ChimChak",
-    title: "침착 ChimChak — 돌보는 사람을 훈련시키는 AI 시뮬레이터",
+    title: "침착 ChimChak — 돌보는 사람을 위한 상황 훈련",
     description:
-      "정답을 맞히는 시험이 아니라, 말이 나오게 만드는 연습입니다. AI는 어르신 역만 맡고 판정은 법령·공단 지침이 합니다.",
+      "정답을 맞히는 시험이 아니라, 말이 나오게 만드는 연습입니다. AI는 어르신 역만 맡고, 코칭은 법령·공단 지침을 따릅니다.",
     locale: "ko_KR",
   },
 };

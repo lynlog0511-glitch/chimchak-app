@@ -415,12 +415,11 @@ function ruleNameOf(trace: TracedFeedback["trace"]): string | undefined {
  */
 export function cfVerdictSourceLine(feedback: TracedFeedback): string {
   const trace = feedback.trace;
-  const itemId = trace?.itemIds?.[0];
   if (trace?.source === "rule") {
     const name = ruleNameOf(trace);
     return name ? `판정: 규칙 사전 — ${name} (AI 아님)` : "판정: 규칙 사전 (AI 아님)";
   }
-  return `판정: 시나리오 규칙표 ${itemId ?? feedback.branchId} (AI 아님)`;
+  return "판정: 시나리오 규칙표 (AI 아님)";
 }
 
 /**

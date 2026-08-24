@@ -118,7 +118,7 @@ export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolI
       >
         <div className="flex items-center gap-3">
           <p className="flex-none text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-danger-ink">
-            L3 · 실전 응급 · 생성 0건
+            실전 응급 · 생성 0건
           </p>
           {/* 제목이 길어도 「N / M」은 잘리지 않습니다 — 잘리는 쪽은 언제나 제목입니다. */}
           <p className="ml-auto flex min-w-0 items-baseline gap-[4px] text-[0.8438rem] leading-[1.45] font-bold text-ink-soft">

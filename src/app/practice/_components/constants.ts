@@ -29,7 +29,7 @@ export const GATE_OFFLINE_BODY =
 
 export const GATE_UNCONFIGURED_TITLE = "서버에 연결이 준비돼 있지 않습니다";
 export const GATE_UNCONFIGURED_BODY =
-  "온라인 모드는 켜져 있지만, 이 배포에는 상류 연결이 설정돼 있지 않아 아무것도 나가지 않았습니다. 검증 훈련은 그대로 열립니다.";
+  "온라인 모드는 켜져 있지만, 이 배포에는 서버 쪽 AI 연결이 설정돼 있지 않아 아무것도 나가지 않았습니다. 검증 훈련은 그대로 열립니다.";
 
 export const GATE_TRAIN_CTA = "검증 훈련으로 가기";
 export const GATE_SETTINGS_HINT = "온라인 모드는 화면 오른쪽 위 「설정」에서 켜고 끄실 수 있습니다.";
@@ -72,9 +72,8 @@ export const TTS_OFF = "대사 읽어 주기 꺼짐";
 /** 연결이 안 되었을 때 — 지어내지 않고 못 받았다고 적습니다. */
 export const REPLY_FAILED = "답이 오지 않았습니다. 잠시 뒤 다시 보내 주세요.";
 export const REPLY_RATE_LIMITED =
-  "서버 호출 한도에 걸렸습니다. 잠시 기다렸다가 다시 보내 주세요 — 비용을 지키는 한도라 훈련보다 먼저 섭니다.";
-export const REPLY_UNCONFIGURED =
-  "서버에 상류 연결이 준비돼 있지 않아 답을 받지 못했습니다.";
+  "서버 호출 한도에 걸렸습니다. 잠시 기다렸다가 다시 보내 주세요.";
+export const REPLY_UNCONFIGURED = "서버에 AI 연결이 준비돼 있지 않아 답을 받지 못했습니다.";
 
 /* ── ⚑CF 인터럽트 ─────────────────────────────────────── */
 
@@ -94,7 +93,7 @@ export const SUMMARY_TITLE = "여기까지 해 보셨습니다";
 export const SUMMARY_EYEBROW = "자유 연습 · 채점 없음";
 export const SUMMARY_COACH_LABEL = "다음에 해 보실 수 있는 것";
 export const SUMMARY_FAILED_NOTE =
-  "근거를 확인하지 못한 문장은 화면에 세우지 않습니다. 지어낸 요약을 대신 두는 대신 못 만들었다고 적습니다.";
+  "근거를 확인하지 못한 문장은 화면에 세우지 않습니다. 요약을 지어내는 대신, 못 만들었다고 그대로 적습니다.";
 export const SUMMARY_AGAIN = "다른 상황으로 한 번 더";
 export const SUMMARY_TO_TRAIN = "검증 훈련으로 가기";
 export const SUMMARY_GONE =

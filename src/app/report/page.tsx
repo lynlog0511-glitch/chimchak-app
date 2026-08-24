@@ -4,9 +4,9 @@ import { SOURCE_DOCS } from "@/data/docs";
 import { ReportWizard } from "./_components/ReportWizard";
 
 export const metadata: Metadata = {
-  title: "음성 보고 → 기록 코칭",
+  title: "보고 · 기록",
   description:
-    "말로 보고하면 기기 안에서 가명처리하고, 급여제공기록지 5요소 초안을 만들어 드립니다. 확정은 사용자가 직접 누릅니다.",
+    "말로 보고하면 기기 안에서 가명처리하고, 급여제공기록지 5요소 초안을 만들어 드립니다. 확정은 직접 누르실 때만 이 기기에 저장됩니다.",
 };
 
 /**

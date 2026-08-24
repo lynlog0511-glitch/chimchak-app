@@ -48,7 +48,7 @@ export async function generateMetadata({ params }: PageParams): Promise<Metadata
   if (!protocol) return { title: "응급 안내" };
   return {
     title: `${protocol.title} — 응급 안내`,
-    description: protocol.situation,
+    description: situationText(protocol.situation),
   };
 }
 

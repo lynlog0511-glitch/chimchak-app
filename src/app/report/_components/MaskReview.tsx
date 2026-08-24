@@ -249,8 +249,8 @@ export function MaskReview({
         className="text-[0.7813rem] leading-[1.45] font-bold tracking-normal text-ink-muted"
       >
         {total > 0
-          ? "이렇게 가렸어요 — 기기 밖으로 나가는 건 이 글뿐입니다"
-          : "가릴 항목을 찾지 못했어요 — 기기 밖으로 나가는 건 이 글뿐입니다"}
+          ? "이렇게 가렸어요 — 확정 뒤에 남는 건 이 글뿐입니다"
+          : "가릴 항목을 찾지 못했어요 — 확정 뒤에 남는 건 이 글뿐입니다"}
       </h2>
 
       <div className="mt-[8px] mb-[10px] rounded-[14px] bg-paper-2 px-4 py-[15px] text-[1rem] leading-[1.85] text-ink">

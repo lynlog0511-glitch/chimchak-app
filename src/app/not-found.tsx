@@ -17,7 +17,7 @@ export default function NotFound() {
     <PageShell>
       <ScreenHeader
         title="찾으시는 화면이 없습니다"
-        subtitle="주소가 바뀌었거나, 아직 준비되지 않은 화면일 수 있습니다"
+        subtitle="주소가 바뀌었거나, 잘못 입력되었을 수 있습니다"
       />
 
       {/* 이 화면의 본문은 이 문단 하나뿐입니다 — 13.5px(보조 설명 단)에서 15px(읽는 단)로 올립니다.

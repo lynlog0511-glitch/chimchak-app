@@ -59,7 +59,7 @@ export const VERIFICATION_LADDER: readonly LadderStep[] = [
     origin: "in-app",
     measuredAt: "2026. 7. 27.",
     remaining:
-      "경계 케이스는 100건을 넘겼습니다(8/24) — 정확한 수는 /check가 셉니다. 파일럿 실사례로 계속 보강합니다.",
+      "경계 케이스는 그 뒤로 100건을 넘겼습니다 — 파일럿 실사례로 계속 보강합니다.",
     state: "measured",
   },
   {

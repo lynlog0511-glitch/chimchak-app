@@ -78,8 +78,8 @@ export function CountedFacts({ className }: CountedFactsProps) {
       </dl>
 
       <p className="mt-3 text-[0.7813rem] leading-[1.6] text-ink-muted">
-        이 배정은 <b className="font-bold">설계상의 배정</b>입니다. 알파에는 생성 호출이 0건이라,
-        AI 칸으로 배정한 항목도 지금은 검수된 시나리오 규칙표가 판정합니다.
+        이 배정은 <b className="font-bold">설계상의 배정</b>입니다. 지금 배포본에는 생성 호출이
+        0건이라, AI 칸으로 배정한 항목도 검수된 시나리오 규칙표가 판정합니다.
       </p>
     </section>
   );

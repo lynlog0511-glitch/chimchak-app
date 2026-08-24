@@ -496,7 +496,7 @@ export default function LegalPage() {
             <ListRow
               href="/safety"
               title="안전·개인정보 설계"
-              subtitle="3계층 생성통제 · AI가 쓰이는 다섯 자리 · 가명처리가 지나는 길 · 지금 이 기기에서 재는 실시간 계측"
+              subtitle="3계층 생성통제 · AI가 쓰이는 여섯 자리 · 가명처리가 지나는 길 · 지금 이 기기에서 재는 실시간 계측"
             />
             <ListRow
               href="/guide"

@@ -232,7 +232,7 @@ export function ProtocolPlayer({ title, steps, backHref }: ProtocolPlayerProps) 
                     current ? "font-bold text-ink" : "text-ink-soft",
                   )}
                 >
-                  {s.voice.trim().length > 0 ? s.voice : "(음성 없음 — 의도된 침묵 단계)"}
+                  {s.voice.trim().length > 0 ? s.voice : "(음성 없이 화면만 남는 단계입니다)"}
                 </span>
               </button>
             );

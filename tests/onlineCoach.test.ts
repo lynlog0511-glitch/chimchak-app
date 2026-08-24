@@ -530,15 +530,16 @@ describe("/api/coach", () => {
   });
 
   it("같은 IP가 분당 상한을 넘기면 상류를 부르지 않는다", async () => {
+    // 분당 15회 — 자유 연습 한 판(최대 14회)이 정상 사용 중에 끊기지 않는 하한입니다(route.ts 주석).
     const ip = "10.9.9.9";
     const statuses: string[] = [];
-    for (let i = 0; i < 8; i += 1) {
+    for (let i = 0; i < 17; i += 1) {
       const response = await POST(coachRequest(validBody(), ip));
       statuses.push(((await response.json()) as { status: string }).status);
     }
-    expect(statuses.slice(0, 6)).toEqual(Array(6).fill("ok"));
-    expect(statuses.slice(6)).toEqual(["rate_limited", "rate_limited"]);
-    expect(calls).toHaveLength(6);
+    expect(statuses.slice(0, 15)).toEqual(Array(15).fill("ok"));
+    expect(statuses.slice(15)).toEqual(["rate_limited", "rate_limited"]);
+    expect(calls).toHaveLength(15);
   });
 
   it("배포 전체 하루 상한을 넘기면 IP가 달라도 막는다", async () => {

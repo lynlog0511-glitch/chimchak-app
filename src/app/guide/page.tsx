@@ -312,6 +312,23 @@ export default function GuidePage() {
         </ListRows>
       </Section>
 
+      {/* 약관·개인정보는 「더 자세히」 목록에 섞지 않고 제목을 그대로 세워 둡니다 —
+          「약관」이라는 낱말을 찾아 내려오신 분이 헤딩에서 바로 보시게 하려는 자리입니다. */}
+      <Section
+        title="약관·개인정보"
+        lead="세 문서 모두 법률 검토 전 초안이고, 지금 이 앱이 실제로 하는 일만 적혀 있습니다."
+      >
+        <div className="mt-[8px]">
+          <ListRows>
+            <ListRow
+              href="/legal"
+              title="개인정보 처리방침 · 이용약관 · 파일럿 참여 동의"
+              subtitle="무엇이 기기 안에만 남는지, 기기 밖으로 나가는 경우 셋, 그리고 파일럿에 참여하실 때의 약속"
+            />
+          </ListRows>
+        </div>
+      </Section>
+
       <InlineDisclaimer size="md" tone="readable" className="mt-6 mb-3" />
     </PageShell>
   );

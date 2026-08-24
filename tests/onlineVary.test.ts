@@ -636,12 +636,12 @@ describe("/api/coach (task: vary)", () => {
   it("한도 계수기는 코칭과 하나를 나눠 쓴다 (비용은 요청 수로 나간다)", async () => {
     const ip = "10.1.9.9";
     const statuses: string[] = [];
-    // 변주로 여섯 칸을 다 쓰면, 같은 IP의 **코칭** 요청도 그 자리에서 막힌다.
-    for (let i = 0; i < 6; i += 1) {
+    // 변주로 열다섯 칸을 다 쓰면, 같은 IP의 **코칭** 요청도 그 자리에서 막힌다.
+    for (let i = 0; i < 15; i += 1) {
       const response = await POST(coachRequest(validBody(), ip));
       statuses.push(((await response.json()) as { status: string }).status);
     }
-    expect(statuses).toEqual(Array(6).fill("ok"));
+    expect(statuses).toEqual(Array(15).fill("ok"));
 
     const cueTurn = CHK_A01.turns.find((turn) => turn.cue);
     if (!cueTurn?.cue) throw new Error("CHK-A01에 CUE가 있는 턴이 없습니다");
@@ -649,7 +649,7 @@ describe("/api/coach (task: vary)", () => {
       coachRequest(buildCoachRequest(CHK_A01, cueTurn.cue, "무슨 일이신지 여쭤봤습니다"), ip),
     );
     expect(await coaching.json()).toEqual({ status: "rate_limited" });
-    expect(calls).toHaveLength(6);
+    expect(calls).toHaveLength(15);
   });
 
   it("열려 있는 모든 시나리오의 어르신·보호자 대사가 검증을 지난다", async () => {

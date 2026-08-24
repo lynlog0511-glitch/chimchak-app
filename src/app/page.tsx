@@ -14,6 +14,7 @@ import { SCENARIOS } from "@/data/scenarios";
 import { FirstVisitHint } from "./_components/FirstVisitHint";
 import { ResumeCard, type ResumeScenario } from "./_components/ResumeCard";
 import { SessionPreviewCard } from "./_components/SessionPreviewCard";
+import { WeeklyGoalCard } from "./_components/WeeklyGoalCard";
 
 /* ── 홈 = 시안 5a(모바일) · 7c(데스크톱) ────────────────────────
    랜딩 페이지가 아니라 **앱의 첫 화면**입니다(v4 §0·§3).
@@ -94,12 +95,15 @@ const TIERS: readonly { label: string; mobileTail?: string; deskTail: string; ba
   },
 ];
 
-/** 화면 맨 아래 조용한 링크 셋 — 탭바에 자리가 없는 세 화면으로 가는 문입니다.
-    「처음 오신 분께」를 맨 앞에 두는 이유는, 이 줄에서 유일하게 **처음 오신 분이 찾는** 문이기 때문입니다. */
+/** 화면 맨 아래 조용한 링크 넷 — 탭바에 자리가 없는 네 화면으로 가는 문입니다.
+    「처음 오신 분께」를 맨 앞에 두는 이유는, 이 줄에서 유일하게 **처음 오신 분이 찾는** 문이기 때문입니다.
+    「약관·개인정보」는 반대로 찾을 때만 찾는 문이라 맨 뒤에 둡니다 — 다만 앱 어디에서도 갈 수
+    없으면 안 되는 문이라, 홈의 이 줄이 그 자리를 맡습니다. */
 const FOOT_LINKS: readonly { href: string; label: string }[] = [
   { href: "/guide", label: "처음 오신 분께" },
   { href: "/safety", label: "안전·개인정보 설계" },
   { href: "/for-orgs", label: "기관 도입 안내" },
+  { href: "/legal", label: "약관·개인정보" },
 ];
 
 /** 링크들이 한 글자도 다르지 않게 생기도록 클래스를 한 곳에 둡니다.
@@ -184,11 +188,14 @@ export default function Home() {
         <SessionPreviewCard className="hidden lg:block" />
       </section>
 
-      {/* 조건부 회색 카드 두 장이 사는 자리 — 둘 다 나타나지 않는 날이 더 많습니다.
+      {/* 회색 카드 묶음이 사는 자리 — 앞의 둘은 조건부(첫 방문·체크포인트)라 나타나지 않는 날이
+          더 많고, 「이번 주 목표」는 기기 저장소를 읽은 뒤부터 늘 서 있습니다.
           위 간격을 히어로가 아니라 **이 묶음이** 들고 있는 것이 요점입니다:
           비면 `:empty`로 통째로 접혀 padding까지 함께 사라지므로, 카드 유무와 관계없이
           히어로 아래 첫 간격은 언제나 20px입니다. (예전에는 히어로 pb-5 + 다음 섹션 pt-5가
           겹쳐 카드가 없는 날만 40px로 벌어졌습니다 — 첫 화면 리듬이 방문마다 달랐습니다.)
+          `:empty`가 아직 일하는 구간은 **수화 전 한 순간**입니다 — 세 장 모두 기기 저장소를
+          읽고 나서야 서므로, 서버가 그린 첫 화면에서는 이 묶음이 통째로 접혀 있습니다.
           카드 사이 10px은 「같은 식구」로 묶어 읽히게 하려는 값이고,
           다음 섹션과의 20px과 대비되어 묶음의 경계를 만듭니다. */}
       <div className="flex flex-col gap-[10px] pt-5 empty:hidden lg:max-w-[560px] lg:pt-0">
@@ -198,6 +205,12 @@ export default function Home() {
 
         {/* 하던 훈련 — 체크포인트가 있을 때만 나타납니다. */}
         <ResumeCard scenarios={RESUME_SCENARIOS} />
+
+        {/* 이번 주 목표 — 위 두 장과 달리 늘 있는 카드라 묶음의 **마지막**에 둡니다.
+            앞의 둘은 「지금 눌러야 하는 것」이고(시작 안내·이어서 하기), 이 카드는 「이번 주가
+            어디까지 왔는가」라 급한 쪽이 CTA에 가깝게 서야 합니다. 간격은 묶음의 10px 그대로라
+            세 장이 같은 식구로 읽힙니다. */}
+        <WeeklyGoalCard />
       </div>
 
       {/* 세 가지를 합니다 — 아이콘 없이 [제목 + 부제] + `›` (v4 §2)
@@ -256,7 +269,7 @@ export default function Home() {
         {/* 링크 사이에 가운뎃점을 세웁니다 — 밑줄 친 문장들이 16px 간격으로만 떨어져 있어
             좁은 화면에서 한 문장으로 붙어 읽혔습니다. 점은 3계층 밴드·데스크톱 히어로 한 줄에서
             이미 쓰는 구분자라 새 기호를 들이지 않습니다(장식이므로 aria-hidden).
-            셋이 되면서 좁은 화면에서는 한 줄에 담기지 않으므로 접히게 둡니다 —
+            넷이 되면서 좁은 화면에서는 한 줄에 담기지 않으므로 접히게 둡니다 —
             줄 높이는 링크마다 붙은 48px 타깃이 만들어 별도 세로 간격을 주지 않습니다. */}
         <p className="flex flex-wrap items-center justify-center">
           {FOOT_LINKS.map((link, i) => (

@@ -6,10 +6,13 @@
  * 어떤 값도 브라우저 번들에 실리지 않습니다). 그래서 온라인 모드를 켜도 CSP의
  * `connect-src 'self'` 한 줄이 그대로 참입니다 — 이 전환이 사려는 것이 정확히 그 한 줄입니다.
  *
- * 이 주소가 받는 일은 **둘**입니다(`task`로 갈립니다).
+ * 이 주소가 받는 일은 **셋**입니다(`task`로 갈립니다).
  *  · `coach`(기본) — 미분류 턴에 코칭 한 문장. `task`가 없으면 이쪽입니다(옛 계약 그대로).
  *  · `vary`        — 검수 앵커 대사를 같은 뜻으로 다시 쓰기(`src/lib/onlineVary.ts`).
- * 두 일은 검증도 프롬프트도 생성 상한도 따로지만, **한도 계수기는 하나를 나눠 씁니다** —
+ *  · `free`        — 자유 대화 연습의 상황·대사·마무리 요약(`src/lib/onlineFree.ts`).
+ *                    **이 작업에만 학습자 발화가 실립니다**(가명처리를 지난 문자열입니다).
+ *                    나머지 둘의 계약은 한 글자도 바뀌지 않았습니다.
+ * 세 일은 검증도 프롬프트도 생성 상한도 따로지만, **한도 계수기는 하나를 나눠 씁니다** —
  * 비용은 요청 수로 나가지 작업 이름으로 나가지 않습니다.
  *
  * 이 파일이 하는 일은 셋뿐입니다.
@@ -20,7 +23,8 @@
  *
  * 하지 않는 일이 더 중요합니다.
  *  · **가드 체인을 여기서 돌리지 않습니다.** 코칭의 형식·근거·표현·길이 네 단도, 변주의 형식·
- *    길이·숫자·표현 네 단도 지금처럼 기기 안에서 돕니다(`onlineCoach.ts`·`onlineVary.ts`).
+ *    길이·숫자·표현 네 단도, 자유 연습의 형식·길이·표현·위험 신호 네 단도 지금처럼 기기 안에서
+ *    돕니다(`onlineCoach.ts`·`onlineVary.ts`·`onlineFree.ts`).
  *    「받아 온 문장은 기기 안 가드를 지나야 화면에 닿는다」는 서사가 서버를 하나 세웠다고
  *    서버로 옮겨 가면 안 됩니다.
  *  · **발화와 응답을 로그에 남기지 않습니다.** 아래 어디에도 `console.*`이 없고, 예외 객체조차
@@ -40,6 +44,16 @@ import {
   type OnlineCoachRequest,
 } from "@/lib/onlineCoach";
 import {
+  FREE_HISTORY_LINE_MAX,
+  FREE_HISTORY_MAX_LINES,
+  FREE_PERSONA_MAX,
+  FREE_SEED_MAX,
+  FREE_SITUATION_MAX,
+  buildFreeSystemPrompt,
+  buildFreeUserPrompt,
+  type FreeRequest,
+} from "@/lib/onlineFree";
+import {
   VARY_ANCHOR_MAX,
   VARY_MAX_RECENT_LINES,
   VARY_PERSONA_MAX,
@@ -51,8 +65,25 @@ import {
 
 /* ── 상한 ──────────────────────────────────────────────── */
 
-/** 몸통 전체 상한(바이트 대신 문자 수로 셉니다 — 파싱 전에 끊으려는 값입니다) */
+/** 몸통 전체 상한(바이트 대신 문자 수로 셉니다) — 코칭·변주의 **옛 값 그대로**입니다. */
 const MAX_BODY_LENGTH = 8_192;
+
+/**
+ * 자유 연습만의 몸통 상한.
+ *
+ * 이 작업에는 대화 이력이 통째로 실립니다(최대 26줄 × 300자). 코칭·변주와 같은 8,192자로
+ * 두면 긴 대화가 어느 순간부터 조용히 400으로 끊깁니다 — 화면에는 아무 표시도 나지 않는
+ * 고장이라, 상한을 작업별로 갈라 둡니다. **코칭·변주가 받는 값은 한 글자도 바뀌지 않습니다.**
+ */
+const MAX_FREE_BODY_LENGTH = 16_384;
+
+/** 어느 작업이든 이 길이를 넘으면 파싱조차 하지 않습니다(작업 이름을 읽기 전의 방벽). */
+const MAX_ANY_BODY_LENGTH = Math.max(MAX_BODY_LENGTH, MAX_FREE_BODY_LENGTH);
+
+/** 이 작업이 받는 몸통 상한 */
+function bodyLimitFor(task: CoachTask): number {
+  return task === "free" ? MAX_FREE_BODY_LENGTH : MAX_BODY_LENGTH;
+}
 
 /** 발화 길이 상한(자). 훈련 한 턴의 말은 이 안에서 끝납니다. */
 const MAX_UTTERANCE_LENGTH = 500;
@@ -70,6 +101,15 @@ const MAX_PERSONA_LENGTH = VARY_PERSONA_MAX;
 const MAX_ANCHOR_LENGTH = VARY_ANCHOR_MAX;
 const MAX_RECENT_LINE_LENGTH = VARY_RECENT_LINE_MAX;
 
+/* 자유 연습 쪽 상한 — 나가는 것은 시드 한 줄·상황 지문·인물 소개·대화 이력입니다.
+   대화 이력에는 **학습자 발화가 들어 있습니다**(가명처리를 지난 문자열). 이 작업에만 있는
+   사실이라 상한도 이 작업에만 둡니다. 값은 `src/lib/onlineFree.ts`가 한 자리에 들고 있습니다. */
+const MAX_FREE_SEED_LENGTH = FREE_SEED_MAX;
+const MAX_FREE_SITUATION_LENGTH = FREE_SITUATION_MAX;
+const MAX_FREE_PERSONA_LENGTH = FREE_PERSONA_MAX;
+const MAX_FREE_HISTORY_LINES = FREE_HISTORY_MAX_LINES;
+const MAX_FREE_HISTORY_LINE_LENGTH = FREE_HISTORY_LINE_MAX;
+
 /** 상류를 기다리는 상한(ms). 넘으면 조용히 폴백입니다 — 훈련을 붙잡아 두지 않습니다. */
 const UPSTREAM_TIMEOUT_MS = 6_000;
 
@@ -83,15 +123,37 @@ const UPSTREAM_MAX_TOKENS = 400;
 const UPSTREAM_VARY_MAX_TOKENS = 200;
 
 /**
+ * 자유 연습의 생성 상한 — **단계마다 다릅니다.**
+ *
+ * 상황·인물을 만드는 첫 단계만 두어 문장을 함께 받아야 해서 넉넉하고, 대화 한 마디는 변주와
+ * 같은 크기이며, 마무리 요약은 두세 문장입니다. 길게 받아 봐야 기기 안 길이 가드가 버립니다.
+ */
+const UPSTREAM_FREE_MAX_TOKENS: Record<FreeRequest["stage"], number> = {
+  setup: 400,
+  reply: 200,
+  summary: 300,
+};
+
+/**
  * 온도 — 코칭은 사실을 짚는 일이라 낮게, 변주는 **말맛을 바꾸는 일**이라 조금 높게 둡니다.
  * 높인 만큼 새 사실이 섞일 여지도 커지는데, 그 자리는 기기 안 숫자·길이 가드가 받습니다.
+ *
+ * 자유 연습은 상황과 대사를 새로 만드는 일이라 변주와 같은 값을 쓰되, 마무리 요약만은 사실을
+ * 짚는 일이라 코칭과 같은 값으로 내립니다.
  */
 const COACH_TEMPERATURE = 0.2;
 const VARY_TEMPERATURE = 0.7;
+const FREE_TEMPERATURE: Record<FreeRequest["stage"], number> = {
+  setup: 0.7,
+  reply: 0.7,
+  summary: 0.2,
+};
 
 /** 호출 한도 — IP 하나 기준 */
-const PER_IP_PER_MINUTE = 6;
-const PER_IP_PER_DAY = 60;
+// 자유 연습 한 판이 최대 14회(장면 1 + 대화 12 + 요약 1)를 쓰므로, 분당 한도가 6이면
+// 정상 사용 중에 끊깁니다. 15면 한 판이 끊기지 않으면서도 폭주는 여전히 막습니다.
+const PER_IP_PER_MINUTE = 15;
+const PER_IP_PER_DAY = 90;
 
 /** 배포 전체 하루 상한 기본값 (`COACH_DAILY_CAP`으로 조정) */
 const DEFAULT_DAILY_CAP = 600;
@@ -212,6 +274,52 @@ function readVaryRequest(body: unknown): LineVaryRequest | undefined {
   if (!recentLines) return undefined;
 
   return { scenarioSummary, persona, anchor, recentLines };
+}
+
+/** 자유 연습의 대화 이력 — 빈 배열을 허용합니다(첫 대사에는 앞선 말이 없습니다). */
+function readFreeHistory(value: unknown): string[] | undefined {
+  if (!Array.isArray(value) || value.length > MAX_FREE_HISTORY_LINES) return undefined;
+  const out: string[] = [];
+  for (const item of value) {
+    const line = readField(item, MAX_FREE_HISTORY_LINE_LENGTH);
+    if (line === undefined) return undefined;
+    out.push(line);
+  }
+  return out;
+}
+
+/** 자유 연습의 단계 — 셋 중 하나가 아니면 요청 전체를 400으로 끊습니다. */
+function readFreeStage(value: unknown): FreeRequest["stage"] | undefined {
+  return value === "setup" || value === "reply" || value === "summary" ? value : undefined;
+}
+
+/**
+ * 자유 연습 요청 — 코칭·변주와 **같은 규율**입니다. 기대 형태만 통과시키고, 아는 칸만 새로 조립합니다.
+ *
+ * 단계마다 받는 칸이 다릅니다. `setup`은 시드 한 줄뿐이고(아직 상황도 인물도 없습니다),
+ * `reply`는 거기에 상황·인물·대화 이력이 붙고, `summary`에만 인용 가능 문서 목록이 더 붙습니다.
+ * 단계에 없는 칸은 실려 와도 조립하지 않습니다 — 상류에 닿는 것은 이 함수가 만든 객체뿐입니다.
+ */
+function readFreeRequest(body: unknown): FreeRequest | undefined {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) return undefined;
+  const record = body as Record<string, unknown>;
+
+  const stage = readFreeStage(record.stage);
+  const seed = readField(record.seed, MAX_FREE_SEED_LENGTH);
+  if (!stage || !seed) return undefined;
+  if (stage === "setup") return { stage, seed };
+
+  const situation = readField(record.situation, MAX_FREE_SITUATION_LENGTH);
+  const persona = readField(record.persona, MAX_FREE_PERSONA_LENGTH);
+  if (!situation || !persona) return undefined;
+
+  const history = readFreeHistory(record.history);
+  if (!history) return undefined;
+  if (stage === "reply") return { stage, seed, situation, persona, history };
+
+  const docs = readDocs(record.docs);
+  if (!docs) return undefined;
+  return { stage, seed, situation, persona, history, docs };
 }
 
 /* ── 호출 한도 ─────────────────────────────────────────── */
@@ -350,18 +458,32 @@ function json(body: Record<string, unknown>, status = 200): Response {
   });
 }
 
+type CoachTask = "coach" | "vary" | "free";
+
 /** 이 요청이 청하는 일 — `task`가 없으면 코칭입니다(옛 계약을 그대로 둡니다). */
-function readTask(body: unknown): "coach" | "vary" | undefined {
+function readTask(body: unknown): CoachTask | undefined {
   if (typeof body !== "object" || body === null || Array.isArray(body)) return undefined;
   const task = (body as Record<string, unknown>).task;
   if (task === undefined || task === "coach") return "coach";
   if (task === "vary") return "vary";
+  if (task === "free") return "free";
   // 모르는 작업 이름은 400입니다 — 조용히 코칭으로 처리하면 계약이 흐려집니다.
   return undefined;
 }
 
 /** 이 요청의 프롬프트 두 벌을 짭니다. 기대 형태가 아니면 `undefined`(= 400). */
-function promptFor(task: "coach" | "vary", body: unknown): RelayPrompt | undefined {
+function promptFor(task: CoachTask, body: unknown): RelayPrompt | undefined {
+  if (task === "free") {
+    const freeRequest = readFreeRequest(body);
+    if (!freeRequest) return undefined;
+    return {
+      system: buildFreeSystemPrompt(freeRequest),
+      user: buildFreeUserPrompt(freeRequest),
+      maxTokens: UPSTREAM_FREE_MAX_TOKENS[freeRequest.stage],
+      temperature: FREE_TEMPERATURE[freeRequest.stage],
+    };
+  }
+
   if (task === "vary") {
     const varyRequest = readVaryRequest(body);
     if (!varyRequest) return undefined;
@@ -384,7 +506,7 @@ function promptFor(task: "coach" | "vary", body: unknown): RelayPrompt | undefin
 }
 
 /**
- * 코칭 한 문장 또는 대사 한 줄을 중계합니다(`task`로 갈립니다).
+ * 코칭 한 문장 · 대사 한 줄 · 자유 연습의 상황·대사·요약을 중계합니다(`task`로 갈립니다).
  *
  * 돌려주는 모양은 넷입니다. 400 하나를 빼면 전부 200인데, 클라이언트에게 이 넷은 모두
  * 「문장이 붙거나 · 조용히 검수 문장으로 돌아가거나」 둘 중 하나라서 오류로 다룰 것이 없기 때문입니다.
@@ -401,7 +523,7 @@ export async function POST(request: Request): Promise<Response> {
   } catch {
     return json({ status: "invalid" }, 400);
   }
-  if (raw.length === 0 || raw.length > MAX_BODY_LENGTH) return json({ status: "invalid" }, 400);
+  if (raw.length === 0 || raw.length > MAX_ANY_BODY_LENGTH) return json({ status: "invalid" }, 400);
 
   let body: unknown;
   try {
@@ -412,6 +534,8 @@ export async function POST(request: Request): Promise<Response> {
 
   const task = readTask(body);
   if (!task) return json({ status: "invalid" }, 400);
+  // 작업별 몸통 상한 — 코칭·변주는 예전과 같은 8,192자에서 끊깁니다.
+  if (raw.length > bodyLimitFor(task)) return json({ status: "invalid" }, 400);
 
   const prompt = promptFor(task, body);
   if (!prompt) return json({ status: "invalid" }, 400);
@@ -419,7 +543,7 @@ export async function POST(request: Request): Promise<Response> {
   const config = readConfig();
   if (!config) return json({ status: "unconfigured" });
 
-  // 한도는 두 작업이 하나를 나눠 씁니다 — 비용은 요청 수로 나갑니다.
+  // 한도는 세 작업이 하나를 나눠 씁니다 — 비용은 요청 수로 나갑니다.
   if (!takeSlot(clientIp(request), config.dailyCap)) return json({ status: "rate_limited" });
 
   const content = await relay(prompt, config);

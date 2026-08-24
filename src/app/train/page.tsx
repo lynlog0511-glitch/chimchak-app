@@ -12,6 +12,12 @@ import {
   SCENARIO_MATRIX,
 } from "@/data/matrix";
 import { getActiveScenarios, SCENARIOS } from "@/data/scenarios";
+import {
+  FREE_ENTRY_EYEBROW,
+  FREE_ENTRY_SUMMARY,
+  FREE_ENTRY_TITLE,
+  FREE_PRACTICE_HREF,
+} from "@/lib/onlineFree";
 import { FICTION_NOTICE, scenarioHref } from "./_components/constants";
 import { PracticeCount } from "./_components/PracticeCount";
 
@@ -202,6 +208,38 @@ export default function TrainIndexPage() {
           </p>
         </div>
       </details>
+
+      {/* 자유 대화 연습으로 들어가는 유일한 문 — 탭바에는 넣지 않습니다.
+          위 카드들과 같은 문법(paper-2 면 · radius 14 · eyebrow → 제목 → 한 줄)을 쓰되,
+          「검증된 여섯 종」과 나란히 놓지 않으려고 편성표 아래에 따로 세웁니다.
+          카드에 적는 세 낱말(실험 · 온라인 · 채점 없음)이 이 모드의 조건 전부입니다 —
+          들어가 보고 나서야 「회선이 필요하다」를 알게 되지 않도록 문 앞에 적어 둡니다. */}
+      <section className="mt-4 border-t border-line pt-4" aria-label="자유 대화 연습">
+        <Link
+          href={FREE_PRACTICE_HREF}
+          prefetch={false}
+          aria-label={`${FREE_ENTRY_TITLE} — ${FREE_ENTRY_EYEBROW}`}
+          className="block rounded-[14px] bg-paper-2 px-4 py-[15px] transition-colors duration-150 ease-soft active:bg-neutral-line"
+        >
+          <span className="block text-[0.75rem] leading-[1.5] font-bold text-ink-muted">
+            {FREE_ENTRY_EYEBROW}
+          </span>
+          <span className="mt-[4px] block text-[1.0625rem] leading-[1.4] font-bold text-ink">
+            {FREE_ENTRY_TITLE}
+          </span>
+          <span className="mt-[4px] block text-[0.8438rem] leading-[1.55] text-ink-soft">
+            {FREE_ENTRY_SUMMARY}
+          </span>
+          <span className="mt-[10px] flex items-center gap-3">
+            <span className="text-[0.7813rem] leading-[1.45] text-ink-faint">
+              온라인 모드를 켜야 열립니다
+            </span>
+            <span aria-hidden className="ml-auto text-[0.875rem] leading-none font-bold text-brand-700">
+              열어보기 ›
+            </span>
+          </span>
+        </Link>
+      </section>
 
       {/* 가상 인물 고지 한 줄 — 대사가 없는 화면이라 목록 끝에 조용히 답니다. */}
       <p className="mt-[10px] text-[0.7188rem] leading-[1.6] text-ink-faint">{FICTION_NOTICE}</p>

@@ -51,6 +51,13 @@ const CONTENT_SECURITY_POLICY = [
   `connect-src 'self'${isDev ? " ws:" : ""}`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
+  /* 플러그인 객체(<object>·<embed>)는 이 앱이 한 번도 쓰지 않습니다. 적어 두지 않으면
+     `default-src 'self'`로 폴백되어 동일 출처 객체가 허용된 상태로 남습니다 — 쓰지 않는 문은
+     열어 둘 이유가 없습니다. */
+  "object-src 'none'",
+  /* 폼 전송지를 같은 출처로 묶습니다. 이 앱에는 서버로 보내는 폼이 없지만, 스크립트 주입이
+     한 번 성공했을 때 값을 남의 주소로 실어 보내는 길을 CSP 쪽에서 막아 두는 자리입니다. */
+  "form-action 'self'",
 ].join("; ");
 
 /**
@@ -58,6 +65,12 @@ const CONTENT_SECURITY_POLICY = [
  *
  * `Permissions-Policy`의 마이크만 열어 둡니다 — 훈련 화면의 음성 인식이 쓰는 유일한 장치이고,
  * 카메라·위치는 이 앱이 한 번도 요청하지 않으므로 빈 목록으로 잠급니다.
+ *
+ * ※ **`Strict-Transport-Security`가 여기 없는 이유**를 적어 둡니다. HSTS는 배포 플랫폼
+ *   (Vercel 등)이 도메인 단위로 붙여 주므로 앱이 다시 적을 필요가 없습니다. 다만 **자체 호스팅으로
+ *   옮기면 그 순간 조용히 사라집니다** — 이 목록만 보고 옮기면 아무 경고 없이 빠지는 헤더라,
+ *   옮기는 사람이 앞단(nginx·로드밸런서)에서 직접 붙이도록 이 문장을 남깁니다.
+ *   `X-Frame-Options`는 위 CSP의 `frame-ancestors 'none'`이 대신하므로 일부러 두지 않습니다.
  */
 const SECURITY_HEADERS = [
   { key: "Content-Security-Policy", value: CONTENT_SECURITY_POLICY },
@@ -68,6 +81,10 @@ const SECURITY_HEADERS = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+
+  /* 프레임워크 이름과 버전대를 응답 헤더로 알리지 않습니다(`X-Powered-By: Next.js`).
+     막아 주는 공격은 없지만, 알릴 이유도 없는 정보입니다. */
+  poweredByHeader: false,
 
   async headers() {
     return [

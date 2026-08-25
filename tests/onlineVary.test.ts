@@ -12,6 +12,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "@/app/api/coach/route";
+import { COACH_RATE_LIMITS } from "@/lib/coachLimits";
 import { CHK_A01 } from "@/data/scenarios/chk-a01";
 import { CHK_B01 } from "@/data/scenarios/chk-b01";
 import { CHK_C02 } from "@/data/scenarios/chk-c02";
@@ -547,11 +548,20 @@ describe("/api/coach (task: vary)", () => {
     } as unknown as Response;
   }
 
-  /** 검사마다 새 IP — 「같은 IP 분당 6회」에 서로 걸리지 않게 한다. */
+  /**
+   * 검사마다 새 IP — 「같은 IP 분당 한도」에 서로 걸리지 않게 한다.
+   *
+   * 헤더 두 개(`origin`·`content-type`)는 브라우저가 붙여 주는 것이다. 라우트가 그 둘을 보고
+   * 다른 출처의 요청을 403으로 끊으므로, 앱이 실제로 보내는 모양을 그대로 흉내 낸다.
+   */
   function coachRequest(body: unknown, ip = `10.1.0.${(ipSeed += 1)}`): Request {
     return new Request("https://chimchak.invalid/api/coach", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-forwarded-for": ip },
+      headers: {
+        "Content-Type": "application/json",
+        origin: "https://chimchak.invalid",
+        "x-forwarded-for": ip,
+      },
       body: typeof body === "string" ? body : JSON.stringify(body),
     });
   }
@@ -635,13 +645,14 @@ describe("/api/coach (task: vary)", () => {
 
   it("한도 계수기는 코칭과 하나를 나눠 쓴다 (비용은 요청 수로 나간다)", async () => {
     const ip = "10.1.9.9";
+    const limit = COACH_RATE_LIMITS.perIpPerMinute;
     const statuses: string[] = [];
-    // 변주로 열다섯 칸을 다 쓰면, 같은 IP의 **코칭** 요청도 그 자리에서 막힌다.
-    for (let i = 0; i < 15; i += 1) {
+    // 변주로 분당 몫을 다 쓰면, 같은 IP의 **코칭** 요청도 그 자리에서 막힌다.
+    for (let i = 0; i < limit; i += 1) {
       const response = await POST(coachRequest(validBody(), ip));
       statuses.push(((await response.json()) as { status: string }).status);
     }
-    expect(statuses).toEqual(Array(15).fill("ok"));
+    expect(statuses).toEqual(Array(limit).fill("ok"));
 
     const cueTurn = CHK_A01.turns.find((turn) => turn.cue);
     if (!cueTurn?.cue) throw new Error("CHK-A01에 CUE가 있는 턴이 없습니다");
@@ -649,7 +660,7 @@ describe("/api/coach (task: vary)", () => {
       coachRequest(buildCoachRequest(CHK_A01, cueTurn.cue, "무슨 일이신지 여쭤봤습니다"), ip),
     );
     expect(await coaching.json()).toEqual({ status: "rate_limited" });
-    expect(calls).toHaveLength(15);
+    expect(calls).toHaveLength(limit);
   });
 
   it("열려 있는 모든 시나리오의 어르신·보호자 대사가 검증을 지난다", async () => {

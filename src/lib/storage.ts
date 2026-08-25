@@ -15,7 +15,15 @@
 
 import type { RecordDraft, SessionEvent, SessionRecord, SessionState, SessionStatus } from "@/types";
 import { SCENARIO_MATRIX } from "@/data/matrix";
-import { SCENARIOS } from "@/data/scenarios";
+/*
+ * 시나리오 **번호만** 가져옵니다(`@/data/scenarios`가 아니라 잎 모듈입니다).
+ *
+ * 이 파일은 거의 모든 클라이언트 화면이 import합니다. 예전처럼 시나리오 배럴을 참조하면
+ * 웹팩이 시나리오 6종의 본문(대사·분기·패턴 약 7천 줄)을 전 라우트 공유 청크에 실어 보내,
+ * 대사를 한 줄도 쓰지 않는 홈 화면이 그것을 다 받고 파싱한 뒤에야 그려집니다.
+ * 여기서 필요한 것은 id 문자열뿐이므로 그것만 담은 모듈을 봅니다(`@/data/scenarioIds`).
+ */
+import { SCENARIO_IDS } from "@/data/scenarioIds";
 
 export const SESSIONS_KEY = "chimchak.sessions.v1";
 export const REPORTS_KEY = "chimchak.reports.v1";
@@ -307,7 +315,7 @@ const MAX_COUNTED_IDS = 300;
  * 쓰이는 이상 「이 앱에 없는 훈련을 이수했다」는 행은 애초에 들어올 자리가 없어야 한다.
  */
 const KNOWN_SCENARIO_IDS: ReadonlySet<string> = new Set([
-  ...SCENARIOS.map((scenario) => scenario.id.trim().toUpperCase()),
+  ...SCENARIO_IDS.map((id) => id.trim().toUpperCase()),
   ...SCENARIO_MATRIX.map((cell) => cell.scenarioId?.trim().toUpperCase() ?? "").filter(
     (id) => id.length > 0,
   ),
@@ -541,11 +549,26 @@ function fnv1a(input: string): number {
   return hash >>> 0;
 }
 
-/** 「CHK-3F7A-9C21」 — 기록 집합에서 계산한 발급번호. */
-function issueNumberFor(lines: CompletionLine[], totalCount: number, totalSec: number): string {
+/**
+ * 「CHK-3F7A-9C21」 — 기록 집합에서 계산한 발급번호.
+ *
+ * **시드는 파일에 실리는 값으로만 짠다.** 예전에는 초 단위 시수와 밀리초까지 담긴 ISO 시각으로
+ * 해시했다. 그런데 파일(CSV)은 시수를 분으로 반올림하고 시각도 분까지만 적으므로, 읽는 쪽은
+ * 같은 해시를 다시 계산할 방법이 없었다 — 발급번호는 서식만 맞으면 무엇이든 통과했고, 손으로
+ * 숫자만 고쳐 쓴 파일이 그대로 들어왔다.
+ *
+ * 지금은 시나리오 번호·이수 횟수·분 단위 시수·분까지의 완료 시각·합계 두 칸으로 짜므로,
+ * **파일을 읽은 쪽이 같은 번호를 다시 계산해 대조할 수 있다**(`parseCompletionCsv`가 그렇게 한다).
+ * 위조 방지 장치는 여전히 아니다 — 통째로 다시 계산해 적을 수 있는 사람은 막지 못한다.
+ * 여기서 막는 것은 「숫자 몇 칸만 고쳐 쓴 파일」까지다.
+ */
+function issueNumberFor(lines: CompletionLine[], totalCount: number, totalMinutes: number): string {
   const seed = [
-    ...lines.map((line) => `${line.scenarioId}:${line.count}:${line.lastEndedAt}`),
-    `#${totalCount}:${totalSec}`,
+    ...lines.map(
+      (line) =>
+        `${line.scenarioId}:${line.count}:${Math.round(line.seconds / 60)}:${csvDateTime(line.lastEndedAt)}`,
+    ),
+    `#${totalCount}:${totalMinutes}`,
   ].join("|");
   const hex = fnv1a(seed).toString(16).toUpperCase().padStart(8, "0");
   return `CHK-${hex.slice(0, 4)}-${hex.slice(4)}`;
@@ -634,7 +657,8 @@ export function buildCompletionSummary(): CompletionSummary {
   }
 
   return {
-    number: issueNumberFor(lines, totalCount, totalSec),
+    // 파일에 적히는 값과 같은 눈금(분 반올림)으로 짠다 — 아래 buildCompletionCsv가 쓰는 수와 같다.
+    number: issueNumberFor(lines, totalCount, Math.round(totalSec / 60)),
     totalCount,
     totalSec,
     lines,
@@ -814,6 +838,7 @@ export type CompletionImportError =
   | "scenario"
   | "limit"
   | "total"
+  | "mismatch"
   | "same-device"
   | "duplicate";
 
@@ -834,6 +859,8 @@ export function completionImportMessage(reason: CompletionImportError): string {
       return "이수 횟수나 이수 시수가 이 앱이 만들 수 있는 범위를 넘습니다. 한 회차는 30분까지만 셉니다.";
     case "total":
       return "파일 안의 합계가 줄 값과 맞지 않습니다. 고쳐 쓴 파일은 가져오지 않습니다.";
+    case "mismatch":
+      return "발급번호가 파일 내용과 맞지 않습니다. 값을 고쳐 쓴 파일이거나, 발급번호 계산이 달라진 옛 버전에서 내려받은 파일입니다.";
     case "same-device":
       return "이 기기에서 만든 파일입니다. 같은 이수 사실을 두 번 세지 않습니다.";
     default:
@@ -849,6 +876,31 @@ export interface ParsedCompletionFile {
   totalCount: number;
   totalMinutes: number;
   lines: CompletionLine[];
+  /**
+   * 파일에 적힌 발급번호가 **파일 내용에서 다시 계산한 번호와 같은지**.
+   *
+   * 발급번호는 줄 값(시나리오 번호·횟수·분 단위 시수·분까지의 완료 시각)과 합계로 짠 해시라
+   * 읽는 쪽이 같은 값을 다시 구할 수 있다(`issueNumberFor`). 숫자 한 칸을 고쳐 쓴 파일은
+   * 여기서 false가 된다 — 위조 방지가 아니라 「고쳐 쓴 흔적」을 보는 칸이다.
+   *
+   * 파싱 자체는 이 값이 false여도 성공한다(옛 버전이 만든 파일도 읽을 수는 있어야 한다).
+   * 이수 누계에 합칠지 말지는 `importCompletionCsv`가 이 칸을 보고 정한다.
+   */
+  numberMatches: boolean;
+}
+
+/**
+ * 파일 내용에서 발급번호를 다시 계산한다 — 대조용 공개 창구.
+ *
+ * @example
+ * completionIssueNumber(file.lines, file.totalCount, file.totalMinutes) === file.number
+ */
+export function completionIssueNumber(
+  lines: CompletionLine[],
+  totalCount: number,
+  totalMinutes: number,
+): string {
+  return issueNumberFor(lines, totalCount, totalMinutes);
 }
 
 export type CompletionParseResult =
@@ -921,9 +973,13 @@ function parseWhole(text: string): number | undefined {
  *  ① 시나리오 번호가 이 앱의 편성표 안에 있을 것 — 없는 번호로 행을 늘리는 길을 막는다.
  *  ② 한 줄의 이수 시수가 `이수 횟수 × 30분`을 넘지 않을 것 — 이 앱이 한 회차를 세는 상한과
  *     같은 값이라, 넘는다는 것은 이 앱이 만들지 않은 값이라는 뜻이다. 횟수 자체의 상한도 같이 본다.
+ *  ③ **발급번호를 파일 내용으로 다시 계산해 대조한다**(`numberMatches`). 발급번호 시드가 파일에
+ *     실리는 값(분 반올림)으로 맞춰져 있어 읽는 쪽도 같은 수를 구할 수 있다. 여기서는 결과를
+ *     칸에 담기만 하고 실패시키지 않는다 — 받아들일지는 `importCompletionCsv`가 정한다.
  *
- * 그래도 **발급번호 위조를 막는 장치는 아니다**(발급번호는 대조용 번호일 뿐이다).
- * 여기서 막는 것은 「앱이 만들 수 없는 값이 적힌 파일」까지다.
+ * 그래도 **발급번호 위조를 막는 장치는 아니다**(발급번호는 대조용 번호일 뿐이다 — 값을 고친 뒤
+ * 번호까지 다시 계산해 적는 사람은 막지 못한다). 여기서 막는 것은 「앱이 만들 수 없는 값이 적힌
+ * 파일」과 「숫자 몇 칸만 고쳐 쓴 파일」까지다.
  *
  * @example
  * const read = parseCompletionCsv(text);
@@ -998,7 +1054,16 @@ export function parseCompletionCsv(text: string): CompletionParseResult {
   if (sumCount !== totalCount) return { ok: false, reason: "total" };
   if (Math.abs(sumMinutes - totalMinutes) > lines.length) return { ok: false, reason: "total" };
 
-  return { ok: true, file: { number, issuedAt, totalCount, totalMinutes, lines } };
+  /*
+   * 발급번호를 파일 내용으로 다시 계산해 둔다.
+   *
+   * 여기서 실패시키지는 않는다 — 읽기(파싱)와 받아들이기(가져오기)는 다른 판단이고, 콘솔
+   * 대조 화면처럼 「읽되 표시만 하는」 소비자도 있다. 이수 누계에 합칠지는 importCompletionCsv가
+   * 이 값을 보고 정한다.
+   */
+  const numberMatches = issueNumberFor(lines, totalCount, totalMinutes) === number;
+
+  return { ok: true, file: { number, issuedAt, totalCount, totalMinutes, lines, numberMatches } };
 }
 
 export type CompletionImportResult =
@@ -1063,11 +1128,29 @@ export function importCompletionCsv(text: string): CompletionImportResult {
   }
 
   const { file } = read;
-  if (file.number === buildCompletionSummary().number) {
-    return { ok: false, reason: "same-device", message: completionImportMessage("same-device") };
+  /*
+   * 발급번호와 내용의 대조 — 여기서만 막는다.
+   *
+   * 파일은 사람이 열어 고칠 수 있는 표이고, 그 위에 이수 확인서가 서 있다. 번호가 내용과
+   * 맞지 않는다는 것은 「이 앱이 만든 그대로가 아니다」는 뜻이므로 누계에 더하지 않는다.
+   * 발급번호 계산이 달라지기 전(2026-08-25 이전) 버전이 내려준 파일도 여기서 걸린다 —
+   * 안내 문구가 두 사유를 함께 적는다(`completionImportMessage("mismatch")`).
+   */
+  if (!file.numberMatches) {
+    return { ok: false, reason: "mismatch", message: completionImportMessage("mismatch") };
   }
+  /*
+   * 「이미 가져왔다」를 「이 기기에서 만든 파일이다」보다 **먼저** 본다.
+   *
+   * 발급번호 시드가 파일에 실리는 값으로 맞춰진 뒤, 상세가 없던 기기가 파일을 한 번 가져오면
+   * 그 기기의 요약이 파일과 같은 값을 낸다 — 즉 두 검사가 동시에 참이 된다. 그때 사용자에게
+   * 더 정확한 사실은 「이미 가져온 파일」이므로 그쪽을 먼저 말한다(막는 결과는 어느 쪽이든 같다).
+   */
   if (loadCompletionImports().some((row) => row.number === file.number)) {
     return { ok: false, reason: "duplicate", message: completionImportMessage("duplicate") };
+  }
+  if (file.number === buildCompletionSummary().number) {
+    return { ok: false, reason: "same-device", message: completionImportMessage("same-device") };
   }
 
   const added = addImportedLines(file.lines);

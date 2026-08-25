@@ -51,6 +51,26 @@ const ACTION_SUMMARY: Record<string, string> = {
   "P-05": "보이는 그대로 119에 전달",
 };
 
+/**
+ * 목록의 굵은 제목을 **현장 말**로 바꿔 다는 표시용 치환표입니다.
+ *
+ * 급할 때 눈이 먼저 가는 것은 굵은 제목인데, 거기 「기도폐쇄(질식)」이 서 있으면 사레 든
+ * 어르신 앞에 선 분이 한 번 더 훑어야 합니다 — 그 순간 떠오르는 말은 「목에 걸렸다」입니다
+ * (페르소나 현직 med). 그래서 현장 말을 앞에 세우고 의학 용어는 괄호로 뒤에 붙입니다.
+ *
+ * **데이터는 건드리지 않습니다.** `src/data/protocols.ts`의 `title`은 검수를 거친 문구이고
+ * 상세 화면·부제·감수 계보가 같은 문자열을 씁니다. 여기서 바꾸는 것은 이 목록에 적히는
+ * 말뿐이며, 표에 없는 id는 원문 제목이 그대로 나옵니다
+ * (같은 규율의 선례: `emergency/[id]/page.tsx`의 `SITUATION_REWRITES`).
+ */
+const LIST_TITLE_REWRITES: Record<string, string> = {
+  "P-01": "넘어지셨는데 정신은 있으실 때 (낙상)",
+  "P-02": "목에 걸려 소리를 못 내실 때 (기도폐쇄)",
+  "P-03": "불러도 반응이 없을 때 (의식 저하)",
+  "P-04": "온몸이 떨리며 굳으실 때 (경련)",
+  "P-05": "피가 멎지 않을 때 (심한 출혈)",
+};
+
 export default function EmergencyPage() {
   return (
     <PageShell>
@@ -61,31 +81,34 @@ export default function EmergencyPage() {
       {/* 제목 22px + 초록 점 한 줄. 저장 여부는 실측한 뒤에만 단정합니다(시안 5b). */}
       <ScreenHeader title="응급 안내" subtitle={<OfflineStatus />} />
 
-      {/* 시안에서 119 버튼은 목록이 스크롤해도 자리를 지킵니다 — 안전 규칙 §3-5(상시 노출)와 같은 뜻입니다. */}
-      <div className="sticky top-0 z-30 -mx-[20px] bg-paper px-[20px] pt-[14px] pb-2">
+      {/* 시안에서 119 버튼은 목록이 스크롤해도 자리를 지킵니다 — 안전 규칙 §3-5(상시 노출)와 같은 뜻입니다.
+          바닥에 헤어라인 1px을 답니다: 지금까지는 `bg-paper`만 있어 경계가 없었고, 목록을 내리면
+          아래 글자가 캡션 8px 밑으로 아무 구분 없이 파고들었습니다(페르소나 디자이너 med).
+          좌우 음수 여백 덕에 이 선은 화면 폭 끝까지 그어집니다. */}
+      <div className="sticky top-0 z-30 -mx-[20px] border-b border-line bg-paper px-[20px] pt-[14px] pb-2">
         <Call119Bar />
       </div>
 
-      {/* 이 다섯 가지가 무엇이고 무엇이 아닌지를 목록 앞에서 한 번 못박습니다.
-          아래 각주(생성 통제·술기 경계)와 겹치지 않는, **순서**에 관한 경계입니다 — 119가 먼저입니다. */}
-      <p className="mt-[6px] mb-[14px] text-[0.8438rem] leading-[1.6] text-ink-soft">
-        이 안내는 119 신고를 대체하지 않습니다. 신고 후 구급대가 도착할 때까지 관찰·확인·119
-        이양만 안내합니다.
-      </p>
+      {/* 목록 앞에 있던 면책 한 문단(「이 안내는 119 신고를 대체하지 않습니다…」)은 아래 각주로
+          내렸습니다. 이 화면이 존재하는 이유는 「다섯 개 중에 지금 상황 하나 고르기」인데,
+          그 다섯 개에 닿기 전에 경고가 네 겹 쌓여 있었고 그중 둘은 같은 말을 두 번 하고
+          있었습니다(페르소나 디자이너 med). 위에 남는 것은 119 버튼 캡션 한 줄뿐이라,
+          가장 중요한 경고가 오히려 더 잘 읽힙니다. 문장은 한 글자도 지우지 않고 자리만 옮겼습니다. */}
 
       {/* 5종 — 카드가 아니라 선으로 나눈 목록입니다. 마커 한 글자로 눈이 먼저 찾습니다. */}
-      <ListRows>
+      <ListRows className="mt-[14px]">
         {PROTOCOLS.map((protocol) => {
           const mark = PROTOCOL_MARK[protocol.id] ?? protocol.title.slice(0, 1);
           const summary = ACTION_SUMMARY[protocol.id];
+          const listTitle = LIST_TITLE_REWRITES[protocol.id] ?? protocol.title;
           return (
             <ListRow
               key={protocol.id}
               size="lg"
               href={`/emergency/${protocol.id.toLowerCase()}`}
-              ariaLabel={`${protocol.title} 안내 열기`}
+              ariaLabel={`${listTitle} 안내 열기`}
               leading={<MarkerSquare>{mark}</MarkerSquare>}
-              title={protocol.title}
+              title={listTitle}
               subtitle={
                 summary
                   ? `${summary} · ${protocol.steps.length}단계`
@@ -99,8 +122,17 @@ export default function EmergencyPage() {
       {/* 홈 화면 추가 — 이 기기에서 실제로 되는 길이 있을 때만 그려집니다(없으면 조용히 사라집니다). */}
       <InstallHint className="mt-5" />
 
-      {/* 하단 고지 2줄 — 생성 통제와 술기 경계를 이 화면에서 한 번 더 못박습니다. */}
-      <p className="mt-[10px] text-center text-[0.7813rem] leading-[1.6] text-tertiary">
+      {/* 하단 고지 — 위에서 내려온 순서 경계(119가 먼저)를 맨 앞에 두고, 그 아래에 원래 있던
+          생성 통제·술기 경계 2줄을 그대로 잇습니다. 세 줄이 다 「이 앱이 무엇이 아닌지」라
+          한자리에 모이는 편이 읽힙니다.
+          「누르면 전화 앱이 열립니다」는 버튼 캡션에서 여기로 옮겨 온 사실 문장입니다 —
+          캡션이 두 상황을 나란히 적는 쪽으로 바뀌면서 자리를 옮겼을 뿐, 화면에서 사라지지
+          않습니다(없는 안전장치를 있다고 적지 않는다는 원칙 그대로). */}
+      <p className="mt-[10px] text-center text-[0.7813rem] leading-[1.6] text-ink-muted">
+        이 안내는 119 신고를 대체하지 않습니다. 신고 후 구급대가 도착할 때까지 관찰·확인·119
+        이양만 안내합니다. 위 빨간 버튼을 누르면 전화 앱이 열립니다.
+      </p>
+      <p className="mt-[6px] text-center text-[0.7813rem] leading-[1.6] text-tertiary">
         {PROTOCOL_NOTICE}
         <br />
         신체 술기는 119 상황실이 목소리로 직접 지도합니다

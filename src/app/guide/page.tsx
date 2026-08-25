@@ -14,6 +14,8 @@ import { CALL_119_CAPTION } from "@/app/emergency/_components/Call119Bar";
 import { SOURCE_DOCS } from "@/data/docs";
 import { PROTOCOLS } from "@/data/protocols";
 import { CHK_A01, getActiveScenarios } from "@/data/scenarios";
+import { DocCloseButton } from "../_components/DocCloseButton";
+import { GUIDE_PRIVACY_FAQ_ID } from "../_components/guideAnchors";
 
 export const metadata: Metadata = {
   title: "처음 오신 분께",
@@ -113,7 +115,7 @@ const STEPS: readonly { title: string; desc: string }[] = [
  * 답은 **지금 코드가 하는 일**만 적습니다 — 「곧 됩니다」·「대체로 안전합니다」류의 여지를 두면
  * 이 화면이 앱보다 앞서가 버립니다. 각 항목은 실제로 확인하실 수 있는 화면으로 보냅니다.
  */
-const FAQ: readonly { q: string; a: ReactNode; href: string; linkLabel: string }[] = [
+const FAQ: readonly { id?: string; q: string; a: ReactNode; href: string; linkLabel: string }[] = [
   {
     q: "마이크가 안 되면 훈련을 못 하나요?",
     a: (
@@ -142,6 +144,9 @@ const FAQ: readonly { q: string; a: ReactNode; href: string; linkLabel: string }
     linkLabel: "응급 안내 미리 저장해 두기",
   },
   {
+    /* 홈의 「안전 설계 보기」가 이 항목으로 들어옵니다 — 안심하려고 누른 분이 3계층 설명서
+       대신 자기 말로 된 답을 먼저 만나시게 하는 자리입니다(페르소나 현직 med). */
+    id: GUIDE_PRIVACY_FAQ_ID,
     q: "제가 말한 내용은 어디로 가나요?",
     a: (
       <>
@@ -207,16 +212,16 @@ export default function GuidePage() {
         title="처음 오신 분께"
         subtitle="네 화면이 하루 어디에 놓이는지 · 시작까지 세 걸음 · 자주 묻는 다섯 가지"
         action={
-          <Link
-            href="/"
+          <DocCloseButton
+            fallbackHref="/"
             className="flex min-h-[48px] items-center rounded-field px-1 text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper-2"
-          >
-            닫기
-          </Link>
+          />
         }
       />
 
-      <p className="mt-4 text-[0.9063rem] leading-[1.75] text-ink">
+      {/* 리드 문단은 이 화면에서 처음 읽는 문장입니다 — 14.5px은 가이드 §7-8의 가독 하한
+          (읽어야 하는 문장 15px)을 어기는 값이라 한 단 올렸습니다(페르소나 디자이너 high). */}
+      <p className="mt-4 text-[0.9375rem] leading-[1.75] text-ink">
         <b className="font-bold">{PRACTICE_LINE}</b> 그래서 이 앱에는 시험도 등수도 없습니다. 매일
         여실 화면은 네 개뿐이고, 각각이 하루의 어느 자리에 놓이는지만 알고 계시면 됩니다.
       </p>
@@ -279,7 +284,11 @@ export default function GuidePage() {
       <Section title="자주 묻는 다섯 가지">
         <div className="mt-[10px] flex flex-col gap-[10px]">
           {FAQ.map((item) => (
-            <div key={item.q} className="rounded-[14px] bg-paper-2 px-4 py-[14px]">
+            <div
+              key={item.q}
+              {...(item.id ? { id: item.id } : {})}
+              className="scroll-mt-4 rounded-[14px] bg-paper-2 px-4 py-[14px]"
+            >
               <h3 className="text-[0.9375rem] leading-[1.45] font-bold text-ink">{item.q}</h3>
               <p className="mt-[6px] text-[0.8438rem] leading-[1.7] text-ink-soft">{item.a}</p>
               <p className="mt-[2px]">
@@ -331,7 +340,19 @@ export default function GuidePage() {
         </div>
       </Section>
 
-      <InlineDisclaimer size="md" tone="readable" className="mt-6 mb-3" />
+      {/* 이 화면에는 탭바가 없습니다. 끝까지 읽고 내려오신 분이 바닥에서 만나는 것이 고지 한
+          줄뿐이면, 나가려고 읽은 만큼을 도로 올라가야 합니다 — 바닥에도 문 하나를 둡니다
+          (페르소나 UI/UX med). */}
+      <p className="mt-7 border-t border-line pt-4 text-center">
+        <Link
+          href="/"
+          className="inline-flex min-h-[48px] items-center rounded-field px-2 text-[0.8438rem] font-semibold text-ink-muted underline underline-offset-4 transition-colors duration-150 active:bg-paper-2"
+        >
+          홈으로
+        </Link>
+      </p>
+
+      <InlineDisclaimer size="md" tone="readable" className="mt-2 mb-3" />
     </PageShell>
   );
 }

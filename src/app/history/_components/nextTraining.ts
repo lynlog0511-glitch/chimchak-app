@@ -5,8 +5,9 @@
  * (훈련 엔딩 화면 `train/_components/EndingPanel`은 `HistoryBoard`가 다시 내보내는 이름을 씁니다 —
  *  import 경로를 바꾸지 않으려고 재수출을 유지합니다.)
  *
- * 규칙 — 1순위 아직 완주 이력이 없는 유형 → 2순위 최근 세션들의 코칭이 가장 많이 가리키는
- *      **약점 항목**을 다루는 시나리오 → 3순위 최근 세션들에서 코칭이 가장 많이 남은 유형
+ * 규칙 — 0순위 **첫 주(완주 3회 미만)에는 같은 유형·낮은 난이도** → 1순위 아직 완주 이력이
+ *      없는 유형 → 2순위 최근 세션들의 코칭이 가장 많이 가리키는 **약점 항목**을 다루는
+ *      시나리오 → 3순위 최근 세션들에서 코칭이 가장 많이 남은 유형
  *      → 4순위 마지막 훈련이 가장 오래된 유형.
  * 대상은 지금 훈련할 수 있는 활성 시나리오뿐이고, 베타로 이연된 유형(위험 판단)은 후보에서 뺍니다.
  * 점수·등급은 물론 "코칭 몇 개" 같은 개수도 화면으로 나가지 않습니다 — 시나리오 하나와 이유 한 줄까지입니다.
@@ -35,10 +36,12 @@ export interface NextTrainingCandidate {
   title: string;
   type: ScenarioType;
   typeLabel: string;
+  /** 난이도 (1 초급 · 2 중급 · 3 고급) — 첫 주 추천에서 낮은 쪽을 먼저 고르는 데만 씁니다. */
+  level: 1 | 2 | 3;
 }
 
 /** 왜 추천했는지 — 화면에는 한 줄 문구로만 나갑니다. */
-export type NextTrainingReason = "untried" | "weakness" | "coaching" | "stale";
+export type NextTrainingReason = "gentle" | "untried" | "weakness" | "coaching" | "stale";
 
 export interface NextTrainingPick {
   candidate: NextTrainingCandidate;
@@ -189,21 +192,42 @@ export const NEXT_TRAINING_CANDIDATES: NextTrainingCandidate[] = [
     title: "현관 앞, 집에 가야 해요",
     type: "BPSD",
     typeLabel: "치매 행동심리증상(BPSD)",
+    level: 1,
   },
   {
     id: "CHK-A02",
     title: "새벽 두 시, 차가 나가야 한대요",
     type: "BPSD",
     typeLabel: "치매 행동심리증상(BPSD)",
+    level: 2,
   },
-  { id: "CHK-B01", title: "괜찮아, 손 좀 줘 봐요", type: "EMERGENCY", typeLabel: "응급 초기 대응" },
-  { id: "CHK-B02", title: "점심 식사 중 사레", type: "EMERGENCY", typeLabel: "응급 초기 대응" },
-  { id: "CHK-C01", title: "온 김에 반찬 좀", type: "CONFLICT", typeLabel: "이용자·보호자 갈등 화법" },
+  {
+    id: "CHK-B01",
+    title: "괜찮아, 손 좀 줘 봐요",
+    type: "EMERGENCY",
+    typeLabel: "응급 초기 대응",
+    level: 1,
+  },
+  {
+    id: "CHK-B02",
+    title: "점심 식사 중 사레",
+    type: "EMERGENCY",
+    typeLabel: "응급 초기 대응",
+    level: 2,
+  },
+  {
+    id: "CHK-C01",
+    title: "온 김에 반찬 좀",
+    type: "CONFLICT",
+    typeLabel: "이용자·보호자 갈등 화법",
+    level: 2,
+  },
   {
     id: "CHK-C02",
     title: "어머니 팔에 멍이 있어요",
     type: "CONFLICT",
     typeLabel: "이용자·보호자 갈등 화법",
+    level: 3,
   },
 ];
 
@@ -212,6 +236,7 @@ export const NEXT_TRAINING_CANDIDATES: NextTrainingCandidate[] = [
  * (약점 항목으로 고른 경우의 이유 문장은 항목 표 `WEAKNESS_THEMES`의 `sentence`가 맡습니다.)
  */
 export const NEXT_TRAINING_REASON_TEXT: Record<NextTrainingReason, string> = {
+  gentle: "지금은 같은 결로 한 판 더 해 보시면 좋겠습니다",
   untried: "아직 해 보지 않은 유형입니다",
   weakness: "최근 코칭이 가리킨 항목을 다루는 장면입니다",
   coaching: "코칭이 남은 유형입니다",
@@ -220,6 +245,25 @@ export const NEXT_TRAINING_REASON_TEXT: Record<NextTrainingReason, string> = {
 
 /** 2순위 판단에 쓰는 "최근 세션" 범위 — 오래전 회차까지 끌고 오지 않습니다. */
 const RECENT_SESSION_WINDOW = 5;
+
+/**
+ * 이 회차 수를 채우기 전까지는 **유형 커버리지보다 결의 연속성**을 먼저 봅니다.
+ *
+ * 왜. 유형을 골고루 밟게 하려는 1순위(아직 안 해 본 유형)는 회차가 쌓인 뒤에는 옳지만,
+ * 첫 판을 마친 분에게는 그 다음 화면이 「넘어지신 어르신」이 됩니다 — 방금 처음으로 어르신
+ * 앞에서 말 한마디 해 본 사람이 「아직 나는 아닌데」 하고 그날 앱을 닫습니다
+ * (페르소나 교육생 med). 첫 주에는 「같은 결의 한 판 더」가 훨씬 다시 열게 만듭니다.
+ *
+ * 규칙은 둘뿐입니다 — **같은 유형**을 먼저, 그 안에서 **낮은 난이도**를 먼저.
+ * 같은 유형에 남은 후보가 없으면 유형을 풀고 난이도만 봅니다. 무작위·가중치는 쓰지 않아
+ * 같은 입력이면 같은 결과가 나옵니다.
+ */
+const EARLY_SESSION_COUNT = 3;
+
+/** 난이도 오름차순, 같으면 후보 표 순서 그대로. */
+function byLevel(pool: NextTrainingCandidate[]): NextTrainingCandidate[] {
+  return [...pool].sort((a, b) => a.level - b.level);
+}
 
 function upperId(id: string): string {
   return id.trim().toUpperCase();
@@ -298,6 +342,23 @@ export function pickNextTraining(
       }
     }
   });
+
+  /* 0순위 — 첫 주(완주 3회 미만)에는 유형 커버리지보다 결의 연속성을 먼저 봅니다.
+     한 판도 안 하신 분은 여기서 걸리지 않습니다: 가리킬 「같은 결」이 아직 없고, 그때는
+     아래 1순위가 후보 표 첫 줄(BPSD 초급)을 그대로 돌려주므로 결과가 같습니다. */
+  const lastRecord = ordered[0];
+  if (lastRecord && ordered.length < EARLY_SESSION_COUNT) {
+    const lastType = typeOf(lastRecord);
+    const sameType = lastType ? byLevel(pool.filter((item) => item.type === lastType)) : [];
+    const gentle = sameType[0] ?? byLevel(pool)[0];
+    if (gentle) {
+      return {
+        candidate: gentle,
+        reason: "gentle",
+        reasonText: NEXT_TRAINING_REASON_TEXT.gentle,
+      };
+    }
+  }
 
   // 1순위 — 아직 완주 이력이 없는 유형
   const untried = pool.find((item) => !trainedTypes.has(item.type));
@@ -398,6 +459,10 @@ export function nextTrainingSentence(pick: NextTrainingPick): string {
   const topicParticle = hasBatchim ? "은" : "는";
 
   switch (pick.reason) {
+    case "gentle":
+      /* 첫 주 추천 — 「아직 안 해 본 유형」이라고 말하면 다음 판이 숙제가 됩니다.
+         지금 필요한 말은 「같은 결로 한 판 더」입니다(페르소나 교육생 med). */
+      return `${label}${objectParticle} 한 판 더 해 보시면 좋겠어요. 서두르지 않으셔도 돼요`;
     case "untried":
       return `${label}${topicParticle} 아직 해 보지 않으셨어요`;
     case "weakness":

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef } from "react";
-import { InlineDisclaimer, useSourceDoc } from "@/components";
+import { BigButton, InlineDisclaimer, useSourceDoc } from "@/components";
 import { ChevronGlyph } from "@/components/icons";
 import { cx } from "@/components/utils";
 import { useModalDismiss, useOverlayTransition } from "@/components/useModalDismiss";
@@ -26,7 +26,7 @@ export interface CriticalInterruptProps {
  * 빨강은 10px 점 하나뿐입니다 — 헤더 밴드도 좌측 액센트 바도 두지 않습니다.
  */
 export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalInterruptProps) {
-  const retryRef = useRef<HTMLButtonElement | null>(null);
+  const retryRef = useRef<HTMLElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
   /**
    * 시트·딤이 함께 움직이는 240ms — 들어올 때도 나갈 때도 같은 값입니다.
@@ -171,14 +171,21 @@ export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalI
         {/* 주 CTA — 내용이 아무리 길어도 여기 남습니다.
             경계는 헤어라인 한 줄로만 긋습니다(가이드 §7-4 그라데이션 0건). */}
         <div className="flex-none border-t border-line px-5 pt-3 pb-[calc(28px_+_var(--chim-safe-b))]">
-          <button
-            type="button"
-            ref={retryRef}
-            onClick={() => leave()}
-            className="min-h-[54px] w-full rounded-[14px] bg-brand-700 px-5 text-[1rem] font-bold text-white transition-colors duration-150 hover:bg-brand-800 active:bg-brand-900"
+          {/* 제품 안전 서사의 착지점입니다 — 멈춰 세운 사람을 벌점 없이 되돌려 보내는 문.
+              한때 손으로 만든 54px/16px 버튼이었습니다. 공용 규격(56px/17px)과 비율 1.04·1.06이라
+              「작은 버튼」으로 읽히지도 않는, 그냥 어긋난 값이었고 라벨은 코어 하한 17px에도
+              못 미쳤습니다(디자이너 검증). 공용 컴포넌트로 되돌립니다.
+              BigButton은 ref를 받지 않아, 감싼 상자의 콜백 ref로 안쪽 버튼을 잡아
+              마운트 초점(useModalDismiss)에 넘깁니다. */}
+          <div
+            ref={(node) => {
+              retryRef.current = node?.querySelector("button") ?? null;
+            }}
           >
-            같은 장면에서 다시 해 보기 — 벌점 없음
-          </button>
+            <BigButton size="lg" block onClick={() => leave()} className="font-bold">
+              같은 장면에서 다시 해 보기 — 벌점 없음
+            </BigButton>
+          </div>
 
           {/* 이 시트가 입력 도크의 고지를 덮으므로, 고지 문구를 여기에도 그대로 둡니다 (안전 규칙 §3-2). */}
           <InlineDisclaimer tone="readable" className="mt-3" />

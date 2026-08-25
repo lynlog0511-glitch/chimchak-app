@@ -105,6 +105,31 @@ function collectSpoken() {
 const spoken = collectSpoken();
 const manifest = JSON.parse(readFileSync(path.join(ROOT, "public/audio/manifest.json"), "utf8"));
 
+/*
+ * 응급 매니페스트(정적 import 대상)가 전체 매니페스트와 어긋나지 않는지 함께 봅니다.
+ *
+ * speech.ts는 응급 14건만 정적으로 들고 나머지는 동적으로 받습니다. 갈라 둔 파일이 낡으면
+ * 증상은 오류가 아니라 **응급 안내에서 검수한 목소리 대신 기기 합성음이 나는 것**이고,
+ * 자막은 그대로라 무대에서 알아채기 어렵습니다. `npm run audio:split`이 다시 씁니다.
+ */
+const emergencyPath = path.join(ROOT, "public/audio/manifest.emergency.json");
+const emergencyProblems = [];
+let emergencyCount = 0;
+try {
+  const emergency = JSON.parse(readFileSync(emergencyPath, "utf8"));
+  emergencyCount = Object.keys(emergency).length;
+  const expected = Object.keys(manifest).filter((key) => manifest[key]?.e === 1);
+  for (const key of expected) {
+    if (!emergency[key]) emergencyProblems.push(`[응급 누락] ${key}`);
+    else if (emergency[key].f !== manifest[key].f) emergencyProblems.push(`[응급 파일 불일치] ${key}`);
+  }
+  for (const key of Object.keys(emergency)) {
+    if (manifest[key]?.e !== 1) emergencyProblems.push(`[응급 잉여] ${key}`);
+  }
+} catch {
+  emergencyProblems.push("[응급 매니페스트 없음] public/audio/manifest.emergency.json");
+}
+
 const misses = [];
 for (const [text, origins] of spoken) {
   if (!manifest[text]) misses.push({ text, origins });
@@ -115,7 +140,11 @@ const hit = spoken.size - misses.length;
 console.log(`speak() 입력 문자열 ${spoken.size}개 · 매니페스트 ${Object.keys(manifest).length}개`);
 console.log(`적중 ${hit}/${spoken.size} (${((hit / spoken.size) * 100).toFixed(1)}%)`);
 
+console.log(`응급 매니페스트(정적 import) ${emergencyCount}건 — 전체와 ${emergencyProblems.length === 0 ? "일치" : "불일치"}`);
+
 for (const miss of misses) console.log(`  [미적중] ${miss.origins[0]} :: ${miss.text}`);
 for (const key of extra) console.log(`  [잉여] 매니페스트에만 있는 문장 :: ${key}`);
+for (const problem of emergencyProblems) console.log(`  ${problem}`);
+if (emergencyProblems.length > 0) console.log("  → `npm run audio:split`으로 다시 만드십시오.");
 
-process.exit(misses.length === 0 ? 0 : 1);
+process.exit(misses.length === 0 && emergencyProblems.length === 0 ? 0 : 1);

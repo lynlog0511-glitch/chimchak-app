@@ -4,7 +4,11 @@ import { cx } from "./utils";
 
 export type ListRowSize = "md" | "lg";
 
-/** md — 홈 「세 가지를 합니다」 (제목 16px · 부제 13px) / lg — 응급 5종 (제목 17.5px · 부제 12.5px) */
+/* 두 단은 **부제를 붙박아 두고 제목만 움직입니다** — md 16/13.5 · lg 17/13.5.
+   예전에는 lg의 부제만 12.5px이라 제목이 커질 때 부제는 작아졌습니다(md 비율 1.19 · lg 1.36).
+   그러면 두 단이 「같은 사다리의 두 칸」이 아니라 서로 다른 두 디자인이 되어, /guide(md)에서
+   /emergency(lg)로 넘어갈 때 행이 「크기가 다르다」가 아니라 「구조가 다르다」로 읽힙니다.
+   12.5px은 §2 표에서 메타·타임스탬프 단이라 애초에 설명문 자리가 아닙니다(평가 디자이너 l15). */
 const SIZE: Record<ListRowSize, { row: string; title: string; subtitle: string; gap: string }> = {
   md: {
     row: "py-[16px] px-[2px]",
@@ -15,7 +19,7 @@ const SIZE: Record<ListRowSize, { row: string; title: string; subtitle: string; 
   lg: {
     row: "py-4 px-[2px]",
     title: "text-[1.0625rem]",
-    subtitle: "text-[0.7813rem]",
+    subtitle: "text-[0.8438rem]",
     gap: "gap-[12px]",
   },
 };

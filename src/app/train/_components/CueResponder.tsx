@@ -92,6 +92,47 @@ function useFontScale(): FontScale {
   return scale;
 }
 
+/* ── 보기 순서 섞기 ─────────────────────────────────────────
+   시나리오 데이터는 저작 편의상 **좋은 보기부터** 적혀 있습니다(cueOptions는 그 순서를 그대로
+   돌려줍니다). 그대로 그리면 두 번째 턴쯤에 「맨 위가 정답」이 보이고, 그때부터는 어르신 대사를
+   읽지 않고 첫 버튼만 누르게 됩니다 — 4분 동안 입에서 나온 말이 하나도 없게 됩니다(교육생 검증).
+
+   그래서 **표시부에서만** 섞습니다. 데이터 순서는 그대로 두고, 세션마다 한 번 정해지는 시드로
+   순서를 결정합니다. 같은 세션 안에서는 CUE마다 순서가 고정되므로, ⚑CF 뒤 같은 지점으로
+   돌아오셔도 방금 보신 자리에 같은 보기가 있습니다. 한 판을 새로 시작하시면 새 순서입니다. */
+
+/** 문자열 → 32비트 시드 (FNV-1a) */
+function seedOf(text: string): number {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
+}
+
+/** 시드 하나로 같은 순서를 다시 만드는 셔플 (mulberry32 + 피셔–예이츠) */
+function shuffleWithSeed<T>(items: readonly T[], seed: number): T[] {
+  const out = items.slice();
+  let state = seed || 1;
+  for (let i = out.length - 1; i > 0; i -= 1) {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    const r = ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    const j = Math.floor(r * (i + 1));
+    [out[i], out[j]] = [out[j]!, out[i]!];
+  }
+  return out;
+}
+
+/**
+ * 버튼만으로 오신 턴 수가 이 값에 이르면 **한 번만** 조용한 한 줄을 붙입니다.
+ * (직접 말씀하신 턴이 한 번이라도 있으면 붙지 않습니다.)
+ */
+const BUTTON_ONLY_HINT_AT = 2;
+
 /** 남은 대기 시간 — 0이 되어도 자동으로 넘기지 않고 버튼 폴백만 강조합니다. */
 function useCountdown(seconds: number, resetKey: string): number {
   const [left, setLeft] = useState(seconds);
@@ -163,18 +204,41 @@ export function CueResponder({
   const promptRef = useRef<HTMLHeadingElement | null>(null);
   /** 마지막으로 초점을 옮긴 CUE. 첫 렌더에서는 초점을 건드리지 않습니다. */
   const focusedCueRef = useRef<string | null>(null);
+  /**
+   * 마이크 버튼을 감싸는 상자 — 대기(52px)와 녹음 중(64px)은 **서로 다른 서브트리**라,
+   * `listening`이 바뀌는 순간 누르고 계시던 버튼이 언마운트되고 초점이 BODY로 떨어집니다.
+   * 키보드·스위치로 쓰시는 분은 한 턴 말할 때마다 초점을 잃고, 다음 마이크까지 문서 맨 위부터
+   * 다시 Tab으로 내려와야 합니다(FE 검증). 두 자리에 같은 ref를 걸어 두고, 전환이 끝나면
+   * 새로 마운트된 버튼으로 초점을 옮깁니다. (MicButton은 공용 컴포넌트라 ref를 받지 않아,
+   * 감싼 상자에서 버튼을 찾아 갑니다.)
+   */
+  const micWrapRef = useRef<HTMLDivElement | null>(null);
+  /** 마이크에서 시작한 전환일 때만 초점을 옮깁니다 — 다른 이유로 초점을 빼앗지 않습니다. */
+  const micPressedRef = useRef(false);
 
-  const options = useMemo(() => cueOptions(scenario, session), [scenario, session]);
+  /* 세션 시작 시각이 시드입니다 — 같은 판(⚑CF 뒤 재시도 포함) 안에서는 값이 바뀌지 않고,
+     한 판을 새로 시작하면 새 값이 됩니다. CUE id를 함께 넣어 턴마다 다른 순서를 만듭니다. */
+  const options = useMemo(
+    () =>
+      shuffleWithSeed(
+        cueOptions(scenario, session),
+        seedOf(`${scenario.id}|${cue.id}|${session.startedAt}`),
+      ),
+    [scenario, session, cue.id],
+  );
   const reportMode = useMemo(() => isReportCue(scenario, cue), [scenario, cue]);
   const filledExample = demoExamples.find((example) => example.id === filledExampleId);
   const resetKey = `${cue.id}-${attempt}`;
   const secondsLeft = useCountdown(cue.waitSec, resetKey);
   const waitState = waitLevel(secondsLeft, cue.waitSec);
-  /** 여유 띠가 남긴 비율 — 숫자로는 적지 않고 띠 길이로만 전합니다. */
-  const waitLeftPercent = Math.max(
-    0,
-    Math.min(100, Math.round((secondsLeft / Math.max(1, cue.waitSec)) * 100)),
-  );
+
+  /* 버튼만으로 오셨는지 — 브리핑과 가이드가 「마이크 없이 버튼만으로 끝까지」를 여러 번
+     약속하는데, 버튼으로 고른 턴은 규칙 사전이 돌지 않습니다(session.ts — 자유 발화 조건).
+     그 사실이 접힘 안에만 있으면, 버튼만 쓰신 분은 이 앱이 자랑하는 두 가지를 다 못 받고
+     그 사실도 모릅니다(현직 검증). 세 번째 턴에 한 번만 조용히 알려 드립니다. */
+  const buttonTurns = session.events.filter((event) => event.viaButton).length;
+  const spokenTurns = session.events.filter((event) => !event.viaButton && event.utterance).length;
+  const showButtonOnlyHint = micSupported && spokenTurns === 0 && buttonTurns === BUTTON_ONLY_HINT_AT;
   /** 입력창이 열려 있는 상태 — 인식 결과가 들어오면 저절로 열립니다(전송 전 확인). */
   const composing = expanded || text.trim().length > 0;
   /** 보기 목록이 스냅해도 되는 상태 — 목록 안에 보기 말고 다른 것이 없을 때뿐입니다. */
@@ -377,6 +441,7 @@ export function CueResponder({
       return;
     }
     pressingRef.current = true;
+    micPressedRef.current = true;
     startListening();
   }, [startListening]);
 
@@ -404,6 +469,20 @@ export function CueResponder({
       window.removeEventListener("keyup", onKeyUp);
     };
   }, [endPress]);
+
+  /**
+   * 마이크 트리가 바뀐 뒤 새로 마운트된 버튼으로 초점을 되돌립니다.
+   * `fillExample`이 쓰는 것과 같은 방법입니다(`requestAnimationFrame` 뒤에 focus).
+   */
+  useEffect(() => {
+    if (!micPressedRef.current) return;
+    const id = window.requestAnimationFrame(() => {
+      micWrapRef.current?.querySelector("button")?.focus({ preventScroll: true });
+      // 손을 뗀 뒤(대기 마이크로 돌아온 뒤)에는 표시를 내려 둡니다.
+      if (!listening) micPressedRef.current = false;
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [listening]);
 
   const send = useCallback(() => {
     const utterance = text.trim();
@@ -510,7 +589,7 @@ export function CueResponder({
   if (listening) {
     return (
       <div className="flex-none border-t border-line bg-paper">
-        <div className="mx-auto w-full max-w-[624px] px-[18px] pt-3.5 pb-7">
+        <div className="w-full px-[18px] pt-3.5 pb-7">
           <p className="mb-3.5 text-[1.0625rem] leading-[1.45] font-bold text-ink">{cue.prompt}</p>
 
           <div className="rounded-panel bg-paper-2 px-4 py-3.5">
@@ -540,7 +619,7 @@ export function CueResponder({
             </p>
           </div>
 
-          <div className="mt-3 mb-1.5 flex justify-center">
+          <div ref={micWrapRef} className="mt-3 mb-1.5 flex justify-center">
             <MicButton
               size="lg"
               pressed
@@ -588,7 +667,7 @@ export function CueResponder({
           답해야 하는 질문이 답하는 도중에 위로 밀려 사라지지 않고, 스크롤이 필요한 만큼은
           아래 ②(제안 버튼·입력창)가 전부 가져갑니다. 예전에는 이 셋이 한 상자에 있어
           지시문 76px이 목록 몫을 먼저 떼어 갔습니다. */}
-      <div className="mx-auto w-full max-w-[624px] flex-none px-[18px] pt-3">
+      <div className="w-full flex-none px-[18px] pt-3">
         {/* 지시문은 코어 콘텐츠입니다 — 17px w700 (§3).
             턴이 넘어가면 초점이 여기로 옵니다(tabIndex={-1}). */}
         <h2
@@ -598,24 +677,20 @@ export function CueResponder({
         >
           {cue.prompt}
         </h2>
-        {/* 여유 표시 — 숫자 초읽기를 걷어냈습니다.
-            「여유 1초」까지 줄어드는 숫자는 벌점을 겁내는 분을 그 자리에서 얼어붙게 만듭니다
-            (평가 초보 m4). 게이지와 같은 원칙으로 띠 하나와 상태어 한 낱말만 남기고,
-            「자동으로 넘어가지 않습니다」를 그 옆 같은 자리에 붙였습니다. */}
-        <div className="mt-1 flex items-center gap-2">
-          <span
-            aria-hidden
-            className="h-[3px] w-[56px] flex-none overflow-hidden rounded-[2px] bg-line"
-          >
-            <span
-              className="block h-full rounded-[2px] bg-brand-600 transition-[width] duration-1000 ease-linear"
-              style={{ width: `${waitLeftPercent}%` }}
-            />
-          </span>
-          <span className="min-w-0 text-[0.8438rem] leading-[1.45] font-semibold text-ink-soft">
-            {WAIT_WORD[waitState]}
-          </span>
-        </div>
+        {/* 여유 표시 — 가이드 §4.5대로 **텍스트 한 줄**입니다.
+            한때 줄어드는 진행 막대였습니다. 고갈되는 막대는 전 세계 공통으로 「시간 없다」는
+            신호라, 글자가 다독이는 옆에서 움직임이 재촉했습니다 — 붙어 있으면 움직임이 이깁니다
+            (디자이너 검증). 처음 말이 안 나와 몇 초 굳어 계신 분이 정확히 그 막대를 보십니다.
+            숫자는 `tabular-nums`로 자리를 고정해, 초가 바뀔 때 이 줄이 밀리지 않게 합니다.
+            0이 되면 숫자 대신 상태어 한 마디가 섭니다 — 「여유 0초」는 재촉이 됩니다.
+            다독이는 말은 바로 아래 한 줄(WAIT_NO_AUTO_ADVANCE)이 계속 들고 있습니다. */}
+        <p className="mt-1 text-[0.7813rem] leading-[1.45] text-ink-disabled">
+          {secondsLeft > 0 ? (
+            <span className="tabular-nums">여유 {secondsLeft}초</span>
+          ) : (
+            WAIT_WORD[waitState]
+          )}
+        </p>
         <p className="mt-0.5 text-[0.8438rem] leading-[1.45] text-ink-soft">
           {WAIT_NO_AUTO_ADVANCE}
         </p>
@@ -632,7 +707,7 @@ export function CueResponder({
       <div
         ref={listRef}
         className={cx(
-          "mx-auto min-h-0 w-full max-w-[624px] flex-1 overflow-y-auto overscroll-contain px-[18px] pt-2.5 pb-1.5",
+          "min-h-0 w-full flex-1 overflow-y-auto overscroll-contain px-[18px] pt-2.5 pb-1.5",
           listSnaps && "snap-y snap-proximity scroll-pt-2.5",
         )}
       >
@@ -679,6 +754,15 @@ export function CueResponder({
               두 줄로 넘어가는 긴 보기만 4px씩 낮아집니다.
               `snap-start`는 목록이 끝내 잘릴 때 **잘린 보기가 sliver로 남지 않게** 하는 장치입니다 —
               10.8px만 남아 테두리처럼 읽히던 자리(375×812 실측)를 없앱니다. */}
+          {/* 버튼만으로 오신 분께 드리는 한 줄 — 재촉이 아니라 사실입니다.
+              카드도 색면도 두지 않고, 보기 목록 위에 조용히 한 줄로만 섭니다. */}
+          {showButtonOnlyHint && (
+            <p className="mb-2 text-[0.8438rem] leading-[1.6] text-ink-muted">
+              지금까지는 보기로만 하셨어요. 한 번만 직접 말해 보시면 규칙 사전이 그 말씀을 보고
+              다르게 짚어 드려요.
+            </p>
+          )}
+
           {(options.length > 0 || chosenAlternative) && (
             <ul className="mb-2 flex flex-col gap-[6px]">
               {chosenAlternative && (
@@ -730,7 +814,7 @@ export function CueResponder({
                 }}
                 rows={3}
                 placeholder="여기에 하실 말씀을 적으시거나, 말씀하신 내용을 확인해 주세요."
-                className="mt-1 w-full rounded-panel border border-line-strong bg-white px-3.5 py-3 text-[1.0625rem] leading-[1.6] text-ink placeholder:text-tertiary focus:border-brand-400"
+                className="mt-1 w-full rounded-[14px] border border-line-strong bg-paper-2 px-3.5 py-3 text-[1.0625rem] leading-[1.6] text-ink placeholder:text-tertiary"
               />
 
               {reportMode && text.trim().length > 0 && (
@@ -803,7 +887,7 @@ export function CueResponder({
           마이크와 직접 입력이 도크 안에 그대로 남습니다.
           위 목록에 못 보신 것이 남아 있으면 헤어라인 아래 한 줄로 알려 드립니다
           (그림자·그라데이션은 가이드가 금지합니다 — §7-4·§3). */}
-      <div className="mx-auto w-full max-w-[624px] flex-none border-t border-line px-[18px] pt-2.5 pb-[calc(28px_+_var(--chim-safe-b))]">
+      <div className="w-full flex-none border-t border-line px-[18px] pt-2.5 pb-[calc(28px_+_var(--chim-safe-b))]">
         {/* 예전에는 `aria-hidden`이었습니다 — 목록이 잘렸다는 사실이 화면을 보는 분에게만 갔습니다.
             보기 목록은 스크린리더에서도 잘려 있으므로(스크롤 상자 안의 항목) 같은 사실을 같이 전합니다.
             `aria-live`는 걸지 않습니다 — 스크롤할 때마다 읽히면 안내가 아니라 소음이 됩니다. */}
@@ -835,21 +919,23 @@ export function CueResponder({
               직접 입력…
             </button>
           )}
-          <MicButton
-            label="누르고 있는 동안 말하기"
-            disabled={!micSupported}
-            onPointerDown={(event) => {
-              event.preventDefault();
-              beginPress();
-            }}
-            onKeyDown={(event) => {
-              if (event.repeat) return;
-              if (event.key === " " || event.key === "Enter") {
+          <div ref={micWrapRef} className="flex-none">
+            <MicButton
+              label="누르고 있는 동안 말하기"
+              disabled={!micSupported}
+              onPointerDown={(event) => {
                 event.preventDefault();
                 beginPress();
-              }
-            }}
-          />
+              }}
+              onKeyDown={(event) => {
+                if (event.repeat) return;
+                if (event.key === " " || event.key === "Enter") {
+                  event.preventDefault();
+                  beginPress();
+                }
+              }}
+            />
+          </div>
         </div>
       </div>
 

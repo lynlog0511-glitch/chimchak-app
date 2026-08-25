@@ -6,14 +6,16 @@
  * 매니페스트·아이콘·폰트를 미리 저장해 두고, 네트워크가 끊기면 저장해 둔 화면을 그대로 돌려줍니다.
  *
  * 캐시 전략
- *  - 화면 이동(navigate): 네트워크 우선 → 실패 시 캐시 → 그래도 없으면 /emergency 로 대체
+ *  - 화면 이동(navigate): 네트워크 우선(상한 NETWORK_TIMEOUT_MS) → 상한을 넘거나 실패하면
+ *    캐시 → 그래도 없으면 네트워크를 끝까지 기다렸다가 /emergency 로 대체
  *  - 정적 자산(/_next/static, 아이콘, 매니페스트 등): 캐시 우선 → 없으면 네트워크
  *  - 사전 합성 음성(/audio/): 캐시 우선. 내용이 바뀌면 파일 이름이 바뀌므로 갱신 걱정이 없습니다.
  *  - 그 밖의 GET: 네트워크 우선 → 실패 시 캐시
  *
  * 지키는 규칙
  *  - GET·동일 출처 요청만 다룹니다. 외부로 나가는 요청은 건드리지 않습니다.
- *  - 개인정보가 담길 수 있는 POST·쿼리 응답은 저장하지 않습니다.
+ *  - POST 응답은 저장하지 않습니다. **쿼리스트링이 붙은 GET 응답도 저장하지 않습니다** —
+ *    찾을 때만 ignoreSearch로 같은 화면을 씁니다(?from=train 이 붙어도 저장본은 하나).
  *  - 프레임워크 내부 데이터 요청(?_rsc=)은 빌드마다 값이 달라져 캐시하지 않습니다.
  *
  * 등록은 프로덕션 빌드에서만 이뤄집니다(src/components/SwRegister.tsx).
@@ -32,7 +34,7 @@
  * 개발 서버에서는 서비스워커를 아예 등록하지 않으므로(SwRegister.tsx),
  * 치환되지 않은 플레이스홀더가 그대로 남아 있어도 문제가 없습니다.
  */
-const CACHE_NAME = "chimchak-02adfb1081b2";
+const CACHE_NAME = "chimchak-__CHIMCHAK_BUILD__";
 
 /**
  * 오프라인에서도 반드시 열려야 하는 화면·자산 목록입니다.
@@ -71,6 +73,13 @@ const PRECACHE_URLS = [
   // 목록에 없으면 폴백이 응급 화면을 대신 돌려줘 주소와 화면이 어긋납니다.
   "/practice",
   "/console",
+
+  // 발표 중 곧바로 이어 여는 화면 — 비행기 모드 시연 직후 「안전 설계는요?」로 열리는 자리들입니다.
+  // 목록에 없으면 폴백이 응급 화면을 돌려줘, 주소는 /safety인데 화면이 다른 몇 초가 생깁니다.
+  "/safety",
+  "/for-orgs",
+  "/legal",
+  "/history/certificate",
 
   "/manifest.webmanifest",
   "/icon.svg",
@@ -262,27 +271,60 @@ function offlineResponse() {
   });
 }
 
-/** 네트워크 우선 — 실패하면 저장해 둔 화면을 돌려줍니다. */
+/**
+ * 네트워크를 기다리는 상한(ms).
+ *
+ * 상한이 없으면 「신호는 잡히는데 응답이 오지 않는 회선」에서 브라우저 기본 시간(수십 초)까지
+ * 흰 화면이 유지됩니다 — 저장해 둔 응급 화면이 바로 옆에 있는데도요. 상한을 넘으면 캐시를
+ * 먼저 돌려주고, 뒤늦게 온 응답은 다음 방문을 위해 캐시만 갱신합니다.
+ */
+const NETWORK_TIMEOUT_MS = 2_500;
+
+/** 쿼리스트링이 붙은 요청인지 — 붙었으면 저장하지 않습니다(찾을 때만 ignoreSearch). */
+function requestHasQuery(request) {
+  try {
+    return new URL(request.url).search.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+/** 네트워크 우선(상한 있음) — 늦거나 실패하면 저장해 둔 화면을 돌려줍니다. */
 async function networkFirst(request) {
   const cache = await caches.open(CACHE_NAME);
-  try {
-    const response = await fetch(request);
-    if (isCacheable(response)) {
-      const copy = response.clone();
-      cache.put(request, copy).catch(() => undefined);
-    }
-    return response;
-  } catch {
-    // 저장해 둔 화면이 먼저입니다 — 폴백은 그다음입니다.
-    // 쿼리스트링(?from=train 등)이 붙어도 같은 화면을 찾도록 ignoreSearch를 씁니다.
-    const cached = await cache.match(request, { ignoreSearch: true });
-    if (cached) return cached;
-    if (request.mode === "navigate") {
-      const fallback = await cache.match(OFFLINE_FALLBACK_URL);
-      if (fallback) return fallback;
-    }
-    return offlineResponse();
+
+  // 실패는 null로 눕혀 한 갈래로 다룹니다(미처리 거부가 남지 않게).
+  const fetching = fetch(request)
+    .then((response) => {
+      if (isCacheable(response) && !requestHasQuery(request)) {
+        cache.put(request, response.clone()).catch(() => undefined);
+      }
+      return response;
+    })
+    .catch(() => null);
+
+  const raced = await Promise.race([
+    fetching,
+    new Promise((resolve) => {
+      setTimeout(() => resolve("timeout"), NETWORK_TIMEOUT_MS);
+    }),
+  ]);
+  if (raced && raced !== "timeout") return raced;
+
+  // 저장해 둔 화면이 먼저입니다 — 폴백은 그다음입니다.
+  // 쿼리스트링(?from=train 등)이 붙어도 같은 화면을 찾도록 ignoreSearch를 씁니다.
+  const cached = await cache.match(request, { ignoreSearch: true });
+  if (cached) return cached;
+
+  // 캐시가 없으면 상한을 접고 끝까지 기다립니다 — 늦은 응답이라도 빈 안내문보다 낫습니다.
+  const late = await fetching;
+  if (late) return late;
+
+  if (request.mode === "navigate") {
+    const fallback = await cache.match(OFFLINE_FALLBACK_URL);
+    if (fallback) return fallback;
   }
+  return offlineResponse();
 }
 
 /** 캐시 우선 — 저장된 것이 있으면 네트워크를 기다리지 않습니다. */
@@ -292,7 +334,7 @@ async function cacheFirst(request) {
   if (cached) return cached;
   try {
     const response = await fetch(request);
-    if (isCacheable(response)) {
+    if (isCacheable(response) && !requestHasQuery(request)) {
       const copy = response.clone();
       cache.put(request, copy).catch(() => undefined);
     }

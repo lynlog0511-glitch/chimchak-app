@@ -227,7 +227,7 @@ export function BriefingPanel({
   const splitOk = typeof lineTail === "string";
 
   return (
-    <div className="mx-auto w-full max-w-[600px] px-5 pb-10">
+    <div className="chim-pad w-full pb-10">
       {/* 상단 — 시안 6f는 제목을 얹지 않고 돌아갈 곳만 적습니다(제목은 아래 h1이 맡습니다). */}
       <div className="pt-1 pb-1">
         <Link
@@ -401,16 +401,22 @@ export function BriefingPanel({
           <p className="text-[0.7813rem] leading-[1.6] font-bold tracking-[0.06em] text-ink-muted">
             학습목표와 확인 항목
           </p>
+          {/* 학습목표도 겉 접힘과 같은 규칙으로 적습니다 — 「LO-1 …(RE-01, RE-02)」의 코드는
+              이 앱 어디에서도 설명한 적이 없는 저작용 표기입니다. 데이터는 그대로 두고
+              표시부에서만 지웁니다(objectiveText). */}
           <ul className="mt-2 space-y-1.5">
             {scenario.objectives.map((objective) => (
               <li key={objective} className="text-[0.8438rem] leading-[1.6] text-ink-soft">
-                {objective}
+                {objectiveText(objective)}
               </li>
             ))}
           </ul>
+          {/* 개수를 적지 않습니다 — 「이 상황에서 보는 항목은 22개입니다」는 「점수는 매기는데
+              안 보여준다」로 읽혔고, 그 자리에서 긴장이 올라갔습니다(현직·교육생 검증).
+              가리키는 것은 바로 위 목록이므로 그 말로 적고, 무엇을 위한 목록인지 한 줄로 밝힙니다. */}
           <p className="mt-2 text-[0.7813rem] leading-[1.6] text-ink-muted">
-            이 상황에서 보는 항목은 {scenario.appliedRubric.length}개입니다. 점수와 등급은 화면에
-            내지 않습니다.
+            훈련하시는 동안 위 항목들을 하나씩 확인합니다. 채점표가 아니라 확인표입니다. 못 지킨
+            항목은 이력에 남지 않고, 점수와 등급은 어디에도 내지 않습니다.
           </p>
 
           <p className="mt-4 text-[0.7813rem] leading-[1.6] font-bold tracking-[0.06em] text-ink-muted">

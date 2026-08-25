@@ -105,6 +105,15 @@ const CARD_MARK: Record<string, string> = {
  * /check 「시나리오 감수 상태」 항목도 같은 필드를 셉니다(8/24 단일화).
  */
 const REVIEW_PENDING_LABEL = "전문가 검토를 받고 있어요";
+/**
+ * 무엇이 검토 중이고 무엇은 아닌지 — 한 줄로 갈라 적습니다.
+ *
+ * 예전에는 「전문가 검토를 받고 있어요」 한 줄뿐이라, 읽으신 분이 「그럼 여기서 배운 건 아직 안
+ * 맞을 수도 있다는 건가」로 받았습니다(현직 검증). 배운 대로 현장에서 했다가 어긋나면 책임은
+ * 그분이 집니다. 솔직하게 밝힌 자리를 지우지 않고, 판단할 수 있게 범위를 적습니다.
+ */
+const REVIEW_PENDING_SCOPE =
+  "현직 선생님들이 보고 계신 것은 어르신 대사 표현이에요. 판정 근거 문서는 확정본이에요.";
 const REVIEW_PENDING_IDS: string[] = SCENARIOS.filter((s) => s.reviewPending).map((s) => s.id);
 
 /** 편성표 아래 한 줄 — 잠긴 칸이 언제 열리는지만 답합니다(자세한 사유는 /safety가 들고 있습니다). */
@@ -112,6 +121,12 @@ const MATRIX_PENDING_NOTE = "준비 중인 상황은 전문가 검토가 끝나�
 
 function levelLabelOf(level: 1 | 2 | 3): string {
   return MATRIX_LEVEL_LABELS.find((l) => l.level === level)?.label ?? "";
+}
+
+/** 시나리오 id로 난이도 낱말을 찾습니다 — 편성표(matrix.ts)가 이미 들고 있는 값입니다. */
+function levelOf(scenarioId: string): string | null {
+  const cell = SCENARIO_MATRIX.find((item) => item.scenarioId === scenarioId);
+  return cell ? levelLabelOf(cell.level) : null;
 }
 
 /**
@@ -131,13 +146,24 @@ export default function TrainIndexPage() {
 
   return (
     <PageShell sourceDocs={SOURCE_DOCS}>
-      <ScreenHeader title="훈련" subtitle="정답 시험이 아닙니다 — 말이 나오게 만드는 연습" />
+      {/* 부제는 「지금 할 일」을 적는 자리입니다.
+          예전에는 고정 문구(「정답 시험이 아닙니다 — 말이 나오게 만드는 연습」)가 여기에도 있어,
+          홈·브리핑·자유 연습·이력까지 다섯 자리에서 같은 말이 되풀이됐습니다. 네 번째로 읽으면
+          안심이 아니라 「왜 자꾸 이 말을 하지, 진짜 시험인가 보다」가 됩니다(현직 검증).
+          고정 문구는 홈과 첫 브리핑 두 곳에 그대로 남아 있습니다 — 지운 것이 아니라 자리를
+          줄인 것이고, 이 자리는 지금 할 일에 내줍니다. */}
+      <ScreenHeader title="훈련" subtitle="오늘 한 판 · 4~6분이면 끝나요" />
 
       {/* 열린 시나리오 카드 — 이 화면에서 면(paper-2)을 쓰는 곳은 이 카드들뿐입니다. */}
       <section className="mt-4 space-y-[10px]" aria-label="지금 연습할 수 있는 상황">
         {scenarios.map((scenario, index) => {
+          /* 난이도 한 낱말 — 편성표를 펴 봐야 알 수 있던 값을 카드로 올립니다.
+             두 번째 판을 고르러 오셨을 때 여섯 장 중 무엇이 쉬운지 카드만 보고는 알 수 없었고,
+             실습 경험이 없는 분께는 그 한 낱말이 두 번째 판을 열지 말지를 가릅니다(교육생 검증).
+             값은 이미 데이터(matrix.ts)에 있어 새로 정할 것이 없습니다. */
           const eyebrow = [
             TYPE_SHORT[scenario.type],
+            levelOf(scenario.id),
             `약 ${scenario.durationMin}분`,
             index === 0 ? FIRST_CARD_HINT : null,
           ]
@@ -194,6 +220,7 @@ export default function TrainIndexPage() {
                 {reviewPending && (
                   <span className="mt-[6px] block text-[0.75rem] leading-[1.5] text-ink-faint">
                     {REVIEW_PENDING_LABEL}
+                    <span className="mt-[2px] block">{REVIEW_PENDING_SCOPE}</span>
                   </span>
                 )}
               </span>
@@ -282,8 +309,11 @@ export default function TrainIndexPage() {
             {FREE_ENTRY_SUMMARY}
           </span>
           <span className="mt-[10px] flex items-center gap-3">
-            <span className="text-[0.7813rem] leading-[1.45] text-ink-faint">
-              온라인 모드를 켜야 열립니다
+            {/* 켜는 자리까지 적습니다 — 「온라인 모드를 켜야 열립니다」만 있으면, 와이파이에
+                붙어 있는데 왜 안 열리는지·내가 뭘 잘못한 건지 알 길이 없습니다(현직 검증).
+                들어가면 그 화면이 바로 켜는 버튼을 세워 줍니다(8/25 보강) — 홈으로 돌려보내지 않습니다. */}
+            <span className="min-w-0 text-[0.7813rem] leading-[1.45] text-ink-faint">
+              온라인 모드가 필요해요. 들어가시면 바로 켜실 수 있어요
             </span>
             <span aria-hidden className="ml-auto text-[0.875rem] leading-none font-bold text-brand-700">
               열어 보기 ›

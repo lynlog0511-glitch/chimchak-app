@@ -59,6 +59,15 @@ const TRAINING_ROUTES = [
   "/history",
 ];
 
+/**
+ * 발표 중 곧바로 이어 여는 화면 — 비행기 모드 시연 **직후**에 열리는 자리다.
+ *
+ * 「그럼 안전 설계는 어떻게 되나요」로 /safety를 열었는데 응급 안내가 뜨면, 발표자도 심사위원도
+ * 몇 초 동안 무슨 일이 났는지 모른다(주소는 /safety인데 화면이 다르다). 온라인에서 한 번 열어
+ * 두면 회피되지만, 그 회피를 사람의 기억에 맡기지 않으려고 목록에 담고 여기서 못 박는다.
+ */
+const PRESENTATION_ROUTES = ["/safety", "/for-orgs", "/legal", "/history/certificate"];
+
 describe("PRECACHE_URLS 파싱", () => {
   it("목록을 읽어 온다", () => {
     expect(PRECACHE_URLS.length).toBeGreaterThan(10);
@@ -80,6 +89,10 @@ describe("오프라인에서 열려야 하는 화면", () => {
   });
 
   it.each(TRAINING_ROUTES)("훈련 %s 가 들어 있다", (route) => {
+    expect(PRECACHE_URLS).toContain(route);
+  });
+
+  it.each(PRESENTATION_ROUTES)("발표 중 여는 %s 가 들어 있다", (route) => {
     expect(PRECACHE_URLS).toContain(route);
   });
 
@@ -110,6 +123,17 @@ describe("없는 화면을 저장하려 들지 않는다", () => {
     for (const file of files) {
       expect(existsSync(join(PUBLIC_DIR, file)), `${file} 이 public/ 에 없다`).toBe(true);
     }
+  });
+});
+
+describe("네트워크 우선 전략의 상한", () => {
+  it("화면 이동이 네트워크를 무한정 기다리지 않는다", () => {
+    // 상한이 없으면 「신호는 잡히는데 응답이 오지 않는 회선」에서 브라우저 기본 시간(수십 초)까지
+    // 흰 화면이 유지된다. 저장해 둔 응급 화면이 바로 옆에 있는데도 그렇다.
+    expect(SW_SOURCE).toMatch(/const NETWORK_TIMEOUT_MS = [\d_]+;/);
+    const ms = Number((SW_SOURCE.match(/const NETWORK_TIMEOUT_MS = ([\d_]+);/)?.[1] ?? "0").replace(/_/g, ""));
+    expect(ms).toBeGreaterThan(0);
+    expect(ms).toBeLessThanOrEqual(3_000);
   });
 });
 

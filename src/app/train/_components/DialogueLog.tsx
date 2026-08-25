@@ -36,6 +36,15 @@ export interface DialogueLogProps {
   /** 마지막 대사를 지금 읽어 주고 있는지 (TTS) */
   speaking?: boolean;
   /**
+   * 소리가 켜져 있는지 — 로그 리전을 읽어 줄지 말지를 가릅니다.
+   *
+   * 이 앱은 같은 대사를 **소리로도** 읽습니다. `role="log"`에 `aria-live="polite"`까지 걸면
+   * 스크린리더를 쓰시는 분은 어르신 대사 한 줄을 두 번 듣습니다 — 앱이 한 번, 스크린리더가
+   * 한 번. 게다가 한 턴에 「말하는 중」 빈 말풍선 → 실제 대사 → 코칭 카드로 리전이 세 번
+   * 발화합니다(FE 검증). 소리와 낭독 중 **하나만** 말하게 합니다.
+   */
+  voiceOn?: boolean;
+  /**
    * 로그 바닥을 가리는 하단 도킹 높이(px).
    * 모바일에서는 컴포저가 화면 아래에 붙어 있으므로, 그 높이만큼 여백을 두고 스크롤합니다.
    */
@@ -363,7 +372,7 @@ function PendingBubble({ item, emotion }: { item: LineItem; emotion?: DialogueEm
  *
  * 「내 응답 · 버튼 선택」 각주는 걷어냈습니다 — 오른쪽에 붙은 틴트 말풍선이 이미 「내 말」이라고
  * 말하고 있고, 버튼으로 골랐는지 말로 했는지는 방금 그렇게 하신 분이 가장 잘 아십니다.
- * (판정 경로가 입력 방식에 따라 갈린다는 사실은 코칭의 「왜 이 판정인가요?」 안에 남아 있습니다.)
+ * (판정 경로가 입력 방식에 따라 갈린다는 사실은 코칭의 「무엇을 보고 정했나요」 안에 남아 있습니다.)
  */
 function LearnerBubble({ item }: { item: Extract<LogItem, { kind: "learner" }> }) {
   return (
@@ -436,6 +445,7 @@ export function DialogueLog({
   gaugeLabel,
   emotion,
   speaking = false,
+  voiceOn = false,
   bottomInset = 0,
   tailInset = 0,
   autoScroll = true,
@@ -573,7 +583,9 @@ export function DialogueLog({
   return (
     <div
       role="log"
-      aria-live="polite"
+      /* 소리를 켜 두신 동안에는 리전을 읽지 않습니다 — role="log"만 남습니다.
+         「소리 끄기」를 누르셨을 때만 polite로 올려, 새 대사가 글로 전해집니다. */
+      aria-live={voiceOn ? "off" : "polite"}
       aria-label="대화 기록"
       className={cx("space-y-[18px]", className)}
     >
@@ -633,7 +645,13 @@ export function DialogueLog({
         }
       })}
       {/* 대사가 들어서기 직전 — 같은 자리에 빈 말풍선과 점 셋만 둡니다. */}
-      {held && <PendingBubble item={held} emotion={emotion} />}
+      {/* 「말하는 중」 자리 표시자는 **시각적 박자 연출**이지 읽을 내용이 아닙니다 —
+          같은 대사가 곧 실제 말풍선으로 들어서므로 리전이 두 번 발화하지 않게 감춥니다. */}
+      {held && (
+        <div aria-hidden>
+          <PendingBubble item={held} emotion={emotion} />
+        </div>
+      )}
       {/* 스크롤 바닥 — 하단에 도킹된 컴포저 높이만큼 여백을 두고 멈춥니다.
           앵커를 눌러 여기까지 왔을 때는 「가려졌다」고 보는 띠(`tailInset`)도 반드시 넘어서야
           앵커가 제 할 일을 마치고 사라집니다 — 그래서 둘 중 큰 값을 씁니다. */}

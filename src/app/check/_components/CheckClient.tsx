@@ -24,7 +24,7 @@ const STATUS_LABEL: Record<CheckStatus, string> = {
 };
 
 /**
- * 행 바탕 — 항목이 열세 개라 보더로 두르지 않고 hairline으로만 나눕니다(v4 §2).
+ * 행 바탕 — 항목이 열네 개라 보더로 두르지 않고 hairline으로만 나눕니다(v4 §2).
  * 무대 직전 30초 안에 눈에 걸려야 하는 것은 "확인 필요" 한 줄뿐이라 그 행만 옅은 면을 깝니다.
  */
 const STATUS_ROW: Record<CheckStatus, string> = {

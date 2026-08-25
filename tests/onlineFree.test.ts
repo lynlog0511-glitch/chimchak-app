@@ -15,6 +15,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "@/app/api/coach/route";
+import { COACH_RATE_LIMITS } from "@/lib/coachLimits";
 import { CITABLE_DOC_IDS, NON_CITABLE_DOC_IDS } from "@/data/docs";
 import { checkCritical } from "@/engine/rules";
 import { BANNED_PHRASES, MODEL_IDENTITY_WORDS, findBannedExpression } from "@/lib/onlineCoach";
@@ -595,11 +596,20 @@ describe("/api/coach (task: free)", () => {
     return seen;
   }
 
-  /** 검사마다 새 IP — 「같은 IP 분당 6회」에 서로 걸리지 않게 한다. */
+  /**
+   * 검사마다 새 IP — 「같은 IP 분당 한도」에 서로 걸리지 않게 한다.
+   *
+   * 헤더 두 개(`origin`·`content-type`)는 브라우저가 붙여 주는 것이다. 라우트가 그 둘을 보고
+   * 다른 출처의 요청을 403으로 끊으므로, 앱이 실제로 보내는 모양을 그대로 흉내 낸다.
+   */
   function freeRequest(body: unknown, ip = `10.2.0.${(ipSeed += 1)}`): Request {
     return new Request("https://chimchak.invalid/api/coach", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-forwarded-for": ip },
+      headers: {
+        "Content-Type": "application/json",
+        origin: "https://chimchak.invalid",
+        "x-forwarded-for": ip,
+      },
       body: typeof body === "string" ? body : JSON.stringify(body),
     });
   }
@@ -705,16 +715,17 @@ describe("/api/coach (task: free)", () => {
 
   it("한도 계수기는 코칭·변주와 하나를 나눠 쓴다 (비용은 요청 수로 나간다)", async () => {
     const ip = "10.2.9.9";
+    const limit = COACH_RATE_LIMITS.perIpPerMinute;
     const statuses: string[] = [];
-    for (let i = 0; i < 15; i += 1) {
+    for (let i = 0; i < limit; i += 1) {
       const response = await POST(freeRequest({ task: "free", ...buildReplyRequest(SCENE) }, ip));
       statuses.push(((await response.json()) as { status: string }).status);
     }
-    expect(statuses).toEqual(Array(15).fill("ok"));
+    expect(statuses).toEqual(Array(limit).fill("ok"));
 
-    const sixteenth = await POST(freeRequest({ task: "free", ...buildSetupRequest(SEED) }, ip));
-    expect(await sixteenth.json()).toEqual({ status: "rate_limited" });
-    expect(calls).toHaveLength(15);
+    const overflow = await POST(freeRequest({ task: "free", ...buildSetupRequest(SEED) }, ip));
+    expect(await overflow.json()).toEqual({ status: "rate_limited" });
+    expect(calls).toHaveLength(limit);
   });
 
   it("긴 대화도 몸통 상한에 걸리지 않는다 (걸리면 화면에 표시 없는 고장이 된다)", async () => {

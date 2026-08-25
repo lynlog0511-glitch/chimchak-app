@@ -25,6 +25,43 @@ export interface InlineCoachingProps {
   className?: string;
 }
 
+/* ── 확인 항목을 학습자의 말로 ──────────────────────────────
+   루브릭 항목의 행동지표는 채점자가 읽는 문장이라 전부 「…했는가」로 끝납니다. 그대로 접힘 안에
+   두면, 「시험이 아닙니다」를 다섯 번 읽고 들어온 화면에서 코드가 붙은 평가표가 나옵니다
+   (현직·교육생 검증 — 「RE-01이 뭔지 이 앱 어디에도 설명이 없어 채점표 냄새만 남는다」).
+   데이터(src/data/rubric.ts)는 그대로 두고 **표시부에서만** 두 가지를 바꿉니다.
+    ① 코드(RE-01)를 떼고 문장만 남깁니다 — 코드가 필요한 자리는 /check와 /for-orgs가 따로 있습니다.
+    ② 「…했는가」를 할 일 서술로 바꿉니다("…인정했는가" → "…인정하기").
+   꼬리에 붙은 괄호(예시·판정 방법)는 떼어 두었다가 그대로 다시 붙입니다. */
+
+const INDICATOR_TAILS: readonly (readonly [RegExp, string])[] = [
+  [/하지 않았는가$/, "하지 않기"],
+  [/않았는가$/, "않기"],
+  [/기재되었는가$/, "기재하기"],
+  [/상태였는가$/, "상태로 두기"],
+  [/지켰는가$/, "지키기"],
+  [/했는가$/, "하기"],
+];
+
+/**
+ * 행동지표 한 줄을 할 일 서술로 바꿉니다.
+ *
+ * @example
+ * asTodo("사실을 정정하기 전에 대상자의 정서를 언어로 인정했는가"); // "…인정하기"
+ * @example
+ * asTodo("지시형 대신 2개 이하의 선택지를 제공했는가"); // "…제공하기"
+ */
+export function asTodo(indicator: string): string {
+  const text = indicator.trim();
+  const withTail = /^([\s\S]*?)(\s*\([^()]*\))$/.exec(text);
+  const head = (withTail?.[1] ?? text).trim();
+  const tail = withTail?.[2] ?? "";
+  for (const [pattern, replacement] of INDICATOR_TAILS) {
+    if (pattern.test(head)) return `${head.replace(pattern, replacement)}${tail}`;
+  }
+  return text;
+}
+
 /**
  * 이 판정을 실제로 실행한 판정기 이름 — 「시나리오 규칙표 / 규칙 사전 / 시간 규칙」 세 낱말만 씁니다.
  *
@@ -167,7 +204,7 @@ function OnlineCoachingBlock({ outcome }: { outcome: OnlineCoachOutcome }) {
  *
  * [✓ 마크] [충족 · 침착의 코칭] [초조도 한 칸 ↓]
  *          코칭 한 문장
- *          근거 문서 · 왜 이 판정인가요?  ← 누르면 판정 근거가 펼쳐집니다
+ *          근거 문서 · 무엇을 보고 정했나요  ← 누르면 판정 근거가 펼쳐집니다
  *
  * 점수·등급·백분위는 어떤 형태로도 만들지 않습니다. 판정어는 「충족 / 코칭 / 즉시 중단」 세 낱말뿐입니다.
  */
@@ -248,8 +285,11 @@ export function InlineCoaching({ feedback, gaugeLabel, className }: InlineCoachi
                 {doc.title}
               </span>
             )}
+            {/* 손잡이 문구 — 접힘 구조와 aria(aria-expanded/controls)는 그대로 두고 말만 바꿉니다.
+                「왜 이 판정인가요?」를 누른 분이 알고 싶은 것은 「내가 왜 틀렸지」인데, 열면
+                판정 경위가 나옵니다(교육생 검증). 문을 여는 말을 안에 있는 것과 맞춥니다. */}
             <span className="font-semibold underline decoration-1 underline-offset-[3px]">
-              왜 이 판정인가요?
+              무엇을 보고 정했나요
             </span>
             <ChevronGlyph
               size="sm"
@@ -276,6 +316,16 @@ export function InlineCoaching({ feedback, gaugeLabel, className }: InlineCoachi
             id={panelId}
             className="mt-2 space-y-2.5 rounded-card bg-paper-2 px-3.5 py-3 text-[0.7813rem] leading-[1.6] text-ink-soft"
           >
+            {/* 첫 줄은 **돌봄 근거**입니다 — 판정기의 계보가 아니라 「현장에서 무엇이 옳은가」를
+                먼저 세웁니다. 걸린 항목이 있으면 그 항목의 할 일 한 문장, 없으면 근거 문서의
+                해당 대목입니다. 판정 경위는 그 아래로 내려갑니다(교육생 검증). */}
+            {basis[0] && (
+              <div>
+                <p className="text-[0.6875rem] font-bold text-ink-muted">이 자리의 돌봄 기준</p>
+                <p className="mt-0.5 font-bold text-ink">{asTodo(basis[0].indicator)}</p>
+              </div>
+            )}
+
             <div>
               <p className="text-[0.6875rem] font-bold text-ink-muted">어떻게 정해졌나요</p>
               <p className="mt-0.5 font-bold text-ink">{pathLabel(trace)}</p>
@@ -307,13 +357,15 @@ export function InlineCoaching({ feedback, gaugeLabel, className }: InlineCoachi
             {basis.length > 0 && (
               <div>
                 <p className="text-[0.6875rem] font-bold text-ink-muted">확인한 항목</p>
+                {/* 코드(RE-01)는 떼고 문장만 둡니다 — 학습자 화면에서 그 기호는 아무 뜻도
+                    없고, 붙어 있으면 그 자리가 채점표로 읽힙니다(현직·교육생 검증). */}
                 <ul className="chim-hairline mt-0.5">
                   {basis.map((entry) => (
                     <li key={entry.itemId} className="flex gap-2 py-1.5 first:pt-0 last:pb-0">
-                      <span className="chim-num shrink-0 font-bold text-ink-muted">
-                        {entry.itemId}
+                      <span aria-hidden className="shrink-0 text-ink-ghost">
+                        ·
                       </span>
-                      <span className="min-w-0 flex-1 text-ink">{entry.indicator}</span>
+                      <span className="min-w-0 flex-1 text-ink">{asTodo(entry.indicator)}</span>
                     </li>
                   ))}
                 </ul>

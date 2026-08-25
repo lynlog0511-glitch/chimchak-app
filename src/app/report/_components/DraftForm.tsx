@@ -94,11 +94,14 @@ export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: Dr
           const hintId = `${fieldId}-hint`;
           /* 입력 글자는 17px(코어 단) — 16px 미만이면 iOS가 포커스 순간 화면을 강제로 확대합니다.
              다섯 칸을 차례로 옮겨 다니는 화면이라 확대·복귀가 칸마다 반복됩니다. */
+          /* 바닥은 1단계 입력칸과 같은 `paper-2`입니다 — 한 화면 안에서 글 쓰는 자리가
+             흰 면과 회색 면으로 갈리면 같은 성격의 칸이 서로 다른 것으로 읽힙니다
+             (가이드 §1 — 입력 필드는 paper-2 면 하나 · 페르소나 디자이너 low).
+             `focus:border-brand-400`도 뗐습니다: 전역 포커스 outline(brand-600)과 겹쳐
+             틸 두 겹이 번져 보였습니다. 「비어 있음」 경고 보더는 상태 표시라 그대로 둡니다. */
           const shared = cx(
-            "mt-[6px] w-full rounded-[14px] border bg-white p-[13px] text-[1.0625rem] leading-[1.6] text-ink placeholder:text-tertiary",
-            empty
-              ? "border-warn-line focus:border-warn-ink"
-              : "border-line-strong focus:border-brand-400",
+            "mt-[6px] w-full rounded-[14px] border bg-paper-2 p-[13px] text-[1.0625rem] leading-[1.6] text-ink placeholder:text-tertiary",
+            empty ? "border-warn-line focus:border-warn-ink" : "border-line-strong",
           );
 
           return (

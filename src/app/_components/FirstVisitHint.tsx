@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card, cx } from "@/components";
-import { IconArrowRight } from "@/components/icons";
 
 export interface FirstVisitHintProps {
   /** 카드에 붙는 클래스 — 홈이 위아래 간격을 잡습니다(숨었을 때는 그 간격도 생기지 않습니다). */
@@ -20,6 +19,10 @@ export interface FirstVisitHintProps {
  * 홈(`app/page.tsx`)의 CTA 두 개 아래·「하던 훈련」 위에 한 번만 마운트합니다.
  * 한동안 어디에도 붙어 있지 않아 「마이크 없이 버튼만으로 4분」이라는 약속이 홈에서
  * 한 글자도 보이지 않았습니다(평가 초보 mi41 — 죽은 코드).
+ *
+ * 2026-08-25: 「바로 시작하기」를 뺐습니다. 시작하는 문은 바로 위 히어로 CTA 하나로 좁히고,
+ * 이 카드에는 그 버튼이 못 하는 말 둘만 남깁니다 — 마이크 없이도 된다는 사실과 글자 크기를
+ * 어디서 키우는지. (페르소나 검증 — 교육생 med · UI/UX low · 현직 high)
  */
 export function FirstVisitHint({ className }: FirstVisitHintProps) {
   const [visible, setVisible] = useState(false);
@@ -57,25 +60,26 @@ export function FirstVisitHint({ className }: FirstVisitHintProps) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           {/* 「마이크 없이 버튼만으로」는 각주가 아니라 이 앱을 처음 여는 사람을 붙잡아 두는
-              약속입니다 — 가이드 §7-8의 가독 하한을 넘겨 chim-body(16px)로 둡니다. */}
+              약속입니다 — 가이드 §7-8의 가독 하한을 넘겨 chim-body(16px)로 둡니다.
+              시작하는 자리를 여기서 또 권하지 않습니다: 바로 위 히어로 CTA가 같은 곳으로 가는
+              문이라, 3cm 간격으로 같은 목적지가 두 번 서 있으면 처음 오신 분이 「어느 쪽을
+              누르라는 거지」에서 멈춥니다(페르소나 교육생 med). 이 카드는 히어로가 못 하는 말
+              둘만 맡습니다 — 마이크가 없어도 된다는 사실과, 글자를 키울 수 있다는 사실. */}
           <p className="chim-body text-ink-soft">
-            처음이시라면 훈련 탭의 「현관 앞, 집에 가야 해요」부터 시작해 보세요. 마이크 없이
-            버튼만으로 4분이면 끝나요.
+            마이크 없이 버튼만으로 4분이면 끝나요.
           </p>
-          {/* 링크 둘 — 「바로 시작하기」가 주인공이고, 옆의 「처음 오신 분께」는 시작 대신
-              먼저 읽고 싶은 분을 위한 문입니다. 카드에 설명을 더하지 않고 링크 한 줄만 늡니다
-              (설명이 늘면 이 카드가 첫 화면에서 안내문이 되어 버립니다).
-              좁은 화면에서는 두 줄로 접히므로 가로 간격만 주고 세로 간격은 48px 타깃이 만듭니다. */}
+          {/* 글자 크기 — 여는 곳까지 가리키는 **사실 문장**입니다. 여기에 버튼을 하나 더 세우지
+              않는 이유는, 이 카드의 일이 「지금 누를 것」을 늘리는 게 아니라 화면에 이미 있는
+              것을 알려 드리는 것이기 때문입니다(현직 high — 첫 화면 어디에도 글자를 키울 수
+              있다는 말이 없었습니다). */}
+          <p className="mt-1.5 chim-body text-ink-soft">
+            글자가 작으시면 화면 오른쪽 위 「설정」에서 키우실 수 있어요.
+          </p>
+          {/* 남는 링크는 하나입니다 — 시작 대신 먼저 읽고 싶은 분을 위한 문. */}
           <div className="mt-2 flex flex-wrap items-center gap-x-4">
             <Link
-              href="/train/chk-a01"
-              className="chim-core-sm inline-flex min-h-[48px] items-center gap-1.5 font-bold text-brand-700 underline underline-offset-4 transition-colors duration-150 ease-soft hover:text-brand-800"
-            >
-              바로 시작하기
-              <IconArrowRight className="h-4 w-4 shrink-0" />
-            </Link>
-            <Link
               href="/guide"
+              prefetch={false}
               className="chim-core-sm inline-flex min-h-[48px] items-center gap-1 font-semibold text-ink-muted underline underline-offset-4 transition-colors duration-150 ease-soft hover:text-brand-800"
             >
               처음 오신 분께

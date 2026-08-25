@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import type { ScenarioType } from "@/types";
 import { PageShell, ScreenHeader } from "@/components";
 import { SOURCE_DOCS } from "@/data/docs";
+import { RUBRIC } from "@/data/rubric";
 import { SCENARIOS } from "@/data/scenarios";
 import { HistoryBoard } from "./_components/HistoryBoard";
 import type { ScenarioTypeMap } from "./_components/nextTraining";
+import type { ScenarioRubricMap } from "./_components/rubricCoverage";
 
 export const metadata: Metadata = {
   title: "내 이력",
@@ -33,6 +35,18 @@ function buildActiveTypes(): ScenarioType[] {
 }
 
 /**
+ * 시나리오별 적용 루브릭 표 — 이력이 지나온 항목 수를 세는 데만 씁니다.
+ * 유형 표와 같은 이유로 서버에서 만들어 넘깁니다(시나리오 본문이 브라우저로 내려가지 않게).
+ */
+function buildRubricMap(): ScenarioRubricMap {
+  const map: ScenarioRubricMap = {};
+  for (const scenario of SCENARIOS) {
+    map[scenario.id.toUpperCase()] = scenario.appliedRubric;
+  }
+  return map;
+}
+
+/**
  * `/history` — 성장 기록 (시안 5c).
  *
  * 상단 바(22px 제목 + 부제) → 추천 카드 → 유형별 4칸 → 최근 훈련 행 →
@@ -46,7 +60,12 @@ export default function HistoryPage() {
         title="내 이력"
         subtitle="점수와 등급 없이 해 본 것과 다시 볼 것만 남깁니다"
       />
-      <HistoryBoard typeByScenarioId={buildTypeMap()} activeTypes={buildActiveTypes()} />
+      <HistoryBoard
+        typeByScenarioId={buildTypeMap()}
+        activeTypes={buildActiveTypes()}
+        rubricByScenarioId={buildRubricMap()}
+        rubricTotal={RUBRIC.length}
+      />
     </PageShell>
   );
 }

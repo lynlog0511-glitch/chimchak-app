@@ -20,6 +20,14 @@ const STEPS: { n: 1 | 2 | 3; mark: string; label: string }[] = [
  * 지나온 곳·지금 있는 곳·남은 곳을 그대로 말합니다(완료 ok-ink ✓ · 활성 brand-700 800 · 대기 ink-disabled).
  *
  * 색만으로 상태를 말하지 않도록 ✓ 기호와 스크린리더 문구를 함께 둡니다.
+ *
+ * 2026-08-25 대기 단계 색 교정. 「② 가리기」·「③ 확인」이 `ink-disabled`(#9aa5a2 · 흰 지면
+ * 2.54:1)였습니다 — globals.css 주석이 「읽어야 하는 고지에는 쓰지 마세요」라고 못 박은
+ * 토큰입니다. 하필 이 두 낱말이 「말한 내용을 가린 뒤에 저장한다」는 순서를 예고하는,
+ * 이 화면이 주는 가장 큰 안심입니다. 앞으로 뭘 할지가 안 보이면 스텝 바가 스텝 바 노릇을
+ * 못 합니다(페르소나 디자이너 low).
+ * 대기는 `ink-muted`(6.27:1)로 올리고, 「지금 여기」는 색이 아니라 **굵기**로 가릅니다 —
+ * 완료는 ✓ + ok-ink가 이미 따로 서 있어 세 상태가 갈립니다.
  */
 export function StepBar({ current, finished = false }: StepBarProps) {
   return (
@@ -45,7 +53,7 @@ export function StepBar({ current, finished = false }: StepBarProps) {
                     ? "text-ok-ink"
                     : active
                       ? "font-extrabold text-brand-700"
-                      : "text-ink-disabled",
+                      : "text-ink-muted",
                 )}
               >
                 <span aria-hidden>{step.mark} </span>

@@ -434,6 +434,19 @@ export function EndingPanel({
   /* 안 가 본 길 — 지나온 자리에 남은 갈래 수. 엔진의 순수 함수가 세고, 여기서는 옮기기만 합니다. */
   const unexplored = useMemo(() => unexploredBranches(scenario, session), [scenario, session]);
 
+  /**
+   * 버튼만으로 완주하신 회차인지.
+   *
+   * 세션 안에서 한 번 드린 한 줄(CueResponder)을 마무리 화면에도 남깁니다 — 그 자리에서
+   * 지나치셨더라도, 「지금까지 한 건 뭐였나」를 나중에 알게 되는 것보다 낫습니다(현직 검증).
+   */
+  const buttonOnly = useMemo(
+    () =>
+      session.events.some((event) => event.cueId) &&
+      !session.events.some((event) => !event.viaButton && event.utterance),
+    [session.events],
+  );
+
   /* 가장 잘한 순간으로 세운 문장은 아래 목록에서 뺍니다 — 같은 문장이 두 번 서면
      강조가 아니라 중복으로 읽힙니다. 「잘한 것 N」의 N은 둘을 합한 수 그대로입니다. */
   const greens = useMemo(
@@ -598,11 +611,60 @@ export function EndingPanel({
         </p>
       )}
 
+      {/* 버튼만으로 완주하신 회차에 한 줄 — 세션 안에서 드린 것과 같은 사실입니다. */}
+      {buttonOnly && (
+        <p className="mt-4 rounded-card bg-paper-2 px-[15px] py-3.5 text-[0.9375rem] leading-[1.6] text-ink-soft">
+          이번에는 보기로만 하셨어요. 다음에 한 번만 직접 말해 보시면 규칙 사전이 그 말씀을 보고
+          다르게 짚어 드려요.
+        </p>
+      )}
+
+      {/* 보조 경로와 안내문 — **도크 밖 일반 흐름**입니다.
+          훈련 → 보고 → 성장의 순환이 마지막 힌지에서 끊기지 않도록 두 마무리 모두 보조
+          2분할(보고 연습 · 성장 기록)을 답니다(가이드 §4.7). 다만 도크 안에 두었을 때는
+          주 CTA 56px + 추천 한 줄 + 2분할 48px + 「오늘은 여기까지」 48px + 안내 두 줄이
+          쌓여 표준 260px·「아주 크게」 320px이 되었고, 완주 직후 읽어야 할 「잘한 것 / 다시 볼 것」이
+          844px 뷰포트의 38%를 도크에 내주었습니다 — 도크가 화면이 되어 버린 자리입니다
+          (UIUX 검증). 지금 여기 남는 것은 「지금 눌러야 하는 것」이 아닌 것들입니다. */}
+      <div className="mt-5 space-y-2">
+        <div className="flex gap-2">
+          <Link
+            href="/report"
+            className="flex min-h-[48px] min-w-0 flex-1 items-center justify-center rounded-field bg-paper-2 px-3 text-center text-[0.9375rem] leading-[1.3] font-semibold text-ink transition-colors duration-150 active:bg-neutral-line"
+          >
+            이 훈련 보고 연습하기
+          </Link>
+          <Link
+            href="/history"
+            className="flex min-h-[48px] min-w-0 flex-1 items-center justify-center rounded-field bg-paper-2 px-3 text-center text-[0.9375rem] leading-[1.3] font-semibold text-ink transition-colors duration-150 active:bg-neutral-line"
+          >
+            내 이력 보기
+          </Link>
+        </div>
+
+        {shape === "retry" && (
+          <Link
+            href="/train"
+            className="flex min-h-[48px] w-full items-center justify-center rounded-field px-3 text-center text-[0.9375rem] leading-[1.3] font-semibold text-ink-soft transition-colors duration-150 active:bg-paper-2"
+          >
+            오늘은 여기까지
+          </Link>
+        )}
+
+        {/* 16px은 §2 눈금에 없는 값이었습니다 — 바로 아래 줄과 같은 15px으로 맞춥니다(대비·색은 유지). */}
+        <p className="text-center text-[0.9375rem] leading-[1.6] text-ink-soft">
+          점수가 아니라 다음에 볼 지점 안내예요
+        </p>
+        <p className="text-center text-[0.9375rem] leading-[1.6] text-ink-soft">
+          이 기록은 기기 안에만 남습니다 · 말씀하신 원문은 저장하지 않습니다
+        </p>
+      </div>
+
       {/* 다음 행동 — 문법에 따라 「다음 상황으로」 또는 「같은 장면 다시」가 주인공이 됩니다.
-          훈련 → 보고 → 성장의 순환이 마지막 힌지에서 끊기지 않도록 **두 마무리 모두**
-          보조 2분할(보고 연습 · 성장 기록)을 답니다(가이드 §4.7).
-          이 블록은 화면 아래에 도킹해, 로그를 끝까지 내리지 않아도 닿게 합니다. */}
-      <div className="sticky bottom-0 z-10 mt-5 border-t border-line bg-paper pt-3.5 pb-[calc(20px_+_var(--chim-safe-b))]">
+          이 블록은 화면 아래에 도킹해, 로그를 끝까지 내리지 않아도 닿게 합니다.
+          도크 안에는 **주 CTA 하나와 그 까닭 한 줄**만 둡니다. 세션 컴포저와 같은 상한(45dvh)을
+          걸어 두어, 큰 글자 설정에서도 도크가 화면을 차지하는 역전이 일어나지 않게 합니다. */}
+      <div className="sticky bottom-0 z-10 mt-4 max-h-[45dvh] overflow-y-auto overscroll-contain border-t border-line bg-paper pt-3.5 pb-[calc(20px_+_var(--chim-safe-b))]">
         {shape === "forward" ? (
           <BigButton
             href={suggestion ? scenarioHref(suggestion.candidate.id) : "/train"}
@@ -626,37 +688,6 @@ export function EndingPanel({
           </p>
         )}
 
-        <div className="mt-2 flex gap-2">
-          <Link
-            href="/report"
-            className="flex min-h-[48px] min-w-0 flex-1 items-center justify-center rounded-field bg-paper-2 px-3 text-center text-[0.9375rem] leading-[1.3] font-semibold text-ink transition-colors duration-150 active:bg-neutral-line"
-          >
-            이 훈련 보고 연습하기
-          </Link>
-          <Link
-            href="/history"
-            className="flex min-h-[48px] min-w-0 flex-1 items-center justify-center rounded-field bg-paper-2 px-3 text-center text-[0.9375rem] leading-[1.3] font-semibold text-ink transition-colors duration-150 active:bg-neutral-line"
-          >
-            내 이력 보기
-          </Link>
-        </div>
-
-        {shape === "retry" && (
-          <Link
-            href="/train"
-            className="mt-2 flex min-h-[48px] w-full items-center justify-center rounded-field px-3 text-center text-[0.9375rem] leading-[1.3] font-semibold text-ink-soft transition-colors duration-150 active:bg-paper-2"
-          >
-            오늘은 여기까지
-          </Link>
-        )}
-
-        {/* 16px은 §2 눈금에 없는 값이었습니다 — 바로 아래 줄과 같은 15px으로 맞춥니다(대비·색은 유지). */}
-        <p className="mt-2.5 text-center text-[0.9375rem] leading-[1.6] text-ink-soft">
-          점수가 아니라 다음에 볼 지점 안내예요
-        </p>
-        <p className="mt-1 text-center text-[0.9375rem] leading-[1.6] text-ink-soft">
-          이 기록은 기기 안에만 남습니다 · 말씀하신 원문은 저장하지 않습니다
-        </p>
       </div>
     </div>
   );

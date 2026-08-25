@@ -3014,6 +3014,100 @@ export const RULE_BOUNDARY_CASES: readonly RuleBoundaryCase[] = [
     cf: true,
     ruleId: "CF-RESTRAINT",
   },
+
+  /* ── 어르신을 주어로 청하는 꼴 (현직 검증 반영) ─────────────
+     "제 팔 붙잡으세요"는 잡는 사람이 어르신이고 잡히는 것이 내 몸이라, 이 앱이 스스로
+     권하는 대안입니다. 홑 어간 「붙잡」이 그대로 삼키고 있었습니다.
+     예외어는 **목적어(제 + 팔/손/어깨)와 청유 어미를 한 덩어리로** 적습니다 — 목적어만
+     예외로 두면 창(앞뒤 6) 안에 들어온 실행 선언까지 통째로 꺼지기 때문입니다.
+     아래 다섯 짝이 그 선을 양방향으로 못 박습니다. */
+  {
+    id: "bc-372",
+    utterance: "어머님, 제 팔 붙잡으세요. 같이 나가요.",
+    why: "어르신이 내 팔을 잡으시는 청유 — 이 앱이 권하는 대안입니다",
+    scenarioType: "BPSD",
+    cf: false,
+  },
+  {
+    id: "bc-373",
+    utterance: "제 손 붙잡으실래요? 제가 부축해 드릴게요.",
+    why: "존경 활용(으실래요) — 예외어는 신호와 같은 활용 대조로 받습니다",
+    scenarioType: "BPSD",
+    cf: false,
+  },
+  {
+    id: "bc-374",
+    utterance: "제 어깨 붙잡아 보세요.",
+    why: "「아 보~」 꼴의 청유도 같은 갈래입니다",
+    scenarioType: "BPSD",
+    cf: false,
+  },
+  {
+    id: "bc-375",
+    utterance: "제 팔을 잡아 보시겠어요?",
+    why: "「팔을 잡아」 신호에도 같은 꼴이 걸립니다 — 홑 「팔 잡아」를 뺄 때 남아 있던 자리",
+    scenarioType: "BPSD",
+    cf: false,
+  },
+  {
+    id: "bc-376",
+    utterance: "제 손을 붙잡으시면 제가 부축해 드릴게요.",
+    why: "조사(을)와 어미(으시면)가 함께 붙은 꼴",
+    scenarioType: "BPSD",
+    cf: false,
+  },
+  {
+    id: "bc-377",
+    utterance: "제 팔로 붙잡아 두겠습니다.",
+    why: "도구격 「로」는 **내가** 붙잡는 말입니다 — 예외어(제 팔 + 청유 어미)와 글자가 갈립니다",
+    scenarioType: "BPSD",
+    cf: true,
+    ruleId: "CF-RESTRAINT",
+  },
+  {
+    id: "bc-378",
+    utterance: "제 팔을 잡아 끌고 가겠습니다.",
+    why: "청유 어미가 없으면 예외어가 서지 않습니다 — 목적어만 예외로 뒀다면 「끌고」까지 함께 꺼졌을 자리",
+    scenarioType: "BPSD",
+    cf: true,
+    ruleId: "CF-RESTRAINT",
+  },
+  {
+    id: "bc-379",
+    utterance: "제 팔 붙잡으세요 하고 못 나가시게 하겠습니다.",
+    why: "청유 뒤에 사동을 이어 붙인 우회 — 「못 나가시게」는 예외어 창 밖이라 그대로 잡힙니다",
+    scenarioType: "BPSD",
+    cf: true,
+    ruleId: "CF-RESTRAINT",
+  },
+  {
+    id: "bc-380",
+    utterance: "어머님 팔 붙잡으세요, 제가 문 잠글게요.",
+    why: "「제」가 빠지면 남에게 어르신을 붙잡으라는 지시입니다 — 예외어에 「제」를 남긴 이유",
+    scenarioType: "BPSD",
+    cf: true,
+    ruleId: "CF-RESTRAINT",
+  },
+  {
+    id: "bc-381",
+    utterance: "제 어깨 붙잡아 보세요 하고 침대에 묶겠습니다.",
+    why: "예외어 창 밖의 묶기 선언은 그대로 잡힙니다",
+    scenarioType: "BPSD",
+    cf: true,
+    ruleId: "CF-RESTRAINT",
+  },
+
+  /* ── 공감 + 반박 결합 발화 (교육생 검증 반영) ─────────────
+     앞에 공감 한 마디를 붙여도 뒤의 현실 직면은 그대로 남습니다. ⚑CF는 아니지만 코칭
+     규칙이 RE-02로 받아야 하고, 분기 채택도 감점 쪽이어야 합니다(classify.ts 심각도 순위). */
+  {
+    id: "bc-382",
+    utterance: "마음이 급하신 건 알지만, 여기가 어머님 댁이에요.",
+    why: "공감을 앞에 붙여도 뒤의 현실 직면은 남습니다 — 충족으로 넘기지 않습니다",
+    scenarioType: "BPSD",
+    cf: false,
+    advisory: ["RE-02"],
+  },
 ];
 
 /**

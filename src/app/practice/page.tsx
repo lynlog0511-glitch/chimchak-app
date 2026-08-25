@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { InlineDisclaimer, PageShell, ScreenHeader } from "@/components";
+import { InlineDisclaimer, PageShell, ScreenHeader, SettingsMenu } from "@/components";
 import { SOURCE_DOCS } from "@/data/docs";
 import {
   FREE_ENTRY_EYEBROW,
@@ -26,7 +26,17 @@ export const metadata: Metadata = {
 export default function PracticePage() {
   return (
     <PageShell sourceDocs={SOURCE_DOCS} activeTab="train">
-      <ScreenHeader title={FREE_ENTRY_TITLE} subtitle={PRACTICE_SUBTITLE} />
+      {/* 오른쪽 위 「설정」 — 게이트 안내가 가리키던 그 자리입니다.
+          이 화면에는 그 버튼이 없었습니다. 화면 전체가 게이트인 상태에서 유일한 탈출 지시가
+          존재하지 않는 컨트롤을 가리켰고, 사용자는 오른쪽 위를 두세 번 훑다가 자기가 잘못
+          봤다고 생각하고 나갔습니다(페르소나 UI/UX high · 교육생 high).
+          안내를 고치는 대신 **안내를 사실로 만드는 쪽**을 먼저 골랐습니다 — 겸사겸사 글자 크기
+          진입점도 이 화면에 생깁니다. 게이트 안의 「지금 켜기」는 그 위에 얹는 지름길입니다. */}
+      <ScreenHeader
+        title={FREE_ENTRY_TITLE}
+        subtitle={PRACTICE_SUBTITLE}
+        action={<SettingsMenu />}
+      />
 
       {/* 상시 문구 — 화면이 어느 단계에 있든 이 세 줄은 늘 위에 있습니다. */}
       <section className="mt-4 rounded-card bg-paper-2 px-4 py-[15px]">

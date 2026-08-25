@@ -15,6 +15,8 @@ import {
 } from "@/lib/storage";
 import { CoverageGrid } from "./CoverageGrid";
 import { TYPE_SHORT_LABELS } from "./format";
+import { countRubricCoverage, rubricCoverageSentence } from "./rubricCoverage";
+import type { ScenarioRubricMap } from "./rubricCoverage";
 import { nextTrainingSentence, pickNextTraining, trainHref } from "./nextTraining";
 import type { NextTrainingReason, ScenarioTypeMap } from "./nextTraining";
 import { ReportList } from "./ReportList";
@@ -60,7 +62,14 @@ export interface HistoryBoardProps {
   typeByScenarioId: ScenarioTypeMap;
   /** 지금 훈련할 수 있는 유형 목록 */
   activeTypes: ScenarioType[];
+  /** 시나리오 id(대문자) → 적용 루브릭 항목 id 목록. 지나온 항목을 세는 데만 씁니다. */
+  rubricByScenarioId: ScenarioRubricMap;
+  /** 채점표 전체 항목 수 — 화면이 직접 세어 적습니다(손으로 적어 두지 않습니다). */
+  rubricTotal: number;
 }
+
+/** 저장소를 읽지 못한 채 이만큼 지나면 다른 말을 겁니다(ms). */
+const LOAD_STALL_MS = 3000;
 
 /** 회차의 짧은 유형 라벨 — 실제 시나리오 표를 먼저 보고, 없으면 기록에 적힌 라벨을 씁니다. */
 function shortTypeLabel(record: SessionRecord, map: ScenarioTypeMap): string {
@@ -75,8 +84,14 @@ function shortTypeLabel(record: SessionRecord, map: ScenarioTypeMap): string {
  * localStorage 는 브라우저에만 있으므로 마운트 뒤에 읽습니다(서버 렌더 결과와 어긋나지 않게).
  * 표시는 「잘한 것 N · 다시 볼 것 N」과 문장까지이며, 점수·등급·순위·백분위는 만들지 않습니다.
  */
-export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProps) {
+export function HistoryBoard({
+  typeByScenarioId,
+  activeTypes,
+  rubricByScenarioId,
+  rubricTotal,
+}: HistoryBoardProps) {
   const [loaded, setLoaded] = useState(false);
+  const [stalled, setStalled] = useState(false);
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [reports, setReports] = useState<StoredReport[]>([]);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -86,6 +101,15 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
     setReports(loadReports());
     setLoaded(true);
   }, []);
+
+  /* 수화가 끝내 오지 않는 기기가 있습니다. 그때 화면에 남는 것이 「불러오는 중입니다」 하나면,
+     이 탭은 영원히 읽는 중인 화면이 됩니다 — 하필 「내가 쌓아 온 것」을 확인하러 오는 탭입니다.
+     3초가 지나도 그대로면 무엇을 하실 수 있는지로 말을 바꿉니다(페르소나 UI/UX med). */
+  useEffect(() => {
+    if (loaded) return;
+    const timer = window.setTimeout(() => setStalled(true), LOAD_STALL_MS);
+    return () => window.clearTimeout(timer);
+  }, [loaded]);
 
   const handleClear = (): void => {
     clearSessions();
@@ -118,10 +142,20 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
     [activeTypes, sessions, typeByScenarioId],
   );
 
+  /** 이력이 지나온 채점표 항목 수 — 새로 저장하는 값 없이 세션 기록에서 셉니다. */
+  const rubricCoverage = useMemo(
+    () => countRubricCoverage(sessions, rubricByScenarioId, rubricTotal),
+    [rubricByScenarioId, rubricTotal, sessions],
+  );
+
   if (!loaded) {
+    /* 이 화면에서 지금 글자는 이것 하나뿐입니다 — 가장 작고 흐린 단(12.5px·tertiary)에 두는 것은
+       방향이 반대라 15px 읽히는 톤으로 올렸습니다(페르소나 UI/UX med). */
     return (
-      <p className="mt-4 text-[0.7813rem] leading-[1.6] text-tertiary">
-        이 기기에 저장된 기록을 불러오는 중입니다.
+      <p role="status" className="mt-4 text-[0.9375rem] leading-[1.6] text-ink-soft">
+        {stalled
+          ? "이 기기의 저장소를 읽지 못했습니다. 화면을 새로고침해 주세요."
+          : "이 기기에 저장된 기록을 불러오는 중입니다."}
       </p>
     );
   }
@@ -199,8 +233,13 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
         records={sessions}
         typeByScenarioId={typeByScenarioId}
         activeTypes={activeTypes}
-        className="mb-[18px]"
       />
+      {/* 채점표 커버리지 한 줄 — 유형 4칸이 「무엇을 몇 번」이라면, 이 줄은 「어디까지 지나왔나」
+          입니다. 세 종만 돌려도 30항목이 한 번씩 다 나온다는 편성 원칙을 화면이 직접 세어
+          확인해 줍니다(페르소나 PM med). 숫자는 둘까지이고 점수·등급은 여전히 없습니다. */}
+      <p className="mt-[8px] mb-[18px] text-[0.8438rem] leading-[1.6] text-ink-soft">
+        {rubricCoverageSentence(rubricCoverage)}
+      </p>
 
       <EyebrowLabel className="mb-[2px]">최근 훈련</EyebrowLabel>
       {sessions.length > 0 ? (

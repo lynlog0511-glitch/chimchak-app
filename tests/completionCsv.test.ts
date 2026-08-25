@@ -17,6 +17,7 @@ import {
   buildCompletionCsv,
   buildCompletionSummary,
   clearSessions,
+  completionIssueNumber,
   importCompletionCsv,
   loadCompletionImports,
   loadCompletionTally,
@@ -447,6 +448,55 @@ describe("검증 — 서식이 어긋나면 반쯤 넣지 않고 사유를 말�
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.message.length).toBeGreaterThan(0);
+  });
+
+  /*
+   * 발급번호 재계산 대조 — 2026-08-25에 더한 검사다.
+   *
+   * 발급번호 시드가 파일에 실리는 값(분 반올림)으로 맞춰지면서, 읽는 쪽이 같은 번호를 다시
+   * 계산할 수 있게 됐다. 그전에는 서식(`CHK-0000-0000`)만 보았기 때문에 「합계까지 앞뒤가
+   * 맞게 고쳐 쓴 파일」이 그대로 통과했다.
+   */
+  it("번호는 그대로 두고 내용을 고친 파일은 재계산에서 걸린다", () => {
+    const csv = csvFromOtherDevice();
+    const rows = csv.replace(/^﻿/, "").split("\r\n");
+    // 한 줄의 시수를 1분 줄이고 합계 칸도 같이 줄여 **내부 정합성은 맞춘다** —
+    // 예전 검사는 이 파일을 통과시켰다.
+    // 시나리오 제목에 쉼표가 든 줄이 있어(「현관 앞, 집에 가야 해요」) 되붙일 때 다시 감싼다.
+    const joinRow = (cells: string[]): string =>
+      cells.map((cell) => (/[",\n\r]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell)).join(",");
+
+    const first = splitRow(rows[1] as string);
+    first[6] = String(Number(first[6]) + 1);
+    rows[1] = joinRow(first);
+    for (let i = 1; i < rows.length; i += 1) {
+      if ((rows[i] ?? "").length === 0) continue;
+      const row = splitRow(rows[i] as string);
+      row[9] = String(Number(row[9]) + 1);
+      rows[i] = joinRow(row);
+    }
+
+    const tampered = `﻿${rows.join("\r\n")}`;
+    // 합계 대조(줄 합 = 파일 합계)는 통과한다 — 걸리는 것은 발급번호 재계산이다.
+    const read = parseCompletionCsv(tampered);
+    expect(read.ok).toBe(true);
+    if (read.ok) expect(read.file.numberMatches).toBe(false);
+
+    const result = importCompletionCsv(tampered);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe("mismatch");
+    expect(loadCompletionTally().count).toBe(0);
+  });
+
+  it("손대지 않은 파일은 재계산이 그대로 맞는다", () => {
+    const read = parseCompletionCsv(csvFromOtherDevice());
+    expect(read.ok).toBe(true);
+    if (!read.ok) return;
+    expect(read.file.numberMatches).toBe(true);
+    expect(completionIssueNumber(read.file.lines, read.file.totalCount, read.file.totalMinutes)).toBe(
+      read.file.number,
+    );
   });
 });
 

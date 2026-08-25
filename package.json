@@ -4,11 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "node scripts/stamp-sw.mjs",
+    "prebuild": "node scripts/stamp-sw.mjs && node scripts/split-audio-manifest.mjs",
     "build": "next build",
     "start": "next start",
     "font": "python scripts/subset-font.py",
     "audio": "python scripts/synthesize-audio.py",
+    "audio:split": "node scripts/split-audio-manifest.mjs",
     "audio:verify": "node scripts/verify-audio-manifest.mjs",
     "test": "vitest run",
     "test:watch": "vitest",

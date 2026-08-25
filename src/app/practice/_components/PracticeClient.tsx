@@ -19,9 +19,18 @@ import {
   type FreeSummaryOutcome,
   type FreeTurn,
 } from "@/lib/onlineFree";
-import { getSettings, isOnlineCoachingActive, subscribeSettings } from "@/lib/settings";
+import {
+  ONLINE_COACHING_NOTICE,
+  ONLINE_MODE_LABEL,
+  getSettings,
+  isOnlineCoachingActive,
+  setOnlineCoaching,
+  subscribeSettings,
+} from "@/lib/settings";
 import { speak, stopSpeaking } from "@/lib/speech";
 import {
+  GATE_ENABLE_CTA,
+  GATE_ENABLE_HINT,
   GATE_OFFLINE_BODY,
   GATE_OFFLINE_TITLE,
   GATE_OFF_BODY,
@@ -52,14 +61,50 @@ interface Scene {
   persona: string;
 }
 
-/** 안내 카드 한 장 — 깨진 화면 대신 「왜 안 열리는지」와 「대신 어디로」를 세웁니다. */
-function Gate({ title, body }: { title: string; body: string }) {
+/**
+ * 안내 카드 한 장 — 깨진 화면 대신 「왜 안 열리는지」와 「대신 어디로」를 세웁니다.
+ *
+ * 꺼져 있어서 막힌 경우(`onEnable`이 주어진 경우)에는 **여기서 바로 켤 수 있는 버튼**을 답니다.
+ * 예전에는 문 앞에서 「이 문은 열쇠로 열립니다」라고만 하고 열쇠가 어디 있는지는 안 알려
+ * 주었습니다 — 홈까지 나가 설정을 찾아 켜고 두 화면을 되짚어 들어오라는 뜻이라, 그 지점에서
+ * 대부분 포기하고 돌아갑니다(페르소나 교육생 high · UI/UX high).
+ * 게이트 → 해제 → 복귀가 한 화면에서 끝나게 두는 편이 옳습니다.
+ */
+function Gate({
+  title,
+  body,
+  onEnable,
+}: {
+  title: string;
+  body: string;
+  onEnable?: () => void;
+}) {
   return (
     <section className="mt-4 rounded-card bg-paper-2 px-4 py-[15px]">
       <h2 className="text-[1.0625rem] leading-[1.4] font-extrabold text-ink">{title}</h2>
       <p className="mt-1.5 text-[0.9375rem] leading-[1.6] text-ink-soft">{body}</p>
-      <p className="mt-2 text-[0.8438rem] leading-[1.6] text-ink-muted">{GATE_SETTINGS_HINT}</p>
-      <BigButton href="/train" block className="mt-4">
+      <p className="mt-2 text-[0.8438rem] leading-[1.6] text-ink-muted">
+        {onEnable ? GATE_ENABLE_HINT : GATE_SETTINGS_HINT}
+      </p>
+      {onEnable && (
+        <>
+          {/* 스위치를 켜는 자리는 곧 **동의를 받는 자리**입니다. 설정 팝오버에서 이 버튼을
+              누르실 때 읽으시는 고지와 **한 글자도 다르지 않은 문장**을 여기에도 둡니다 —
+              지름길을 만들면서 고지를 건너뛰면, 편의를 얻은 만큼 동의가 얇아집니다. */}
+          <div className="mt-3 rounded-[14px] bg-paper px-[14px] py-[12px]">
+            <p className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.04em] text-ink-muted">
+              {ONLINE_MODE_LABEL}
+            </p>
+            <p className="mt-[6px] text-[0.8438rem] leading-[1.6] text-ink-soft">
+              {ONLINE_COACHING_NOTICE}
+            </p>
+          </div>
+          <BigButton onClick={onEnable} size="lg" block className="mt-3">
+            {GATE_ENABLE_CTA}
+          </BigButton>
+        </>
+      )}
+      <BigButton href="/train" variant={onEnable ? "secondary" : "primary"} block className="mt-2">
         {GATE_TRAIN_CTA}
       </BigButton>
     </section>
@@ -298,7 +343,7 @@ export function PracticeClient() {
 
   if (!mounted) {
     return (
-      <p className="mt-4 text-[0.9375rem] leading-[1.6] text-ink-muted">
+      <p role="status" className="mt-4 text-[0.9375rem] leading-[1.6] text-ink-soft">
         이 기기의 설정을 확인하고 있습니다…
       </p>
     );
@@ -312,7 +357,18 @@ export function PracticeClient() {
         ? "unconfigured"
         : null;
 
-  if (gate === "off") return <Gate title={GATE_OFF_TITLE} body={GATE_OFF_BODY} />;
+  if (gate === "off") {
+    /* 스위치를 켜는 것은 「내 발화를 밖으로 내보낼 것인가」에 답하는 일입니다 — 그 답은 카드
+       본문(무엇이 어디로 나가는지)을 읽고 누르는 이 버튼으로 표시하십니다. 켜는 즉시
+       `subscribeSettings`가 이 화면을 다시 그려 게이트가 걷힙니다. */
+    return (
+      <Gate
+        title={GATE_OFF_TITLE}
+        body={GATE_OFF_BODY}
+        onEnable={() => setOnlineCoaching({ enabled: true })}
+      />
+    );
+  }
   if (gate === "offline") return <Gate title={GATE_OFFLINE_TITLE} body={GATE_OFFLINE_BODY} />;
   if (gate === "unconfigured") {
     return <Gate title={GATE_UNCONFIGURED_TITLE} body={GATE_UNCONFIGURED_BODY} />;

@@ -50,7 +50,18 @@ export function ProtocolPlayer({ title, steps, backHref }: ProtocolPlayerProps) 
      자막 진행까지 멈추면 안내 자체가 죽습니다. 자막은 같은 속도로 계속 넘어갑니다. */
   const voiceActive = voiceOn && !soundBlocked;
   const playback = useProtocolPlayback({ steps, voiceOn: voiceActive });
-  const { index, step, total, silent, playing, goTo, togglePlaying, replay, restart } = playback;
+  const {
+    index,
+    step,
+    total,
+    silent,
+    playing,
+    resumedFromHidden,
+    goTo,
+    togglePlaying,
+    replay,
+    restart,
+  } = playback;
   const voiceText = step ? step.voice.trim() : "";
   const preview = nextStepPreview(steps, index);
 
@@ -105,6 +116,38 @@ export function ProtocolPlayer({ title, steps, backHref }: ProtocolPlayerProps) 
 
       {/* 본문 — 이 화면 전체에서 가장 큰 글자는 자막 하나뿐입니다. */}
       <div className="pt-4 pb-6">
+        {/* 화면이 가려졌다가 돌아온 자리 — 이 화면의 1단계는 사용자를 전화 앱으로 내보냅니다.
+            돌아왔을 때 앱이 스스로 이어 가면, 통화하는 동안 몇 단계가 지나갔는지 아무도
+            보장하지 못한 채 화면만 앞서 갑니다. 그래서 **자동으로 재개하지 않고** 지금 어디에
+            멈춰 있는지 적은 뒤 두 버튼을 세웁니다(페르소나 UI/UX high). */}
+        {resumedFromHidden && (
+          <div
+            role="status"
+            className="mb-3 rounded-[14px] bg-warn-soft px-4 py-[14px]"
+          >
+            <p className="text-[1.0625rem] leading-[1.45] font-bold text-warn-ink">
+              119 통화 중이셨나요?
+            </p>
+            <p className="mt-[4px] text-[0.9375rem] leading-[1.6] text-ink">
+              <span className="chim-num">{index + 1}</span>단계에서 멈춰 있습니다. 아래에서 고르시면
+              그 자리부터 이어 갑니다.
+            </p>
+            <div className="mt-[10px] flex gap-2">
+              <button
+                type="button"
+                onClick={replay}
+                disabled={silent || !ttsSupported || !voiceOn}
+                className={CONTROL_OUTLINE}
+              >
+                이 단계 다시 듣기
+              </button>
+              <button type="button" onClick={togglePlaying} className={CONTROL_PRIMARY}>
+                이어서
+              </button>
+            </div>
+          </div>
+        )}
+
         <ProtocolReadingLine state={readingState} />
 
         {/* 바로가기로 곧바로 열면 제스처가 없어 소리가 막힙니다. 그 사실을 적고, 한 번 누를 자리를 둡니다.

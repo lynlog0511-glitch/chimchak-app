@@ -19,9 +19,15 @@ const ORDER: ScenarioType[] = ["BPSD", "EMERGENCY", "CONFLICT", "RISK"];
  * 유형별로 해 본 것 — 4칸 (시안 5c).
  *
  * 어떤 유형을 얼마나 연습했는지 **완료 횟수만** 보여 주고, 점수·등급·순위는 만들지 않습니다.
- * 형태는 시안 그대로입니다 — 보더 1px `line`(#eef0ef) r14 한 덩어리, 칸 사이는 세로 hairline,
+ * 형태 — `paper-2` 면 한 덩어리 r14, 칸 사이는 세로 hairline,
  * 숫자 17px w800 tabular `brand-800`(#14665f), 라벨 12.5px `ink-muted`, 미실시는 「—」 `faint`.
  * (19px·11.5px은 가이드 §2 눈금 밖 값이라 11 / 12.5 / 13.5 / 15 / 17 안으로 들여 놓았습니다.)
+ *
+ * 2026-08-25 바깥 보더를 뺐습니다. 이 화면에는 무보더 면 카드(추천 tint · 재개 warn-soft ·
+ * 하단 paper-2)와 선 카드가 섞여 있었는데, 가이드 §3이 「카드는 무보더 면 또는 line 1px 중
+ * 택1 — 같은 화면에서 혼용 금지」로 명시적으로 금지한 자리입니다(페르소나 디자이너 med).
+ * 이 표를 면 쪽으로 옮기면 /history가 무보더 면 하나로 통일되고, 칸을 가르던 hairline은
+ * 그대로 남아 「네 칸」이라는 정보도 잃지 않습니다.
  *
  * 라벨 아래 「최근 8.5」 한 줄은 기간 축입니다 — 횟수만으로는 「최근에도 했는가」를 알 수 없어
  * 정기평가·직무교육 실적처럼 기간으로 묻는 자리에서 이 표를 쓸 수 없기 때문입니다.
@@ -67,7 +73,7 @@ export function CoverageGrid({
 
   return (
     <div className={className}>
-      <ul className="flex overflow-hidden rounded-[14px] border border-line">
+      <ul className="flex overflow-hidden rounded-[14px] bg-paper-2">
         {ORDER.map((type, index) => {
           const done = counts[type];
           const recent = lastAt[type];
@@ -85,7 +91,8 @@ export function CoverageGrid({
               key={type}
               className={cx(
                 "flex-1 py-3 text-center",
-                index > 0 && "border-l border-line",
+                /* 회색 면 위에서는 `line`(#eef0ef)이 묻힙니다 — 칸을 가르는 선만 한 단 올립니다. */
+                index > 0 && "border-l border-line-strong",
               )}
             >
               {/* 낭독기용 한 줄 — li의 aria-label은 브라우즈 모드에서 무시하는 보조기술이 있어

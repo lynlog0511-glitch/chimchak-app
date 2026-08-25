@@ -45,6 +45,21 @@ const EXAMPLE_BUTTON_CLASS =
   "flex min-h-[48px] items-center rounded-[14px] bg-paper-2 px-4 text-[0.8438rem] font-semibold transition-colors duration-150 active:bg-neutral-line";
 
 /**
+ * 마이크를 쓸 수 있는지 — **모르는 상태를 따로 둡니다**.
+ *
+ * 예전에는 `useState(false)`로 출발해, 서버가 내려주는 첫 화면에 「이 기기에서는 마이크를 쓸 수
+ * 없습니다」가 그대로 박혀 있었습니다. 실제 판정은 마운트 뒤 `createRecognizer()`가 합니다.
+ * 「말로 보고하면 기록 초안까지」를 보고 들어오신 분이 첫 글자로 「쓸 수 없습니다」를 읽으면,
+ * 되는 기기인데도 그 몇 초 안에 타이핑 칸으로 가십니다(페르소나 현직 low · UI/UX high).
+ *
+ * 모르는 것은 모른다고 적습니다 — 같은 문법이 응급 저장 상태·자유 연습 게이트에 이미 있습니다.
+ */
+type MicCheck = "unknown" | "yes" | "no";
+
+/** 마이크 조작 방식 — 꾹 누르기가 기본이고, 토글을 **병행**합니다. */
+type MicMode = "hold" | "toggle";
+
+/**
  * 1단계 입력 화면 (v4 언어 · 시안 4a⑦·4b의 마이크와 녹음 패널을 그대로 씁니다).
  *
  * 마이크는 **누르고 있는 동안에만** 인식하고, 타이핑 입력은 항상 열려 있습니다.
@@ -60,10 +75,13 @@ export function VoiceInput({
   const recognizerRef = useRef<Recognizer | null>(null);
   const valueRef = useRef(value);
   const onChangeRef = useRef(onChange);
-  const [supported, setSupported] = useState(false);
+  const [micCheck, setMicCheck] = useState<MicCheck>("unknown");
+  const [micMode, setMicMode] = useState<MicMode>("hold");
   const [listening, setListening] = useState(false);
   const [interim, setInterim] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
+  /** 「글자로 적기」로 옮겨 갈 자리 — 개인정보 안내 옆 버튼이 이 칸으로 초점을 보냅니다. */
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     valueRef.current = value;
@@ -95,7 +113,7 @@ export function VoiceInput({
       onStart: () => setNotice(null),
     });
     recognizerRef.current = recognizer;
-    setSupported(recognizer.supported);
+    setMicCheck(recognizer.supported ? "yes" : "no");
     return () => {
       recognizer.stop();
       recognizerRef.current = null;
@@ -151,14 +169,45 @@ export function VoiceInput({
     stopListening();
   };
 
+  /** 토글 모드 — 한 번 눌러 시작, 다시 눌러 종료. 듣는 동안의 표시는 꾹 누르기와 같습니다. */
+  const handleToggleClick = (): void => {
+    if (listening) stopListening();
+    else startListening();
+  };
+
   const empty = value.trim().length === 0;
+  const holdMode = micMode === "hold";
+
+  /** 마이크 버튼 아래 한 줄 — 지금 실제로 일어나는 일만 적습니다. */
+  const micCaption = listening
+    ? holdMode
+      ? "손을 떼면 받아쓰기가 멈춰요"
+      : "다시 누르면 받아쓰기가 멈춰요"
+    : micCheck === "unknown"
+      ? "마이크를 확인하고 있어요"
+      : micCheck === "yes"
+        ? holdMode
+          ? "누르고 있는 동안만 듣습니다. 상시 청취는 없습니다"
+          : "누르시면 듣기 시작하고, 다시 누르면 멈춥니다. 상시 청취는 없습니다"
+        : "이 기기에서는 마이크를 쓸 수 없습니다. 아래 칸에 적어 주세요";
+
+  /** 「글자로 적기」 — 개인정보 안내 옆에서 곧바로 타이핑 칸으로 보냅니다. */
+  const focusTextarea = (): void => {
+    const field = textareaRef.current;
+    if (!field) return;
+    field.scrollIntoView({ block: "center" });
+    field.focus();
+  };
 
   return (
     <div>
       <h2 ref={headingRef} tabIndex={-1} className="text-[1.0625rem] leading-[1.45] font-bold text-ink">
         오늘 있었던 일을 그대로 말씀해 주세요
       </h2>
-      <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-muted">
+      {/* 이 화면의 과업 지시문입니다 — 「무엇을 말하면 되는지」를 알려 주는 유일한 문장이라
+          12.5px(메타 단)에서 15px로 올렸습니다. 이 화면은 15px 이상 본문이 한 줄도 없이
+          12.5·13.5px에 몰려 있었습니다(페르소나 UI/UX med). */}
+      <p className="mt-[6px] text-[0.9375rem] leading-[1.6] text-ink-soft">
         정리해서 말하지 않으셔도 됩니다. 기억나는 대로 말씀하시면 기기 안에서 개인정보를 가리고,
         급여제공기록지 5요소로 나눠 드립니다.
       </p>
@@ -166,7 +215,10 @@ export function VoiceInput({
       {/* 말하기 도크 — 면 카드 한 장 위에 마이크만 세웁니다. */}
       <div
         onBlur={() => {
-          if (listening) stopListening();
+          /* 꾹 누르기에서만 초점이 빠지면 멈춥니다 — 손을 뗀 것과 같은 뜻이기 때문입니다.
+             토글 모드에서는 「다시 누를 때까지 듣는다」가 약속이라, 초점이 옮겨 갔다고
+             임의로 끊으면 화면이 한 말과 다르게 행동하게 됩니다. */
+          if (listening && micMode === "hold") stopListening();
         }}
         className="mt-4 rounded-[16px] bg-paper-2 px-4 py-[18px]"
       >
@@ -195,27 +247,56 @@ export function VoiceInput({
         )}
 
         <div className="flex flex-col items-center gap-[10px]">
-          <MicButton
-            size={listening ? "lg" : "md"}
-            pressed={listening}
-            label={
-              listening
-                ? "말하는 중입니다. 손을 떼면 받아쓰기가 멈춥니다"
-                : "누르고 있는 동안 말씀을 받아 적습니다"
-            }
-            onPointerDown={handlePointerDown}
-            onPointerUp={handlePointerUp}
-            onPointerCancel={stopListening}
-            onKeyDown={handleKeyDown}
-            onKeyUp={handleKeyUp}
-          />
-          <p className="text-center text-[0.7813rem] leading-[1.45] font-semibold text-ink-soft">
-            {listening
-              ? "손을 떼면 받아쓰기가 멈춰요"
-              : supported
-                ? "누르고 있는 동안만 듣습니다. 상시 청취는 없습니다"
-                : "이 기기에서는 마이크를 쓸 수 없습니다. 아래 칸에 적어 주세요"}
+          {/* 조작 방식만 갈립니다 — 듣는 동안의 표시(빨간 점·파형·「듣고 있어요」·실시간 자막)는
+              두 모드에서 똑같이 유지됩니다. 「누르고 있는 동안만 듣는다」는 약속을 조작으로
+              증명한 설계는 그대로 두되, 하루 근무를 한 번에 불러넣는 이 화면에서는 20~40초를
+              손가락으로 누르고 있어야 했습니다(페르소나 UI/UX med). 약속은 「듣는 동안 화면이
+              반드시 그 사실을 표시한다」로도 지켜집니다. */}
+          {holdMode ? (
+            <MicButton
+              size={listening ? "lg" : "md"}
+              pressed={listening}
+              label={
+                listening
+                  ? "말하는 중입니다. 손을 떼면 받아쓰기가 멈춥니다"
+                  : "누르고 있는 동안 말씀을 받아 적습니다"
+              }
+              onPointerDown={handlePointerDown}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={stopListening}
+              onKeyDown={handleKeyDown}
+              onKeyUp={handleKeyUp}
+            />
+          ) : (
+            <MicButton
+              size={listening ? "lg" : "md"}
+              pressed={listening}
+              label={
+                listening
+                  ? "받아쓰는 중입니다. 다시 누르면 멈춥니다"
+                  : "누르면 말씀을 받아 적기 시작합니다"
+              }
+              onClick={handleToggleClick}
+            />
+          )}
+          <p
+            aria-live="polite"
+            className="text-center text-[0.7813rem] leading-[1.45] font-semibold text-ink-soft"
+          >
+            {micCaption}
           </p>
+          {/* 모드 바꾸기 — 듣는 중에는 숨깁니다(조작 방식이 도중에 바뀌면 손이 갈 곳을 잃습니다). */}
+          {micCheck === "yes" && !listening && (
+            <button
+              type="button"
+              onClick={() => setMicMode(holdMode ? "toggle" : "hold")}
+              className="flex min-h-[48px] items-center rounded-field px-2 text-[0.8438rem] font-semibold text-ink-muted underline underline-offset-4 transition-colors duration-150 active:bg-white"
+            >
+              {holdMode
+                ? "누르고 있기가 힘드시면 눌러서 시작·종료로 바꾸기"
+                : "다시 누르고 있기로 바꾸기"}
+            </button>
+          )}
         </div>
 
         {notice && (
@@ -235,6 +316,7 @@ export function VoiceInput({
         </label>
         <textarea
           id="report-utterance"
+          ref={textareaRef}
           value={value}
           onChange={(event) => {
             onInputStart();
@@ -243,8 +325,13 @@ export function VoiceInput({
           rows={7}
           placeholder="예) 오후 4시 40분쯤 어르신이 현관 앞에서 집에 가야 한다며 나가려 하셨습니다."
           /* 입력 글자는 17px(코어 단)입니다 — 16px 미만이면 iOS가 포커스 순간 화면을 강제로 확대하고,
-             확대된 화면은 손으로 되돌려야 합니다(주 사용자가 중고령이라 그 되돌림이 곧 이탈입니다). */
-          className="mt-[6px] w-full rounded-[14px] border border-line-strong bg-white p-[14px] text-[1.0625rem] leading-[1.6] text-ink placeholder:text-tertiary focus:border-brand-400"
+             확대된 화면은 손으로 되돌려야 합니다(주 사용자가 중고령이라 그 되돌림이 곧 이탈입니다).
+
+             바닥은 흰색이 아니라 `paper-2`입니다: 흰 지면 위 흰 입력칸은 보더에만 기대어 「여기가
+             적는 자리」를 말해야 해서 회색 면보다 약합니다(가이드 §1 — 입력 필드는 paper-2 면 하나).
+             `focus:border-brand-400`은 뗐습니다 — 전역 포커스 outline(brand-600)과 2px 간격으로
+             겹쳐 틸 두 겹이 번져 보였습니다(페르소나 디자이너 low). */
+          className="mt-[6px] w-full rounded-[14px] border border-line-strong bg-paper-2 p-[14px] text-[1.0625rem] leading-[1.6] text-ink placeholder:text-tertiary"
         />
 
         {/* 지우기는 예시가 아니라 위 입력칸에 딸린 조작이라, 예시 목록에서 빼 칸 아래에 둡니다. */}
@@ -280,13 +367,35 @@ export function VoiceInput({
           ))}
         </div>
 
-        <p className="mt-[8px] text-[0.6875rem] leading-[1.6] text-tertiary">{EXAMPLE_NOTICE}</p>
+        {/* 예시 고지 — 11px(각주 단)에서 12.5px로 올려 아래 개인정보 안내와 같은 단에 둡니다.
+            화면이 길어지는 만큼은 위 과업 지시문을 올리며 상쇄합니다(페르소나 UI/UX med). */}
+        <p className="mt-[8px] text-[0.7813rem] leading-[1.6] text-tertiary">{EXAMPLE_NOTICE}</p>
       </div>
 
-      <p className="mt-5 text-[0.7813rem] leading-[1.6] text-ink-soft">
-        음성과 원문은 이 기기 안에서만 다루고 저장하지 않습니다. 다음 화면에서 무엇을 왜 가리는지
-        먼저 확인하신 뒤에 넘어갑니다.
-      </p>
+      {/* 개인정보 안내 — 이 화면이 신뢰를 얻는 두 문장 중 하나라 15px로 올립니다.
+          그리고 **결론을 사람 말로 먼저** 놓습니다. 예전 문장은 「음성과 원문은 이 기기 안에서만
+          다루고 저장하지 않습니다」로 마음을 놓게 한 뒤, 화면 끝 접힘에서 「제조사 서버를 경유할
+          수 있고」로 다시 조였습니다 — 「제조사」도 「경유」도 어려운 말이라, 남는 인상은
+          「그래서 내 말이 밖으로 나가긴 나간다」 하나였습니다(페르소나 현직 med).
+          사실은 한 글자도 달라지지 않았습니다. 말을 바꿨고, 밖으로 안 나가는 길(타이핑)을
+          그 자리에 버튼으로 세웠습니다. */}
+      <div className="mt-5 rounded-[14px] bg-paper-2 px-4 py-[14px]">
+        <p className="text-[0.9375rem] leading-[1.6] text-ink">
+          마이크로 말씀하시면 휴대폰 회사(예: 삼성·구글)가 말을 글자로 바꿔 주는 기능을 씁니다.
+          글자로 적으시면 그마저도 밖으로 나가지 않습니다.
+        </p>
+        <p className="mt-[6px] text-[0.9375rem] leading-[1.6] text-ink-soft">
+          어느 쪽이든 말씀하신 원문은 이 기기 안에서만 다루고 저장하지 않습니다. 다음 화면에서
+          무엇을 왜 가리는지 먼저 확인하신 뒤에 넘어갑니다.
+        </p>
+        <button
+          type="button"
+          onClick={focusTextarea}
+          className="mt-[8px] flex min-h-[48px] w-full items-center justify-center rounded-[14px] border border-line-strong bg-paper text-[0.9375rem] font-bold text-ink transition-colors duration-150 active:bg-white"
+        >
+          글자로 적기
+        </button>
+      </div>
 
       <BigButton size="lg" block className="mt-4" onClick={onNext} disabled={empty}>
         가리기로 넘어가기

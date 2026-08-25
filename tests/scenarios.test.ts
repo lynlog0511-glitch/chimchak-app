@@ -11,6 +11,7 @@
 
 import { describe, expect, it } from "vitest";
 import { SCENARIOS, getActiveScenarios, getScenario, getTurn, validateAllScenarios, validateScenarioGraph } from "@/data/scenarios";
+import { SCENARIO_IDS } from "@/data/scenarioIds";
 import { RUBRIC } from "@/data/rubric";
 import { makeScenario } from "./_fixtures";
 
@@ -41,6 +42,20 @@ describe("실제 시나리오 데이터", () => {
     for (const scenario of SCENARIOS) {
       expect(getTurn(scenario, scenario.entryTurnId)?.id).toBe(scenario.entryTurnId);
     }
+  });
+});
+
+/**
+ * 번호만 담은 잎 모듈(`src/data/scenarioIds.ts`)과 시나리오 배럴의 동기화.
+ *
+ * 저장소 유틸(`src/lib/storage.ts`)은 시나리오 본문을 전 라우트 공유 청크로 끌고 오지 않으려고
+ * 배럴 대신 그 잎 모듈을 봅니다. 값이 둘로 갈리면 이수 사실 파일 가져오기가 「이 앱에 없는
+ * 시나리오」라며 멀쩡한 줄을 거절하거나, 반대로 없는 번호를 받아들입니다 — 둘 다 화면에는
+ * 아무 표시가 없는 고장이라 여기서 못 박습니다.
+ */
+describe("시나리오 번호 목록 동기화", () => {
+  it("잎 모듈의 번호가 SCENARIOS와 순서까지 같다", () => {
+    expect([...SCENARIO_IDS]).toEqual(SCENARIOS.map((scenario) => scenario.id.toUpperCase()));
   });
 });
 

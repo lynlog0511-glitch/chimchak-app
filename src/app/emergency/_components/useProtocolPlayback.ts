@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { isSilentStep } from "@/data/protocols";
 import { canPlayWithoutGesture, speak, stopSpeaking, unlockAudio } from "@/lib/speech";
 import { useWakeLock } from "@/lib/wakeLock";
@@ -135,6 +135,15 @@ export interface ProtocolPlayback {
   isFirst: boolean;
   isLast: boolean;
   playing: boolean;
+  /**
+   * 화면이 가려져 **자동 진행이 멈춘 채로 돌아온** 상태.
+   *
+   * 이 화면의 1단계는 사용자를 전화 앱으로 내보냅니다(`tel:119`). 돌아왔을 때 몇 단계에
+   * 서 있는지를 앱이 보장하지 못하면, 스피커폰 켜기·소리 확인을 건너뛴 채 마지막 단계가
+   * 떠 있을 수 있습니다(페르소나 UI/UX high). 그래서 가려지는 순간 단계를 고정하고,
+   * 돌아오면 **자동으로 재개하지 않고** 사람이 누르게 둡니다.
+   */
+  resumedFromHidden: boolean;
   goPrev: () => void;
   goNext: () => void;
   goTo: (next: number) => void;
@@ -152,6 +161,10 @@ export function useProtocolPlayback({
   const total = steps.length;
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(true);
+  const [resumedFromHidden, setResumedFromHidden] = useState(false);
+  /** 가려지는 순간의 재생 여부 — 이벤트 핸들러가 최신 값을 읽도록 ref로 들고 있습니다. */
+  const playingRef = useRef(playing);
+  playingRef.current = playing;
 
   const step = steps[index];
   const silent = step ? isSilentStep(step) : true;
@@ -209,12 +222,37 @@ export function useProtocolPlayback({
     };
   }, [enabled, playing, index, voiceOn, steps]);
 
+  /* 화면이 가려지면 진행과 낭독을 멈춥니다 — 이 앱에서 유일하게 「초 단위로 옳아야 하는」
+     화면이라, 백그라운드에서 스로틀된 타이머와 기기마다 다른 낭독 동작에 단계 인덱스를
+     맡길 수 없습니다.
+
+     멈추기만 하고 **자동으로 재개하지 않습니다.** 119 통화를 마치고 돌아온 분이 보는 단계가
+     2단계인지 5단계인지 앱이 보장할 수 없다면, 앱이 할 수 있는 정직한 일은 「여기서 멈춰
+     있습니다」라고 적고 다음 동작을 사람에게 맡기는 것입니다(페르소나 UI/UX high).
+     이미 멈춰 있던 경우(사용자가 「잠시 멈춤」을 누른 뒤)에는 안내를 세우지 않습니다 —
+     그건 사용자가 만든 정지이지 앱이 만든 정지가 아닙니다. */
+  useEffect(() => {
+    if (!enabled) return;
+    const onVisibility = (): void => {
+      if (document.visibilityState !== "hidden") return;
+      if (!playingRef.current) return;
+      stopSpeaking();
+      setPlaying(false);
+      setResumedFromHidden(true);
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [enabled]);
+
   // 화면을 떠날 때 남은 음성을 정리합니다.
   useEffect(() => stopSpeaking, []);
 
+  /* 아래 조작들은 「어디에 멈춰 있는가」를 사람이 직접 정한 것이므로, 그 순간
+     복귀 안내는 할 일을 마칩니다(자리를 옮기거나 실제로 이어 가는 조작들입니다). */
   const goTo = useCallback(
     (next: number): void => {
       stopSpeaking();
+      setResumedFromHidden(false);
       setIndex(Math.min(steps.length - 1, Math.max(0, next)));
     },
     [steps.length],
@@ -222,16 +260,19 @@ export function useProtocolPlayback({
 
   const goPrev = useCallback((): void => {
     stopSpeaking();
+    setResumedFromHidden(false);
     setIndex((value) => Math.max(0, value - 1));
   }, []);
 
   const goNext = useCallback((): void => {
     stopSpeaking();
+    setResumedFromHidden(false);
     setIndex((value) => Math.min(steps.length - 1, value + 1));
   }, [steps.length]);
 
   const togglePlaying = useCallback((): void => {
     stopSpeaking();
+    setResumedFromHidden(false);
     setPlaying((value) => !value);
   }, []);
 
@@ -240,11 +281,14 @@ export function useProtocolPlayback({
     const text = current ? current.voice.trim() : "";
     if (text.length === 0) return;
     stopSpeaking();
+    /* 「다시 듣기」는 자리를 옮기지도, 자동 진행을 켜지도 않습니다 — 아직 멈춰 있는 것은
+       그대로라 복귀 안내도 그대로 둡니다(안내를 접는 것은 실제로 이어 가실 때입니다). */
     void speak(text);
   }, [steps, index]);
 
   const restart = useCallback((): void => {
     stopSpeaking();
+    setResumedFromHidden(false);
     setIndex(0);
     setPlaying(true);
   }, []);
@@ -257,6 +301,7 @@ export function useProtocolPlayback({
     isFirst: index === 0,
     isLast: index >= total - 1,
     playing,
+    resumedFromHidden,
     goPrev,
     goNext,
     goTo,

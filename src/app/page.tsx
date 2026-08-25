@@ -13,6 +13,7 @@ import {
 import { BreathMark } from "@/components/BreathMark";
 import { SCENARIOS } from "@/data/scenarios";
 import { FirstVisitHint } from "./_components/FirstVisitHint";
+import { GUIDE_PRIVACY_FAQ_ID } from "./_components/guideAnchors";
 import { ResumeCard, type ResumeScenario } from "./_components/ResumeCard";
 import { WeeklyGoalCard } from "./_components/WeeklyGoalCard";
 
@@ -64,7 +65,10 @@ const THINGS: readonly { title: string; subtitle: string; href: string }[] = [
   },
   {
     title: "성장하고 — 보고·기록 코칭",
-    subtitle: "말로 보고하면 가명처리해 기록 초안까지",
+    /* 「가명처리」는 보고 화면 안에서 한 번도 쓰지 않는 말입니다 — 거기서는 「가리기」라고
+       적습니다. 첫 화면만 어려운 말을 쓰면, 그 말을 모르는 분이 이 줄에서 멈춥니다
+       (페르소나 현직 med). 앱 안에서 쓰는 말로 통일합니다. */
+    subtitle: "말로 보고하면 이름·번호를 가려서 기록 초안까지",
     href: "/report",
   },
 ];
@@ -192,13 +196,21 @@ export default function Home() {
           읽어야 할 말은 「계층 이름」이 아니라 「위험할 때 이 앱이 어떻게 행동하는가」입니다 —
           계층표·생성 허용 범위 그림·실측 수치는 한 겹 뒤 /safety가 하나도 빠짐없이 들고 있고,
           이 줄은 그 문 앞에 붙은 손잡이입니다. 막대가 빠지면서 이 화면의 틸 채움은
-          호흡 마크와 주 CTA 둘만 남습니다(가이드 §0 화면당 2곳). */}
+          호흡 마크와 주 CTA 둘만 남습니다(가이드 §0 화면당 2곳).
+          「보기」가 여는 문은 /safety가 아니라 /guide의 같은 질문 항목입니다 — 아래 링크 주석 참조. */}
       <section className="mt-[14px] rounded-card bg-paper-2 px-[15px] py-[14px]">
         <p className="text-[0.8438rem] leading-[1.6] text-ink-soft">{SAFETY_LINE}</p>
         {/* 「보기」는 누르는 것이라 48px 타깃을 지키고, 좁은 화면에서는 줄 아래로 내려섭니다.
-            채움이 아니라 글자 링크입니다 — 이 카드는 읽고 지나가는 자리이지 눌러야 하는 자리가 아닙니다. */}
+            채움이 아니라 글자 링크입니다 — 이 카드는 읽고 지나가는 자리이지 눌러야 하는 자리가 아닙니다.
+
+            목적지는 /safety가 아니라 「처음 오신 분께」의 해당 항목입니다. 안심하려고 누른 분이
+            3계층·앵커 60~160%·생성 호출 0건을 만나면 더 불안해집니다 — 그 화면은 기관 담당자와
+            심사가 보는 화면이고, 사용자가 찾는 답(「제가 말한 내용은 어디로 가나요?」)은 이미
+            /guide에 사용자 말로 적혀 있습니다(페르소나 현직 med). /safety로 곧장 가는 문은
+            아래 FOOT_LINKS 한 곳에만 둡니다. */}
         <Link
-          href="/safety#tiers"
+          href={`/guide#${GUIDE_PRIVACY_FAQ_ID}`}
+          prefetch={false}
           className="-ml-2 inline-flex min-h-[48px] items-center gap-1 rounded-field px-2 text-[0.8438rem] leading-[1.45] font-semibold text-brand-700 underline underline-offset-4 transition-colors duration-150 ease-soft hover:text-brand-800 active:bg-white"
         >
           안전 설계 보기
@@ -222,7 +234,10 @@ export default function Home() {
                   ·
                 </span>
               )}
-              <Link href={link.href} className={FOOT_LINK_CLASS}>
+              {/* 이 줄의 넷은 모두 무겁고(가장 무거운 /safety는 RSC 페이로드 118KB) 가장 덜
+                  눌리는 문입니다. 뷰포트에 들어서는 순간 넷을 미리 당기면, 정작 「첫 상황
+                  연습하기」를 누르셨을 때 그 요청이 큐 뒤에 섭니다(페르소나 FE low). */}
+              <Link href={link.href} prefetch={false} className={FOOT_LINK_CLASS}>
                 {link.label}
               </Link>
             </Fragment>

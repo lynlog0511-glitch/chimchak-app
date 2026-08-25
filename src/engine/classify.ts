@@ -8,12 +8,17 @@
  * 판정 순서
  * 1) 버튼으로 분기를 직접 지정했으면(branchId) 그 분기가 최우선 — 데이터의 판단을 그대로 따른다.
  * 2) ⚑CF 플래그가 붙은 분기의 패턴을 먼저 검사한다 (안전 판정 우선).
- * 3) 나머지 분기를 배열 순서대로 부분 문자열 대조한다 (공백 제거·소문자화).
+ * 3) 나머지 분기를 부분 문자열로 대조하고(공백 제거·소문자화), **걸린 분기를 모두 모아**
+ *    심각도가 높은 쪽을 채택한다(아래 「심각도 순위」). 같은 순위면 배열 순서를 따른다.
  * 4) 그래도 못 찾으면 defaultBranchId.
+ *
+ * 대조 전에 한글 수사로 말한 시각을 숫자로 맞춘다("네 시 사십 분" → "4시 40분").
+ * 발화와 표지 **양쪽**에 같은 변환을 걸어, 어느 쪽이 한글로 적혀 있어도 만나게 한다.
  */
 
 import type { BranchDef, CueDef } from "@/types";
-import { indexOfPattern, isNegated, normalize } from "./rules";
+import { expandKoreanTimeNumerals, indexOfPattern, isNegated, normalize } from "./rules";
+import { isMet, lowestScore } from "./scoring";
 
 export type ClassifySource = "button" | "criticalPattern" | "pattern" | "default";
 
@@ -59,6 +64,51 @@ export interface ClassifyResult {
   source: ClassifySource;
   /** 어떤 패턴에 걸렸는지 (디버깅·설명용) */
   matchedPattern?: string;
+}
+
+/* ── 심각도 순위 ────────────────────────────────────────────
+   한 발화가 여러 분기에 걸릴 때 **무엇을 채택하는가**의 규칙입니다.
+
+   예전에는 배열에서 먼저 만난 분기를 그대로 썼습니다. 그러면 앞에 공감 한 마디만 붙이면
+   뒤에 정반대 말을 해도 충족이 됩니다 — "마음이 급하신 건 알지만, 여기가 어머님 댁이에요"는
+   D1-c(감정 인정)의 넓은 조각 「마음이」에 먼저 걸려 초록 체크와 칭찬을 받았고, 정작 이
+   시나리오가 잡으려는 실수(사실 반박)는 뒤 절반에 그대로 남아 있었습니다(교육생 검증 실측).
+   되는 화법으로 배우고 나면, 나중에 그것이 틀린 화법임을 알게 된 순간 다른 충족 판정까지
+   함께 못 믿게 됩니다.
+
+   그래서 걸린 분기를 모두 모아 **가장 심각한 쪽**을 채택합니다. ⚑CF는 이미 위(2단)에서
+   먼저 걸러지므로 여기서 가르는 것은 감점 · 중립 · 충족 셋입니다.
+
+   ▸ 감점을 우선하는 조건에 **게이지를 올리는 분기**를 함께 둔 이유
+     감점 분기에는 성격이 다른 두 갈래가 섞여 있습니다.
+      ① 잘못한 말이 **있어서** 감점인 분기 — 사실 반박(D1-a)·지시 제지(D1-b)처럼 그 말을
+         한 것 자체가 어르신을 더 초조하게 만듭니다. 데이터에 gaugeDelta > 0으로 적혀 있습니다.
+      ② 갖춰야 할 것이 **없어서** 감점인 분기 — 부분 보고(R1-b)·추상적 제안(R2-b)처럼
+         빠뜨린 것으로 판정합니다. 게이지는 움직이지 않습니다(gaugeDelta 0).
+     ②까지 우선하면 반대쪽 사고가 납니다. 전 시나리오의 표지·보기 문구를 그대로 발화로
+     넣어 재분류해 본 실측이 있습니다(2,733건). ②를 포함하면 9건이 바뀌는데 그중 7건이
+     **모범 답안의 강등**이었습니다 — CHK-A01 R1-a의 「귀가 요구」와 보기 문구(5요소를 다
+     담은 보고)가 「나가시려고」 한 조각 때문에 R1-b 부분 보고로, CHK-C02 K-a의
+     「법으로 허용되지 않」(옳은 거절)이 K-b로 내려갔습니다. 있는 것을 없다고 판정하는 셈입니다.
+     ①만 우선하면 바뀌는 것은 2건이고 둘 다 이 검증이 잡으려던 자리입니다
+     (CHK-A01·A02 CUE-2의 "어두워서 안 돼요" — D2-b「환경 요인 확인」의 넓은 조각
+     「어두워서」에 걸려 충족이던 것이 D2-d「논리적 설득」 감점으로 바로잡힙니다).
+     「덧붙인 잘못은 이긴다, 갖춘 것을 못 갖췄다고 하지는 않는다」가 이 규칙이 지키는 선입니다. */
+
+type BranchRank = 0 | 1 | 2;
+/** 감점 — 그 말을 한 것 자체가 상황을 나쁘게 만든 분기 */
+const RANK_PENALTY: BranchRank = 0;
+/** 중립 — 루브릭 적립도 감점도 없는 분기 */
+const RANK_NEUTRAL: BranchRank = 1;
+/** 충족 — 루브릭이 3점 이상으로 적립되는 분기 */
+const RANK_MET: BranchRank = 2;
+
+function branchRank(branch: BranchDef): BranchRank {
+  const low = lowestScore(branch.rubricHits);
+  const met = low === undefined ? branch.gaugeDelta <= 0 && !branch.coaching : isMet(low);
+  // 못 갖춘 것으로 내리는 감점(gaugeDelta 0)은 충족 분기를 이기지 않습니다 — 위 주석 ②.
+  if (!met) return branch.gaugeDelta > 0 ? RANK_PENALTY : RANK_MET;
+  return low === undefined ? RANK_NEUTRAL : RANK_MET;
 }
 
 /** 데이터가 비어 있을 때만 쓰는 안전망 분기 (next가 빈 문자열이면 세션은 같은 턴에 머문다) */
@@ -119,7 +169,10 @@ function matchPattern(
   mode: "none" | "direct" | "full" = "none",
 ): string | undefined {
   for (const pattern of branch.patterns) {
-    const needle = normalize(pattern);
+    // 발화와 **같은 변환**을 지나게 합니다 — 표지가 한글 수사로 적힌 자리("새벽 두 시")도
+    // 숫자로 말한 발화("새벽 2시")와 만나야 합니다. 시나리오 데이터는 그대로 두고
+    // 대조 직전에만 맞춥니다.
+    const needle = normalize(expandKoreanTimeNumerals(pattern));
     if (needle.length < 2) continue;
     let from = 0;
     for (;;) {
@@ -166,7 +219,10 @@ export function classifyInput(cue: CueDef, input: { utterance?: string; branchId
   const raw = (input.utterance ?? "").trim();
   if (raw.length === 0) return { branch: defaultBranch(cue), source: "default" };
 
-  const normalized = normalize(raw);
+  // 시각을 한글 수사로 말한 발화("네 시 사십 분")를 숫자로 맞춰 둔다 — 시나리오 데이터의
+  // 표지는 숫자로 적혀 있고("16시"·"4시 4"), 현장에서는 한글이 먼저 나온다(현직 검증).
+  // 데이터는 손대지 않고 발화 쪽만 맞춘다.
+  const normalized = normalize(expandKoreanTimeNumerals(raw));
   if (normalized.length === 0) return { branch: defaultBranch(cue), source: "default" };
 
   // 2) ⚑CF 분기 우선 검사 (부정 표현은 제외 — "밀어내지 않고 119를 부르겠습니다")
@@ -176,13 +232,22 @@ export function classifyInput(cue: CueDef, input: { utterance?: string; branchId
     if (matched) return { branch, source: "criticalPattern", matchedPattern: matched };
   }
 
-  // 3) 배열 순서대로 패턴 대조 (하지 않겠다고 말한 행동으로는 분류하지 않는다)
+  // 3) 걸린 분기를 **모두** 모아 심각도가 높은 쪽을 채택한다 (같은 순위면 배열 순서)
+  let best: ClassifyResult | undefined;
+  let bestRank: BranchRank = RANK_MET;
   for (const branch of cue.branches) {
     if (branch.criticalFail) continue;
     const mode = (branch as NegationAwareBranch).skipNegated ? "full" : "direct";
     const matched = matchPattern(normalized, branch, mode);
-    if (matched) return { branch, source: "pattern", matchedPattern: matched };
+    if (!matched) continue;
+    const rank = branchRank(branch);
+    if (best === undefined || rank < bestRank) {
+      best = { branch, source: "pattern", matchedPattern: matched };
+      bestRank = rank;
+    }
+    if (bestRank === RANK_PENALTY) break; // 감점보다 앞설 순위가 남아 있지 않다
   }
+  if (best) return best;
 
   // 4) 미일치
   return { branch: defaultBranch(cue), source: "default" };

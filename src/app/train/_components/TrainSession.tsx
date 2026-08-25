@@ -183,7 +183,10 @@ function ExitConfirm({ onClose }: { onClose: () => void }) {
 
 export interface TrainSessionProps {
   scenario: Scenario;
-  /** 응급 프로토콜 전체 — L3 진입 시 여기서 골라 인라인 재생합니다 */
+  /**
+   * 이 시나리오가 여는 응급 프로토콜 — L3 진입 시 여기서 골라 인라인 재생합니다.
+   * 목록 전체가 아니라 **이 화면이 쓰는 것만** 옵니다(train/[id]/page.tsx의 `protocolsFor`).
+   */
   protocols: EmergencyProtocol[];
 }
 
@@ -864,6 +867,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
             gaugeLabel={scenario.gauge.label}
             emotion={emotion}
             speaking={speakingKey.length > 0}
+            voiceOn={ttsOn}
             bottomInset={dockHeight}
             tailInset={dockLimit}
             autoScroll={!ended}

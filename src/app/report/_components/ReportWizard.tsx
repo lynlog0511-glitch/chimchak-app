@@ -32,6 +32,55 @@ const EMPTY_DRAFT: RecordDraft = recomputeMissing({
   missing: [],
 });
 
+/* ── 확정 전 원문 임시 보관 ───────────────────────────────
+   왜 두는가. 이 앱은 standalone PWA이고 하단 탭바 말고는 크롬이 없습니다. 안드로이드에서
+   뒤로 제스처는 「한 단계 되돌리기」의 기본 문법인데, 위저드 단계가 `useState`로만 있으면
+   ②·③에서 뒤로를 누르는 순간 /report를 통째로 벗어나고 말로 3분 불러넣은 보고가 사라집니다
+   (페르소나 UI/UX high). 아래 두 장치가 그 사고를 사고로 끝냅니다.
+
+   ① 단계마다 히스토리 항목을 쌓아 시스템 뒤로를 「한 단계 되돌리기」로 만듭니다.
+   ② 그래도 화면을 벗어난 경우를 대비해 **원문만** 세션 저장소에 둡니다.
+
+   왜 localStorage가 아니라 sessionStorage인가. 이것은 확정 **전** 원문, 곧 아직 가리지 않은
+   글입니다. 남길 이유는 「방금 실수로 나갔다」 하나뿐이라 그 탭이 살아 있는 동안으로 수명을
+   좁힙니다 — 탭을 닫으면 사라지고, 확정하거나 「새로 적기」를 고르시면 즉시 지웁니다.
+   (저장 항목이 하나 늘었으므로 `/legal`의 「기기 안에 남는 것」 목록에도 한 줄 적어 두었습니다.) */
+const DRAFT_KEY = "chimchak.report.draft.v1";
+
+function readStoredDraft(): string {
+  try {
+    return window.sessionStorage.getItem(DRAFT_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function writeStoredDraft(text: string): void {
+  try {
+    if (text.trim().length === 0) window.sessionStorage.removeItem(DRAFT_KEY);
+    else window.sessionStorage.setItem(DRAFT_KEY, text);
+  } catch {
+    /* 사생활 보호 모드·저장 공간 부족 — 임시 보관만 못 할 뿐 작성은 그대로 이어집니다 */
+  }
+}
+
+function clearStoredDraft(): void {
+  try {
+    window.sessionStorage.removeItem(DRAFT_KEY);
+  } catch {
+    /* 위와 같음 */
+  }
+}
+
+/** 히스토리 항목에 실어 두는 단계 번호 열쇠 — Next가 쓰는 내부 상태는 그대로 두고 옆에 얹습니다. */
+const HISTORY_STEP_KEY = "chimchakReportStep";
+
+function stepFromHistoryState(state: unknown): 1 | 2 | 3 {
+  if (typeof state !== "object" || state === null) return 1;
+  const value = (state as Record<string, unknown>)[HISTORY_STEP_KEY];
+  return value === 2 || value === 3 ? value : 1;
+}
+
 /**
  * 음성 보고 → 기록 코칭 3단계 위저드 (시안 6e 언어).
  *
@@ -53,6 +102,36 @@ export function ReportWizard() {
   const [secondPassCount, setSecondPassCount] = useState(0);
   /** 실제 입력 시작 시각(첫 타이핑 또는 마이크 시작). 예시 문장 채우기는 포함하지 않는다. */
   const inputStartRef = useRef<number | null>(null);
+  /**
+   * 지난번에 적으시던 원문 — 있으면 1단계 위에 「이어서 / 새로 적기」를 세웁니다.
+   * 자동으로 되돌려 넣지 않습니다: 무엇이 들어올지 모르는 칸에 글이 저절로 채워져 있으면
+   * 사용자가 그 글의 임자를 알 수 없습니다. 고르시게 두는 편이 정직합니다.
+   */
+  const [pendingDraft, setPendingDraft] = useState("");
+  /**
+   * 이 회차가 **맡아 둔 글을 이어서** 쓴 회차인지.
+   *
+   * 이어서 쓰신 회차는 처음 적기 시작한 순간을 알 수 없습니다. 그때 시계를 다시 켜면
+   * 실제보다 짧은 값이 나오고, 그 값이 하필 이 앱의 유일한 절감 근거 자리에 올라갑니다.
+   * 그래서 재지 않고, 재지 않았다는 사실을 확정 화면에 적습니다.
+   */
+  const [resumedDraft, setResumedDraft] = useState(false);
+  /**
+   * 위 값의 ref 짝.
+   *
+   * 마운트 첫 commit에서 「읽기」 효과와 「쓰기」 효과가 같은 차례에 돕니다. 쓰기 쪽 클로저는
+   * 아직 갱신 전 상태(`pendingDraft === ""`)를 보고 있어, 상태만 쓰면 방금 읽어 온 글을
+   * 빈 문자열로 덮어 지웁니다 — 되찾으려고 만든 장치가 그 자리에서 스스로를 지웁니다.
+   * 그래서 판단에 쓰는 값은 ref로, 화면에 그리는 값은 상태로 나눠 둡니다.
+   */
+  const pendingRef = useRef("");
+  /** 세션 저장소를 아직 한 번도 읽지 않은 동안에는 쓰지도 않습니다. */
+  const restoredRef = useRef(false);
+  /** 우리가 쌓아 둔 히스토리 항목 수 — 화면 안 「이전」이 시스템 뒤로와 같은 길을 쓰게 합니다. */
+  const pushedRef = useRef(0);
+  /** 확정 뒤에는 뒤로가 단계를 되돌리지 않습니다(이미 저장을 마친 화면입니다). */
+  const savedRef = useRef(false);
+  savedRef.current = saved !== null;
 
   /**
    * 지금 화면의 제목. 단계가 바뀌면 여기로 초점을 옮깁니다.
@@ -79,6 +158,63 @@ export function ReportWizard() {
     headingRef.current?.focus();
   }, [step, saved]);
 
+  /* 지난번에 적으시던 글이 남아 있는지 — 마운트 뒤에 한 번만 봅니다(서버에는 세션 저장소가 없습니다). */
+  useEffect(() => {
+    const stored = readStoredDraft();
+    pendingRef.current = stored.trim().length > 0 ? stored : "";
+    restoredRef.current = true;
+    if (pendingRef.current.length > 0) setPendingDraft(pendingRef.current);
+  }, []);
+
+  /* 원문이 바뀔 때마다 임시 보관을 갱신합니다. 여기 담기는 것은 **가리기 전 원문**이고,
+     확정하거나 새로 적기를 고르시면 지웁니다. */
+  useEffect(() => {
+    if (!restoredRef.current || saved) return;
+    // 「이어서 / 새로」를 아직 고르지 않으셨으면 맡아 둔 글을 건드리지 않습니다.
+    if (pendingRef.current.length > 0 && text.length === 0) return;
+    writeStoredDraft(text);
+  }, [text, saved, pendingDraft]);
+
+  /* 시스템 뒤로 = 한 단계 되돌리기.
+     Next가 히스토리 항목에 심어 둔 내부 상태를 그대로 이어 받고(펼침) 단계 번호만 얹습니다 —
+     우리 열쇠만 남기면 라우터가 이 항목을 자기 것으로 알아보지 못합니다. */
+  useEffect(() => {
+    const onPop = (event: PopStateEvent): void => {
+      pushedRef.current = Math.max(0, pushedRef.current - 1);
+      // 확정을 마친 화면에서는 뒤로가 단계를 되돌리지 않습니다 — 저장은 이미 끝났습니다.
+      if (savedRef.current) return;
+      setStep(stepFromHistoryState(event.state));
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  /** 다음 단계로 — 히스토리에 한 겹 쌓아 시스템 뒤로가 여기로 돌아오게 합니다. */
+  const goStepForward = (next: 2 | 3): void => {
+    try {
+      window.history.pushState({ ...window.history.state, [HISTORY_STEP_KEY]: next }, "");
+      pushedRef.current += 1;
+    } catch {
+      /* 히스토리를 쓸 수 없는 환경 — 단계 전환만 하고 조용히 넘어갑니다 */
+    }
+    setStep(next);
+  };
+
+  /** 화면 안 「이전」 — 시스템 뒤로와 같은 길을 씁니다(두 조작이 다른 결과를 내지 않게). */
+  const goStepBack = (fallback: 1 | 2): void => {
+    if (pushedRef.current > 0) {
+      window.history.back();
+      return;
+    }
+    setStep(fallback);
+  };
+
+  /** 「이어서 / 새로」 물음을 매듭짓습니다 — 화면에서 카드를 접고, 판단용 ref도 함께 비웁니다. */
+  const settlePending = (): void => {
+    pendingRef.current = "";
+    setPendingDraft("");
+  };
+
   const markInputStart = (): void => {
     if (inputStartRef.current === null) inputStartRef.current = Date.now();
   };
@@ -91,7 +227,7 @@ export function ReportWizard() {
 
   const goDraft = (): void => {
     setDraft(extractDraft(applyManualMask(text, manual).masked));
-    setStep(3);
+    goStepForward(3);
   };
 
   const confirm = (): void => {
@@ -129,8 +265,9 @@ export function ReportWizard() {
       missing: [],
     });
 
+    /* 이어서 쓰신 회차는 시작 시각을 알 수 없으므로 재지 않습니다(위 `resumedDraft` 참조). */
     const elapsedSec =
-      inputStartRef.current !== null
+      !resumedDraft && inputStartRef.current !== null
         ? Math.round((Date.now() - inputStartRef.current) / 1000)
         : undefined;
 
@@ -144,6 +281,9 @@ export function ReportWizard() {
     setSecondPassCount(extraSpans.length);
     setDraft(finalDraft);
     setSaved(stored);
+    /* 확정과 동시에 임시 보관을 지웁니다 — 남길 이유가 사라진 순간입니다. */
+    clearStoredDraft();
+    settlePending();
   };
 
   const reset = (): void => {
@@ -153,6 +293,9 @@ export function ReportWizard() {
     setSaved(null);
     setSecondPassCount(0);
     inputStartRef.current = null;
+    setResumedDraft(false);
+    clearStoredDraft();
+    settlePending();
     setStep(1);
   };
 
@@ -224,7 +367,9 @@ export function ReportWizard() {
             20~30분은 현장에서 일하시는 분들께 직접 여쭤 들은 값입니다.{" "}
             {showElapsed
               ? "이번 기록 시간은 처음 적기 시작한 순간부터 확정까지를 이 기기에서 잰 값입니다."
-              : "이번 회차는 예시 문장으로 시작해 소요 시간을 재지 않았습니다."}
+              : resumedDraft
+                ? "이번 회차는 적으시던 글을 이어서 마쳐, 처음 적기 시작한 순간을 알 수 없어 재지 않았습니다."
+                : "이번 회차는 예시 문장으로 시작해 소요 시간을 재지 않았습니다."}
           </p>
         </div>
 
@@ -248,12 +393,58 @@ export function ReportWizard() {
     <div>
       <StepBar current={step} />
 
+      {/* 적으시던 글이 남아 있을 때 — 자동으로 채우지 않고 고르시게 둡니다. */}
+      {step === 1 && pendingDraft.length > 0 && text.length === 0 && (
+        <section
+          aria-labelledby="report-resume-title"
+          className="mt-[14px] rounded-[14px] bg-paper-2 px-4 py-[14px]"
+        >
+          <h2
+            id="report-resume-title"
+            className="text-[1.0625rem] leading-[1.45] font-bold text-ink"
+          >
+            적으시던 보고가 있습니다
+          </h2>
+          <p className="mt-[5px] text-[0.9375rem] leading-[1.6] text-ink-soft">
+            확정하기 전에 이 화면을 벗어나셔서, 적으시던 글을 잠시 맡아 두었습니다. 이어서
+            하시겠어요?
+          </p>
+          <div className="mt-[10px] flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                clearStoredDraft();
+                settlePending();
+              }}
+              className="flex min-h-[48px] flex-1 items-center justify-center rounded-[14px] border border-line-strong bg-paper text-[0.9375rem] font-semibold text-ink-soft transition-colors duration-150 active:bg-white"
+            >
+              새로 적기
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                /* 여기서 시계를 켜지 않습니다 — 이어서 적으신 회차의 「걸린 시간」은
+                   처음 적기 시작한 순간을 알 수 없어, 재면 실제보다 짧게 나옵니다.
+                   앱에서 유일한 절감 근거라 짧게 나오는 쪽이 더 위험합니다.
+                   그래서 이 회차는 아예 재지 않고, 그 사실을 확정 화면에 적습니다. */
+                setResumedDraft(true);
+                updateText(pendingDraft);
+                settlePending();
+              }}
+              className="flex min-h-[48px] flex-[1.4] items-center justify-center rounded-[14px] bg-brand-700 text-[0.9375rem] font-bold text-white transition-colors duration-150 active:bg-brand-800"
+            >
+              이어서 적기
+            </button>
+          </div>
+        </section>
+      )}
+
       <div className="mt-[18px]">
         {step === 1 && (
           <VoiceInput
             value={text}
             onChange={updateText}
-            onNext={() => setStep(2)}
+            onNext={() => goStepForward(2)}
             onInputStart={markInputStart}
             headingRef={headingRef}
           />
@@ -264,7 +455,7 @@ export function ReportWizard() {
             text={text}
             manual={manual}
             onManualChange={setManual}
-            onBack={() => setStep(1)}
+            onBack={() => goStepBack(1)}
             onNext={goDraft}
             headingRef={headingRef}
           />
@@ -274,7 +465,7 @@ export function ReportWizard() {
           <DraftForm
             draft={draft}
             onChange={setDraft}
-            onBack={() => setStep(2)}
+            onBack={() => goStepBack(2)}
             onConfirm={confirm}
             headingRef={headingRef}
           />

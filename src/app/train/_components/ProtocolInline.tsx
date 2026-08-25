@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronGlyph } from "@/components/icons";
 import { BigButton } from "@/components";
 import { cx } from "@/components/utils";
-import { Call119Bar } from "@/app/emergency/_components/Call119Bar";
+import {
+  CALL_119_CAPTION,
+  CALL_119_CAPTION_CLASS,
+} from "@/app/emergency/_components/Call119Bar";
 import {
   CONTROL_OUTLINE,
   CONTROL_PRIMARY,
@@ -22,6 +25,82 @@ import {
 import { isSpeechPlaybackSupported, unlockAudio } from "@/lib/speech";
 import type { EmergencyProtocol } from "@/types";
 import { PROTOCOL_HANDOFF_BODY, PROTOCOL_HANDOFF_TITLE } from "./constants";
+
+/* ── 세션 안(L3)의 119 바 ───────────────────────────────────
+   응급 탭(`/emergency`)의 119 바는 **그대로 둡니다** — 실제 응급에서 마찰을 0으로 둔 판단은
+   옳고, 거기서는 이 화면이 진짜 상황입니다.
+
+   갈리는 것은 훈련 세션 안입니다. 여기서 화면에서 가장 크고 가장 빨간 상시 노출 타깃이
+   실제 발신 링크인데, 그 위 화면의 대부분은 연습입니다 — 시연 자리나 첫 사용 중 오탭 하나가
+   진짜 119 호출이 됩니다(UIUX 검증). 그래서 이 자리에만 **확인 한 탭**을 둡니다.
+   길게 누르기가 아니라 한 탭인 이유는, 홀드가 키보드·스위치·떨리는 손에서 가장 먼저
+   무너지는 조작이기 때문입니다.
+
+   문구는 손대지 않습니다 — 캡션은 앱에 하나뿐인 원문 그대로이고, 확인 자리는 실제로
+   일어나는 일(전화 앱이 열린다)만 한 줄 더 적습니다. 확인 버튼은 진짜 `tel:119` 링크입니다. */
+
+/** 확인 상태를 스스로 거두는 시간 — 눌러 둔 채 잊고 지나가도 빨간 문이 열려 있지 않게 합니다. */
+const CALL_ARM_MS = 6000;
+
+/* 크기·모양은 응급 탭의 119 바와 같은 값입니다(58px · r14 · 19px w800) —
+   같은 버튼이 자리에 따라 다르게 보이지 않게, 갈리는 것은 확인 한 단계뿐입니다. */
+const CALL_BAR_BASE =
+  "flex min-h-[58px] items-center justify-center rounded-[14px] px-4 py-2 text-center text-[1.1875rem] font-extrabold transition-colors duration-150";
+
+function SessionCall119({ className }: { className?: string }) {
+  const [armed, setArmed] = useState(false);
+  const confirmRef = useRef<HTMLAnchorElement | null>(null);
+
+  useEffect(() => {
+    if (!armed) return;
+    confirmRef.current?.focus({ preventScroll: true });
+    const timer = window.setTimeout(() => setArmed(false), CALL_ARM_MS);
+    return () => window.clearTimeout(timer);
+  }, [armed]);
+
+  return (
+    <div className={className}>
+      {armed ? (
+        <div className="flex gap-2">
+          <a
+            href="tel:119"
+            ref={confirmRef}
+            className={cx(CALL_BAR_BASE, "min-w-0 flex-1 bg-danger text-white active:bg-danger-ink")}
+          >
+            네, 지금 걸기
+          </a>
+          <button
+            type="button"
+            onClick={() => setArmed(false)}
+            className={cx(
+              CALL_BAR_BASE,
+              "flex-none border border-line-strong bg-paper px-5 text-[1.0625rem] text-ink active:bg-paper-2",
+            )}
+          >
+            취소
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setArmed(true)}
+          className={cx(CALL_BAR_BASE, "w-full bg-danger text-white active:bg-danger-ink")}
+        >
+          119 눌러 신고
+        </button>
+      )}
+      {armed && (
+        <p
+          role="status"
+          className="mt-[6px] text-center text-[0.8438rem] leading-[1.45] font-semibold text-danger-ink"
+        >
+          「네, 지금 걸기」를 누르시면 전화 앱이 열립니다.
+        </p>
+      )}
+      <p className={cx("mt-[5px] text-center", CALL_119_CAPTION_CLASS)}>{CALL_119_CAPTION}</p>
+    </div>
+  );
+}
 
 export interface ProtocolInlineProps {
   protocol: EmergencyProtocol;
@@ -76,7 +155,7 @@ export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolI
         </p>
 
         <div className="mt-4 space-y-2">
-          <Call119Bar />
+          <SessionCall119 />
           {/* 이 탭이 이 구간의 **확실한 첫 제스처**입니다 — 그 자리에서 오디오 요소 잠금을 풀어 두면
               아이폰에서도 이후 단계의 자동 낭독이 검수된 목소리 그대로 이어집니다. */}
           <BigButton
@@ -132,7 +211,7 @@ export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolI
         <ProtocolSegments steps={steps} index={index} className="mt-2" />
 
         {/* 119 버튼은 단계와 무관하게 같은 크기(58px)로 늘 같은 자리에 있습니다 — 단독 화면과 같은 규칙입니다. */}
-        <Call119Bar className="mt-3" />
+        <SessionCall119 className="mt-3" />
       </div>
 
       {/* 본문 — 이 구간에서 가장 큰 글자는 자막 하나뿐입니다. */}

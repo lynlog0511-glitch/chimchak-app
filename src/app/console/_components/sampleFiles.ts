@@ -17,7 +17,12 @@
  */
 
 import { SCENARIOS } from "@/data/scenarios";
-import { buildCompletionCsv, type CompletionLine, type CompletionSummary } from "@/lib/storage";
+import {
+  buildCompletionCsv,
+  completionIssueNumber,
+  type CompletionLine,
+  type CompletionSummary,
+} from "@/lib/storage";
 
 /** 예시 한 줄 — 한 시나리오를 몇 회·몇 분 이수한 것으로 둘지. */
 export interface SampleLineSpec {
@@ -33,8 +38,8 @@ export interface SampleLineSpec {
 
 /** 예시 파일 한 벌. */
 export interface SampleFileSpec {
-  /** 발급번호 — 앱이 만드는 것과 같은 서식(CHK-0000-0000)이어야 파서를 통과합니다. */
-  number: string;
+  /** 목록 key·구분용 고정 식별자 — 발급번호가 아닙니다(번호는 내용에서 계산합니다). */
+  key: string;
   /** 화면 버튼에 적는 이름 */
   label: string;
   /** 버튼 아래 한 줄 — 무엇이 담긴 파일인지 */
@@ -51,7 +56,7 @@ export interface SampleFileSpec {
  */
 export const SAMPLE_FILES: readonly SampleFileSpec[] = [
   {
-    number: "CHK-51A7-3C0E",
+    key: "sample-1",
     label: "예시 ①",
     note: "고르게 이수한 경우 — 4회 · 3종",
     lines: [
@@ -61,7 +66,7 @@ export const SAMPLE_FILES: readonly SampleFileSpec[] = [
     ],
   },
   {
-    number: "CHK-6D20-B48F",
+    key: "sample-2",
     label: "예시 ②",
     note: "응급·치매를 여러 번 돌린 경우 — 6회 · 4종",
     lines: [
@@ -72,7 +77,7 @@ export const SAMPLE_FILES: readonly SampleFileSpec[] = [
     ],
   },
   {
-    number: "CHK-9F3B-1E07",
+    key: "sample-3",
     label: "예시 ③",
     note: "이제 막 시작한 경우 — 2회 · 2종",
     lines: [
@@ -117,7 +122,10 @@ export function buildSampleSummary(spec: SampleFileSpec, now: Date = new Date())
   const totalSec = lines.reduce((sum, line) => sum + line.seconds, 0);
 
   return {
-    number: spec.number,
+    /* 발급번호를 하드코딩하지 않고 **앱과 같은 계산**으로 냅니다 — 가져오기 화면이 내용으로
+       번호를 재계산해 대조하므로(8/25 보강), 적어 둔 번호는 날짜가 바뀌는 순간 거짓이 됩니다.
+       예시 시각이 「며칠 전」 상대값이라 번호도 날마다 달라지는데, 그게 정직한 값입니다. */
+    number: completionIssueNumber(lines, totalCount, Math.round(totalSec / 60)),
     totalCount,
     totalSec,
     lines,
@@ -128,8 +136,24 @@ export function buildSampleSummary(spec: SampleFileSpec, now: Date = new Date())
 }
 
 /** 예시 파일 이름 — 시연용이라는 사실을 이름에 적어 둡니다. */
-export function sampleFileName(spec: SampleFileSpec): string {
-  return `chimchak-sample-${spec.number}.csv`;
+export function sampleFileName(number: string): string {
+  return `chimchak-sample-${number}.csv`;
+}
+
+/**
+ * 예시 한 벌을 한 번에 — 같은 `now`로 요약·번호·파일 내용·파일 이름을 함께 만듭니다.
+ * 화면이 번호 표시와 내려받기를 따로 만들면 자정을 넘길 때 둘이 갈라질 수 있어 한 번에 묶습니다.
+ */
+export function buildSampleFile(
+  spec: SampleFileSpec,
+  now: Date = new Date(),
+): { number: string; filename: string; csv: string } {
+  const summary = buildSampleSummary(spec, now);
+  return {
+    number: summary.number,
+    filename: sampleFileName(summary.number),
+    csv: buildCompletionCsv(summary, now.toISOString()),
+  };
 }
 
 /**

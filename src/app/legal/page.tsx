@@ -12,6 +12,7 @@ import {
 import { PILOT_PREREGISTERED, PILOT_SCOPE } from "@/data/pilotResults";
 import { ONLINE_MODE_LABEL } from "@/lib/settings";
 import { MAX_ITEMS } from "@/lib/storage";
+import { DocCloseButton } from "../_components/DocCloseButton";
 
 export const metadata: Metadata = {
   title: "약관·개인정보",
@@ -141,7 +142,8 @@ function DefRows({ rows }: { rows: readonly { t: string; d: ReactNode }[] }) {
 /**
  * 기기 안에 남는 것 — 실제 저장소 항목을 그대로 옮겨 적습니다.
  * 항목이 늘거나 줄면 이 목록도 같은 날 함께 고칩니다
- * (`src/lib/storage.ts`·`src/lib/settings.ts`·`src/lib/stageMode.ts`).
+ * (`src/lib/storage.ts`·`src/lib/settings.ts`·`src/lib/stageMode.ts`,
+ *  그리고 세션 저장소 한 칸을 쓰는 `src/app/report/_components/ReportWizard.tsx`).
  */
 const STORED_ITEMS: readonly { t: string; d: string }[] = [
   {
@@ -151,6 +153,12 @@ const STORED_ITEMS: readonly { t: string; d: string }[] = [
   {
     t: "확정한 보고 기록",
     d: "가명처리를 지난 본문과 급여제공기록지 5요소 초안이 남습니다. 가리기 전 원문은 저장하지 않습니다.",
+  },
+  {
+    /* 유일한 세션 저장소 항목입니다 — 확정 전 원문이라 반드시 여기 적습니다.
+       실제 자리는 `src/app/report/_components/ReportWizard.tsx`의 임시 보관입니다. */
+    t: "적으시던 보고 (임시)",
+    d: "확정하기 전에 적거나 말씀하신 보고 원문을, 실수로 화면을 벗어나셨을 때 되찾아 드리려고 브라우저의 임시 보관함(세션 저장소)에 둡니다. 확정하시거나 「새로 적기」를 고르시면 즉시 지워지고, 탭을 닫으셔도 사라집니다. 침착 서버로 올라가는 경로는 없습니다.",
   },
   {
     t: "이어서 하기",
@@ -207,16 +215,16 @@ export default function LegalPage() {
         title="약관·개인정보"
         subtitle="개인정보 처리방침 · 이용약관 · 파일럿 참여 동의"
         action={
-          <Link
-            href="/guide"
+          <DocCloseButton
+            fallbackHref="/guide"
             className="flex min-h-[48px] items-center rounded-field px-1 text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper-2"
-          >
-            닫기
-          </Link>
+          />
         }
       />
 
-      <p className="mt-4 text-[0.9063rem] leading-[1.75] text-ink">
+      {/* 리드 문단은 이 화면에서 처음 읽는 문장입니다 — 14.5px은 가이드 §7-8의 가독 하한
+          (읽어야 하는 문장 15px)을 어기는 값이라 한 단 올렸습니다(페르소나 디자이너 high). */}
+      <p className="mt-4 text-[0.9375rem] leading-[1.75] text-ink">
         아래 세 문서는 <b className="font-bold">지금 이 앱이 실제로 하는 일만</b> 적었습니다.
         저장 항목·건수 상한·기기 밖으로 나가는 데이터 목록은 전부 실제 구현에서 옮겨 왔고, 아직
         없는 기능은 없다고 적었습니다. 앱이 바뀌면 이 문서도 같은 날 함께 바뀝니다.
@@ -552,7 +560,18 @@ export default function LegalPage() {
         </div>
       </section>
 
-      <InlineDisclaimer size="md" tone="readable" className="mt-6 mb-3" />
+      {/* 이 화면에는 탭바가 없고 세로로 열 화면쯤 됩니다. 바닥까지 읽고 내려오신 분이 나가려고
+          읽은 만큼을 도로 올라가지 않도록, 바닥에도 문 하나를 둡니다(페르소나 UI/UX med). */}
+      <p className="mt-7 border-t border-line pt-4 text-center">
+        <Link
+          href="/"
+          className="inline-flex min-h-[48px] items-center rounded-field px-2 text-[0.8438rem] font-semibold text-ink-muted underline underline-offset-4 transition-colors duration-150 active:bg-paper-2"
+        >
+          홈으로
+        </Link>
+      </p>
+
+      <InlineDisclaimer size="md" tone="readable" className="mt-2 mb-3" />
     </PageShell>
   );
 }

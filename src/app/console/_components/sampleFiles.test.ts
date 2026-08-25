@@ -16,18 +16,19 @@
 import { describe, expect, it } from "vitest";
 import { SCENARIOS } from "@/data/scenarios";
 import { parseCompletionCsv } from "@/lib/storage";
-import { SAMPLE_FILES, buildSampleCsv, sampleFileName } from "./sampleFiles";
+import { SAMPLE_FILES, buildSampleCsv, buildSampleFile, buildSampleSummary } from "./sampleFiles";
 import { entryCourseCount, entrySeconds, summarizeEntries, type ConsoleEntry } from "./aggregate";
 
 /** 예시 한 벌을 파일로 만들었다가 콘솔이 하듯 다시 읽어 들인다. */
 function roundTrip(index: number): ConsoleEntry {
   const spec = SAMPLE_FILES[index];
   if (!spec) throw new Error(`예시 ${index}번이 없다`);
-  const read = parseCompletionCsv(buildSampleCsv(spec));
-  if (!read.ok) throw new Error(`예시 ${spec.number}가 파서를 통과하지 못했다: ${read.reason}`);
+  const built = buildSampleFile(spec);
+  const read = parseCompletionCsv(built.csv);
+  if (!read.ok) throw new Error(`예시 ${spec.key}가 파서를 통과하지 못했다: ${read.reason}`);
   return {
     number: read.file.number,
-    fileName: sampleFileName(spec),
+    fileName: built.filename,
     issuedAt: read.file.issuedAt,
     totalCount: read.file.totalCount,
     totalMinutes: read.file.totalMinutes,
@@ -40,18 +41,27 @@ describe("예시 이수 사실 파일", () => {
     expect(SAMPLE_FILES).toHaveLength(3);
   });
 
-  it("발급번호가 서로 다르다", () => {
-    const numbers = SAMPLE_FILES.map((spec) => spec.number);
+  it("발급번호가 서로 다르고, 가져오기 화면의 재계산 대조와 일치한다", () => {
+    const now = new Date();
+    const numbers = SAMPLE_FILES.map((spec) => buildSampleSummary(spec, now).number);
     expect([...new Set(numbers)]).toHaveLength(numbers.length);
+    // 발급번호는 내용에서 계산하므로, 파서의 재계산(numberMatches)에 반드시 걸리지 않아야 한다.
+    for (const spec of SAMPLE_FILES) {
+      const read = parseCompletionCsv(buildSampleFile(spec, now).csv);
+      expect(read.ok).toBe(true);
+      if (!read.ok) continue;
+      expect(read.file.numberMatches).toBe(true);
+    }
   });
 
-  it.each(SAMPLE_FILES.map((spec) => [spec.number, spec] as const))(
+  it.each(SAMPLE_FILES.map((spec) => [spec.key, spec] as const))(
     "%s 는 저장소의 검사를 그대로 통과한다",
-    (_number, spec) => {
-      const read = parseCompletionCsv(buildSampleCsv(spec));
+    (_key, spec) => {
+      const now = new Date();
+      const read = parseCompletionCsv(buildSampleCsv(spec, now));
       expect(read.ok).toBe(true);
       if (!read.ok) return;
-      expect(read.file.number).toBe(spec.number);
+      expect(read.file.number).toBe(buildSampleSummary(spec, now).number);
       expect(read.file.lines).toHaveLength(spec.lines.length);
       expect(read.file.totalCount).toBe(spec.lines.reduce((sum, line) => sum + line.count, 0));
       expect(read.file.totalMinutes).toBe(spec.lines.reduce((sum, line) => sum + line.minutes, 0));
@@ -95,7 +105,7 @@ describe("예시 이수 사실 파일", () => {
 
   it("파일 이름이 예시라는 사실을 적는다", () => {
     for (const spec of SAMPLE_FILES) {
-      expect(sampleFileName(spec)).toContain("chimchak-sample-");
+      expect(buildSampleFile(spec).filename).toContain("chimchak-sample-");
     }
   });
 });

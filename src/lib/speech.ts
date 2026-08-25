@@ -24,15 +24,19 @@
  * - **speechSynthesis가 아예 없는 기기(구형 웹뷰·일부 안드로이드)에서도 오디오 경로는 그대로 동작한다.**
  *   그래서 `isSpeechSynthesisSupported()`가 false여도 speak()는 소리를 낼 수 있다 —
  *   이 함수는 「브라우저 TTS 폴백을 쓸 수 있는가」를 뜻할 뿐이다.
- * - 매니페스트는 정적 import다(약 10KB). 첫 발화 전에 fetch를 기다리지 않아,
- *   L3 프로토콜의 자동 진행이 네트워크 상태와 무관하게 같은 박자로 흐른다.
+ * - 매니페스트는 **둘로 갈라 둔다.** 응급 프로토콜 대사 14건(`manifest.emergency.json`, 약 2KB)만
+ *   정적 import이고, 훈련 대사 203건(`manifest.json`, 파일 19KB·번들 인라인 약 10KB)은 첫 낭독
+ *   요청이 있을 때 동적 import로 받는다. 정적으로 두는 이유는 「첫 발화 전에 fetch를 기다리지
+ *   않는다」는 보증인데, 그 보증이 실제로 필요한 것은 자동으로 흘러가는 응급 안내뿐이다.
+ *   전체를 정적으로 두던 때에는 소리를 한 번도 내지 않는 /legal·/guide까지 훈련 대사 사전을
+ *   받았다(공유 청크에 인라인됐다). 두 파일의 동기화는 `npm run audio:verify`가 지킨다.
  * - 재생에 쓰는 **오디오 요소는 모듈 스코프에 하나뿐**이고 src만 갈아 끼운다(웹킷의 요소 단위
  *   제스처 해제 대응). 첫 탭에서 `unlockAudio()`를 부르면 이후 자동 진행 낭독까지 함께 풀린다.
  * - `speak()`는 **어떤 경우에도 매듭지어진다** — 끝났다는 신호가 오지 않아도 워치독이 상한에서
  *   풀어 준다. 응급 프로토콜의 자동 진행이 이 프라미스를 기다리므로, 이 보증이 곧 안내의 생명선이다.
  */
 
-import manifestJson from "../../public/audio/manifest.json";
+import emergencyManifestJson from "../../public/audio/manifest.emergency.json";
 import { getSettings, getSpeechRateValue, type SpeechRate } from "./settings";
 
 /* ── 브라우저 타입 (lib.dom 유무와 무관하게 쓰기 위해 지역 정의) ── */
@@ -131,7 +135,9 @@ export function isSpeechSynthesisSupported(): boolean {
  */
 export function isSpeechPlaybackSupported(): boolean {
   if (isSpeechSynthesisSupported()) return true;
-  return typeof Audio !== "undefined" && Object.keys(AUDIO_MANIFEST).length > 0;
+  // 동봉 음성이 있는지를 보는 자리다. 응급 매니페스트는 정적이라 여기서 기다릴 것이 없고,
+  // 그 표가 비어 있지 않다는 것은 동봉 음성 경로가 살아 있다는 뜻이다(둘은 함께 만들어진다).
+  return typeof Audio !== "undefined" && Object.keys(EMERGENCY_MANIFEST).length > 0;
 }
 
 /* ── 인식(STT) ─────────────────────────────────────────── */
@@ -304,10 +310,58 @@ interface AudioEntry {
 }
 
 /**
- * 문장 → 동봉 오디오 파일. 키는 **speak()에 실제로 들어오는 문자열(trim 후)** 그대로다.
- * `scripts/synthesize-audio.py`가 데이터 파일에서 뽑아 만든다.
+ * 응급 프로토콜 대사 → 동봉 오디오 파일 (14건).
+ *
+ * 이 표만 **정적**이다. 응급 안내는 사용자가 아무것도 누르지 않아도 단계가 자동으로 넘어가며
+ * 읽히므로, 첫 발화 앞에 네트워크 왕복이 한 번이라도 끼면 그 박자가 회선 상태를 탄다.
+ * 키는 **speak()에 실제로 들어오는 문자열(trim 후)** 그대로이고, 파일은 전체 매니페스트에서
+ * `scripts/split-audio-manifest.mjs`가 갈라 낸다(빌드 앞단에서 자동으로 돈다).
  */
-const AUDIO_MANIFEST = manifestJson as Record<string, AudioEntry>;
+const EMERGENCY_MANIFEST = emergencyManifestJson as Record<string, AudioEntry>;
+
+/**
+ * 훈련 대사 매니페스트(전체 217건) — **처음 필요할 때** 받아 둔다.
+ *
+ * 응급이 아닌 문장을 처음 읽어 달라고 할 때 한 번만 받고, 이후에는 메모리에 남은 표를 본다.
+ * 실패하면 빈 표로 두고 브라우저 TTS 폴백으로 넘어간다 — 소리가 아예 나지 않는 것보다 낫고,
+ * 자막은 어느 경로에서든 화면에 그대로 있다.
+ */
+let fullManifest: Record<string, AudioEntry> | undefined;
+let fullManifestLoading: Promise<Record<string, AudioEntry>> | undefined;
+
+function loadFullManifest(): Promise<Record<string, AudioEntry>> {
+  if (fullManifest) return Promise.resolve(fullManifest);
+  fullManifestLoading ??= import("../../public/audio/manifest.json")
+    .then((module) => {
+      const loaded = ((module as { default?: unknown }).default ?? module) as Record<
+        string,
+        AudioEntry
+      >;
+      fullManifest = loaded;
+      return loaded;
+    })
+    .catch(() => {
+      fullManifest = {};
+      return fullManifest;
+    });
+  return fullManifestLoading;
+}
+
+/**
+ * 훈련 화면이 열릴 때 미리 받아 두고 싶으면 부른다 — 부르지 않아도 동작에는 지장이 없다.
+ * (첫 대사에서 받아도 늦지 않지만, 미리 받아 두면 그 한 번의 왕복도 사라진다.)
+ */
+export function preloadAudioManifest(): void {
+  void loadFullManifest();
+}
+
+/** 이 문장의 동봉 오디오 — 응급은 즉시, 훈련 대사는 매니페스트를 받은 뒤에 답한다. */
+function findAudioEntry(content: string): AudioEntry | undefined | Promise<AudioEntry | undefined> {
+  const emergency = EMERGENCY_MANIFEST[content];
+  if (emergency) return emergency;
+  if (fullManifest) return fullManifest[content];
+  return loadFullManifest().then((manifest) => manifest[content]);
+}
 
 const AUDIO_DIR = "/audio/";
 
@@ -746,7 +800,27 @@ export function speak(text: string, opts: SpeakOptions = {}): Promise<void> {
   stopAudio();
   cancelSynthesis();
 
-  const entry = AUDIO_MANIFEST[content];
+  const found = findAudioEntry(content);
+
+  /* 응급 대사(정적 표)와 이미 받아 둔 훈련 대사는 여기서 곧바로 갈린다 — 프라미스를 한 번도
+     거치지 않으므로 자동 진행의 박자가 예전과 같다. 아직 받지 않은 훈련 대사만 한 번 기다린다. */
+  if (found instanceof Promise) {
+    return found.then((entry) => {
+      // 매니페스트를 받는 사이에 다음 발화가 들어왔으면 조용히 물러난다.
+      if (generation !== speakGeneration) return undefined;
+      return playOrSynthesize(entry, content, opts, generation);
+    });
+  }
+  return playOrSynthesize(found, content, opts, generation);
+}
+
+/** 동봉 오디오가 있으면 그것을, 없거나 재생하지 못하면 브라우저 TTS를 쓴다. */
+function playOrSynthesize(
+  entry: AudioEntry | undefined,
+  content: string,
+  opts: SpeakOptions,
+  generation: number,
+): Promise<void> {
   if (!entry) return speakWithSynthesis(content, opts, generation);
 
   return playPrepared(entry.f, content).then((played) => {

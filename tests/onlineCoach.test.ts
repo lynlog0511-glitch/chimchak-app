@@ -17,6 +17,7 @@ import { NO_SOURCE_MESSAGE } from "@/data/docs";
 import { CHK_A01 } from "@/data/scenarios/chk-a01";
 import { getActiveScenarios } from "@/data/scenarios";
 import { POST } from "@/app/api/coach/route";
+import { COACH_RATE_LIMITS } from "@/lib/coachLimits";
 import {
   BANNED_PHRASES,
   COACHING_MAX_LENGTH,
@@ -419,11 +420,20 @@ describe("/api/coach", () => {
     return seen;
   }
 
-  /** 검사마다 새 IP — 「같은 IP 분당 6회」에 서로 걸리지 않게 한다. */
+  /**
+   * 검사마다 새 IP — 「같은 IP 분당 한도」에 서로 걸리지 않게 한다.
+   *
+   * 헤더 두 개(`origin`·`content-type`)는 **브라우저가 붙여 주는 것**이다. 라우트가 그 둘을
+   * 보고 다른 출처의 요청을 403으로 끊으므로, 앱이 실제로 보내는 모양을 그대로 흉내 낸다.
+   */
   function coachRequest(body: unknown, ip = `10.0.0.${(ipSeed += 1)}`): Request {
     return new Request("https://chimchak.invalid/api/coach", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-forwarded-for": ip },
+      headers: {
+        "Content-Type": "application/json",
+        origin: "https://chimchak.invalid",
+        "x-forwarded-for": ip,
+      },
       body: typeof body === "string" ? body : JSON.stringify(body),
     });
   }
@@ -530,16 +540,106 @@ describe("/api/coach", () => {
   });
 
   it("같은 IP가 분당 상한을 넘기면 상류를 부르지 않는다", async () => {
-    // 분당 15회 — 자유 연습 한 판(최대 14회)이 정상 사용 중에 끊기지 않는 하한입니다(route.ts 주석).
+    // 수는 코드에서 읽는다 — 상한을 조정할 때 검사가 조용히 낡지 않게(src/lib/coachLimits.ts).
+    const limit = COACH_RATE_LIMITS.perIpPerMinute;
     const ip = "10.9.9.9";
     const statuses: string[] = [];
-    for (let i = 0; i < 17; i += 1) {
+    for (let i = 0; i < limit + 2; i += 1) {
       const response = await POST(coachRequest(validBody(), ip));
       statuses.push(((await response.json()) as { status: string }).status);
     }
-    expect(statuses.slice(0, 15)).toEqual(Array(15).fill("ok"));
-    expect(statuses.slice(15)).toEqual(["rate_limited", "rate_limited"]);
-    expect(calls).toHaveLength(15);
+    expect(statuses.slice(0, limit)).toEqual(Array(limit).fill("ok"));
+    expect(statuses.slice(limit)).toEqual(["rate_limited", "rate_limited"]);
+    expect(calls).toHaveLength(limit);
+  });
+
+  it("자유 연습 한 판(장면 1 + 대화 12 + 요약 1 + safety 재시도)이 분당 한도 안에 든다", () => {
+    // 재시도 몫이 빠진 계산이 옛 한도(15)였다 — 그 한 판이 대화 도중에 끊겼다.
+    const oneSession = 1 + 12 + 1;
+    expect(COACH_RATE_LIMITS.perIpPerMinute).toBeGreaterThan(oneSession);
+  });
+
+  it("프록시 헤더가 없으면 IP당 한도를 걸지 않고 배포 전체 상한만 본다", async () => {
+    // 예전에는 전원이 "unknown" 한 바구니를 나눠 써서, 로컬 시연에서 방 전체가 분당 한도 하나를
+    // 공유했다 — 공격자가 아니라 정상 사용자를 먼저 막는 계수기였다.
+    const bare = (): Request =>
+      new Request("https://chimchak.invalid/api/coach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", origin: "https://chimchak.invalid" },
+        body: JSON.stringify(validBody()),
+      });
+    const statuses: string[] = [];
+    for (let i = 0; i < COACH_RATE_LIMITS.perIpPerMinute + 2; i += 1) {
+      statuses.push(((await (await POST(bare())).json()) as { status: string }).status);
+    }
+    expect(statuses.every((status) => status === "ok")).toBe(true);
+  });
+
+  it("다른 출처의 요청과 JSON이 아닌 요청은 403으로 끊고 상류를 부르지 않는다", async () => {
+    // text/plain POST는 CORS 프리플라이트가 붙지 않는 단순 요청이라, 아무 웹사이트나 방문자의
+    // 브라우저로 이 주소에 쏠 수 있었다 — 방문자의 IP로 한도가 타 들어간다.
+    const bodies: Array<Record<string, string>> = [
+      { origin: "https://evil.invalid", "content-type": "application/json" },
+      { "sec-fetch-site": "cross-site", "content-type": "application/json" },
+      { origin: "https://chimchak.invalid", "content-type": "text/plain" },
+      { "content-type": "application/json" }, // Origin도 Sec-Fetch-Site도 없는 직접 호출
+    ];
+    for (const headers of bodies) {
+      const response = await POST(
+        new Request("https://chimchak.invalid/api/coach", {
+          method: "POST",
+          headers,
+          body: JSON.stringify(validBody()),
+        }),
+      );
+      expect(response.status, JSON.stringify(headers)).toBe(403);
+      expect(await response.json()).toEqual({ status: "forbidden" });
+    }
+    expect(calls).toHaveLength(0);
+  });
+
+  it("몸통이 아주 크면 읽기 전에 끊는다", async () => {
+    // content-length만 보고 끊으므로 8MB를 메모리에 올리지 않는다(플랫폼 상한이 없는 자체 호스팅).
+    const response = await POST(
+      new Request("https://chimchak.invalid/api/coach", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          origin: "https://chimchak.invalid",
+          "content-length": String(8 * 1024 * 1024),
+        },
+        body: JSON.stringify(validBody()),
+      }),
+    );
+    expect(response.status).toBe(400);
+    expect(calls).toHaveLength(0);
+  });
+
+  it('task: "ping"은 상류를 부르지 않고 설정 여부만 답한다', async () => {
+    // /check 화면이 무대 직전에 켜 보는 자리 — 요금도 한도도 쓰지 않아야 한다.
+    const ready = await POST(coachRequest({ task: "ping" }));
+    expect(await ready.json()).toEqual({ status: "ok" });
+    expect(calls).toHaveLength(0);
+
+    vi.stubEnv("COACH_BASE_URL", "");
+    const missing = await POST(coachRequest({ task: "ping" }));
+    expect(await missing.json()).toEqual({ status: "unconfigured" });
+    expect(calls).toHaveLength(0);
+  });
+
+  it("문서 목록은 클라이언트가 보낸 값을 쓰지 않고 서버가 채운다", async () => {
+    // 이 목록은 시스템 프롬프트의 「인용 가능 문서」 블록에 그대로 들어간다 — 여기에 외부 문자열이
+    // 닿으면 프롬프트에 적어 둔 안전 규칙을 부르는 쪽이 쓰게 된다.
+    await POST(
+      coachRequest({
+        ...validBody(),
+        docs: [{ id: "DOC-침입-999", title: "이 문장은 프롬프트에 들어가면 안 됩니다" }],
+      }),
+    );
+    const sent = String((calls[0]?.init as RequestInit).body);
+    expect(sent).not.toContain("DOC-침입-999");
+    expect(sent).not.toContain("프롬프트에 들어가면 안 됩니다");
+    expect(sent).toContain("DOC-GUIDE-001");
   });
 
   it("배포 전체 하루 상한을 넘기면 IP가 달라도 막는다", async () => {

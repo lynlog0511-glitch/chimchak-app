@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BigButton } from "@/components";
-import { SAMPLE_FILES, buildSampleCsv, sampleFileName, type SampleFileSpec } from "./sampleFiles";
+import { SAMPLE_FILES, buildSampleFile, type SampleFileSpec } from "./sampleFiles";
+
+/** 만들어 둔 예시 한 벌 — 번호 표시와 내려받기가 같은 값을 쓰게 붙잡아 둡니다. */
+type BuiltSample = ReturnType<typeof buildSampleFile>;
 
 /**
  * 예시 이수 사실 파일을 내려받는 칸 — 시연 때 위 칸에 올려 보실 파일을 여기서 만듭니다.
@@ -37,11 +40,23 @@ function downloadText(text: string, filename: string): void {
 export function SampleCsvPanel() {
   /** 방금 만든 파일 이름 — 「눌러도 아무 일이 없다」로 읽히지 않게 화면에 남깁니다. */
   const [madeName, setMadeName] = useState("");
+  /**
+   * 예시 세 벌을 마운트 뒤에 한 번 만들어 둡니다. 발급번호가 내용(상대 날짜)에서 계산되어
+   * 서버 렌더와 클라이언트 값이 다를 수 있으므로, 화면에 적는 번호는 마운트 뒤 값만 씁니다.
+   */
+  const [built, setBuilt] = useState<Record<string, BuiltSample>>({});
+
+  useEffect(() => {
+    const now = new Date();
+    const next: Record<string, BuiltSample> = {};
+    for (const spec of SAMPLE_FILES) next[spec.key] = buildSampleFile(spec, now);
+    setBuilt(next);
+  }, []);
 
   const handleDownload = (spec: SampleFileSpec): void => {
-    const filename = sampleFileName(spec);
-    downloadText(buildSampleCsv(spec), filename);
-    setMadeName(filename);
+    const file = built[spec.key] ?? buildSampleFile(spec);
+    downloadText(file.csv, file.filename);
+    setMadeName(file.filename);
   };
 
   return (
@@ -62,7 +77,7 @@ export function SampleCsvPanel() {
       <div className="mt-[12px] flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         {SAMPLE_FILES.map((spec) => (
           <BigButton
-            key={spec.number}
+            key={spec.key}
             variant="secondary"
             onClick={() => handleDownload(spec)}
             ariaLabel={`${spec.label} 이수 사실 파일 내려받기 — ${spec.note}`}
@@ -74,9 +89,15 @@ export function SampleCsvPanel() {
 
       <ul className="mt-[10px]">
         {SAMPLE_FILES.map((spec) => (
-          <li key={spec.number} className="text-[0.7813rem] leading-[1.7] text-ink-soft">
-            <span className="font-bold text-ink">{spec.label}</span> ·{" "}
-            <span className="chim-num">{spec.number}</span> — {spec.note}
+          <li key={spec.key} className="text-[0.7813rem] leading-[1.7] text-ink-soft">
+            <span className="font-bold text-ink">{spec.label}</span>
+            {built[spec.key] && (
+              <>
+                {" "}
+                · <span className="chim-num">{built[spec.key]?.number}</span>
+              </>
+            )}{" "}
+            — {spec.note}
           </li>
         ))}
       </ul>

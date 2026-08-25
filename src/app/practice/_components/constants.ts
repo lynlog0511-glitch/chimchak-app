@@ -32,7 +32,17 @@ export const GATE_UNCONFIGURED_BODY =
   "온라인 모드는 켜져 있지만 지금 서버에 AI 연결이 없습니다. 외부 AI로 나간 것은 없고, 침착 서버까지 갔던 요청은 저장 없이 버려졌습니다. 상황 훈련은 그대로 열립니다.";
 
 export const GATE_TRAIN_CTA = "상황 훈련으로 가기";
+/**
+ * 오프라인·미설정처럼 **지금 켠다고 열리지 않는** 자리에서 쓰는 안내입니다.
+ * 이 문장이 가리키는 「오른쪽 위 설정」은 실제로 이 화면 상단에 있습니다
+ * (`app/practice/page.tsx`의 ScreenHeader action) — 예전에는 없는 컨트롤을 가리켰습니다.
+ */
 export const GATE_SETTINGS_HINT = "온라인 모드는 화면 오른쪽 위 「설정」에서 켜고 끄실 수 있습니다.";
+
+/** 꺼져 있어서 막힌 자리 — 여기서 바로 켜실 수 있습니다. */
+export const GATE_ENABLE_HINT =
+  "아래 버튼으로 지금 켜실 수 있습니다. 화면 오른쪽 위 「설정」에서 언제든 다시 끄실 수 있습니다.";
+export const GATE_ENABLE_CTA = "온라인 모드 켜기";
 
 /* ── 시드 고르기 ───────────────────────────────────────── */
 

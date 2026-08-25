@@ -525,7 +525,87 @@ export async function checkDialectCases(): Promise<CheckResult> {
   };
 }
 
-/** 12. 네트워크 상태 — 참고용. 오프라인이어도 응급 화면은 정상 동작하므로 실패로 다루지 않습니다. */
+/* ── 온라인 코칭 서버 ─────────────────────────────────── */
+
+/**
+ * 13. 온라인 코칭 서버 연결 — **시연 최대 무기의 전제조건**입니다.
+ *
+ * 마이크 권한처럼 사소한 것까지 무대 전에 잡아 주면서 정작 이 항목이 없으면, 「완주하면
+ * 안전하다」고 믿게 만드는 체크리스트가 가장 큰 구멍 하나를 통과시킵니다. 지금까지 미설정
+ * 상태를 알아챌 길은 /practice에 직접 들어가 게이트 문구를 읽는 우회로뿐이었습니다.
+ *
+ * 상류를 부르지 않습니다 — 라우트의 `task: "ping"` 분기가 서버 환경변수(주소·모델)가 채워져
+ * 있는지만 보고 답합니다. 그래서 이 점검은 요금을 만들지 않고 호출 한도도 쓰지 않습니다.
+ * 확인하는 것은 「서버가 준비돼 있는가」까지이고, 상류가 실제로 답하는지는 훈련 화면에서
+ * 한 턴 돌려 보는 것이 유일한 확인입니다(그 사실도 아래 문장에 적습니다).
+ */
+export async function checkCoachServer(): Promise<CheckResult> {
+  const id = "coach";
+  const title = "온라인 코칭 서버";
+  if (typeof fetch !== "function") {
+    return { id, title, status: "unknown", detail: "이 브라우저에서는 확인할 수 없습니다." };
+  }
+
+  let payload: unknown;
+  try {
+    const response = await fetch("/api/coach", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ task: "ping" }),
+    });
+    if (!response.ok) {
+      return {
+        id,
+        title,
+        status: "fail",
+        detail: `점검 요청이 ${response.status}로 막혔습니다.`,
+        fix: "프로덕션 빌드에서 앱과 같은 주소로 열었는지 확인해 주세요(다른 출처의 요청은 서버가 받지 않습니다).",
+      };
+    }
+    payload = await response.json();
+  } catch {
+    return {
+      id,
+      title,
+      status: "fail",
+      detail: "점검 요청이 서버에 닿지 못했습니다 — 지금 오프라인이거나 서버가 응답하지 않습니다.",
+      fix: "오프라인이라면 정상입니다(온라인 코칭은 회선이 있을 때만 씁니다). 온라인인데도 막히면 배포 상태를 확인해 주세요.",
+    };
+  }
+
+  const status =
+    typeof payload === "object" && payload !== null
+      ? (payload as { status?: unknown }).status
+      : undefined;
+
+  if (status === "ok") {
+    return {
+      id,
+      title,
+      status: "ok",
+      detail: "서버에 주소·모델이 설정되어 있습니다 — 설정 화면에서 켜면 온라인 코칭이 돕니다.",
+      fix: undefined,
+    };
+  }
+  if (status === "unconfigured") {
+    return {
+      id,
+      title,
+      status: "fail",
+      detail: "서버에 상류 주소·모델이 없습니다 — 지금은 결정론 코칭만 돕니다(자유 연습은 잠깁니다).",
+      fix: "환경변수 COACH_BASE_URL·COACH_MODEL(·COACH_API_KEY)을 채우고 다시 배포한 뒤 검사해 주세요. 결정론 코칭만으로 시연하실 계획이면 이 항목은 넘기셔도 됩니다.",
+    };
+  }
+  return {
+    id,
+    title,
+    status: "unknown",
+    detail: `서버가 낯선 답을 돌려주었습니다(${String(status ?? "응답 없음")}).`,
+    fix: "새로고침 후 다시 검사해 주세요.",
+  };
+}
+
+/** 14. 네트워크 상태 — 참고용. 오프라인이어도 응급 화면은 정상 동작하므로 실패로 다루지 않습니다. */
 export async function checkNetwork(): Promise<CheckResult> {
   const id = "net";
   const title = "네트워크 상태 (참고용)";
@@ -546,10 +626,14 @@ export async function checkNetwork(): Promise<CheckResult> {
 /* ── 시나리오 감수 상태 ───────────────────────────────── */
 
 /**
- * 12. 시나리오 감수 상태 — 「알파 초안 — 현직 감수 대기」 라벨이 시연 카드에 노출되는지
- * 무대 전에 확인합니다. 원천은 시나리오 데이터의 `reviewPending` 필드 하나이고,
- * /train 카드 라벨이 같은 필드를 읽습니다. 감수가 끝나면 해당 시나리오 파일의
- * `reviewPending` 한 줄을 지우는 것으로 라벨과 이 항목이 함께 내려갑니다.
+ * 12. 시나리오 감수 상태 — 감수 대기 라벨이 시연 카드에 노출되는지 무대 전에 확인합니다.
+ * 원천은 시나리오 데이터의 `reviewPending` 필드 하나이고, /train 카드 라벨이 같은 필드를
+ * 읽습니다. 감수가 끝나면 해당 시나리오 파일의 `reviewPending` 한 줄을 지우는 것으로
+ * 라벨과 이 항목이 함께 내려갑니다.
+ *
+ * ※ 아래 안내 문장은 **사용자 화면에 실제로 뜨는 말**(「전문가 검토를 받고 있어요」)을 인용합니다.
+ *   내부 문서 표기(「알파 초안 — 현직 감수 대기」)를 그대로 옮겨 적었더니, 발표자가 화면에서
+ *   찾을 문자열과 안내가 달랐습니다.
  */
 async function checkScenarioReview(): Promise<CheckResult> {
   const id = "review";
@@ -568,7 +652,10 @@ async function checkScenarioReview(): Promise<CheckResult> {
     id,
     title,
     status: "fail",
-    detail: `감수 대기 ${pending.length}종(${names}) — 훈련 카드에 「알파 초안 — 현직 감수 대기」 라벨이 그대로 노출됩니다.`,
+    // 발표자가 화면에서 찾아야 할 문자열이므로 **/train 카드에 실제로 뜨는 라벨** 그대로 적습니다
+    // (src/app/train/page.tsx의 REVIEW_PENDING_LABEL). 안내와 화면의 말이 다르면 무대 직전
+    // 몇 초를 엉뚱한 데 씁니다.
+    detail: `감수 대기 ${pending.length}종(${names}) — 훈련 카드에 「전문가 검토를 받고 있어요」 라벨이 그대로 노출됩니다.`,
     fix: "시연은 감수 완료 시나리오로 태우시고, 감수가 끝나면 해당 시나리오 데이터의 reviewPending 표기를 지워 주세요.",
   };
 }
@@ -587,6 +674,7 @@ export const CHECK_RUNNERS: Array<() => Promise<CheckResult>> = [
   checkRuleEngine,
   checkDialectCases,
   checkScenarioReview,
+  checkCoachServer,
   checkNetwork,
 ];
 
@@ -609,6 +697,7 @@ export function loadingResults(): CheckResult[] {
     loadingResult("rules", "규칙 엔진 경계 케이스"),
     loadingResult("dialect", "사투리 말씨 경계 문항"),
     loadingResult("review", "시나리오 감수 상태"),
+    loadingResult("coach", "온라인 코칭 서버"),
     loadingResult("net", "네트워크 상태 (참고용)"),
   ];
 }

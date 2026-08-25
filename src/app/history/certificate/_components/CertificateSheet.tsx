@@ -10,6 +10,9 @@ import { buildCompletionCsv, buildCompletionSummary, type CompletionSummary } fr
 import { formatDate, formatDateTime } from "../../_components/format";
 import { CompletionImportPanel } from "./CompletionImportPanel";
 
+/** 저장소를 읽지 못한 채 이만큼 지나면 다른 말을 겁니다(ms) — `HistoryBoard`와 같은 값입니다. */
+const LOAD_STALL_MS = 3000;
+
 /**
  * 인쇄 전용 규칙 — 화면 껍데기(버튼·상단 바)를 빼고 확인서만 종이에 남깁니다.
  * 전역 CSS(`globals.css`)는 셸 팀 소유라 건드리지 않고, 이 화면에서만 쓰는 규칙을 여기 둡니다.
@@ -205,6 +208,8 @@ function FillField({
  */
 export function CertificateSheet() {
   const [loaded, setLoaded] = useState(false);
+  /** 3초가 지나도 저장소를 못 읽었는지 — 「읽는 중」이 영원한 화면이 되지 않게 합니다. */
+  const [stalled, setStalled] = useState(false);
   const [summary, setSummary] = useState<CompletionSummary | null>(null);
   const [issuedAt, setIssuedAt] = useState("");
   /** 인쇄에만 실리는 값 — 저장하지 않습니다. */
@@ -235,6 +240,12 @@ export function CertificateSheet() {
     setLoaded(true);
   }, []);
 
+  useEffect(() => {
+    if (loaded) return;
+    const timer = window.setTimeout(() => setStalled(true), LOAD_STALL_MS);
+    return () => window.clearTimeout(timer);
+  }, [loaded]);
+
   /** 이수 사실 파일을 합친 직후 — 합계·시수·발급번호가 모두 달라지므로 요약을 다시 읽습니다. */
   const handleImported = useCallback(() => {
     setSummary(buildCompletionSummary());
@@ -257,9 +268,13 @@ export function CertificateSheet() {
 
       {!loaded ? (
         /* 저장소는 마운트 뒤에 읽으므로 이 줄이 첫 화면입니다 — 화면을 못 보시는 분께도
-           「비어 있다」가 아니라 「읽는 중」이라고 먼저 알려 드립니다. */
-        <p role="status" className="mt-4 text-[0.8125rem] leading-[1.6] text-ink-soft">
-          이 기기에 저장된 이수 사실을 불러오는 중입니다.
+           「비어 있다」가 아니라 「읽는 중」이라고 먼저 알려 드립니다.
+           지금 화면에 있는 글자가 이것 하나뿐이라 13px에서 15px로 올렸고, 3초가 지나도
+           그대로면 무엇을 하실 수 있는지로 말을 바꿉니다(페르소나 UI/UX med). */
+        <p role="status" className="mt-4 text-[0.9375rem] leading-[1.6] text-ink-soft">
+          {stalled
+            ? "이 기기의 저장소를 읽지 못했습니다. 화면을 새로고침해 주세요."
+            : "이 기기에 저장된 이수 사실을 불러오는 중입니다."}
         </p>
       ) : lines.length === 0 ? (
         <div className="mt-4">

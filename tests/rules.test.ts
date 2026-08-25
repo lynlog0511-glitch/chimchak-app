@@ -14,6 +14,7 @@ import {
   checkCritical,
   containsPii,
   CRITICAL_RULES,
+  expandKoreanTimeNumerals,
   findTerm,
   getRule,
   indexOfPattern,
@@ -1360,5 +1361,80 @@ describe("게이트 관대함 역전 — 좁힌 자리도 실행 선언은 잡�
     // 이 자리의 모범 답안은 그대로 통과해야 한다.
     const model = classifyInput(c3, { utterance: "네, 같은 말씀을 그대로 다시 드리겠습니다." }).branch;
     expect(model.criticalFail ?? false).toBe(false);
+  });
+});
+
+/* ── 분류기 채택 규칙 · 한글 수사 시각 (2026-08-25 페르소나 검증 반영) ──────── */
+
+describe("분류기 — 여러 분기에 걸린 발화", () => {
+  function cueOf(scenarioId: string, turnId: string): CueDef {
+    const cue = getScenario(scenarioId)?.turns.find((t) => t.id === turnId)?.cue;
+    if (!cue) throw new Error(`${scenarioId} ${turnId} 에 CUE가 없습니다`);
+    return cue;
+  }
+
+  it("공감을 앞에 붙여도 뒤의 사실 반박이 이긴다 (감점 우선)", () => {
+    const cue = cueOf("CHK-A01", "T1");
+    expect(
+      classifyInput(cue, { utterance: "마음이 급하신 건 알지만, 여기가 어머님 댁이에요" }).branch.id,
+    ).toBe("D1-a");
+    // 반박이 없는 공감 단독은 그대로 충족 분기다.
+    expect(
+      classifyInput(cue, { utterance: "애기 밥 챙겨주셔야 하는구나, 마음이 급하시겠어요" }).branch.id,
+    ).toBe("D1-c");
+  });
+
+  it("넓은 조각에 겹쳐 걸린 논리적 설득이 환경 확인을 이긴다", () => {
+    const cue = cueOf("CHK-A01", "T2");
+    expect(classifyInput(cue, { utterance: "불이 어두워서 안 돼요" }).branch.id).toBe("D2-d");
+    expect(
+      classifyInput(cue, { utterance: "불이 어두워서 밖 같으신가 봐요, 거실 불 켜드릴게요" }).branch.id,
+    ).toBe("D2-b");
+  });
+
+  it("못 갖춘 것으로 내리는 감점은 충족 분기를 끌어내리지 않는다", () => {
+    // 5요소를 다 담은 보고문에 「나가시려고」(R1-b 표지)가 섞여 있어도 R1-a로 남는다.
+    const cue = cueOf("CHK-A01", "T4");
+    expect(
+      classifyInput(cue, {
+        utterance:
+          "16시 40분에 어머님이 현관에서 나가시려고 하셔서, 화장실 안내 후 젖은 옷을 갈아입으시도록 도왔습니다.",
+      }).branch.id,
+    ).toBe("R1-a");
+    // 요소가 빠진 보고는 그대로 부분 보고다.
+    expect(
+      classifyInput(cue, { utterance: "어르신이 나가시려고 하셔서 말씀드려 진정시켰습니다" }).branch.id,
+    ).toBe("R1-b");
+  });
+});
+
+describe("한글 수사 시각", () => {
+  function cueOf(scenarioId: string, turnId: string): CueDef {
+    const cue = getScenario(scenarioId)?.turns.find((t) => t.id === turnId)?.cue;
+    if (!cue) throw new Error(`${scenarioId} ${turnId} 에 CUE가 없습니다`);
+    return cue;
+  }
+
+  it("시각을 한글로 말한 보고도 5요소 보고로 받는다", () => {
+    expect(
+      classifyInput(cueOf("CHK-A01", "T4"), {
+        utterance:
+          "네 시 사십 분쯤에 어머님이 현관에서 나가시려고 하셔서, 화장실 안내해 드리고 젖은 옷 갈아입으시게 도와드렸습니다. 지금은 소파에 앉아 계세요",
+      }).branch.id,
+    ).toBe("R1-a");
+  });
+
+  it("표지가 한글로 적힌 자리는 숫자로 말해도 만난다", () => {
+    const cue = cueOf("CHK-A02", "T1");
+    expect(classifyInput(cue, { utterance: "새벽 두 시인데 어디 가시려고요?" }).branch.id).toBe("D1-a");
+    expect(classifyInput(cue, { utterance: "새벽 2시인데 어디 가시려고요?" }).branch.id).toBe("D1-a");
+  });
+
+  it("수사가 낱말의 일부인 자리는 건드리지 않는다", () => {
+    expect(expandKoreanTimeNumerals("한시름 놓았습니다")).toBe("한시름 놓았습니다");
+    expect(expandKoreanTimeNumerals("이분이 저희 어머님입니다")).toBe("이분이 저희 어머님입니다");
+    expect(expandKoreanTimeNumerals("이 분이 저희 어머님입니다")).toBe("이 분이 저희 어머님입니다");
+    expect(expandKoreanTimeNumerals("네 시 사십 분")).toBe("4시 40분");
+    expect(expandKoreanTimeNumerals("열두 시 이십오 분")).toBe("12시 25분");
   });
 });

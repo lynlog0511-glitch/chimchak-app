@@ -123,7 +123,7 @@ export function OrgLiveNumbers() {
     setNotice(
       planted.sessions.length > 0 || planted.reports.length > 0
         ? "예시 값을 채웠습니다. 아래 숫자는 실측이 아니라 예시이며, 「예시 지우기」로 되돌릴 수 있습니다."
-        : "이 기기에 기록이 이미 가득 차 있어 예시를 넣지 않았습니다 — 진짜 기록을 밀어내지 않으려는 처리입니다.",
+        : "이 기기에 기록이 이미 가득 차 있어 예시를 넣지 않았습니다. 예시가 들어가면 진짜 기록이 밀려날 수 있습니다.",
     );
   }, []);
 
@@ -155,7 +155,7 @@ export function OrgLiveNumbers() {
     <div>
       {demoSeeded && (
         <p className="mt-[8px] text-[0.8438rem] leading-[1.6] font-semibold text-warn-ink">
-          지금은 예시 기록이 섞여 있는 값입니다 — 아래 「예시 지우기」를 누르시면 실측만
+          지금은 예시 기록이 섞여 있는 값입니다. 아래 「예시 지우기」를 누르시면 실측만
           남습니다.
         </p>
       )}
@@ -182,7 +182,7 @@ export function OrgLiveNumbers() {
           }
           note={
             reportMedianSec !== undefined
-              ? `이 기기에서 확정한 ${reportCount}건의 중앙값입니다 — 처음 적기 시작한 순간부터 확정까지를 앱이 직접 쟀습니다. 비교 기준 ${HAND_WRITTEN_TEXT}은 ${HAND_WRITTEN_SOURCE}`
+              ? `이 기기에서 확정한 ${reportCount}건의 중앙값입니다. 처음 적기 시작한 순간부터 확정까지를 앱이 직접 쟀습니다. 비교 기준 ${HAND_WRITTEN_TEXT}은 ${HAND_WRITTEN_SOURCE}`
               : `보고를 한 건 확정하시면 이 자리에 실측 소요가 찍힙니다. 비교 기준 ${HAND_WRITTEN_TEXT}은 ${HAND_WRITTEN_SOURCE}`
           }
         />
@@ -235,7 +235,7 @@ export function OrgLiveNumbers() {
 
       <p className="mt-[10px] text-[0.8438rem] leading-[1.6] text-ink-soft">
         위 세 값은 지금 보고 계신 기기 한 대의 값입니다. 기관 전체 합계를 자동으로 모으는 관리자
-        화면은 아직 없습니다 — 지금은 각자 확인서를 인쇄하거나 이수 사실 파일을 내려받아 모으는
+        화면은 아직 없습니다. 지금은 각자 확인서를 인쇄하거나 이수 사실 파일을 내려받아 모으는
         방식이고, 받은 파일은 이수 확인서 화면에서 한 기기로 합치실 수 있습니다.
       </p>
     </div>

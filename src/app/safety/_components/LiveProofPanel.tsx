@@ -194,7 +194,7 @@ export function LiveProofPanel({ className }: LiveProofPanelProps) {
       {/* 3. 직접 확인 안내 — 보더 없이 옅은 면으로만 묶습니다(v4 §2). */}
       <div className="mt-6 rounded-card bg-paper-2 p-4">
         <p className="text-[0.9375rem] leading-[1.65] font-bold text-brand-800">
-          직접 확인하실 수 있습니다 — 브라우저 개발자도구(F12) → 네트워크 탭을 열어 두고 이 앱을
+          직접 확인하실 수 있습니다. 브라우저 개발자도구(F12) → 네트워크 탭을 열어 두고 이 앱을
           사용해 보세요. 같은 목록이 그대로 보입니다.
         </p>
       </div>
@@ -209,10 +209,9 @@ export function LiveProofPanel({ className }: LiveProofPanelProps) {
       </div>
 
       <p className="mt-3 text-[0.7813rem] leading-[1.6] text-ink-faint">
-        ※ 세는 범위는 브라우저 표준 계측(리소스 타이밍)이 잡는 것 — 이 화면이 불러온
-        문서·스크립트·스타일·이미지·글꼴과 화면 코드가 직접 보내는 요청입니다. 브라우저 내장 음성 인식처럼
-        페이지 리소스가 아닌 경로는 여기에 잡히지 않아, 아래 개인정보 경로 항목에 따로 적어
-        두었습니다.
+        ※ 세는 범위는 브라우저 표준 계측(리소스 타이밍)이 잡는 것입니다. 이 화면이 불러온
+        문서·스크립트·스타일·이미지·글꼴과 화면 코드가 직접 보내는 요청을 셉니다. 브라우저 내장 음성 인식처럼
+        페이지 리소스가 아닌 경로는 여기에 잡히지 않아, 아래 개인정보 경로 항목에 따로 적었습니다.
       </p>
     </div>
   );

@@ -88,16 +88,16 @@ function leadText(verdict: EndingDef["verdict"], session: SessionState): string 
     case "충족":
       return "핵심 대응을 지키며 진행하셨어요";
     case "부분 충족":
-      return "안전은 지켰습니다 — 한 가지만 더 챙기면 다음이 달라집니다";
+      return "안전은 지켰습니다. 한 가지만 더 챙기면 다음이 달라집니다";
     case "재시도":
-      return "여기서 한 번 더 해보시면 좋겠어요 — 벌점은 없습니다";
+      return "여기서 한 번 더 해보시면 좋겠어요. 벌점은 없어요";
     case "재훈련":
       return session.retriesUsed > 0
         ? "멈춘 뒤 재시도로 회복하셨어요"
         : "멈춘 지점이 한 곳 있었어요";
     case "재훈련 권고":
     default:
-      return "안전 위험은 아닙니다 — 존엄·관계를 한 번 더 보고 가시길 권해 드립니다";
+      return "안전 위험은 아닙니다. 존엄·관계를 한 번 더 보고 가시길 권해 드립니다";
   }
 }
 
@@ -247,7 +247,7 @@ function SessionTimeline({ rows, situations }: { rows: TimelineRow[]; situations
         <ChevronGlyph size="sm" className="flex-none text-ink-ghost group-open:rotate-180" />
       </summary>
       <p className="px-0.5 pb-1 text-[0.7813rem] leading-[1.6] text-ink-muted">
-        판정이 난 순서를 그대로 옮긴 것입니다 — 점수도 등급도 아닙니다.
+        판정이 난 순서 그대로입니다. 점수도 등급도 아닙니다.
       </p>
       <ul className="pb-1">
         {rows.map((row) => (
@@ -593,7 +593,7 @@ export function EndingPanel({
       {timeline.length > 0 && (
         <p className="mt-4 rounded-card bg-paper-2 px-[15px] py-3.5 text-[0.9375rem] leading-[1.6] text-ink-soft">
           {unexplored > 0
-            ? `이번에 고르지 않은 갈래가 ${unexplored}곳 남아 있습니다 — 같은 상황도 다른 대답이면 다르게 흘러갑니다.`
+            ? `이번에 고르지 않은 갈래가 ${unexplored}곳 남아 있습니다. 같은 상황도 다른 대답이면 다르게 흘러갑니다.`
             : "이 상황의 갈래를 전부 가 보셨습니다."}
         </p>
       )}
@@ -652,7 +652,7 @@ export function EndingPanel({
 
         {/* 16px은 §2 눈금에 없는 값이었습니다 — 바로 아래 줄과 같은 15px으로 맞춥니다(대비·색은 유지). */}
         <p className="mt-2.5 text-center text-[0.9375rem] leading-[1.6] text-ink-soft">
-          점수가 아닙니다 — 다음에 볼 지점 안내예요
+          점수가 아니라 다음에 볼 지점 안내예요
         </p>
         <p className="mt-1 text-center text-[0.9375rem] leading-[1.6] text-ink-soft">
           이 기록은 기기 안에만 남습니다 · 말씀하신 원문은 저장하지 않습니다

@@ -121,12 +121,12 @@ export function CoverageGrid({
       {/* 다음 칸 안내 — 어느 칸을 채우면 되는지 한 줄로 짚어 둡니다(개수는 세지 않습니다). */}
       {nextCell ? (
         <p className="mt-[6px] text-[0.8438rem] leading-[1.6] text-ink-soft">
-          다음 칸은 「{TYPE_SHORT_LABELS[nextCell]}」이에요 — 아직 비어 있습니다.
+          다음 칸은 「{TYPE_SHORT_LABELS[nextCell]}」이에요. 아직 비어 있어요.
         </p>
       ) : (
         openCount > 0 && (
           <p className="mt-[6px] text-[0.8438rem] leading-[1.6] text-ink-soft">
-            지금 열려 있는 칸은 모두 채우셨어요 — 이제부터는 같은 칸을 다시 채우는 연습입니다.
+            지금 열려 있는 칸은 모두 채우셨어요. 이제부터는 같은 칸을 다시 채워 가면 돼요.
           </p>
         )
       )}
@@ -134,7 +134,7 @@ export function CoverageGrid({
       {/* 아직 열지 않은 유형은 「—」로만 두면 이유를 알 수 없어, 아래 한 줄로 조용히 적어 둡니다. */}
       {pending.length > 0 && (
         <p className="mt-[6px] text-[0.8438rem] leading-[1.5] text-tertiary">
-          {pending.map((type) => TYPE_SHORT_LABELS[type]).join(" · ")}은 아직 열리지 않은 유형입니다
+          {pending.map((type) => TYPE_SHORT_LABELS[type]).join(" · ")}은 아직 열리지 않았습니다
         </p>
       )}
     </div>

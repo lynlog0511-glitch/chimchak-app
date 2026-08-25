@@ -273,7 +273,7 @@ export const WAIT_WORD: Record<WaitLevel, string> = {
 };
 
 /** 여유 표시 옆에 항상 붙는 한 줄 — 얼어붙는 몇 초 동안 같은 자리에 있어야 하는 사실입니다. */
-export const WAIT_NO_AUTO_ADVANCE = "시간이 지나도 자동으로 넘어가지 않습니다";
+export const WAIT_NO_AUTO_ADVANCE = "시간이 지나도 자동으로 넘어가지 않아요";
 
 /* ── 감정 상태 (시안 4a③ — 게이지가 숫자 막대 대신 인물에 붙습니다) ── */
 

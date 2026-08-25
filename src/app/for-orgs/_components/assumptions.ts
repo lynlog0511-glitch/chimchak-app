@@ -23,7 +23,7 @@ export const HAND_WRITTEN_TEXT = `${HAND_WRITTEN_MIN}~${HAND_WRITTEN_MAX}분`;
  * 아니라 추정치」라고 스스로 밝히는 것과 같은 규칙입니다.
  */
 export const HAND_WRITTEN_SOURCE =
-  "팀 현장 인터뷰에서 들은 자기보고 기준입니다 — 조사 인원·시기·방법은 협의 자리에서 서면으로 드립니다.";
+  "팀 현장 인터뷰에서 들은 자기보고 기준입니다. 조사 인원·시기·방법은 협의 자리에서 서면으로 드립니다.";
 
 /** 계산 칸의 기본 인원 — 이 화면이 파일럿 규모로 적어 둔 「요양보호사 25명 안팎」과 같은 값입니다. */
 export const DEFAULT_STAFF_COUNT = 25;

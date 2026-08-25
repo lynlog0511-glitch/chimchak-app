@@ -249,8 +249,8 @@ export function MaskReview({
         className="text-[0.7813rem] leading-[1.45] font-bold tracking-normal text-ink-muted"
       >
         {total > 0
-          ? "이렇게 가렸어요 — 확정 뒤에 남는 건 이 글뿐입니다"
-          : "가릴 항목을 찾지 못했어요 — 확정 뒤에 남는 건 이 글뿐입니다"}
+          ? "이렇게 가렸어요. 확정 뒤에 남는 건 이 글뿐입니다"
+          : "가릴 항목을 찾지 못했어요. 확정 뒤에 남는 건 이 글뿐입니다"}
       </h2>
 
       <div className="mt-[8px] mb-[10px] rounded-[14px] bg-paper-2 px-4 py-[15px] text-[1rem] leading-[1.85] text-ink">
@@ -395,7 +395,7 @@ export function MaskReview({
       <EyebrowLabel>기록 초안 — 다섯 칸</EyebrowLabel>
       <DraftRows draft={preview} className="mt-[2px]" />
       <p className="mt-[10px] text-[0.7813rem] leading-[1.6] text-ink-soft">
-        아직 저장되지 않았습니다. 다음 화면에서 고치고 확정하실 때 한 번 더 검사한 뒤에 이 기기에만
+        아직 저장되지 않았습니다. 다음 화면에서 고치고 확정하시면 한 번 더 검사해 이 기기에만
         남깁니다.
       </p>
 

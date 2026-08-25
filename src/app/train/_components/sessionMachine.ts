@@ -35,11 +35,11 @@ const SUBMIT_OPTIONS: SubmitOptions = { evidence: EVIDENCE_GUARD };
 /* ── 이어서 하기 문구 ──────────────────────────────────────── */
 
 /** 복원된 로그 맨 위에 한 줄 붙습니다 — 지금 보시는 기록이 되짚어 만든 것임을 밝힙니다. */
-export const RESTORED_LOG_NOTICE = "이어서 하기로 복원된 기록입니다.";
+export const RESTORED_LOG_NOTICE = "이어서 하기로 되살린 기록입니다.";
 
 /** 되살릴 수 없는 구간이 있었을 때의 문구 (규칙 사전이 단독으로 잡은 ⚑CF 등) */
 export const RESTORED_LOG_NOTICE_PARTIAL =
-  "이어서 하기로 복원된 기록입니다. 되살리지 못한 구간은 건너뛰었습니다.";
+  "이어서 하기로 되살린 기록입니다. 되살리지 못한 구간은 건너뛰었습니다.";
 
 /**
  * 음성·타이핑으로 답하신 턴의 자리 표기.

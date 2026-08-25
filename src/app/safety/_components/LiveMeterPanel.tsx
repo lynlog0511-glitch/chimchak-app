@@ -83,13 +83,13 @@ export function LiveMeterPanel({ className }: LiveMeterPanelProps) {
 
       {mounted && !clean && (
         <p className="mt-3 text-[0.9375rem] leading-[1.6] font-bold text-danger-ink">
-          외부 출처 요청이 잡혔습니다 — 감추지 않고 아래 「데이터」 항목에 그대로 나열합니다.
+          외부 출처 요청이 잡혔습니다. 감추지 않고 아래 「데이터」 항목에 그대로 나열합니다.
         </p>
       )}
 
       {mounted && !measuring && stored === 0 && (
         <p className="mt-3 text-[0.9375rem] leading-[1.6] text-ink-soft">
-          응급 안내가 아직 이 기기에 저장되지 않았습니다 — 자동 저장이 끝나면 연결이 끊겨도
+          응급 안내가 아직 이 기기에 저장되지 않았습니다. 자동 저장이 끝나면 연결이 끊겨도
           열립니다.
         </p>
       )}

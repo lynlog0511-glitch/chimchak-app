@@ -187,7 +187,7 @@ export function FreeComposer({
 
           {listening && (
             <p className="mt-2 text-[0.8438rem] leading-[1.6] font-semibold text-brand-800">
-              듣고 있어요 — 손을 떼면 멈춥니다. 보내기 전에 고치실 수 있습니다.
+              듣고 있어요. 손을 떼면 멈춰요. 보내기 전에 고치실 수 있어요.
             </p>
           )}
 

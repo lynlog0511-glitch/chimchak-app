@@ -135,7 +135,7 @@ const FAQ: readonly { q: string; a: ReactNode; href: string; linkLabel: string }
         있어 그대로 열립니다. 이 앱은 판정도 기록도 전부 기기 안에서 하기 때문에, 회선이 끊겨도
         멈추는 곳이 없습니다. 다만 <b className="font-bold text-ink">음성 인식만은 브라우저 내장
         기능</b>이라 기기·브라우저에 따라 제조사 서버를 경유할 수 있고, 끊긴 자리에서는 동작하지
-        않을 수 있습니다 — 그때도 버튼과 타이핑은 그대로 됩니다.
+        않을 수 있습니다. 그때도 버튼과 타이핑은 그대로 됩니다.
       </>
     ),
     href: "/emergency",
@@ -146,7 +146,7 @@ const FAQ: readonly { q: string; a: ReactNode; href: string; linkLabel: string }
     a: (
       <>
         <b className="font-bold text-ink">기본 상태에서는 이 기기 밖으로 나가지 않습니다.</b>{" "}
-        계정이 없고, 말씀하신 발화 원문은 저장하지 않습니다 — 훈련이 끝나면 남는 것은 해 본
+        계정이 없고, 하신 말씀 원문은 저장하지 않습니다. 훈련이 끝나면 남는 것은 해 본
         상황과 코칭 요약까지입니다. 설정에서 온라인 모드를 켜신 경우에만 가명처리를 지난 말이 침착
         서버를 거쳐 나가며, 무엇이 나가는지는 안전·개인정보 설계와 약관·개인정보에 그대로 적혀
         있습니다. 보고 화면에서는 성명·번호·기관명·주소·생년을 가린 뒤에야 저장되고,
@@ -174,9 +174,9 @@ const FAQ: readonly { q: string; a: ReactNode; href: string; linkLabel: string }
     q: "빨간 119 버튼을 눌러도 되나요?",
     a: (
       <>
-        훈련 중에는 누르지 마십시오. 그 버튼은 시늉이 아니라 실제 전화 앱을 여는 링크입니다 —
-        버튼 아래에도 같은 문장을 적어 두었습니다:{" "}
-        <b className="font-bold text-ink">「{CALL_119_CAPTION}」</b>. 실제 상황이라면 망설이지 말고
+        훈련 중에는 누르지 마십시오. 그 버튼은 시늉이 아니라 실제 전화 앱을 여는 링크입니다.
+        버튼 아래에도{" "}
+        <b className="font-bold text-ink">「{CALL_119_CAPTION}」</b>라고 적혀 있습니다. 실제 상황이라면 망설이지 말고
         먼저 누르십시오. 응급 안내는 119보다 앞서지 않고, 119에 알리는 것을 언제나 먼저 놓습니다.
       </>
     ),
@@ -318,7 +318,7 @@ export default function GuidePage() {
           「약관」이라는 낱말을 찾아 내려오신 분이 헤딩에서 바로 보시게 하려는 자리입니다. */}
       <Section
         title="약관·개인정보"
-        lead="개인정보 처리방침·이용약관·파일럿 참여 동의 — 지금 이 앱이 실제로 하는 일만 적혀 있습니다."
+        lead="개인정보 처리방침·이용약관·파일럿 참여 동의. 지금 이 앱이 실제로 하는 일만 적혀 있습니다."
       >
         <div className="mt-[8px]">
           <ListRows>

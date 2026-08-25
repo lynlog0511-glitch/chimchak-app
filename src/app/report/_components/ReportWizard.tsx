@@ -182,7 +182,7 @@ export function ReportWizard() {
             <p className="mt-[10px] text-[0.9375rem] leading-[1.6] text-warn-ink">{SAVE_FAILED_BODY}</p>
           )}
           <p className="mt-[10px] text-[0.8438rem] leading-[1.6] text-ink">
-            지금 남은 것은 가명처리를 두 번 거친 글뿐이며, 말씀하신 음성과 원문은 저장하지
+            지금 남은 것은 가명처리를 두 번 거친 글뿐입니다. 말씀하신 음성과 원문은 저장하지
             않았습니다.
           </p>
           {/* 기관 시스템 이야기는 앱을 통틀어 이 한 곳에서만 합니다 —

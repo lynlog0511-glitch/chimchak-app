@@ -153,7 +153,7 @@ export function RuleEngineProof({ className }: RuleEngineProofProps) {
         직결 {RULE_ENGINE_CF_ITEM_IDS.length}항목)을 경계 문장으로 때려 본 기록입니다. 아래
         「지금 돌려보기」를 누르면 같은 케이스를 이 기기에서 다시 돌립니다. 설계 문서 시점의
         케이스는 30건이었고, 그 뒤 사투리 말씨·부정 표현 경계를 더해 지금은 실측 칸의 수만큼
-        늘었습니다 — 그날 30건도 전부 그대로 들어 있습니다.
+        늘었습니다. 그날 30건도 전부 그대로 들어 있습니다.
       </p>
 
       <p className="mt-4 text-[0.7813rem] leading-[1.5] font-bold tracking-[0.04em] text-ink-muted">
@@ -212,7 +212,7 @@ export function RuleEngineProof({ className }: RuleEngineProofProps) {
       {/* 출처와 한계를 같은 크기로 적습니다 — 두 칸의 숫자가 섞여 읽히면 안 되는 값입니다. */}
       <p className="mt-4 text-[0.7813rem] leading-[1.6] text-ink-muted">
         위 칸은 설계 문서에 실린 값이고, 아래 칸은 방금 이 브라우저에서 잰 값입니다. 기기 성능에
-        따라 지연 값은 달라집니다 — 통과 건수는 기기와 무관하게 같아야 합니다.
+        따라 지연 값은 달라집니다. 통과 건수는 기기와 무관하게 같아야 합니다.
       </p>
     </section>
   );

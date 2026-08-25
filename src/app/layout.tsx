@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     siteName: "침착 ChimChak",
     title: "침착 ChimChak — 돌보는 사람을 위한 상황 훈련",
     description:
-      "정답을 맞히는 시험이 아니라, 말이 나오게 만드는 연습입니다. AI는 어르신 역을 맡고, 판정은 법령·공단 지침을 옮긴 규칙이 맡습니다.",
+      "정답을 맞히는 시험이 아니라, 말이 나오게 만드는 연습입니다. 어르신 역은 AI가, 판정은 법령·공단 지침을 옮긴 규칙이 맡습니다.",
     locale: "ko_KR",
   },
 };

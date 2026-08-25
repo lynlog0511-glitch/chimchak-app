@@ -43,7 +43,7 @@ export function DocWhitelist() {
       {excluded.length > 0 && (
         <>
           <p className="mt-6 text-[0.7813rem] leading-[1.5] font-bold tracking-[0.04em] text-ink-muted">
-            인용 제외 {excluded.length}종 — 저작권
+            인용 제외 {excluded.length}종 · 저작권
           </p>
           <ul className="chim-hairline mt-1 border-y border-line">
             {excluded.map((doc) => (

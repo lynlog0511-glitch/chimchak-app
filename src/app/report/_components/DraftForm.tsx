@@ -145,7 +145,7 @@ export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: Dr
           확정은 직접 누르셔야 저장됩니다
         </p>
         <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
-          확정 직전에 2차 가명처리를 한 번 더 돌리고, 이 기기의 저장소에만 남깁니다. 최종 기록의
+          확정 직전에 가명처리를 한 번 더 거치고, 이 기기의 저장소에만 남깁니다. 최종 기록의
           내용과 책임은 작성하신 분에게 있습니다.
         </p>
         {/* 기관 연동은 아직 없습니다 — /safety가 「계획」 배지로 구분하는 것과 같은 표기를 씁니다.

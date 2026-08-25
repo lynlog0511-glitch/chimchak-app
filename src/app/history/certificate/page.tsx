@@ -23,7 +23,7 @@ export default function CertificatePage() {
       <div data-noprint>
         <ScreenHeader
           title="이수 확인서"
-          subtitle="이수 사실만 담습니다 — 판정·대화 내용 없음"
+          subtitle="이수 사실만 담고, 판정과 대화 내용은 담지 않습니다"
           action={
             <Link
               href="/history"

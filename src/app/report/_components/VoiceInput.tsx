@@ -200,7 +200,7 @@ export function VoiceInput({
             pressed={listening}
             label={
               listening
-                ? "말하는 중 — 손을 떼면 받아쓰기가 멈춥니다"
+                ? "말하는 중입니다. 손을 떼면 받아쓰기가 멈춥니다"
                 : "누르고 있는 동안 말씀을 받아 적습니다"
             }
             onPointerDown={handlePointerDown}
@@ -213,7 +213,7 @@ export function VoiceInput({
             {listening
               ? "손을 떼면 받아쓰기가 멈춰요"
               : supported
-                ? "누르고 있는 동안만 듣습니다 — 상시 청취는 없습니다"
+                ? "누르고 있는 동안만 듣습니다. 상시 청취는 없습니다"
                 : "이 기기에서는 마이크를 쓸 수 없습니다. 아래 칸에 적어 주세요"}
           </p>
         </div>
@@ -285,7 +285,7 @@ export function VoiceInput({
 
       <p className="mt-5 text-[0.7813rem] leading-[1.6] text-ink-soft">
         음성과 원문은 이 기기 안에서만 다루고 저장하지 않습니다. 다음 화면에서 무엇을 왜 가리는지
-        먼저 확인하신 뒤에 진행됩니다.
+        먼저 확인하신 뒤에 넘어갑니다.
       </p>
 
       <BigButton size="lg" block className="mt-4" onClick={onNext} disabled={empty}>

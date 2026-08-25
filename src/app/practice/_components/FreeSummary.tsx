@@ -55,7 +55,7 @@ export function FreeSummary({
           {SUMMARY_COACH_LABEL}
         </p>
         <p className="mt-1.5 text-[1.0625rem] leading-[1.6] text-ink">
-          {outcome?.message ?? "요약을 청하는 중입니다…"}
+          {outcome?.message ?? "요약을 만들고 있습니다…"}
         </p>
 
         {ok && outcome?.docId && (

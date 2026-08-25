@@ -60,7 +60,7 @@ export function FirstVisitHint({ className }: FirstVisitHintProps) {
               약속입니다 — 가이드 §7-8의 가독 하한을 넘겨 chim-body(16px)로 둡니다. */}
           <p className="chim-body text-ink-soft">
             처음이시라면 훈련 탭의 「현관 앞, 집에 가야 해요」부터 시작해 보세요. 마이크 없이
-            버튼만으로 4분이면 끝납니다.
+            버튼만으로 4분이면 끝나요.
           </p>
           {/* 링크 둘 — 「바로 시작하기」가 주인공이고, 옆의 「처음 오신 분께」는 시작 대신
               먼저 읽고 싶은 분을 위한 문입니다. 카드에 설명을 더하지 않고 링크 한 줄만 늡니다

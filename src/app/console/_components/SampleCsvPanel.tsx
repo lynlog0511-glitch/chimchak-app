@@ -93,8 +93,8 @@ export function SampleCsvPanel() {
 
       <p className="mt-[10px] text-[0.7813rem] leading-[1.7] text-ink-soft">
         이 파일은 체험용 예시입니다. 서식이 실제 파일과 같아서, 이수 확인서 화면에서 가져오시면 이
-        기기의 이수 누계에 예시 회차가 더해집니다 — 확인이 끝나면 지워 주십시오. 파일 안에 「예시」
-        표시를 넣을 칸은 없습니다(서식이 이수 사실만 담도록 고정돼 있습니다). 이름 앞에 붙는{" "}
+        기기의 이수 누계에 예시 회차가 더해집니다. 확인이 끝나면 지워 주십시오. 파일 안에 예시
+        표시를 넣을 칸은 없습니다. 이름 앞에 붙는{" "}
         <span className="chim-num">chimchak-sample-</span>이 예시라는 표시입니다.
       </p>
     </section>

@@ -256,7 +256,7 @@ export function ConsoleClient() {
           failed.push({
             fileName: file.name,
             message:
-              "이미 올라온 발급번호입니다 — 같은 파일을 두 번 세지 않습니다. 다른 분의 파일인지 확인해 주십시오.",
+              "이미 올라온 발급번호입니다. 같은 파일을 두 번 세지 않습니다. 다른 분의 파일인지 확인해 주십시오.",
           });
           continue;
         }
@@ -280,8 +280,8 @@ export function ConsoleClient() {
         failed.length === 0
           ? `파일 ${accepted.length}벌을 표에 더했습니다.`
           : accepted.length === 0
-            ? `${failed.length}벌 모두 표에 올리지 않았습니다 — 사유는 아래에 있습니다.`
-            : `${accepted.length}벌을 표에 더했고, ${failed.length}벌은 대조에서 걸렀습니다 — 사유는 아래에 있습니다.`,
+            ? `${failed.length}벌 모두 표에 올리지 않았습니다. 사유는 아래에 있습니다.`
+            : `${accepted.length}벌을 표에 더했고, ${failed.length}벌은 대조에서 걸렀습니다. 사유는 아래에 있습니다.`,
       );
     },
     [entries],
@@ -323,7 +323,7 @@ export function ConsoleClient() {
       <div data-noprint className="mt-4 rounded-[14px] bg-paper-2 px-4 py-[14px]">
         <p className="text-[0.9063rem] leading-[1.75] text-ink">
           기관 콘솔은 <b className="font-bold">파일럿 뒤에 연결할 자리</b>이고, 이 화면은 그 자리를
-          지금 실물로 보여 드리는 미리보기입니다. 서버도 계정도 없이 이 기기 안에서만 동작합니다 —
+          지금 실물로 보여 드리는 미리보기입니다. 서버도 계정도 없이 이 기기 안에서만 동작합니다.
           직원분들이 각자 내려받은 이수 사실 파일을 담당자가 모아서 올리시는 방식입니다.
         </p>
         <p className="mt-[8px] text-[0.8438rem] leading-[1.7] text-ink-soft">
@@ -331,9 +331,8 @@ export function ConsoleClient() {
           내용과 판정 결과는 그때도 올라가지 않습니다.
         </p>
         <p className="mt-[8px] text-[0.8438rem] leading-[1.7] text-ink-soft">
-          올리신 파일은 <b className="font-bold text-ink">이 기기에도 저장하지 않습니다</b> — 화면
-          상태로만 들고 있다가, 새로 고치시면 목록이 사라집니다. 이 기기에 남아 있는 본인의 이수
-          기록도 읽지 않습니다.
+          올리신 파일은 <b className="font-bold text-ink">이 기기에도 저장하지 않습니다</b>. 새로
+          고치시면 목록이 사라집니다. 이 기기에 남아 있는 본인의 이수 기록도 읽지 않습니다.
         </p>
       </div>
 
@@ -415,7 +414,7 @@ export function ConsoleClient() {
           이 화면이 파일에서 대조하는 것
         </h2>
         <p className="mt-[6px] text-[0.8438rem] leading-[1.7] text-ink-soft">
-          콘솔이 따로 판정하지 않고 앱이 쓰는 검사를 그대로 부릅니다 — 이수 확인서 화면에서 걸리는
+          콘솔이 따로 판정하지 않고 앱과 같은 검사를 씁니다. 이수 확인서 화면에서 걸리는
           파일은 여기서도 똑같이 걸립니다.
         </p>
         <ul className="chim-hairline mt-[8px] border-y border-line">
@@ -437,7 +436,7 @@ export function ConsoleClient() {
           </li>
         </ul>
         <p className="mt-[10px] text-[0.8438rem] leading-[1.7] text-ink">
-          다만 여기까지가 한계입니다. <b className="font-bold">발급번호는 대조용</b>이며 —
+          다만 여기까지가 한계입니다. <b className="font-bold">발급번호는 대조용</b>이며,
           위조 방지는 콘솔 연결 시 서버 서명으로 이관합니다. 지금 이 묶음의 효력은 확인자 서명이
           만듭니다.
         </p>
@@ -450,7 +449,7 @@ export function ConsoleClient() {
             <h2 className="text-[1.0625rem] leading-[1.4] font-bold text-ink">증빙 묶음</h2>
             <p className="mt-[6px] text-[0.8438rem] leading-[1.7] text-ink-soft">
               아래 표가 그대로 인쇄됩니다. 기관명은 인쇄에만 실리고{" "}
-              <b className="font-bold text-ink">저장되지 않습니다</b> — 비워 두시면 빈 밑줄로
+              <b className="font-bold text-ink">저장되지 않습니다</b>. 비워 두시면 빈 밑줄로
               인쇄되어 손으로 적으실 수 있습니다.
             </p>
             <div className="mt-[12px] max-w-[360px]">
@@ -508,7 +507,7 @@ export function ConsoleClient() {
               <span className="chim-num font-bold text-brand-800">
                 {formatTotalDuration(totals.seconds)}
               </span>
-              입니다 — 파일에 적힌 줄 값을 더한 값이며, 한 회차는 30분까지만 셉니다.
+              입니다. 파일에 적힌 줄 값을 더한 값이며, 한 회차는 30분까지만 셉니다.
             </p>
 
             {/* 직원별 — 사람을 가리키는 값은 발급번호뿐입니다. */}
@@ -516,7 +515,7 @@ export function ConsoleClient() {
               직원별 이수 현황
             </h3>
             <p className="mt-[3px] text-[0.7813rem] leading-[1.6] text-ink-soft">
-              성명 대신 파일의 발급번호로 구분합니다 — 이수 사실 파일에는 성명·소속 칸이 없습니다.
+              성명 대신 파일의 발급번호로 구분합니다. 이수 사실 파일에는 성명·소속 칸이 없습니다.
               번호와 사람을 잇는 일은 기관의 명부와 확인자 서명이 합니다.
             </p>
             <div data-print-wide className="mt-[8px] overflow-x-auto">
@@ -677,7 +676,7 @@ export function ConsoleClient() {
             <p className="mt-[4px] text-[0.8438rem] leading-[1.7] text-ink-soft">
               이수 사실 파일을 한 벌이라도 올리시면 이 자리에 직원별 이수 현황과 과정별 합계가
               만들어지고, 그대로 인쇄하실 수 있습니다. 손에 파일이 없으시면 위 「올려 보실 예시 파일
-              만들기」에서 세 벌을 내려받아 그대로 올려 보십시오.
+              만들기」에서 세 벌을 내려받아 올려 보십시오.
             </p>
           </div>
           <InlineDisclaimer size="md" tone="readable" className="mt-6 mb-3" />

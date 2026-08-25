@@ -295,7 +295,7 @@ export function BriefingPanel({
           마이크가 없어도 버튼만으로 끝까지 할 수 있어요.
         </p>
         <p className="text-[0.9375rem] leading-[1.6] text-ink-soft">
-          시작하면 어르신 목소리가 나옵니다 — 소리 끄기는 화면 위에 있어요.
+          시작하면 어르신 목소리가 나와요. 소리 끄기는 화면 위에 있어요.
         </p>
       </div>
 
@@ -409,7 +409,7 @@ export function BriefingPanel({
             ))}
           </ul>
           <p className="mt-2 text-[0.7813rem] leading-[1.6] text-ink-muted">
-            이 상황에서 보는 항목은 {scenario.appliedRubric.length}개이며, 점수와 등급은 화면에
+            이 상황에서 보는 항목은 {scenario.appliedRubric.length}개입니다. 점수와 등급은 화면에
             내지 않습니다.
           </p>
 

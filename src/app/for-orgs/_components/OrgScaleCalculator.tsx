@@ -124,7 +124,7 @@ export function OrgScaleCalculator({ measuredSec }: OrgScaleCalculatorProps) {
       </h3>
       <p className="mt-[4px] text-[0.8438rem] leading-[1.6] text-ink-soft">
         위 1인 실측값에 인원과 건수를 곱해 연간 절감 시수만 냅니다. 여기 적으신 값은{" "}
-        <b className="font-bold text-ink">저장되지 않습니다</b> — 화면을 닫으면 사라집니다.
+        <b className="font-bold text-ink">저장되지 않습니다</b>. 화면을 닫으면 사라집니다.
       </p>
 
       <div className="mt-[12px] flex flex-col gap-[12px] sm:flex-row sm:gap-[16px]">
@@ -150,7 +150,7 @@ export function OrgScaleCalculator({ measuredSec }: OrgScaleCalculatorProps) {
         {appMinutes === undefined ? (
           <p className="text-[0.8438rem] leading-[1.6] text-ink-soft">
             1건당 절감분은 이 기기에서 잰 값이 있어야 셉니다. 보고를 한 건 확정하시거나 위의 예시
-            값을 채우시면 이 자리에 연간 합계가 나옵니다 — 없는 값으로 곱하지는 않습니다.
+            값을 채우시면 이 자리에 연간 합계가 나옵니다.
           </p>
         ) : result === undefined ? (
           <p className="text-[0.8438rem] leading-[1.6] text-ink-soft">

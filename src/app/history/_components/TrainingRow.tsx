@@ -113,7 +113,7 @@ export function TrainingRow({ record, typeLabel }: TrainingRowProps) {
         <div id={panelId} className="mb-[14px] rounded-[14px] bg-paper-2 px-4 py-[14px]">
           {isExample && (
             <p className="mb-[10px] text-[0.7813rem] leading-[1.6] font-bold text-warn-ink">
-              체험용으로 심어 둔 예시 회차입니다 — 실제로 완주하신 기록이 아니고, 이수 시수
+              체험용으로 심어 둔 예시 회차입니다. 실제로 완주하신 기록이 아니고, 이수 시수
               누계에도 들어가지 않습니다.
             </p>
           )}
@@ -149,7 +149,7 @@ export function TrainingRow({ record, typeLabel }: TrainingRowProps) {
           </p>
           {/* 안심 문구 — 캡션 등급(11.5px tertiary)에서 읽히는 등급으로 올려 둡니다. */}
           <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
-            훈련 속 인물은 전원 가상이며, 대사는 검수된 문장을 바탕으로 합니다. 말씀하신 발화 원문은
+            훈련 속 인물은 전원 가상이며, 대사는 검수된 문장을 바탕으로 합니다. 하신 말씀 원문은
             저장하지 않습니다.
           </p>
         </div>

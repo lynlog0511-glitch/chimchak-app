@@ -94,7 +94,7 @@ export const FREE_EXCLUDED_TYPE_LABEL = "응급";
  * 「준비 중」으로 두면 언젠가 열릴 자리로 읽히는데, 이 자리는 열지 않기로 한 자리입니다.
  */
 export const FREE_EXCLUDED_TYPE_REASON =
-  "응급 상황은 이 연습에 넣지 않습니다. 응급 안내는 사전 검수된 고정 문구로만 나가야 하고, 실시간 대응을 즉흥 생성에 맡기지 않는 것이 이 앱의 안전 원칙입니다. 응급은 「응급 안내」 화면과 상황 훈련에서 연습해 주십시오.";
+  "응급 상황은 이 연습에 넣지 않습니다. 응급 안내는 사전 검수된 고정 문구로만 나가야 해서, 실시간 대응을 즉흥 생성에 맡기지 않습니다. 응급은 「응급 안내」 화면과 상황 훈련에서 연습해 주세요.";
 
 export type FreeLevel = 1 | 2 | 3;
 
@@ -196,7 +196,7 @@ export const FREE_PRACTICE_HREF = "/practice";
 export const FREE_ENTRY_TITLE = "자유 연습";
 export const FREE_ENTRY_EYEBROW = "온라인 · 채점 없음";
 export const FREE_ENTRY_SUMMARY =
-  "검수된 여섯 상황 밖의 장면을 그 자리에서 만들어 대화합니다 — 판정도 기록도 남기지 않습니다.";
+  "검수된 여섯 상황 밖의 장면을 그 자리에서 만들어 대화합니다. 판정도 기록도 남기지 않습니다.";
 
 /** 가상 인물 고지 — 만들어진 인물에도 같은 문장을 답니다. */
 export const FREE_FICTION_NOTICE =

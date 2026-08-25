@@ -32,7 +32,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
           13.5px → 15px(가이드 §7-8의 가독 하한), 행간 1.65 → 본문 단 1.6. */}
       <div className="mt-[16px] rounded-card bg-paper-2 px-[15px] py-[14px]">
         <p className="text-[0.9375rem] leading-[1.6] text-ink">
-          이 오류는 이 기기 안에서만 발생한 것이며, 저장된 훈련 기록에는 영향을 주지 않습니다.
+          오류는 이 기기 안에서만 생겼고, 저장된 훈련 기록에는 영향을 주지 않습니다.
           급하신 상황이라면 아래에서 응급 안내를 바로 여실 수 있습니다.
         </p>
       </div>

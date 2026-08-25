@@ -47,7 +47,7 @@ function situationText(situation: string): string {
 function reviewLine(reviewed: string): string {
   return reviewed.startsWith("감수 완료")
     ? "현직 감수 완료 · 고정 문구 · 생성 호출 없음"
-    : "초안 · 현직 감수 대기 — 고정 문구·생성 0건 원칙은 동일하게 적용됩니다";
+    : "초안 · 현직 감수 대기. 고정 문구·생성 0건 원칙은 그대로 적용됩니다";
 }
 
 /** 프로토콜 5종을 정적 경로로 미리 만들어 둡니다(서비스워커 precache 목록과 동일). */
@@ -104,7 +104,7 @@ export default async function ProtocolPage({ params }: PageParams) {
       <details className="group mt-4 rounded-[14px] bg-paper-2">
         <summary className="flex min-h-[56px] cursor-pointer list-none items-center gap-3 px-4 py-3 text-[0.9375rem] leading-[1.45] font-bold text-ink [&::-webkit-details-marker]:hidden">
           <span className="flex-1">
-            앱이 하지 않는 것 — 이 부분은 119 상황실이 목소리로 직접 지도합니다
+            앱이 하지 않는 것 — 119 상황실이 목소리로 직접 지도합니다
           </span>
           <span aria-hidden className="flex-none text-[0.7813rem] font-semibold text-ink-muted">
             <span className="group-open:hidden">펼치기</span>
@@ -114,8 +114,8 @@ export default async function ProtocolPage({ params }: PageParams) {
 
         <div className="border-t border-line-strong px-4 py-4">
           <p className="text-[0.8438rem] leading-[1.6] text-ink-soft">
-            아래 항목은 침착이 화면이나 음성으로 지도하지 않는 것들입니다. 하지 않는 이유와, 대신
-            무엇을 하는지를 함께 적어 두었습니다.
+            아래는 침착이 화면이나 음성으로 지도하지 않는 항목입니다. 하지 않는 이유와 대신 하는
+            것을 함께 적었습니다.
           </p>
 
           <ul className="chim-hairline mt-3 [&>li+li]:border-line-strong">

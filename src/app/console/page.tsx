@@ -29,7 +29,7 @@ export default function ConsolePage() {
       <div data-noprint>
         <ScreenHeader
           title="기관 콘솔"
-          subtitle="파일럿 뒤 연결 · 미리보기 — 이 기기 안에서만 동작합니다"
+          subtitle="파일럿 뒤에 연결할 콘솔의 미리보기 · 이 기기 안에서만 동작합니다"
           action={
             <Link
               href="/for-orgs"

@@ -792,7 +792,7 @@ export function CueResponder({
               aria-hidden
               className="mt-2 rounded-[14px] bg-tint px-3.5 py-2.5 text-[0.8438rem] leading-[1.6] font-semibold text-brand-800"
             >
-              입력창에 채워 드렸습니다. 아직 보내지 않았습니다 — 아래의 「이 내용으로 답하기」를
+              입력창에 채워 드렸습니다. 아직 보내지 않았습니다. 아래 「이 내용으로 답하기」를
               누르시면 규칙 엔진이 판정합니다.
             </p>
           )}

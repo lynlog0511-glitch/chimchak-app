@@ -274,8 +274,8 @@ export function CertificateSheet() {
             {/* 「인쇄 버튼이 왜 없지」로 끝나지 않게, 없는 이유를 화면이 먼저 답합니다 —
                 담길 줄이 없는 확인서를 인쇄하면 서명란만 있는 빈 종이가 나옵니다. */}
             <p className="mt-[8px] text-[0.8125rem] leading-[1.6] text-ink-soft">
-              그때까지는 인쇄와 파일 내려받기를 열어 두지 않습니다. 담길 줄이 한 개도 없는 확인서는
-              이수 사실을 증명하지 못하고, 서명란만 있는 종이가 되기 때문입니다.
+              그때까지는 인쇄와 파일 내려받기가 열리지 않습니다. 담길 줄이 없는 확인서는
+              서명란만 있는 빈 종이가 되기 때문입니다.
             </p>
             <p className="mt-[8px] text-[0.8125rem] leading-[1.6] text-ink-soft">
               예전 기기에서 이미 이수하셨다면 아래 칸에서 <b className="font-bold text-ink">이수
@@ -302,7 +302,7 @@ export function CertificateSheet() {
               인쇄 전에 성명·소속을 채우실 수 있습니다
             </p>
             <p className="mt-[4px] text-[0.8125rem] leading-[1.7] text-ink-soft">
-              여기 적으신 내용은 <b className="font-bold text-ink">저장되지 않습니다</b> — 이 화면의
+              여기 적으신 내용은 <b className="font-bold text-ink">저장되지 않습니다</b>. 이 화면의
               인쇄에만 실리고, 화면을 닫으면 사라집니다. 비워 두시면 확인서에 빈 밑줄로 인쇄되어
               손으로 적으실 수 있습니다.
             </p>
@@ -406,8 +406,8 @@ export function CertificateSheet() {
                 : "같은 기록이면 재인쇄에도 같은 값이라 중복 제출 확인에 쓰실 수 있습니다. 다만 위조를 막는 장치는 아니며, 확인자 서명이 효력을 만듭니다."}
             </p>
             <p className="mt-[3px] text-[0.7813rem] leading-[1.6] text-ink-soft">
-              발급: 침착(ChimChak) 훈련 앱 · 문의: 기관 도입 담당자 — 앱 안 「기관 도입 안내」
-              화면에 절차를 적어 두었습니다.
+              발급: 침착(ChimChak) 훈련 앱 · 문의: 기관 도입 담당자. 절차는 앱 안 「기관 도입 안내」
+              화면에 있습니다.
             </p>
 
             {/* 누가 이수했는지 — 이 두 칸이 없으면 자료철에 끼울 수 없는 무기명 인쇄물이 됩니다. */}
@@ -440,7 +440,7 @@ export function CertificateSheet() {
             {isPreview && (
               <p className="mt-[6px] text-[0.7813rem] leading-[1.7] font-bold text-warn-ink">
                 이 합계에는 체험용 예시 <span className="chim-num">{demoCount}</span>회가 포함되어
-                있습니다 — 이 기기의 실제 이수 시수 누계에는 반영되지 않은 회차입니다.
+                있습니다. 이 기기의 실제 이수 시수 누계에는 반영되지 않은 회차입니다.
               </p>
             )}
             {/* 가져온 회차는 상세가 이 기기에 없지만 사유가 「50건 상한」과 다릅니다 —
@@ -457,7 +457,7 @@ export function CertificateSheet() {
             {hiddenCount > 0 && (
               <p className="mt-[6px] text-[0.7813rem] leading-[1.7] text-ink-soft">
                 이 가운데 <span className="chim-num font-bold">{hiddenCount}</span>회는 상세가 이
-                기기에 남아 있지 않습니다 — 최근 50회까지만 상세를 보관하고, 합계와 이수 시수는
+                기기에 남아 있지 않습니다. 최근 50회까지만 상세를 보관하고, 합계와 이수 시수는
                 따로 누계로 세기 때문에 줄지 않습니다.
               </p>
             )}
@@ -547,7 +547,7 @@ export function CertificateSheet() {
               }
             >
               {inApp
-                ? "지금은 카카오톡·네이버 등 앱 안의 브라우저입니다 — 여기서는 인쇄 창이 열리지 않습니다. 오른쪽 위 메뉴에서 「다른 브라우저로 열기」를 고르신 뒤 다시 눌러 주십시오."
+                ? "지금은 카카오톡·네이버 등 앱 안의 브라우저입니다. 여기서는 인쇄 창이 열리지 않습니다. 오른쪽 위 메뉴에서 「다른 브라우저로 열기」를 고르신 뒤 다시 눌러 주십시오."
                 : "인쇄 창이 열리지 않으면 카카오톡·네이버 등 앱 안의 브라우저라 그렇습니다. 오른쪽 위 메뉴에서 「다른 브라우저로 열기」를 고르신 뒤 다시 눌러 주십시오."}
             </p>
             {/* 예시가 섞인 파일은 화면 표시를 잃은 채 자료철로 흘러갈 수 있어 내려받기를 잠급니다.

@@ -85,9 +85,9 @@ export function ProtocolWave({ className }: { className?: string }) {
 export type ReadingState = "reading" | "caption" | "paused" | "done";
 
 const READING_TEXT: Record<Exclude<ReadingState, "reading">, string> = {
-  caption: "자막으로 안내 중 — 소리 없이 같은 속도로 넘어갑니다",
-  paused: "잠시 멈췄습니다 — 「이어서 듣기」를 누르면 계속합니다",
-  done: "안내를 마쳤습니다 — 화면은 이대로 두셔도 됩니다",
+  caption: "자막으로 안내 중입니다. 소리 없이 같은 속도로 넘어갑니다",
+  paused: "잠시 멈췄습니다. 「이어서 듣기」를 누르면 계속합니다",
+  done: "안내를 마쳤습니다. 화면은 이대로 두셔도 됩니다",
 };
 
 export function ProtocolReadingLine({

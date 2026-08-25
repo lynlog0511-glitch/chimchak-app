@@ -21,7 +21,7 @@ const OFFLINE_ROUTES = [
 const READY_LINE = "기기에 저장됨 — 연결이 끊겨도 열립니다";
 
 /** 저장은 끝났는데 지금 연결이 끊긴 경우 — 사실을 그대로 적습니다. */
-const READY_OFFLINE_LINE = "지금 연결이 끊겼습니다 — 기기에 저장된 안내로 그대로 열립니다";
+const READY_OFFLINE_LINE = "지금 연결이 끊겼습니다. 기기에 저장된 안내로 그대로 열립니다";
 
 /** 확인 중 — 서버 렌더 시점에는 알 수 없어 자리만 잡아 둡니다(레이아웃이 튀지 않게). */
 const CHECKING_LINE = "기기 저장 상태를 확인하고 있습니다";

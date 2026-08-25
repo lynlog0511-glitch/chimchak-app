@@ -154,7 +154,7 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
             예시 기록 한 번에 지우기
           </button>
           <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
-            예시만 지웁니다 — 직접 완주하신 기록과 이수 시수는 그대로 남습니다.
+            예시만 지웁니다. 직접 완주하신 기록과 이수 시수는 그대로 남습니다.
           </p>
         </section>
       )}
@@ -163,7 +163,7 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
       {suggestion && (
         <Link
           href={trainHref(suggestion.candidate.id)}
-          aria-label={`${suggestion.candidate.title} 훈련으로 가기 — ${nextTrainingSentence(suggestion)}`}
+          aria-label={`${suggestion.candidate.title} 훈련으로 가기. ${nextTrainingSentence(suggestion)}`}
           className="mb-4 flex min-h-[48px] items-center gap-[10px] rounded-[14px] bg-tint px-[15px] py-[14px] transition-colors duration-150 active:bg-mint-200"
         >
           <span className="min-w-0 flex-1">
@@ -240,7 +240,7 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
       </Link>
       {/* 안심 문구는 고지가 아니라 읽으라고 두는 줄입니다 — 크기·대비를 한 단계 올려 둡니다. */}
       <p className="mt-[8px] text-center text-[0.8438rem] leading-[1.6] text-ink-soft">
-        확인서에는 이수 사실만 담깁니다 — 판정·대화 내용 없음
+        확인서에는 이수 사실만 담깁니다. 판정과 대화 내용은 담기지 않습니다.
       </p>
       {/* 기관 담당자는 이 화면까지 따라오는 일이 잦습니다 — 탭바에는 두지 않고 여기서만 엽니다. */}
       <p className="mt-[6px] text-center">
@@ -279,7 +279,7 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
         <EyebrowLabel>이 기록이 쓰이는 곳</EyebrowLabel>
         <p className="mt-[8px] text-[0.8438rem] leading-[1.7] text-ink-soft">
           훈련 이력은 이 기기에만 쌓입니다. 기관에서 요구하는 보수교육·직무평가 증빙으로 쓰실 수
-          있도록 이수 여부와 이수 일시를 중심으로 남기며, 내부 판정 결과와 대화 내용은 기관
+          있도록 이수 여부와 이수 일시를 중심으로 남깁니다. 내부 판정 결과와 대화 내용은 기관
           관리자에게 공개되지 않고 인사평가에 연동하지 않습니다.
         </p>
         {/* 오독 방지 — 확인서 하단 각주와 같은 문장을 여기에도 둡니다(경계는 두 곳에서 같아야 합니다). */}
@@ -288,7 +288,7 @@ export function HistoryBoard({ typeByScenarioId, activeTypes }: HistoryBoardProp
           직무교육·정기평가 내부 증빙용입니다.
         </p>
         <p className="mt-[8px] text-[0.8438rem] leading-[1.7] text-ink-soft">
-          훈련 속 인물은 전원 가상이며, 대사는 검수된 문장을 바탕으로 합니다. 말씀하신 발화 원문은
+          훈련 속 인물은 전원 가상이며, 대사는 검수된 문장을 바탕으로 합니다. 하신 말씀 원문은
           어디에도 저장하지 않습니다.
         </p>
 

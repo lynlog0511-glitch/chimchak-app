@@ -103,7 +103,7 @@ function ReportRow({ report }: { report: StoredReport }) {
         <div id={panelId} className="mb-[14px] rounded-[14px] bg-paper-2 px-4 py-[14px]">
           {isExample && (
             <p className="mb-[10px] text-[0.7813rem] leading-[1.6] font-bold text-warn-ink">
-              체험용으로 심어 둔 예시 기록입니다 — 실제로 확정하신 보고가 아닙니다.
+              체험용으로 심어 둔 예시 기록입니다. 실제로 확정하신 보고가 아닙니다.
             </p>
           )}
           <EyebrowLabel>확정한 본문</EyebrowLabel>

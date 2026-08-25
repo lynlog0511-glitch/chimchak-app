@@ -87,13 +87,13 @@ function pathLabel(trace: FeedbackTrace): string {
 function pathNote(trace: FeedbackTrace): string {
   switch (trace.source) {
     case "rule":
-      return "규칙 사전은 미리 적어 둔 표입니다 — 이 판정에는 AI가 쓰이지 않았습니다.";
+      return "규칙 사전은 미리 적어 둔 표입니다. 이 판정에는 AI가 쓰이지 않았습니다.";
     case "criticalPattern":
       return "안전에 곧바로 걸리는 갈래를 먼저 살펴 걸렀습니다.";
     case "pattern":
       return "이 상황에 미리 적어 둔 문장을 그대로 보여 드립니다.";
     case "button":
-      return "보기로 고르신 턴은 이 상황의 표가 판정하고, 규칙 사전은 직접 말씀하신 문장에 돕니다 — 둘 다 AI 없이 정해 둔 표를 따릅니다.";
+      return "보기로 고르신 턴은 이 상황의 표가 판정하고, 규칙 사전은 직접 말씀하신 문장만 봅니다. 둘 다 AI 없이 정해 둔 표를 따릅니다.";
     case "default":
     default:
       return "조금 더 구체적으로 말씀해 보시면 판정이 달라집니다.";
@@ -156,7 +156,7 @@ function OnlineCoachingBlock({ outcome }: { outcome: OnlineCoachOutcome }) {
         outcome.docId && <SourceChip docId={outcome.docId} className="mt-1.5" />
       )}
       <p className="mt-1.5 text-[0.6875rem] leading-[1.5] text-ink-muted">
-        판정도, 어르신 상태도, 기록도 위 그대로입니다 — 이 문장 하나만 더해졌습니다.
+        판정·어르신 상태·기록은 위 그대로입니다. 이 문장 하나만 더해졌습니다.
       </p>
     </div>
   );

@@ -52,7 +52,7 @@ function OptionButton({ label, selected, onSelect }: OptionButtonProps) {
       onClick={onSelect}
       aria-pressed={selected}
       className={cx(
-        "chim-label min-h-[48px] flex-1 rounded-[14px] px-2",
+        "chim-label min-h-[48px] flex-1 rounded-card px-2",
         "transition-colors duration-150 ease-soft",
         selected
           ? "bg-brand-700 font-bold text-white active:bg-brand-800"
@@ -173,8 +173,10 @@ function SettingsPanel({
         {/* 이 한 줄은 **지킬 수 있게 된 뒤에야** 그대로 둡니다.
             한때는 화면의 글자 크기가 전부 px로 박혀 있어서 「아주 크게」를 눌러도 버튼 라벨
             하나만 커졌습니다(평가 초보 c20 실측 — 지문·항목·칩·고지·h1 전부 그대로).
-            지금은 src의 크기 지정이 남김없이 rem이라 루트 16→18→20px이 화면 전체에 그대로
-            비례합니다. 예외는 둘뿐이고 둘 다 읽을거리가 아닙니다 —
+            지금은 src의 크기 지정이 남김없이 rem이라 루트 100%→112.5%→125%가 화면 전체에
+            그대로 비례합니다(백분율이라 브라우저·OS 글꼴 설정 **위에** 곱해집니다 —
+            이미 크게 써 오신 분의 설정을 덮어쓰지 않습니다).
+            예외는 둘뿐이고 둘 다 읽을거리가 아닙니다 —
             안전 페이지 접이식 흐름도(같은 내용이 바로 위에 텍스트로 있습니다)와
             루트 레이아웃이 무너졌을 때 뜨는 오류 화면입니다. */}
         {/* 「언제든 되돌릴 수 있습니다」는 각주가 아니라 안심 문구입니다 —
@@ -235,7 +237,7 @@ function SettingsPanel({
         <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink-soft">
           {ONLINE_COACHING_NOTICE}
         </p>
-        <p className="mt-3 text-[0.7813rem] leading-[1.5] text-ink-muted">
+        <p className="mt-3 text-[0.7813rem] leading-[1.45] text-ink-muted">
           켜도 판정·게이지·기록은 달라지지 않습니다. 판정이 닿지 않은 말씀에만 코칭 문장이 한 줄
           더해지고, 근거를 확인하지 못한 문장은 화면에 나가지 않습니다. 어르신·보호자 대사의
           변주는 형식·길이·숫자·금지 표현, 그리고 검수 문장에 없던 위험 신호까지 기기 안에서
@@ -273,7 +275,8 @@ function SettingsPanel({
  * 다시 들어와야 합니다 — 노안이 있는 분께는 그 길이 사실상 막힌 길입니다(평가 UI/UX mi5 · m6 · 초보 m2).
  *
  * 담는 것은 셋입니다.
- * - **글자 크기**: 루트 font-size를 16/18/20px로 바꿉니다. 토큰이 전부 rem이라 화면이 통째로 비례합니다.
+ * - **글자 크기**: 루트 font-size를 100/112.5/125%로 바꿉니다. 토큰이 전부 rem이라 화면이 통째로
+ *   비례하고, 백분율이라 브라우저·OS 글꼴 설정 위에 곱해집니다(기본 16px 브라우저에서 16/18/20px).
  * - **음성 빠르기**: `speak()`의 기본 rate가 됩니다. 고르는 즉시 예시 문장을 한 번 읽어 확인시켜 줍니다.
  * - **온라인 모드 (실험)**: 기본 꺼짐. 켜기 전에는 이 앱이 기기 밖으로 요청을 보내지 않습니다.
  *   스위치 하나가 코칭 한 문장과 어르신·보호자 대사 변주 두 자리를 함께 엽니다.

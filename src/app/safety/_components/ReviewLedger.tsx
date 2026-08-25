@@ -49,7 +49,7 @@ export function ReviewLedger({ className }: ReviewLedgerProps) {
       aria-labelledby="review-ledger-title"
       className={cx("rounded-card bg-paper-2 p-4", className)}
     >
-      <h3 id="review-ledger-title" className="text-[1.0625rem] leading-[1.4] font-extrabold text-ink">
+      <h3 id="review-ledger-title" className="text-[1.0625rem] leading-[1.45] font-extrabold text-ink">
         현직 감수 현황
       </h3>
 

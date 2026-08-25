@@ -3,14 +3,61 @@ import { cx } from "./utils";
 
 export type MicButtonSize = "md" | "lg";
 
-/* 시안 4a(52px 대기) · 4b(64px 녹음 중) 도형 그대로.
-   마이크는 v4에서 유일하게 "그려서" 쓰는 도형입니다 — 아이콘 폰트도 SVG 세트도 쓰지 않습니다. */
-const SPEC: Record<
-  MicButtonSize,
-  { box: number; capW: number; capH: number; capR: number; barW: number; barGap: number }
-> = {
-  md: { box: 52, capW: 10, capH: 16, capR: 5, barW: 14, barGap: 2 },
-  lg: { box: 64, capW: 11, capH: 18, capR: 6, barW: 16, barGap: 3 },
+/* 시안 4a(52px 대기) · 4b(64px 녹음 중) 도형.
+   마이크는 v4에서 유일하게 "그려서" 쓰는 도형입니다 — 아이콘 폰트도 SVG 세트도 쓰지 않습니다.
+
+   ── 받침 = U자 크래들 (2026-08-25) ─────────────────────────────
+   예전 받침은 폭 14 · 높이 2의 **막대**였습니다. 2px 막대는 「받침」이 아니라 밑줄로 읽혀,
+   52px 원 안이 「알약 + 밑줄」, 즉 마이크보다 문단 기호에 가까워 보였습니다.
+   지금은 캡슐 아래에 좌·우·아래 2px 테두리만 남긴 반원(폭 16 · 높이 6 · radius 0 0 8 8)을
+   두고 그 아래에 2px 스템을 세웁니다 — 20px 남짓으로 줄여도 마이크로 읽힙니다.
+
+   ── 치수는 rem (2026-08-25) ────────────────────────────────────
+   마이크는 코어 경로에서 손끝이 닿아야 하는 컨트롤이라 「아주 크게」에서 함께 커져야 합니다.
+   px로 두면 글자만 25% 커지고 마이크는 그대로라, 그 설정이 실제로 쓸 만해지지 않습니다.
+   (터치 타겟 48/54/56px처럼 **물리 치수**로 고정하는 자리와는 다릅니다 — 여기는 이미
+    52/64px로 하한을 크게 넘겨 두었고, 줄어드는 방향으로는 움직이지 않습니다.) */
+interface MicSpec {
+  /** 원 지름 — 52px / 64px에 해당하는 rem */
+  box: string;
+  capW: string;
+  capH: string;
+  capR: string;
+  /** U자 크래들 바깥 폭·높이·아래 모서리 반지름 */
+  cradleW: string;
+  cradleH: string;
+  cradleR: string;
+  /** 크래들 테두리 굵기 = 스템 굵기 */
+  stroke: string;
+  stemH: string;
+  gap: string;
+}
+
+const SPEC: Record<MicButtonSize, MicSpec> = {
+  md: {
+    box: "3.25rem" /* 52 */,
+    capW: "0.625rem" /* 10 */,
+    capH: "1rem" /* 16 */,
+    capR: "0.3125rem" /* 5 */,
+    cradleW: "1rem" /* 16 */,
+    cradleH: "0.375rem" /* 6 */,
+    cradleR: "0.5rem" /* 8 */,
+    stroke: "0.125rem" /* 2 */,
+    stemH: "0.1875rem" /* 3 */,
+    gap: "0.125rem" /* 2 */,
+  },
+  lg: {
+    box: "4rem" /* 64 */,
+    capW: "0.6875rem" /* 11 */,
+    capH: "1.125rem" /* 18 */,
+    capR: "0.375rem" /* 6 */,
+    cradleW: "1.125rem" /* 18 */,
+    cradleH: "0.4375rem" /* 7 */,
+    cradleR: "0.5625rem" /* 9 */,
+    stroke: "0.125rem" /* 2 */,
+    stemH: "0.21875rem" /* 3.5 */,
+    gap: "0.1875rem" /* 3 */,
+  },
 };
 
 /** 대기(md) 옅은 링 3px / 녹음(lg) 이중 링 8px + 16px */
@@ -112,11 +159,26 @@ export function MicButton({
         className="block bg-white"
         style={{ width: spec.capW, height: spec.capH, borderRadius: spec.capR }}
       />
-      {/* 받침대 */}
+      {/* 받침 — U자 크래들(좌·우·아래 테두리만) */}
       <span
         aria-hidden
-        className="block rounded-[1px] bg-white"
-        style={{ width: spec.barW, height: 2, marginTop: spec.barGap }}
+        className="block border-white"
+        style={{
+          width: spec.cradleW,
+          height: spec.cradleH,
+          marginTop: spec.gap,
+          borderLeftWidth: spec.stroke,
+          borderRightWidth: spec.stroke,
+          borderBottomWidth: spec.stroke,
+          borderBottomLeftRadius: spec.cradleR,
+          borderBottomRightRadius: spec.cradleR,
+        }}
+      />
+      {/* 스템 — 크래들 아래 짧은 기둥 */}
+      <span
+        aria-hidden
+        className="block bg-white"
+        style={{ width: spec.stroke, height: spec.stemH }}
       />
     </button>
   );

@@ -122,13 +122,13 @@ export function AiMap({ className }: AiMapProps) {
       <ul className="chim-hairline mt-4 border-y border-line">
         {ROWS.map((row) => (
           <li key={row.place} className="py-4">
-            <p className="text-[1.0625rem] leading-[1.4] font-extrabold text-ink">{row.place}</p>
+            <p className="text-[1.0625rem] leading-[1.45] font-extrabold text-ink">{row.place}</p>
             <dl className="mt-2">
               {[row.now, row.online, row.next].map((cell, index) => (
                 <div key={COLUMNS[index]} className={index > 0 ? "mt-3" : undefined}>
                   <dt
                     className={cx(
-                      "text-[0.7813rem] leading-[1.4] font-bold tracking-[0.04em]",
+                      "text-[0.7813rem] leading-[1.45] font-bold tracking-[0.04em]",
                       index === 1 && row.changes ? "text-warn-ink" : "text-ink-muted",
                     )}
                   >
@@ -143,7 +143,7 @@ export function AiMap({ className }: AiMapProps) {
       </ul>
 
       {/* 화면 곳곳의 단언과 이 표가 어긋나 보이지 않도록, 기준을 여기서 못 박습니다. */}
-      <p className="mt-4 text-[0.9375rem] leading-[1.65] text-ink-soft">
+      <p className="mt-4 text-[0.9375rem] leading-[1.6] text-ink-soft">
         이 화면이 적어 둔 「생성 호출 0건」은 <b className="font-bold text-ink">기본
         빌드 기준</b>입니다. 온라인 모드는 기본이 꺼짐이고, 켜는 것도 끄는 것도 사용자 손에
         있습니다. 켜신 경우에 무엇이 달라지는지는 위 가운데 칸에 적었습니다. 달라지는 자리는 여섯 중

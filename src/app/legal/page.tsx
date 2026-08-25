@@ -53,7 +53,7 @@ const TOC: readonly { id: string; label: string }[] = [
  */
 function DraftMark() {
   return (
-    <span className="inline-flex items-center rounded-chip border border-line-strong px-[9px] py-[2px] text-[0.7813rem] leading-[1.5] font-bold whitespace-nowrap text-ink-soft">
+    <span className="inline-flex items-center rounded-chip border border-line-strong px-[9px] py-[2px] text-[0.7813rem] leading-[1.45] font-bold whitespace-nowrap text-ink-soft">
       {DRAFT_NOTE}
     </span>
   );
@@ -75,16 +75,16 @@ function Doc({
 }) {
   return (
     <section id={id} className="scroll-mt-[16px] border-t border-line pt-7">
-      <p className="chim-num text-[0.7813rem] leading-[1.5] font-bold tracking-[0.06em] text-ink-muted">
+      <p className="chim-num text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-ink-muted">
         {num}
       </p>
-      <h2 className="mt-1 text-[1.375rem] leading-[1.3] font-extrabold tracking-[-0.02em] text-ink">
+      <h2 className="mt-1 text-[1.1875rem] leading-[1.3] font-bold tracking-[-0.015em] text-ink">
         {title}
       </h2>
       <p className="mt-[10px]">
         <DraftMark />
       </p>
-      <p className="mt-[10px] text-[0.9375rem] leading-[1.65] text-ink-soft">{lead}</p>
+      <p className="mt-[10px] text-[0.9375rem] leading-[1.6] text-ink-soft">{lead}</p>
       {children}
     </section>
   );
@@ -94,7 +94,7 @@ function Doc({
 function Article({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="mt-6">
-      <h3 className="text-[1.0625rem] leading-[1.4] font-extrabold text-ink">{title}</h3>
+      <h3 className="text-[1.0625rem] leading-[1.45] font-extrabold text-ink">{title}</h3>
       <div className="mt-2">{children}</div>
     </div>
   );
@@ -103,7 +103,7 @@ function Article({ title, children }: { title: string; children: ReactNode }) {
 /** 읽는 눈금(15px)의 본문 한 문단. */
 function P({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <p className={`text-[0.9375rem] leading-[1.65] text-ink ${className ?? ""}`.trim()}>
+    <p className={`text-[0.9375rem] leading-[1.6] text-ink ${className ?? ""}`.trim()}>
       {children}
     </p>
   );
@@ -114,7 +114,7 @@ function Bullets({ items }: { items: readonly ReactNode[] }) {
   return (
     <ul className="mt-2 flex flex-col gap-[7px]">
       {items.map((item, index) => (
-        <li key={index} className="flex gap-2 text-[0.9375rem] leading-[1.65] text-ink">
+        <li key={index} className="flex gap-2 text-[0.9375rem] leading-[1.6] text-ink">
           <span aria-hidden className="flex-none text-ink-ghost">
             ·
           </span>
@@ -131,8 +131,8 @@ function DefRows({ rows }: { rows: readonly { t: string; d: ReactNode }[] }) {
     <ul className="chim-hairline mt-3 border-y border-line">
       {rows.map((row) => (
         <li key={row.t} className="py-[14px]">
-          <p className="text-[1.0625rem] leading-[1.4] font-extrabold text-ink">{row.t}</p>
-          <p className="mt-[6px] text-[0.9375rem] leading-[1.65] text-ink-soft">{row.d}</p>
+          <p className="text-[1.0625rem] leading-[1.45] font-extrabold text-ink">{row.t}</p>
+          <p className="mt-[6px] text-[0.9375rem] leading-[1.6] text-ink-soft">{row.d}</p>
         </li>
       ))}
     </ul>
@@ -224,7 +224,7 @@ export default function LegalPage() {
 
       {/* 리드 문단은 이 화면에서 처음 읽는 문장입니다 — 14.5px은 가이드 §7-8의 가독 하한
           (읽어야 하는 문장 15px)을 어기는 값이라 한 단 올렸습니다(페르소나 디자이너 high). */}
-      <p className="mt-4 text-[0.9375rem] leading-[1.75] text-ink">
+      <p className="mt-4 text-[0.9375rem] leading-[1.6] text-ink">
         아래 세 문서는 <b className="font-bold">지금 이 앱이 실제로 하는 일만</b> 적었습니다.
         저장 항목·건수 상한·기기 밖으로 나가는 데이터 목록은 전부 실제 구현에서 옮겨 왔고, 아직
         없는 기능은 없다고 적었습니다. 앱이 바뀌면 이 문서도 같은 날 함께 바뀝니다.
@@ -294,7 +294,7 @@ export default function LegalPage() {
             않습니다.
           </P>
 
-          <p className="mt-5 text-[0.9375rem] leading-[1.4] font-extrabold text-ink">
+          <p className="mt-5 text-[0.9375rem] leading-[1.45] font-extrabold text-ink">
             (1) 음성 인식 — 마이크를 쓰실 때만
           </p>
           <P className="mt-2">
@@ -303,7 +303,7 @@ export default function LegalPage() {
             아예 없습니다.
           </P>
 
-          <p className="mt-5 text-[0.9375rem] leading-[1.4] font-extrabold text-ink">
+          <p className="mt-5 text-[0.9375rem] leading-[1.45] font-extrabold text-ink">
             (2) 온라인 모드 — 켜신 경우에만
           </p>
           <P className="mt-2">
@@ -330,7 +330,7 @@ export default function LegalPage() {
             ]}
           />
 
-          <p className="mt-5 text-[0.9375rem] leading-[1.4] font-extrabold text-ink">
+          <p className="mt-5 text-[0.9375rem] leading-[1.45] font-extrabold text-ink">
             (3) 자유 연습 — 온라인 모드를 켠 경우에만
           </p>
           <P className="mt-2">
@@ -540,8 +540,8 @@ export default function LegalPage() {
       </Doc>
 
       <section className="mt-7 border-t border-line pt-7">
-        <h2 className="text-[1.0625rem] leading-[1.4] font-bold text-ink">함께 보실 화면</h2>
-        <p className="mt-[6px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+        <h2 className="text-[1.1875rem] leading-[1.3] font-bold tracking-[-0.015em] text-ink">함께 보실 화면</h2>
+        <p className="mt-[6px] text-[0.8438rem] leading-[1.6] text-ink-soft">
           위 문서가 말로 적은 것을, 아래 화면은 지금 이 기기에서 재서 보여 드립니다.
         </p>
         <div className="mt-[8px]">

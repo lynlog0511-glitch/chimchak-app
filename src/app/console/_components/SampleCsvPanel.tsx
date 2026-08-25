@@ -63,12 +63,12 @@ export function SampleCsvPanel() {
     <section
       data-noprint
       aria-labelledby="console-sample-title"
-      className="mt-4 rounded-[14px] bg-paper-2 px-4 py-[14px]"
+      className="mt-4 rounded-card bg-paper-2 px-4 py-[14px]"
     >
       <h2 id="console-sample-title" className="text-[0.9375rem] leading-[1.45] font-bold text-ink">
         올려 보실 예시 파일 만들기
       </h2>
-      <p className="mt-[4px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+      <p className="mt-[4px] text-[0.8438rem] leading-[1.6] text-ink-soft">
         직원 세 분이 각자 기기에서 내려받았다고 가정한 이수 사실 파일입니다. 앱이 실제로 내보내는
         것과 <b className="font-bold text-ink">같은 서식</b>으로 이 기기에서 만들고, 위 칸에 그대로
         올리시면 됩니다.
@@ -89,7 +89,7 @@ export function SampleCsvPanel() {
 
       <ul className="mt-[10px]">
         {SAMPLE_FILES.map((spec) => (
-          <li key={spec.key} className="text-[0.7813rem] leading-[1.7] text-ink-soft">
+          <li key={spec.key} className="text-[0.7813rem] leading-[1.6] text-ink-soft">
             <span className="font-bold text-ink">{spec.label}</span>
             {built[spec.key] && (
               <>
@@ -104,7 +104,7 @@ export function SampleCsvPanel() {
 
       <div role="status" aria-live="polite">
         {madeName.length > 0 && (
-          <p className="mt-[10px] text-[0.8438rem] leading-[1.7] font-semibold text-ok-ink">
+          <p className="mt-[10px] text-[0.8438rem] leading-[1.6] font-semibold text-ok-ink">
             내려받기를 시작했습니다 — 파일 이름{" "}
             <span className="font-bold break-all">{madeName}</span>. 기기의 「다운로드」 폴더에서
             찾으실 수 있습니다.
@@ -112,7 +112,7 @@ export function SampleCsvPanel() {
         )}
       </div>
 
-      <p className="mt-[10px] text-[0.7813rem] leading-[1.7] text-ink-soft">
+      <p className="mt-[10px] text-[0.7813rem] leading-[1.6] text-ink-soft">
         이 파일은 체험용 예시입니다. 서식이 실제 파일과 같아서, 이수 확인서 화면에서 가져오시면 이
         기기의 이수 누계에 예시 회차가 더해집니다. 확인이 끝나면 지워 주십시오. 파일 안에 예시
         표시를 넣을 칸은 없습니다. 이름 앞에 붙는{" "}

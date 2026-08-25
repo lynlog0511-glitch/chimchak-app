@@ -167,7 +167,7 @@ export function HistoryBoard({
       {demoShown && (
         <section
           aria-labelledby="demo-notice-title"
-          className="mb-4 rounded-[14px] bg-warn-soft px-4 py-[14px]"
+          className="mb-4 rounded-card bg-warn-soft px-4 py-[14px]"
         >
           <h2
             id="demo-notice-title"
@@ -175,7 +175,7 @@ export function HistoryBoard({
           >
             체험용 예시 기록이 표시되고 있습니다
           </h2>
-          <p className="mt-[5px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+          <p className="mt-[5px] text-[0.8438rem] leading-[1.6] text-ink-soft">
             화면 확인을 위해 심어 둔 {DEMO_SEED_SUMMARY}이 아래 목록에 섞여 있습니다. 해당 행에는
             「예시」 표시가 붙고, 이수 확인서에는 「예시 미리보기」로 인쇄됩니다. 실제 이수 시수
             누계에는 들어가지 않습니다.
@@ -183,7 +183,7 @@ export function HistoryBoard({
           <button
             type="button"
             onClick={handleClearDemo}
-            className="mt-[10px] flex min-h-[48px] w-full items-center justify-center rounded-[14px] border border-line-strong bg-white text-[0.9375rem] font-bold text-ink transition-colors duration-150 active:bg-paper-2"
+            className="mt-[10px] flex min-h-[48px] w-full items-center justify-center rounded-card bg-paper text-[0.9375rem] font-bold text-ink transition-colors duration-150 active:bg-paper-2"
           >
             예시 기록 한 번에 지우기
           </button>
@@ -193,29 +193,33 @@ export function HistoryBoard({
         </section>
       )}
 
-      {/* 다음엔 이 장면 — 추천 규칙은 순수 함수가 정하고, 여기서는 장면 이름과 이유 한 줄만 답니다. */}
+      {/* 다음엔 이 장면 — 추천 규칙은 순수 함수가 정하고, 여기서는 장면 이름과 이유 한 줄만 답니다.
+          tint 면 위 글자는 `brand-on-tint`(#0f3f3a · tint 위 10.3:1) **한 단**입니다(2026-08-25).
+          예전에는 한 카드 안에 brand-700(eyebrow)·brand-900(제목)·brand-800(본문)·brand-700(CTA)
+          네 단이 얹혀 있어 카드 하나가 팔레트 견본처럼 보였습니다 — 가이드 §1은 tint 면 위
+          텍스트를 brand-on-tint 한 단으로 지정합니다. 위계는 크기와 굵기가 만듭니다. */}
       {suggestion && (
         <Link
           href={trainHref(suggestion.candidate.id)}
           aria-label={`${suggestion.candidate.title} 훈련으로 가기. ${nextTrainingSentence(suggestion)}`}
-          className="mb-4 flex min-h-[48px] items-center gap-[10px] rounded-[14px] bg-tint px-[15px] py-[14px] transition-colors duration-150 active:bg-mint-200"
+          className="mb-4 flex min-h-[48px] items-center gap-[10px] rounded-card bg-tint px-[15px] py-[14px] transition-colors duration-150 active:bg-mint-200"
         >
           <span className="min-w-0 flex-1">
             {/* 링크 안이라 문단(EyebrowLabel)을 넣을 수 없는 자리입니다 —
                 크기·자간은 그 컴포넌트와 같은 값으로 맞춰 둡니다(12.5px / 700 / +.06em). */}
-            <span className="block text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-brand-700">
+            <span className="block text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-brand-on-tint">
               다음엔 이 장면
             </span>
             {/* 장면 이름을 먼저 세웁니다 — 어디로 가는지가 이유보다 먼저 읽혀야 합니다. */}
-            <span className="mt-[2px] block text-[0.9375rem] leading-[1.4] font-bold text-brand-900">
+            <span className="mt-[2px] block text-[0.9375rem] leading-[1.45] font-bold text-brand-on-tint">
               {suggestion.candidate.title}
             </span>
             {/* 왜 이 장면인지 — 최근 코칭이 가리킨 항목을 그대로 문장으로 답니다(숫자 없음). */}
-            <span className="mt-[3px] block text-[0.8438rem] leading-[1.6] text-brand-800">
+            <span className="mt-[3px] block text-[0.8438rem] leading-[1.6] text-brand-on-tint">
               {nextTrainingSentence(suggestion)}
             </span>
           </span>
-          <span className="flex-none text-[0.9375rem] font-bold whitespace-nowrap text-brand-700">
+          <span className="flex-none text-[0.9375rem] font-bold whitespace-nowrap text-brand-on-tint">
             가기 ›
           </span>
         </Link>
@@ -254,7 +258,7 @@ export function HistoryBoard({
         </div>
       ) : (
         <div className="border-b border-line px-[2px] py-[14px]">
-          <p className="text-[1.0625rem] leading-[1.5] font-bold text-ink">
+          <p className="text-[1.0625rem] leading-[1.45] font-bold text-ink">
             아직 완주한 훈련이 없습니다
           </p>
           <p className="mt-[3px] text-[0.7813rem] leading-[1.6] text-ink-soft">
@@ -273,7 +277,7 @@ export function HistoryBoard({
       {/* 이수 확인서 — 인쇄용 화면으로 나갑니다(이수 사실만 담습니다). */}
       <Link
         href="/history/certificate"
-        className="mt-4 flex min-h-[50px] w-full items-center justify-center rounded-[14px] border border-line-strong bg-white text-[0.9375rem] font-bold text-ink transition-colors duration-150 active:bg-paper-2"
+        className="mt-4 flex min-h-[50px] w-full items-center justify-center rounded-card bg-neutral-soft text-[0.9375rem] font-bold text-ink transition-colors duration-150 active:bg-neutral-line"
       >
         이수 확인서 만들기
       </Link>
@@ -297,7 +301,7 @@ export function HistoryBoard({
         <ReportList reports={reports} />
       ) : (
         <div className="border-b border-line px-[2px] py-[14px]">
-          <p className="text-[1.0625rem] leading-[1.5] font-bold text-ink">
+          <p className="text-[1.0625rem] leading-[1.45] font-bold text-ink">
             아직 확정한 기록이 없습니다
           </p>
           <p className="mt-[3px] text-[0.7813rem] leading-[1.6] text-ink-soft">
@@ -314,19 +318,19 @@ export function HistoryBoard({
       )}
 
       {/* 이 기록이 어디에 쓰이는지 — 면 카드 한 장으로 조용히 둡니다. */}
-      <div className="mt-7 rounded-[14px] bg-paper-2 px-4 py-[14px]">
+      <div className="mt-7 rounded-card bg-paper-2 px-4 py-[14px]">
         <EyebrowLabel>이 기록이 쓰이는 곳</EyebrowLabel>
-        <p className="mt-[8px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+        <p className="mt-[8px] text-[0.8438rem] leading-[1.6] text-ink-soft">
           훈련 이력은 이 기기에만 쌓입니다. 기관에서 요구하는 보수교육·직무평가 증빙으로 쓰실 수
           있도록 이수 여부와 이수 일시를 중심으로 남깁니다. 내부 판정 결과와 대화 내용은 기관
           관리자에게 공개되지 않고 인사평가에 연동하지 않습니다.
         </p>
         {/* 오독 방지 — 확인서 하단 각주와 같은 문장을 여기에도 둡니다(경계는 두 곳에서 같아야 합니다). */}
-        <p className="mt-[8px] text-[0.8438rem] leading-[1.7] font-bold text-ink">
+        <p className="mt-[8px] text-[0.8438rem] leading-[1.6] font-bold text-ink">
           이 기록과 이수 확인서는 앱 기록 기반이며 법정 보수교육 이수 인정이 아닙니다 — 기관 자체
           직무교육·정기평가 내부 증빙용입니다.
         </p>
-        <p className="mt-[8px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+        <p className="mt-[8px] text-[0.8438rem] leading-[1.6] text-ink-soft">
           훈련 속 인물은 전원 가상이며, 대사는 검수된 문장을 바탕으로 합니다. 하신 말씀 원문은
           어디에도 저장하지 않습니다.
         </p>
@@ -346,14 +350,14 @@ export function HistoryBoard({
                 <button
                   type="button"
                   onClick={handleClear}
-                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-[14px] bg-danger-ink text-[0.9375rem] font-bold text-white transition-colors duration-150 active:brightness-95"
+                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-card bg-danger-ink text-[0.9375rem] font-bold text-white transition-colors duration-150 active:brightness-95"
                 >
                   네, 지웁니다
                 </button>
                 <button
                   type="button"
                   onClick={() => setConfirmClear(false)}
-                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-[14px] bg-white text-[0.9375rem] font-bold text-ink-soft transition-colors duration-150 active:bg-paper-2"
+                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-card bg-paper text-[0.9375rem] font-bold text-ink-soft transition-colors duration-150 active:bg-neutral-line"
                 >
                   취소
                 </button>

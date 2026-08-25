@@ -161,6 +161,11 @@ function FlowBox({ x, y, node, tone = "ink" }: { x: number; y: number; node: Flo
  *
  * 크기는 px이지만 **눈금은 화면과 같습니다** — 15(본문) · 17(상자 제목) · 20(판단·L3 밴드) 셋뿐입니다.
  * 예전에는 16·19가 섞여 있어 그림 안에서만 다섯 단이 됐습니다.
+ *
+ * 선 굵기 1.5도 같은 이유로 **그대로 둡니다**(2026-08-25 아이콘 굵기 정리에서 제외).
+ * 이 그림의 선은 IconBase 아이콘이 아니라 720×600 좌표계에 1:1로 놓인 도형이라, 1.5는 화면에서
+ * 그대로 1.5px입니다. 탭바 아이콘의 「24 viewBox · 1.75」는 22px로 그려질 때 실제 1.60px이므로,
+ * 여기서 1.75로 올리면 **아이콘 시스템보다 굵어집니다**. 지금이 같은 무게입니다.
  */
 function FlowDiagram() {
   return (
@@ -366,12 +371,12 @@ function StepRow({ index, node }: { index: number; node: FlowNode }) {
     <li className="flex gap-3 border-t border-line py-4">
       <span
         aria-hidden
-        className="chim-num w-[1rem] flex-none text-[0.9375rem] leading-[1.4] font-extrabold text-brand-700"
+        className="chim-num w-[1rem] flex-none text-[0.9375rem] leading-[1.45] font-extrabold text-brand-700"
       >
         {index}
       </span>
       <div className="min-w-0">
-        <p className="text-[1.0625rem] leading-[1.4] font-extrabold text-ink">
+        <p className="text-[1.0625rem] leading-[1.45] font-extrabold text-ink">
           {node.title}
           {node.plan && <PlanTag className="ml-2" />}
         </p>
@@ -401,17 +406,22 @@ function FlowSteps() {
         <li className="flex gap-3 border-t border-line py-4">
           <span
             aria-hidden
-            className="chim-num w-[1rem] flex-none text-[0.9375rem] leading-[1.4] font-extrabold text-brand-700"
+            className="chim-num w-[1rem] flex-none text-[0.9375rem] leading-[1.45] font-extrabold text-brand-700"
           >
             {INPUT_NODES.length + 1}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-[1.0625rem] leading-[1.4] font-extrabold text-brand-800">근거 확인</p>
+            <p className="text-[1.0625rem] leading-[1.45] font-extrabold text-brand-800">근거 확인</p>
             <p className="mt-1 text-[0.9375rem] leading-[1.6] text-ink-muted">
               여기서 길이 갈립니다. 근거를 찾았는지에 따라 다음이 달라집니다.
             </p>
 
-            {/* 분기 — 라벨 한 줄 + 옅은 면. 아이콘은 쓰지 않습니다. */}
+            {/* 분기 — 라벨 한 줄 + 옅은 면. 아이콘은 쓰지 않습니다.
+                두 갈래 모두 **같은 무채 면**입니다(2026-08-25). 예전에는 「아니오」 쪽만
+                warn-soft 주황 면이었는데, 이 화면은 색 면이 11블록까지 늘어 각 블록이 서로
+                「내가 더 중요해」라고 다투던 자리였습니다 — 이 구역이 쓰는 색은 아래 응급 고정
+                고지의 빨강 하나로 배급했습니다. 두 갈래는 제목 색(brand-800 / warn-ink)으로
+                갈립니다. */}
             <div className="mt-3 space-y-2">
               <div className="rounded-card bg-paper-2 p-4">
                 <p className="text-[0.9375rem] leading-[1.45] font-extrabold text-brand-800">
@@ -424,7 +434,7 @@ function FlowSteps() {
                 </ol>
               </div>
 
-              <div className="rounded-card bg-warn-soft p-4">
+              <div className="rounded-card bg-paper-2 p-4">
                 <p className="text-[0.9375rem] leading-[1.45] font-extrabold text-warn-ink">
                   아니오 · 근거가 목록 밖일 때
                 </p>
@@ -447,8 +457,10 @@ function FlowSteps() {
         </li>
       </ol>
 
-      <div className="mt-5 rounded-card bg-brand-tint p-4">
-        <p className="text-[1.0625rem] leading-[1.4] font-extrabold text-brand-900">{L3_TITLE}</p>
+      {/* 예전에는 brand-tint 틸 면이었습니다 — 같은 구역 안 색 면을 하나로 배급하면서
+          무채 면으로 내렸습니다. 제목의 딥 틸 한 단은 남깁니다(면이 아니라 글자입니다). */}
+      <div className="mt-5 rounded-card bg-paper-2 p-4">
+        <p className="text-[1.0625rem] leading-[1.45] font-extrabold text-brand-900">{L3_TITLE}</p>
         <p className="mt-1 text-[0.9375rem] leading-[1.6] text-ink-soft">{L3_SUB}</p>
       </div>
     </div>
@@ -474,7 +486,7 @@ export function EvidenceFlow() {
 
       <details className="group mt-5 rounded-card bg-paper-2">
         <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
-          <span className="min-w-0 flex-1 text-[1.0625rem] leading-[1.4] font-extrabold text-ink">
+          <span className="min-w-0 flex-1 text-[1.0625rem] leading-[1.45] font-extrabold text-ink">
             같은 내용을 흐름도 한 장으로 보기
           </span>
           <span

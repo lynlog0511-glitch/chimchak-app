@@ -70,7 +70,7 @@ export function WeeklyGoalCard({ className }: WeeklyGoalCardProps) {
 
         {/* 「2/3회」는 눈으로 읽는 표기이고, 낭독으로는 슬래시가 뜻을 잃습니다 —
             보이는 쪽을 장식으로 두고 문장 하나를 따로 들려 드립니다. */}
-        <p className="mt-[6px] text-[1.0625rem] leading-[1.35] font-bold text-ink">
+        <p className="mt-[6px] text-[1.0625rem] leading-[1.3] font-bold text-ink">
           <span aria-hidden>
             이번 주 <span className="chim-num">{done}</span>/
             <span className="chim-num">{goal}</span>회
@@ -135,7 +135,7 @@ export function WeeklyGoalCard({ className }: WeeklyGoalCardProps) {
                     aria-pressed={selected}
                     aria-label={`주 ${choice}회`}
                     className={cx(
-                      "chim-num chim-label min-h-[48px] rounded-[14px] px-1",
+                      "chim-num chim-label min-h-[48px] rounded-card px-1",
                       "transition-colors duration-150 ease-soft",
                       selected
                         ? "bg-brand-700 font-bold text-white active:bg-brand-800"

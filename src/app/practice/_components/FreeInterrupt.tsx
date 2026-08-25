@@ -78,7 +78,7 @@ export function FreeInterrupt({ check, onClose }: FreeInterruptProps) {
           entered ? "translate-y-0" : "translate-y-full",
         )}
       >
-        <div aria-hidden className="flex h-[22px] flex-none items-center justify-center">
+        <div aria-hidden className="flex h-[1.375rem] flex-none items-center justify-center">
           <span className="block h-[4px] w-[36px] rounded-full bg-line-strong" />
         </div>
 
@@ -105,7 +105,7 @@ export function FreeInterrupt({ check, onClose }: FreeInterruptProps) {
           )}
 
           {/* 지금 이 사람에게 가장 먼저 필요한 사실 — 그 말은 기기 밖으로 나가지 않았습니다. */}
-          <p className="mt-2.5 rounded-field bg-paper-2 px-[13px] py-[12px] text-[0.875rem] leading-[1.6] font-semibold text-ink">
+          <p className="mt-2.5 rounded-field bg-paper-2 px-[13px] py-[12px] text-[0.9375rem] leading-[1.6] font-semibold text-ink">
             {CF_NOT_SENT}
           </p>
 
@@ -120,7 +120,7 @@ export function FreeInterrupt({ check, onClose }: FreeInterruptProps) {
                     <button
                       type="button"
                       onClick={() => leave(alternative)}
-                      className="min-h-[48px] w-full rounded-[14px] border border-line-strong bg-white px-[15px] py-2.5 text-left text-[1.0625rem] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
+                      className="min-h-[48px] w-full rounded-card border border-line-strong bg-white px-[15px] py-2.5 text-left text-[1.0625rem] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
                     >
                       {alternative}
                     </button>
@@ -161,7 +161,7 @@ export function FreeInterrupt({ check, onClose }: FreeInterruptProps) {
             type="button"
             ref={retryRef}
             onClick={() => leave()}
-            className="min-h-[54px] w-full rounded-[14px] bg-brand-700 px-5 text-[1rem] font-bold text-white transition-colors duration-150 hover:bg-brand-800 active:bg-brand-900"
+            className="min-h-[54px] w-full rounded-card bg-brand-700 px-5 text-[1rem] font-bold text-white transition-colors duration-150 hover:bg-brand-800 active:bg-brand-900"
           >
             {CF_RETRY}
           </button>

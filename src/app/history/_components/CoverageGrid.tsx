@@ -73,7 +73,7 @@ export function CoverageGrid({
 
   return (
     <div className={className}>
-      <ul className="flex overflow-hidden rounded-[14px] bg-paper-2">
+      <ul className="flex overflow-hidden rounded-card bg-paper-2">
         {ORDER.map((type, index) => {
           const done = counts[type];
           const recent = lastAt[type];
@@ -101,7 +101,7 @@ export function CoverageGrid({
               <p
                 aria-hidden
                 className={cx(
-                  "chim-num text-[1.0625rem] leading-[1.2] font-extrabold",
+                  "chim-num text-[1.0625rem] leading-[1.3] font-extrabold",
                   done > 0 ? "text-brand-800" : "text-ink-faint",
                 )}
               >
@@ -110,14 +110,14 @@ export function CoverageGrid({
               <p
                 aria-hidden
                 className={cx(
-                  "mt-[1px] text-[0.7813rem] leading-[1.4]",
+                  "mt-[1px] text-[0.7813rem] leading-[1.45]",
                   done > 0 ? "text-ink-muted" : "text-ink-faint",
                 )}
               >
                 {TYPE_SHORT_LABELS[type]}
               </p>
               {/* 기간 축 한 줄 — 칸 높이가 들쭉날쭉해지지 않도록 빈 칸도 자리는 지킵니다. */}
-              <p aria-hidden className="chim-num mt-[2px] text-[0.6875rem] leading-[1.4] text-ink-muted">
+              <p aria-hidden className="chim-num mt-[2px] text-[0.6875rem] leading-[1.45] text-ink-muted">
                 {recent ? `최근 ${formatTinyDate(recent)}` : " "}
               </p>
             </li>
@@ -140,7 +140,7 @@ export function CoverageGrid({
 
       {/* 아직 열지 않은 유형은 「—」로만 두면 이유를 알 수 없어, 아래 한 줄로 조용히 적어 둡니다. */}
       {pending.length > 0 && (
-        <p className="mt-[6px] text-[0.8438rem] leading-[1.5] text-tertiary">
+        <p className="mt-[6px] text-[0.8438rem] leading-[1.45] text-tertiary">
           {pending.map((type) => TYPE_SHORT_LABELS[type]).join(" · ")}은 아직 열리지 않았습니다
         </p>
       )}

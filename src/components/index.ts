@@ -30,6 +30,10 @@ export type { ModalDismissOptions, OverlayTransition } from "./useModalDismiss";
 export { ScreenHeader } from "./ScreenHeader";
 export type { ScreenHeaderProps } from "./ScreenHeader";
 
+/* 뒤로 표식 `‹` 한 벌 — 라벨 옆 17px / 단독 19px, 색은 ink-soft 하나. */
+export { BackGlyph } from "./BackGlyph";
+export type { BackGlyphProps, BackGlyphSize } from "./BackGlyph";
+
 export { SessionTopBar } from "./SessionTopBar";
 export type { SessionTopBarProps } from "./SessionTopBar";
 

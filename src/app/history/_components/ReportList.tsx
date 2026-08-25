@@ -75,16 +75,16 @@ function ReportRow({ report }: { report: StoredReport }) {
         className="flex min-h-[48px] w-full items-center gap-3 rounded-field px-[2px] py-[14px] text-left transition-colors duration-150 active:bg-paper-2"
       >
         <span className="min-w-0 flex-1">
-          <span className="block text-[0.7813rem] leading-[1.4] text-tertiary">
+          <span className="block text-[0.7813rem] leading-[1.45] text-tertiary">
             {isExample && <span className="font-bold text-warn-ink">예시 · </span>}
             {formatShortDate(report.createdAt)} · 가명처리 완료
             {isDisplayableElapsed(report.elapsedSec) &&
               ` · ${formatElapsedDuration(report.elapsedSec)} 동안 작성`}
           </span>
-          <span className="mt-[2px] line-clamp-2 block text-[1.0625rem] leading-[1.35] font-bold text-ink">
+          <span className="mt-[2px] line-clamp-2 block text-[1.0625rem] leading-[1.3] font-bold text-ink">
             {firstSentence(report.maskedText)}
           </span>
-          <span className="mt-[3px] block text-[0.8438rem] leading-[1.5] text-ink-soft">
+          <span className="mt-[3px] block text-[0.8438rem] leading-[1.45] text-ink-soft">
             5요소 {filled}칸 채움 · {maskedTotal > 0 ? `${maskedTotal}곳 가림` : "가릴 항목 없음"}
           </span>
         </span>
@@ -100,19 +100,19 @@ function ReportRow({ report }: { report: StoredReport }) {
       </button>
 
       {open && (
-        <div id={panelId} className="mb-[14px] rounded-[14px] bg-paper-2 px-4 py-[14px]">
+        <div id={panelId} className="mb-[14px] rounded-card bg-paper-2 px-4 py-[14px]">
           {isExample && (
             <p className="mb-[10px] text-[0.7813rem] leading-[1.6] font-bold text-warn-ink">
               체험용으로 심어 둔 예시 기록입니다. 실제로 확정하신 보고가 아닙니다.
             </p>
           )}
           <EyebrowLabel>확정한 본문</EyebrowLabel>
-          <p className="mt-[6px] text-[0.8438rem] leading-[1.8] text-ink">
+          <p className="mt-[6px] text-[0.8438rem] leading-[1.6] text-ink">
             <TokenText text={report.maskedText} />
           </p>
 
           {counts.length > 0 && (
-            <p className="mt-[10px] text-[0.7813rem] leading-[1.5] text-tertiary">
+            <p className="mt-[10px] text-[0.7813rem] leading-[1.45] text-tertiary">
               {counts.map(([kind, value]) => `${kind} ${value}곳`).join(" · ")} 가림
             </p>
           )}
@@ -122,7 +122,7 @@ function ReportRow({ report }: { report: StoredReport }) {
               const value = report.draft[slot];
               return (
                 <div key={slot} className="py-[10px]">
-                  <dt className="text-[0.7813rem] leading-[1.4] font-bold text-ink-muted">
+                  <dt className="text-[0.7813rem] leading-[1.45] font-bold text-ink-muted">
                     {RECORD_SLOT_LABELS[slot]}
                   </dt>
                   <dd className="mt-[2px] text-[0.8438rem] leading-[1.6] text-ink">
@@ -139,7 +139,7 @@ function ReportRow({ report }: { report: StoredReport }) {
             })}
           </dl>
 
-          <p className="mt-[10px] text-[0.7813rem] leading-[1.5] text-tertiary">
+          <p className="mt-[10px] text-[0.7813rem] leading-[1.45] text-tertiary">
             남아 있는 것은 가명처리를 마친 텍스트뿐이며, 음성과 원문은 저장하지 않았습니다.
           </p>
         </div>

@@ -79,23 +79,23 @@ export function TrainingRow({ record, typeLabel }: TrainingRowProps) {
           aria-controls={panelId}
           className="min-h-[48px] min-w-0 flex-1 rounded-field py-2 text-left transition-colors duration-150 active:bg-paper-2"
         >
-          <span className="block text-[0.7813rem] leading-[1.4] text-tertiary">
+          <span className="block text-[0.7813rem] leading-[1.45] text-tertiary">
             {isExample && <span className="font-bold text-warn-ink">예시 · </span>}
             {formatShortDate(record.startedAt)} · {typeLabel}
           </span>
-          <span className="mt-[2px] block text-[1.0625rem] leading-[1.35] font-bold text-ink">
+          <span className="mt-[2px] block text-[1.0625rem] leading-[1.3] font-bold text-ink">
             {record.scenarioTitle}
           </span>
           {/* 접힌 줄이 회차의 전부입니다 — 멈춘 지점과 마무리 제목이 여기서 빠지면 요약이 사실과 어긋납니다.
               0인 항목은 아예 적지 않습니다(「다시 볼 것 0」이 「없었다」로 읽히지 않도록). */}
-          <span className="mt-[3px] line-clamp-2 block text-[0.8438rem] leading-[1.5] text-ink-soft">
+          <span className="mt-[3px] line-clamp-2 block text-[0.8438rem] leading-[1.45] text-ink-soft">
             <span className="font-bold text-ok-ink">잘한 것 {green}</span>
             {cfScenes > 0 && (
               <span className="font-bold text-warn-ink"> · 다시 볼 장면 {cfScenes}곳</span>
             )}
             {coaching > 0 && ` · 다시 볼 것 ${coaching}`} — {summaryTail(record)}
           </span>
-          <span className="mt-[3px] block text-[0.7813rem] leading-[1.4] text-tertiary">
+          <span className="mt-[3px] block text-[0.7813rem] leading-[1.45] text-tertiary">
             {open ? "접기" : "자세히 보기"}
           </span>
         </button>
@@ -110,14 +110,14 @@ export function TrainingRow({ record, typeLabel }: TrainingRowProps) {
       </div>
 
       {open && (
-        <div id={panelId} className="mb-[14px] rounded-[14px] bg-paper-2 px-4 py-[14px]">
+        <div id={panelId} className="mb-[14px] rounded-card bg-paper-2 px-4 py-[14px]">
           {isExample && (
             <p className="mb-[10px] text-[0.7813rem] leading-[1.6] font-bold text-warn-ink">
               체험용으로 심어 둔 예시 회차입니다. 실제로 완주하신 기록이 아니고, 이수 시수
               누계에도 들어가지 않습니다.
             </p>
           )}
-          <p className="text-[0.9375rem] leading-[1.5] font-bold text-ink">{record.endingTitle}</p>
+          <p className="text-[0.9375rem] leading-[1.45] font-bold text-ink">{record.endingTitle}</p>
           <p className="mt-[3px] text-[0.7813rem] leading-[1.6] text-ink-soft">
             {verdictNote(record.verdict)}
           </p>
@@ -136,13 +136,13 @@ export function TrainingRow({ record, typeLabel }: TrainingRowProps) {
           />
 
           {cfScenes > 0 && (
-            <p className="mt-[14px] rounded-[12px] bg-danger-soft px-3 py-[10px] text-[0.7813rem] leading-[1.6] font-semibold text-danger-ink">
+            <p className="mt-[14px] rounded-field bg-danger-soft px-3 py-[10px] text-[0.7813rem] leading-[1.6] font-semibold text-danger-ink">
               안전과 직결된 구간에서 즉시 중단 안내를 받으셨습니다. 대안 행동을 확인하신 뒤 같은
               상황을 다시 연습해 보세요.
             </p>
           )}
 
-          <p className="mt-[12px] text-[0.7813rem] leading-[1.5] text-tertiary">
+          <p className="mt-[12px] text-[0.7813rem] leading-[1.45] text-tertiary">
             주고받은 대화 <span className="chim-num">{record.turnCount}</span>번
             {record.retriesUsed > 0 && " · 다시 해 보기 사용"} · 마친 시각{" "}
             {formatDateTime(record.endedAt)}

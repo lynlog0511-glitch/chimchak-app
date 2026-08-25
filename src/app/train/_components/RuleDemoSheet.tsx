@@ -76,7 +76,7 @@ export function RuleDemoSheet({ prompt, examples, onFill, onClose }: RuleDemoShe
         )}
       >
         {/* 그래버 — 22px 띠 하나. 「여기는 스크롤됩니다」를 형태로만 말합니다. */}
-        <div aria-hidden className="flex h-[22px] flex-none items-center justify-center">
+        <div aria-hidden className="flex h-[1.375rem] flex-none items-center justify-center">
           <span className="block h-[4px] w-[36px] rounded-full bg-line-strong" />
         </div>
 
@@ -105,7 +105,7 @@ export function RuleDemoSheet({ prompt, examples, onFill, onClose }: RuleDemoShe
                 <button
                   type="button"
                   onClick={() => leave(example)}
-                  className="w-full rounded-[14px] bg-paper-2 px-3.5 py-3 text-left transition-colors duration-150 hover:bg-tint active:bg-tint"
+                  className="w-full rounded-card bg-paper-2 px-3.5 py-3 text-left transition-colors duration-150 hover:bg-tint active:bg-tint"
                 >
                   <span className="block text-[0.7813rem] leading-[1.45] font-bold text-ink-muted">
                     {example.kind === "critical" ? "즉시 중단" : "코칭"} · {example.ruleId} ·{" "}
@@ -123,7 +123,7 @@ export function RuleDemoSheet({ prompt, examples, onFill, onClose }: RuleDemoShe
           </ul>
 
           {!examples.some((example) => example.kind === "critical") && (
-            <p className="mt-2.5 rounded-[14px] bg-paper-2 px-3.5 py-2.5 text-[0.8438rem] leading-[1.6] text-ink-muted">
+            <p className="mt-2.5 rounded-card bg-paper-2 px-3.5 py-2.5 text-[0.8438rem] leading-[1.6] text-ink-muted">
               {RULE_DEMO_NO_CRITICAL_NOTE}
             </p>
           )}
@@ -135,7 +135,7 @@ export function RuleDemoSheet({ prompt, examples, onFill, onClose }: RuleDemoShe
             type="button"
             ref={closeRef}
             onClick={dismiss}
-            className="min-h-[54px] w-full rounded-[14px] bg-neutral-soft px-5 text-[1rem] font-bold text-ink transition-colors duration-150 hover:bg-neutral-line active:bg-neutral-line"
+            className="min-h-[54px] w-full rounded-card bg-neutral-soft px-5 text-[1rem] font-bold text-ink transition-colors duration-150 hover:bg-neutral-line active:bg-neutral-line"
           >
             닫고 보기로 돌아가기
           </button>

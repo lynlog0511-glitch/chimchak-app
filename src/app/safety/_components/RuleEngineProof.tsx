@@ -48,10 +48,10 @@ const QUOTED_ROWS: readonly { k: string; v: string }[] = [
 function Row({ k, v, tone }: { k: string; v: string; tone?: "warn" }) {
   return (
     <div className="flex items-baseline gap-3 py-3">
-      <dt className="min-w-0 flex-1 text-[0.9375rem] leading-[1.5] text-ink-muted">{k}</dt>
+      <dt className="min-w-0 flex-1 text-[0.9375rem] leading-[1.45] text-ink-muted">{k}</dt>
       <dd
         className={cx(
-          "chim-num flex-none text-[0.9375rem] leading-[1.5] font-extrabold",
+          "chim-num flex-none text-[0.9375rem] leading-[1.45] font-extrabold",
           tone === "warn" ? "text-danger-ink" : "text-ink",
         )}
       >
@@ -84,7 +84,7 @@ function MeasuredStat({
         {value}
         <span className="text-[0.9375rem] font-semibold text-ink-muted"> {unit}</span>
       </p>
-      <p className="mt-2 text-[0.7813rem] leading-[1.5] text-ink-muted">{label}</p>
+      <p className="mt-2 text-[0.7813rem] leading-[1.45] text-ink-muted">{label}</p>
     </div>
   );
 }
@@ -144,7 +144,7 @@ export function RuleEngineProof({ className }: RuleEngineProofProps) {
     >
       <h3
         id="rule-engine-proof-title"
-        className="text-[1.0625rem] leading-[1.4] font-extrabold text-ink"
+        className="text-[1.0625rem] leading-[1.45] font-extrabold text-ink"
       >
         규칙 엔진 검증 — 경계 케이스
       </h3>
@@ -156,7 +156,7 @@ export function RuleEngineProof({ className }: RuleEngineProofProps) {
         늘었습니다. 그날 30건도 전부 그대로 들어 있습니다.
       </p>
 
-      <p className="mt-4 text-[0.7813rem] leading-[1.5] font-bold tracking-[0.04em] text-ink-muted">
+      <p className="mt-4 text-[0.7813rem] leading-[1.45] font-bold tracking-[0.04em] text-ink-muted">
         설계 문서 검증 계단 ① 실행 로그 — 옮겨 적은 값
       </p>
       <dl className="chim-hairline mt-1 border-y border-line">
@@ -173,7 +173,7 @@ export function RuleEngineProof({ className }: RuleEngineProofProps) {
 
       {result && latency && (
         <>
-          <p className="mt-5 text-[0.7813rem] leading-[1.5] font-bold tracking-[0.04em] text-brand-800">
+          <p className="mt-5 text-[0.7813rem] leading-[1.45] font-bold tracking-[0.04em] text-brand-800">
             방금 이 기기에서 잰 값
           </p>
           <div className="mt-2 grid gap-2">

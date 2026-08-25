@@ -32,7 +32,7 @@ export interface RubricAllListProps {
  */
 function JudgeTag({ judge }: { judge: RubricItem["judge"] }) {
   return (
-    <span className="mr-2 inline-flex items-center rounded-chip border border-line-strong px-2 py-[1px] align-[2px] text-[0.7813rem] leading-[1.5] font-bold whitespace-nowrap text-ink-muted">
+    <span className="mr-2 inline-flex items-center rounded-chip border border-line-strong px-2 py-[1px] align-[2px] text-[0.7813rem] leading-[1.45] font-bold whitespace-nowrap text-ink-muted">
       {JUDGE_LABEL[judge].short}
     </span>
   );
@@ -49,7 +49,7 @@ export function RubricAllList({ className }: RubricAllListProps) {
   return (
     <details className={cx("group rounded-card bg-paper-2", className)}>
       <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
-        <span className="min-w-0 flex-1 text-[1.0625rem] leading-[1.4] font-extrabold text-ink">
+        <span className="min-w-0 flex-1 text-[1.0625rem] leading-[1.45] font-extrabold text-ink">
           판정 기준 — 루브릭 {total}항목 전체 보기
         </span>
         <span
@@ -74,7 +74,7 @@ export function RubricAllList({ className }: RubricAllListProps) {
         <div className="mt-4 space-y-5">
           {groups.map((group) => (
             <section key={group.area} aria-label={group.label}>
-              <p className="text-[0.7813rem] leading-[1.5] font-bold tracking-[0.06em] text-ink-muted">
+              <p className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-ink-muted">
                 {group.label} · {group.items.length}항목
               </p>
               <ul className="chim-hairline mt-1 border-y border-line">

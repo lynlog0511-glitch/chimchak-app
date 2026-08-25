@@ -26,9 +26,9 @@ export interface SourceChipProps {
  * 표시 우선순위: `title` prop → 컨텍스트의 문서 제목 → docId.
  * 어떤 경우에도 화면이 비지 않도록 안전하게 대체 표기합니다.
  *
- * 크기 체계(§3): 칩은 UI 크롬이라 14px입니다.
+ * 크기 체계(§3): 칩은 UI 크롬이라 13.5px(`chim-caption`)입니다.
  * 접근성 코어 예외는 코어 콘텐츠(대사·CUE·응급 자막·CTA)에만 적용됩니다 — 칩은 해당하지 않습니다.
- * 다만 터치 타겟 48px은 여기서도 불변입니다.
+ * 다만 터치 타겟 48px은 여기서도 불변입니다 — 다만 **칩이 아니라 바깥 래퍼**가 가집니다.
  *
  * @example <SourceChip docId="DOC-GUIDE-001" />
  * @example <SourceChip docId="DOC-GUIDE-001" title="중앙치매센터 치매 대응 매뉴얼" />
@@ -68,30 +68,42 @@ export function SourceChip({
     };
   }, [open]);
 
+  /* 틸 계조는 **두 단**뿐입니다 — 면 `brand-50` + 글자 `brand-800`.
+     예전에는 한 칩 안에 brand-50(면)·brand-600(§)·brand-300(·)·brand-800(글자) 네 단이 있었고,
+     그중 구분점 `·`은 brand-300이라 대비 1.9:1로 어차피 보이지도 않았습니다.
+     계조를 줄여도 뜻은 그대로입니다 — 「근거」는 굵기가, 문서명은 자리가 이미 가르고 있습니다. */
+  /* 줄어드는 칸은 **문서명 하나**입니다. 「§ 근거 ·」 세 조각에 `flex-none`이 없으면 폭이 좁아질 때
+     이들도 함께 눌려, `overflow-wrap: anywhere`(globals.css의 body 규칙)를 만난 「근거」가
+     「근 / 거」 두 줄로 접힙니다 — 칩 높이가 그 자리에서 20px 늘어납니다. */
   const label = (
     <>
-      <span aria-hidden="true" className="text-brand-600">
+      <span aria-hidden="true" className="flex-none">
         §
       </span>
-      <span className="font-semibold">근거</span>
-      <span aria-hidden="true" className="text-brand-300">
+      <span className="flex-none font-semibold">근거</span>
+      <span aria-hidden="true" className="flex-none">
         ·
       </span>
-      <span className="truncate">{resolvedTitle}</span>
+      <span className="min-w-0 truncate">{resolvedTitle}</span>
     </>
   );
 
   /* 근거 칩은 한 화면에 여러 개가 붙습니다 — 보더를 빼고 아주 옅은 틸 면 하나로만 둡니다(§1-4·§5).
-     글자는 14px(UI 크롬), 대비는 brand-50 위 brand-800으로 7:1을 넘습니다.
-     터치 타겟 48px은 불변이라 높이는 그대로 두고 시각적 무게만 낮췄습니다. */
+     글자는 13.5px(UI 크롬), 대비는 brand-50 위 brand-800으로 7:1을 넘습니다.
+
+     ── 터치 영역은 래퍼가, 칩은 칩 크기로 (2026-08-25) ──────────────
+     예전에는 `min-h-[48px]`가 **칩 자체**에 걸려 있어서, 13.5px 글자 한 줄짜리 라벨이
+     본문 글자의 3.5배 높이인 48px 로젠지로 그려졌습니다 — 칩이 아니라 버튼 덩어리로 읽혔고,
+     brand-50 면이 그만큼 넓어져 「틸은 화면당 2곳 이하」라는 §0·§1의 절제가 브리핑에서
+     무너졌습니다. 같은 문제를 /safety의 목차 칩이 이미 옳게 풀어 두었기에 그 구조를 따릅니다:
+     바깥 래퍼가 48px 터치 영역을 먹고, 안쪽 칩은 py-1.5(≈30px)로 칩 크기를 지킵니다. */
   const chipClass = cx(
-    "chim-caption inline-flex max-w-full items-center gap-1.5 rounded-chip bg-brand-50 px-3.5 py-1 text-brand-800",
-    interactive && "min-h-[48px] hover:bg-brand-100 active:bg-brand-100 transition-colors duration-150",
-    className,
+    "chim-caption inline-flex max-w-full items-center gap-1.5 rounded-chip bg-brand-50 px-3.5 py-1.5 text-brand-800",
+    interactive && "transition-colors duration-150 group-hover:bg-brand-100 group-active:bg-brand-100",
   );
 
   if (!interactive) {
-    return <span className={chipClass}>{label}</span>;
+    return <span className={cx(chipClass, className)}>{label}</span>;
   }
 
   return (
@@ -101,10 +113,10 @@ export function SourceChip({
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-controls={panelId}
-        className={chipClass}
+        className={cx("group flex min-h-[48px] max-w-full items-center", className)}
         title="근거 문서 설명 보기"
       >
-        {label}
+        <span className={chipClass}>{label}</span>
       </button>
 
       {/* 팝오버는 "떠 있는 것"이므로 그림자(shadow-panel)를 쓰는 유일한 자리입니다. */}

@@ -120,7 +120,7 @@ export function CheckClient() {
 
   return (
     <div>
-      <div className="mt-[14px] rounded-[14px] bg-warn-soft px-[15px] py-[13px]">
+      <div className="mt-[14px] rounded-card bg-warn-soft px-[15px] py-[13px]">
         <p className="text-[0.8438rem] leading-[1.45] font-extrabold text-warn-ink">
           발표자 전용 점검 화면입니다 · 심사 화면 아님
         </p>

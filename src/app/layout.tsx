@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { SettingsBoot } from "@/components/SettingsBoot";
 import { SwRegister } from "@/components/SwRegister";
-import { FONT_SCALE_PX, SETTINGS_KEY } from "@/lib/settings";
+import { FONT_SCALE_PERCENT, SETTINGS_KEY } from "@/lib/settings";
 import "./globals.css";
 
 /**
@@ -20,7 +20,9 @@ import "./globals.css";
  */
 const FONT_SCALE_BOOT = `(function(){try{var r=JSON.parse(localStorage.getItem(${JSON.stringify(
   SETTINGS_KEY,
-)})||"{}");var m=${JSON.stringify(FONT_SCALE_PX)};var px=m[r&&r.fontScale];if(px){var e=document.documentElement;e.style.fontSize=px+"px";e.dataset.chimFontScale=r.fontScale;}}catch(_){}})();`;
+)})||"{}");var m=${JSON.stringify(
+  FONT_SCALE_PERCENT,
+)};var v=m[r&&r.fontScale];if(v){var e=document.documentElement;e.style.fontSize=v;e.dataset.chimFontScale=r.fontScale;}}catch(_){}})();`;
 
 export const metadata: Metadata = {
   title: {

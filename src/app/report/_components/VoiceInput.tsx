@@ -42,7 +42,7 @@ function appendUtterance(base: string, added: string): string {
  * 글자색만 갈립니다: 맨 앞 한 종은 잉크로 세우고(시연에서 먼저 누르는 문장), 나머지는 한 단 물러섭니다.
  */
 const EXAMPLE_BUTTON_CLASS =
-  "flex min-h-[48px] items-center rounded-[14px] bg-paper-2 px-4 text-[0.8438rem] font-semibold transition-colors duration-150 active:bg-neutral-line";
+  "flex min-h-[48px] items-center rounded-card bg-paper-2 px-4 text-[0.8438rem] font-semibold transition-colors duration-150 active:bg-neutral-line";
 
 /**
  * 마이크를 쓸 수 있는지 — **모르는 상태를 따로 둡니다**.
@@ -201,7 +201,7 @@ export function VoiceInput({
 
   return (
     <div>
-      <h2 ref={headingRef} tabIndex={-1} className="text-[1.0625rem] leading-[1.45] font-bold text-ink">
+      <h2 ref={headingRef} tabIndex={-1} className="text-[1.1875rem] leading-[1.3] font-bold tracking-[-0.015em] text-ink">
         오늘 있었던 일을 그대로 말씀해 주세요
       </h2>
       {/* 이 화면의 과업 지시문입니다 — 「무엇을 말하면 되는지」를 알려 주는 유일한 문장이라
@@ -223,7 +223,7 @@ export function VoiceInput({
         className="mt-4 rounded-[16px] bg-paper-2 px-4 py-[18px]"
       >
         {listening && (
-          <div className="mb-[14px] rounded-[12px] bg-white px-[14px] py-[12px]">
+          <div className="mb-[14px] rounded-field bg-white px-[14px] py-[12px]">
             <p className="flex items-center gap-[6px] text-[0.7813rem] leading-[1.45] font-bold text-danger-ink">
               <StatusDot tone="danger" size={8} />
               듣고 있어요
@@ -302,7 +302,7 @@ export function VoiceInput({
         {notice && (
           <p
             role="status"
-            className="mt-[12px] rounded-[12px] bg-warn-soft px-[14px] py-[10px] text-[0.7813rem] leading-[1.6] font-semibold text-warn-ink"
+            className="mt-[12px] rounded-field bg-warn-soft px-[14px] py-[10px] text-[0.7813rem] leading-[1.6] font-semibold text-warn-ink"
           >
             {notice}
           </p>
@@ -331,7 +331,7 @@ export function VoiceInput({
              적는 자리」를 말해야 해서 회색 면보다 약합니다(가이드 §1 — 입력 필드는 paper-2 면 하나).
              `focus:border-brand-400`은 뗐습니다 — 전역 포커스 outline(brand-600)과 2px 간격으로
              겹쳐 틸 두 겹이 번져 보였습니다(페르소나 디자이너 low). */
-          className="mt-[6px] w-full rounded-[14px] border border-line-strong bg-paper-2 p-[14px] text-[1.0625rem] leading-[1.6] text-ink placeholder:text-tertiary"
+          className="mt-[6px] w-full rounded-card border border-line-strong bg-paper-2 p-[14px] text-[1.0625rem] leading-[1.6] text-ink placeholder:text-tertiary"
         />
 
         {/* 지우기는 예시가 아니라 위 입력칸에 딸린 조작이라, 예시 목록에서 빼 칸 아래에 둡니다. */}
@@ -379,7 +379,7 @@ export function VoiceInput({
           「그래서 내 말이 밖으로 나가긴 나간다」 하나였습니다(페르소나 현직 med).
           사실은 한 글자도 달라지지 않았습니다. 말을 바꿨고, 밖으로 안 나가는 길(타이핑)을
           그 자리에 버튼으로 세웠습니다. */}
-      <div className="mt-5 rounded-[14px] bg-paper-2 px-4 py-[14px]">
+      <div className="mt-5 rounded-card bg-paper-2 px-4 py-[14px]">
         <p className="text-[0.9375rem] leading-[1.6] text-ink">
           마이크로 말씀하시면 휴대폰 회사(예: 삼성·구글)가 말을 글자로 바꿔 주는 기능을 씁니다.
           글자로 적으시면 그마저도 밖으로 나가지 않습니다.
@@ -391,7 +391,7 @@ export function VoiceInput({
         <button
           type="button"
           onClick={focusTextarea}
-          className="mt-[8px] flex min-h-[48px] w-full items-center justify-center rounded-[14px] border border-line-strong bg-paper text-[0.9375rem] font-bold text-ink transition-colors duration-150 active:bg-white"
+          className="mt-[8px] flex min-h-[48px] w-full items-center justify-center rounded-card border border-line-strong bg-paper text-[0.9375rem] font-bold text-ink transition-colors duration-150 active:bg-white"
         >
           글자로 적기
         </button>

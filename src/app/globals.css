@@ -249,10 +249,25 @@
 
 @layer base {
   html {
-    /* 루트는 표준 16px. 고령 접근성은 "전부 크게"가 아니라 코어 콘텐츠(대사·CUE·응급 자막·CTA)를
-       18px 이상으로 유지해 확보합니다. 설정 메뉴의 글자 크기는 이 값을 16/18/20으로 바꿉니다. */
-    font-size: 16px;
-    -webkit-text-size-adjust: 100%;
+    /* 루트 font-size를 **선언하지 않습니다**(2026-08-25).
+       예전에는 `font-size: 16px`으로 못 박고 `-webkit-text-size-adjust: 100%`로 모바일 자동
+       확대까지 껐습니다. 그러면 휴대폰이나 브라우저에서 이미 글꼴을 크게 설정해 두신 분 —
+       즉 이 앱의 핵심 타깃 — 이 그 설정이 통째로 무시된 화면을 처음 보게 됩니다.
+       다른 앱은 다 커졌는데 이 앱만 작으면 「내 설정이 안 먹는다」가 아니라 「이 앱이 작다」로
+       읽히고, 그 상태에서 앱 안 설정을 스스로 찾아 들어갈 확률은 낮습니다.
+
+       이제 루트는 브라우저 기본(medium)을 그대로 받고, 앱의 「글자 크기」 3단은 그 위에
+       **곱하는 백분율**(100% / 112.5% / 125%)입니다(`src/lib/settings.ts`).
+       기본 16px 브라우저에서는 예전과 똑같이 16 / 18 / 20px이 되고, 이미 크게 설정해 두신
+       분에게는 「기본 큰 글자 + 앱에서 한 단 더」가 자연스럽게 성립합니다.
+       고령 접근성은 여전히 "전부 크게"가 아니라 코어 콘텐츠(대사·CUE·응급 자막·CTA)를
+       18px 이상으로 유지해 확보합니다.
+
+       `-webkit-text-size-adjust`는 **지우는 것만으로는 부족합니다** — Tailwind preflight가
+       `html { -webkit-text-size-adjust: 100% }`를 스스로 넣습니다(빌드 산출 CSS에서 확인).
+       100%는 안드로이드 크롬의 「글꼴 크기」 접근성 설정이 이 속성으로 전달되는 길까지 잠급니다.
+       그래서 지우는 대신 `auto`로 되돌려, 기기 설정이 그대로 통과하게 둡니다. */
+    -webkit-text-size-adjust: auto;
     scroll-behavior: smooth;
 
     /* 탭 하이라이트는 OS가 아니라 앱이 그립니다.
@@ -395,19 +410,6 @@
     border-top: 1px solid var(--color-line);
   }
 
-  /* 본문 컨테이너 — v3 화면(안전·점검 등)이 아직 씁니다. 앱 프레임 안에서는 폭을 넘지 않습니다. */
-  .chim-container {
-    width: 100%;
-    max-width: 68rem;
-    margin-inline: auto;
-    padding-inline: var(--chim-pad-x);
-  }
-
-  /* 상단 고정 헤더 — 노치 대응 (프레임이 이미 safe-area를 먹으므로 보조용) */
-  .chim-topbar {
-    padding-top: env(safe-area-inset-top, 0px);
-  }
-
   /* 파형 막대 — 지연 시간은 인라인 style로 막대마다 다르게 줍니다. */
   .chim-wave-bar {
     transform-origin: bottom;
@@ -442,54 +444,35 @@
   }
 
   /* ── 타입 스케일 ─────────────────────────────────────────────
-     루트 16px 기준. Tailwind 유틸(text-*)이 더 뒤 레이어라 언제든 덮어쓸 수 있습니다.
-     시안은 대부분 px를 직접 지정합니다 — 이 스케일은 아직 전환하지 않은 화면의 기준선입니다.
+     Tailwind 유틸(text-*)이 더 뒤 레이어라 언제든 덮어쓸 수 있습니다.
+     화면들은 대부분 `text-[Xrem]`을 직접 씁니다 — 이 스케일은 그 값들이 따라야 할 기준선입니다.
 
      [UI 크롬]  chim-caption 13.5 · chim-label 15 · chim-body 16
-     [코어]     chim-core-sm 17 · chim-core 18 · chim-cue 20~22 · chim-subtitle 28~40
+     [코어]     chim-core-sm 17 · chim-core 18
      한 화면에서 큰 글자는 하나뿐이어야 합니다 — 전부 크면 전부 안 중요합니다.
 
      2026-08-06 정리: `.chim-meta`(14px)를 폐기하고 `.chim-caption`으로 합쳤습니다.
      13과 14는 비율 1.08로 지각 역치 아래라 위계를 만들지 못하고 편차만 만들었습니다
-     (심미 재평가 ma1 — 한 화면에 13종이 공존). 눈금은 11 / 12.5 / 13.5 / 15 / 17 입니다.
+     (심미 재평가 ma1 — 한 화면에 13종이 공존).
+
+     **눈금은 11 / 12.5 / 13.5 / 15 / 17 / 19 / 22 입니다.**
+     (2026-08-25: 19 = 섹션 제목 `<h2>` — 가이드 §2에 없던 칸이라 화면마다 22/800과 17/700으로
+      갈려 있던 자리입니다. 22는 페이지 제목입니다.)
+     같은 날 눈금 밖 12 / 13 / 14 / 14.5px 56곳을 가장 가까운 눈금으로 흡수했습니다
+     (12→12.5 · 13→13.5 · 14·14.5→15). 남은 것은 확인서·증빙 묶음의 **인쇄면**뿐이고,
+     그 값들은 화면이 아니라 A4에 맞춰 잡혀 있습니다.
 
      행간도 같은 이유로 **1.3(제목) · 1.45(밀집) · 1.6(본문)** 3단만 씁니다(가이드 §2 8/6 교정).
-     예외는 둘뿐입니다 — `/report` 가림 결과 문단 1.85와 아래 `.chim-stat` 1.05(40px 숫자).
+     예외는 둘뿐입니다 — `/report` 가림 결과 문단 1.85와 40px 실측 수치 1.05.
      0.05 차이는 지각 역치 아래라 위계를 만들지 못하고 화면 간 편차만 만듭니다.
-     새 값을 여기에 더하지 마세요. */
+     2026-08-25에 규칙 밖 9종(1.2·1.35·1.4·1.5·1.55·1.65·1.7·1.75·1.8) 243곳을 전부 흡수했습니다.
+     새 값을 여기에 더하지 마세요.
 
-  .chim-display {
-    font-size: 2.75rem; /* 44px */
-    line-height: 1.3;
-    letter-spacing: -0.03em;
-    font-weight: 800;
-  }
-
-  .chim-h1 {
-    font-size: 2rem; /* 32px */
-    line-height: 1.3;
-    letter-spacing: -0.025em;
-    font-weight: 800;
-  }
-
-  .chim-h2 {
-    font-size: 1.5rem; /* 24px */
-    line-height: 1.3;
-    letter-spacing: -0.02em;
-    font-weight: 700;
-  }
-
-  .chim-h3 {
-    font-size: 1.25rem; /* 20px */
-    line-height: 1.3;
-    letter-spacing: -0.015em;
-    font-weight: 700;
-  }
-
-  .chim-lead {
-    font-size: 1.125rem; /* 18px */
-    line-height: 1.6;
-  }
+     ※ 2026-08-25에 `.chim-display/h1/h2/h3/lead/cue/subtitle/stat/container/topbar/section`
+       열한 개를 **지웠습니다** — 전부 참조 0건이었습니다. 이 코드베이스는 Tailwind 유틸리티로
+       사는 쪽이 압도적이라, 아무도 안 쓰는 클래스가 남아 있으면 다음 사람에게 「여기 규격이 있다」는
+       거짓 신호가 됩니다(실제로 /safety의 40px 수치는 `.chim-stat`이 아니라 유틸리티로 쓰고
+       있었습니다). 위 눈금과 아래 살아 있는 여섯 클래스가 정본입니다. */
 
   .chim-body {
     font-size: 1rem; /* 16px */
@@ -520,21 +503,6 @@
     line-height: 1.6;
   }
 
-  .chim-cue {
-    font-size: 1.25rem; /* 20px */
-    line-height: 1.45;
-    letter-spacing: -0.015em;
-    font-weight: 700;
-  }
-
-  /* 응급 프로토콜 자막 — 팔 길이에서 읽혀야 합니다. */
-  .chim-subtitle {
-    font-size: 1.75rem; /* 28px */
-    line-height: 1.3;
-    letter-spacing: -0.02em;
-    font-weight: 800;
-  }
-
   /* 2026-08-25: 여기 있던 md↑ 확대 단(display 48 · h1 36 · h2 26 · h3 22 · lead 19 · cue 22 ·
      subtitle 36)을 지웠습니다. 프레임이 어느 뷰포트에서도 430px이라, 뷰포트가 넓어졌다고 글자만
      커지면 **같은 폭 안에서 줄이 더 잘리는** 역전이 됩니다. 크기는 한 벌뿐입니다. */
@@ -549,18 +517,6 @@
     font-variant-numeric: tabular-nums;
   }
 
-  .chim-stat {
-    font-size: 2.5rem; /* 40px */
-    font-variant-numeric: tabular-nums;
-    font-weight: 800;
-    letter-spacing: -0.03em;
-    line-height: 1.05;
-  }
-
-  /* 섹션 사이 간격 — v3 잔여 화면용 */
-  .chim-section {
-    padding-block: 48px;
-  }
 }
 
 /* ── 리스트 묶음 ──────────────────────────────────────────────

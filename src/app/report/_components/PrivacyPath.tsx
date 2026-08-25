@@ -108,7 +108,7 @@ export function PrivacyPath({ reached, className }: PrivacyPathProps) {
       </details>
 
       {/* 이 화면에서 색 면으로 남기는 블록은 이 경계 안내 하나입니다. */}
-      <div className="mt-[14px] rounded-[14px] bg-warn-soft px-4 py-[14px]">
+      <div className="mt-[14px] rounded-card bg-warn-soft px-4 py-[14px]">
         <p className="text-[0.8438rem] leading-[1.6] font-bold text-warn-ink">
           지금은 기기 밖으로 나가는 것이 없습니다.
         </p>

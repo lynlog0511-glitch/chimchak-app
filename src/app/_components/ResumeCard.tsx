@@ -91,16 +91,20 @@ export function ResumeCard({ scenarios, className }: ResumeCardProps) {
       )}
     >
       <span className="min-w-0 flex-1">
-        {/* 행간은 3단 사다리(1.3/1.45/1.6)의 「밀집」 단으로 맞췄습니다 — 1.5·1.4가 섞여 있던 자리입니다. */}
-        <span className="block text-[0.75rem] leading-[1.45] text-ink-muted">하던 훈련</span>
-        <span className="mt-[2px] block text-[0.9063rem] leading-[1.45] font-bold text-ink">
+        {/* 행간은 3단 사다리(1.3/1.45/1.6)의 「밀집」 단으로 맞췄습니다 — 1.5·1.4가 섞여 있던 자리입니다.
+            크기는 12.5 / 17 / 13.5입니다. 예전에는 12 / 14.5 / 14로 **세 개가 전부 눈금 밖**이었고,
+            13.5와 14.5는 비율 1.07이라 지각 역치 아래여서 위계를 만들지 못했습니다 —
+            재방문 사용자의 첫 터치 대상인 이 카드가 그냥 어정쩡하게 뭉개져 있던 자리입니다.
+            제목이 코어 경로(누르면 훈련이 이어집니다)라 17px을 씁니다. */}
+        <span className="block text-[0.7813rem] leading-[1.45] text-ink-muted">하던 훈련</span>
+        <span className="mt-[2px] block text-[1.0625rem] leading-[1.45] font-bold text-ink">
           {scenario.title}{" "}
           {/* 진행 위치는 세션마다 바뀌는 숫자라 자리폭을 고정합니다 —
               한 자리에서 두 자리로 넘어갈 때 제목 줄이 흔들리지 않게. */}
           <span className="chim-num font-medium text-ink-muted">· {stepLabel}</span>
         </span>
       </span>
-      <span aria-hidden className="flex-none text-[0.875rem] font-bold text-brand-700">
+      <span aria-hidden className="flex-none text-[0.8438rem] font-bold text-brand-700">
         이어서 ›
       </span>
     </Link>

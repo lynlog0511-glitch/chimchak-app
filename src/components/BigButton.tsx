@@ -79,7 +79,7 @@ export function BigButton({
 }: BigButtonProps) {
   const base = cx(
     // v4 §2: 버튼 라운드는 14px 하나로 통일했습니다(카드와 같은 값).
-    "inline-flex items-center justify-center gap-2 rounded-[14px] font-semibold",
+    "inline-flex items-center justify-center gap-2 rounded-card font-semibold",
     // 눌림 = 색 전환 + 1.5% 축소를 한 박자(150ms)에. `.chim-press`가 transition-property를
     // 통째로 선언하므로 여기에 `transition-colors`를 다시 걸지 마세요(globals.css 주석 참조).
     "chim-press",

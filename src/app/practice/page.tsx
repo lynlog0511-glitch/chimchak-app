@@ -40,14 +40,14 @@ export default function PracticePage() {
 
       {/* 상시 문구 — 화면이 어느 단계에 있든 이 세 줄은 늘 위에 있습니다. */}
       <section className="mt-4 rounded-card bg-paper-2 px-4 py-[15px]">
-        <p className="text-[1rem] leading-[1.5] font-extrabold text-ink">{FREE_NO_SCORE_LINE}</p>
+        <p className="text-[1rem] leading-[1.45] font-extrabold text-ink">{FREE_NO_SCORE_LINE}</p>
         <p className="mt-1.5 text-[0.8438rem] leading-[1.6] text-ink-muted">
           {FREE_ENTRY_EYEBROW}
         </p>
         <p className="mt-1 text-[0.8438rem] leading-[1.6] text-ink-muted">{FREE_FICTION_NOTICE}</p>
       </section>
 
-      <p className="mt-3 text-[0.9375rem] leading-[1.65] text-ink-soft">{PRACTICE_TRADEOFF}</p>
+      <p className="mt-3 text-[0.9375rem] leading-[1.6] text-ink-soft">{PRACTICE_TRADEOFF}</p>
 
       <PracticeClient />
 

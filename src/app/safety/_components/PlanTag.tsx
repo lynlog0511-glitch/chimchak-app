@@ -20,7 +20,7 @@ export function PlanTag({ className }: PlanTagProps) {
     <span
       className={cx(
         "inline-flex items-center rounded-chip border border-line-strong px-2 py-[1px]",
-        "align-[2px] text-[0.7813rem] leading-[1.5] font-bold whitespace-nowrap text-ink-soft",
+        "align-[2px] text-[0.7813rem] leading-[1.45] font-bold whitespace-nowrap text-ink-soft",
         className,
       )}
     >

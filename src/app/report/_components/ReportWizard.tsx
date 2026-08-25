@@ -349,7 +349,7 @@ export function ReportWizard() {
           그때 이 블록이 통째로 사라지면 「그래서 얼마나 줄었나」에 답할 화면이 0이 됩니다.
           비교 기준(손으로 쓰면 20~30분)은 항상 두고, 실측이 있을 때만 앞에 병기합니다.
         */}
-        <div className="mt-[14px] rounded-[14px] bg-paper-2 px-4 py-[14px]">
+        <div className="mt-[14px] rounded-card bg-paper-2 px-4 py-[14px]">
           <EyebrowLabel>걸린 시간</EyebrowLabel>
           <p className="mt-[6px] text-[0.9375rem] leading-[1.6] font-bold text-ink">
             {showElapsed && (
@@ -397,7 +397,7 @@ export function ReportWizard() {
       {step === 1 && pendingDraft.length > 0 && text.length === 0 && (
         <section
           aria-labelledby="report-resume-title"
-          className="mt-[14px] rounded-[14px] bg-paper-2 px-4 py-[14px]"
+          className="mt-[14px] rounded-card bg-paper-2 px-4 py-[14px]"
         >
           <h2
             id="report-resume-title"
@@ -416,7 +416,7 @@ export function ReportWizard() {
                 clearStoredDraft();
                 settlePending();
               }}
-              className="flex min-h-[48px] flex-1 items-center justify-center rounded-[14px] border border-line-strong bg-paper text-[0.9375rem] font-semibold text-ink-soft transition-colors duration-150 active:bg-white"
+              className="flex min-h-[48px] flex-1 items-center justify-center rounded-card border border-line-strong bg-paper text-[0.9375rem] font-semibold text-ink-soft transition-colors duration-150 active:bg-white"
             >
               새로 적기
             </button>
@@ -431,7 +431,7 @@ export function ReportWizard() {
                 updateText(pendingDraft);
                 settlePending();
               }}
-              className="flex min-h-[48px] flex-[1.4] items-center justify-center rounded-[14px] bg-brand-700 text-[0.9375rem] font-bold text-white transition-colors duration-150 active:bg-brand-800"
+              className="flex min-h-[48px] flex-[1.4] items-center justify-center rounded-card bg-brand-700 text-[0.9375rem] font-bold text-white transition-colors duration-150 active:bg-brand-800"
             >
               이어서 적기
             </button>

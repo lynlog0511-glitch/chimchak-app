@@ -77,7 +77,7 @@ export function DemoSeedPanel() {
 
   return (
     <>
-      <section aria-labelledby="demo-seed-title" className="mt-[18px] rounded-[14px] bg-paper-2 px-4 py-[14px]">
+      <section aria-labelledby="demo-seed-title" className="mt-[18px] rounded-card bg-paper-2 px-4 py-[14px]">
         <h2 id="demo-seed-title" className="text-[0.8438rem] leading-[1.45] font-extrabold text-ink">
           시연용 예시 기록
         </h2>

@@ -75,7 +75,7 @@ function Field({
           autoComplete="off"
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="chim-num min-h-[48px] w-full min-w-0 rounded-[14px] border border-line-strong bg-white px-[13px] text-[0.9375rem] leading-[1.6] font-bold text-ink focus:border-brand-400"
+          className="chim-num min-h-[48px] w-full min-w-0 rounded-card border border-line-strong bg-white px-[13px] text-[0.9375rem] leading-[1.6] font-bold text-ink focus:border-brand-400"
         />
         <span className="flex-none text-[0.8438rem] leading-[1.45] text-ink-soft">{unit}</span>
       </div>
@@ -117,7 +117,7 @@ export function OrgScaleCalculator({ measuredSec }: OrgScaleCalculatorProps) {
   return (
     <section
       aria-labelledby={`${staffId}-title`}
-      className="mt-[14px] rounded-[14px] bg-paper-2 px-4 py-[14px]"
+      className="mt-[14px] rounded-card bg-paper-2 px-4 py-[14px]"
     >
       <h3 id={`${staffId}-title`} className="text-[0.9375rem] leading-[1.45] font-bold text-ink">
         우리 기관 규모로 환산해 보기

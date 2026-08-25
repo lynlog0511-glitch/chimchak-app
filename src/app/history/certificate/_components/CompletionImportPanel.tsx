@@ -156,7 +156,7 @@ export function CompletionImportPanel({ onImported }: CompletionImportPanelProps
     <section
       data-noprint
       aria-labelledby="completion-import-title"
-      className="mt-4 rounded-[14px] bg-paper-2 px-4 py-[14px]"
+      className="mt-4 rounded-card bg-paper-2 px-4 py-[14px]"
     >
       <h2
         id="completion-import-title"
@@ -177,8 +177,8 @@ export function CompletionImportPanel({ onImported }: CompletionImportPanelProps
         aria-disabled={busy}
         className={
           busy
-            ? "mt-[12px] inline-flex min-h-[48px] cursor-not-allowed items-center justify-center gap-2 rounded-[14px] border border-line-strong bg-white px-5 py-2.5 text-[1.0625rem] font-semibold text-ink opacity-45"
-            : "mt-[12px] inline-flex min-h-[48px] cursor-pointer items-center justify-center gap-2 rounded-[14px] border border-line-strong bg-white px-5 py-2.5 text-[1.0625rem] font-semibold text-ink focus-within:outline focus-within:outline-[3px] focus-within:outline-offset-2 focus-within:outline-brand-700"
+            ? "mt-[12px] inline-flex min-h-[48px] cursor-not-allowed items-center justify-center gap-2 rounded-card border border-line-strong bg-white px-5 py-2.5 text-[1.0625rem] font-semibold text-ink opacity-45"
+            : "mt-[12px] inline-flex min-h-[48px] cursor-pointer items-center justify-center gap-2 rounded-card border border-line-strong bg-white px-5 py-2.5 text-[1.0625rem] font-semibold text-ink focus-within:outline focus-within:outline-[3px] focus-within:outline-offset-2 focus-within:outline-brand-700"
         }
       >
         {busy ? "파일을 읽는 중입니다…" : "이수 사실 파일 고르기"}

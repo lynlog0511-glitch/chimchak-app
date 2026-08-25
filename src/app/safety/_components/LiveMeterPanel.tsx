@@ -44,7 +44,7 @@ function MeterCell({
         {value}
         <span className="text-[0.9375rem] font-semibold text-ink-muted"> {unit}</span>
       </p>
-      <p className="mt-2 text-[0.7813rem] leading-[1.5] text-ink-muted">{label}</p>
+      <p className="mt-2 text-[0.7813rem] leading-[1.45] text-ink-muted">{label}</p>
     </div>
   );
 }
@@ -66,7 +66,7 @@ export function LiveMeterPanel({ className }: LiveMeterPanelProps) {
           aria-hidden
           className={cx("h-[7px] w-[7px] flex-none rounded-chip", clean ? "bg-ok" : "bg-danger")}
         />
-        <h3 id="live-meter-title" className="text-[1.0625rem] leading-[1.4] font-extrabold text-ink">
+        <h3 id="live-meter-title" className="text-[1.0625rem] leading-[1.45] font-extrabold text-ink">
           지금 이 기기에서 — 실시간 계측
         </h3>
       </div>

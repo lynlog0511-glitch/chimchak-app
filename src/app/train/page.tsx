@@ -183,7 +183,7 @@ export default function TrainIndexPage() {
                  뷰포트 진입에는 받지 않고, 손가락이 올라간(hover) 뒤에 받습니다. */
               prefetch={false}
               aria-label={`${scenario.title} — 브리핑 열기`}
-              className="flex items-start gap-[12px] rounded-[14px] bg-paper-2 px-4 py-[15px] transition-colors duration-150 ease-soft active:bg-neutral-line"
+              className="flex items-start gap-[12px] rounded-card bg-paper-2 px-4 py-[15px] transition-colors duration-150 ease-soft active:bg-neutral-line"
             >
               {/* 한 글자 마커 — 응급 목록과 같은 42px·radius 12·17px w800입니다.
                   다른 점은 면 하나뿐입니다: 응급은 붉은 면 위 danger-ink이고, 여기는 카드가 이미
@@ -191,19 +191,19 @@ export default function TrainIndexPage() {
                   가져가고 글자는 ink-soft로 둡니다 — 관계(한 단 다른 중립 면 + ink-soft)는 같습니다. */}
               <span
                 aria-hidden
-                className="flex h-[42px] w-[42px] flex-none items-center justify-center rounded-[12px] bg-paper text-[1.0625rem] leading-[1.3] font-extrabold text-ink-soft"
+                className="flex h-[2.625rem] w-[2.625rem] flex-none items-center justify-center rounded-field bg-paper text-[1.0625rem] leading-[1.3] font-extrabold text-ink-soft"
               >
                 {mark}
               </span>
 
               <span className="min-w-0 flex-1">
-                <span className="block text-[0.75rem] leading-[1.5] font-bold text-ink-muted">
+                <span className="block text-[0.7813rem] leading-[1.45] font-bold text-ink-muted">
                   {eyebrow}
                 </span>
-                <span className="mt-[4px] block text-[1.0625rem] leading-[1.4] font-bold text-ink">
+                <span className="mt-[4px] block text-[1.0625rem] leading-[1.45] font-bold text-ink">
                   {scenario.title}
                 </span>
-                <span className="mt-[4px] block text-[0.8438rem] leading-[1.55] text-ink-soft">
+                <span className="mt-[4px] block text-[0.8438rem] leading-[1.6] text-ink-soft">
                   {CARD_SUMMARY[scenario.id] ?? scenario.summary}
                 </span>
                 <span className="mt-[10px] flex items-center gap-3">
@@ -211,14 +211,14 @@ export default function TrainIndexPage() {
                   <PracticeCount scenarioId={scenario.id} />
                   <span
                     aria-hidden
-                    className="ml-auto text-[0.875rem] leading-none font-bold text-brand-700"
+                    className="ml-auto text-[0.9375rem] leading-none font-bold text-brand-700"
                   >
                     연습하기 ›
                   </span>
                 </span>
                 {/* 감수 대기 — 카드에서 가장 조용한 줄입니다. 연습을 막는 말이 아니라 사실 한 줄입니다. */}
                 {reviewPending && (
-                  <span className="mt-[6px] block text-[0.75rem] leading-[1.5] text-ink-faint">
+                  <span className="mt-[6px] block text-[0.7813rem] leading-[1.45] text-ink-faint">
                     {REVIEW_PENDING_LABEL}
                     <span className="mt-[2px] block">{REVIEW_PENDING_SCOPE}</span>
                   </span>
@@ -231,7 +231,7 @@ export default function TrainIndexPage() {
 
       {/* 전체 12종 편성표 — 기본은 접혀 있습니다. 펼치면 유형 4종 × 난이도 3단계 매트릭스입니다. */}
       <details className="group mt-4">
-        <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 border-t border-line px-[2px] py-[13px] text-[0.9063rem] leading-[1.4] font-semibold text-ink [&::-webkit-details-marker]:hidden">
+        <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 border-t border-line px-[2px] py-[13px] text-[0.9375rem] leading-[1.45] font-semibold text-ink [&::-webkit-details-marker]:hidden">
           <span>
             전체 {SCENARIO_MATRIX.length}종 편성표{" "}
             <span className="font-medium text-ink-faint">
@@ -253,18 +253,18 @@ export default function TrainIndexPage() {
                       key={`${cell.typeLabel}-${cell.level}`}
                       className="flex items-baseline gap-[10px] border-b border-line py-[9px] last:border-b-0"
                     >
-                      <span className="w-[30px] flex-none text-[0.75rem] leading-[1.5] font-semibold text-ink-faint">
+                      <span className="w-[30px] flex-none text-[0.7813rem] leading-[1.45] font-semibold text-ink-faint">
                         {levelLabelOf(cell.level)}
                       </span>
                       <span
-                        className={`min-w-0 flex-1 text-[0.8125rem] leading-[1.5] ${open ? "font-semibold text-ink" : "text-ink-muted"}`}
+                        className={`min-w-0 flex-1 text-[0.8438rem] leading-[1.45] ${open ? "font-semibold text-ink" : "text-ink-muted"}`}
                       >
                         {/* 저작용 코드(A01·B01·C00)는 화면에 내지 않습니다 — 난이도와 제목만 남깁니다.
                             데이터(`src/data/matrix.ts`)는 그대로이고, 지우는 것은 표시부뿐입니다. */}
                         {matrixTitle(cell.title)}
                       </span>
                       <span
-                        className={`flex-none text-[0.7188rem] leading-[1.5] font-semibold ${open ? "text-brand-700" : "text-ink-faint"}`}
+                        className={`flex-none text-[0.7188rem] leading-[1.45] font-semibold ${open ? "text-brand-700" : "text-ink-faint"}`}
                       >
                         {open ? "열림" : "준비 중"}
                       </span>
@@ -297,15 +297,15 @@ export default function TrainIndexPage() {
           href={FREE_PRACTICE_HREF}
           prefetch={false}
           aria-label={`${FREE_ENTRY_TITLE} — ${FREE_ENTRY_EYEBROW}`}
-          className="block rounded-[14px] bg-paper-2 px-4 py-[15px] transition-colors duration-150 ease-soft active:bg-neutral-line"
+          className="block rounded-card bg-paper-2 px-4 py-[15px] transition-colors duration-150 ease-soft active:bg-neutral-line"
         >
-          <span className="block text-[0.75rem] leading-[1.5] font-bold text-ink-muted">
+          <span className="block text-[0.7813rem] leading-[1.45] font-bold text-ink-muted">
             {FREE_ENTRY_EYEBROW}
           </span>
-          <span className="mt-[4px] block text-[1.0625rem] leading-[1.4] font-bold text-ink">
+          <span className="mt-[4px] block text-[1.0625rem] leading-[1.45] font-bold text-ink">
             {FREE_ENTRY_TITLE}
           </span>
-          <span className="mt-[4px] block text-[0.8438rem] leading-[1.55] text-ink-soft">
+          <span className="mt-[4px] block text-[0.8438rem] leading-[1.6] text-ink-soft">
             {FREE_ENTRY_SUMMARY}
           </span>
           <span className="mt-[10px] flex items-center gap-3">
@@ -315,7 +315,7 @@ export default function TrainIndexPage() {
             <span className="min-w-0 text-[0.7813rem] leading-[1.45] text-ink-faint">
               온라인 모드가 필요해요. 들어가시면 바로 켜실 수 있어요
             </span>
-            <span aria-hidden className="ml-auto text-[0.875rem] leading-none font-bold text-brand-700">
+            <span aria-hidden className="ml-auto text-[0.9375rem] leading-none font-bold text-brand-700">
               열어 보기 ›
             </span>
           </span>

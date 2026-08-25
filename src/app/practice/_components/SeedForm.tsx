@@ -46,14 +46,14 @@ function OptionButton({
       onClick={onSelect}
       aria-pressed={selected}
       className={cx(
-        "min-h-[48px] flex-1 rounded-[14px] px-3 py-2.5 text-left",
+        "min-h-[48px] flex-1 rounded-card px-3 py-2.5 text-left",
         "transition-colors duration-150 ease-soft",
         selected
           ? "bg-brand-700 text-white active:bg-brand-800"
           : "bg-neutral-soft text-ink hover:bg-neutral-line active:bg-neutral-line",
       )}
     >
-      <span className="block text-[0.9375rem] leading-[1.4] font-bold">{label}</span>
+      <span className="block text-[0.9375rem] leading-[1.45] font-bold">{label}</span>
       {note && (
         <span
           className={cx(
@@ -140,7 +140,7 @@ export function SeedForm({ busy, onStart }: SeedFormProps) {
           onChange={(event) => setHint(event.target.value)}
           placeholder={SEED_HINT_PLACEHOLDER}
           aria-describedby={hintNoteId}
-          className="mt-2 h-12 w-full rounded-[14px] border border-line-strong bg-paper-2 px-4 text-[1.0625rem] text-ink placeholder:text-ink-muted"
+          className="mt-2 h-12 w-full rounded-card border border-line-strong bg-paper-2 px-4 text-[1.0625rem] text-ink placeholder:text-ink-muted"
         />
         <p id={hintNoteId} className="mt-1.5 text-[0.8438rem] leading-[1.6] text-ink-muted">
           {SEED_HINT_NOTE}
@@ -149,7 +149,7 @@ export function SeedForm({ busy, onStart }: SeedFormProps) {
 
       {/* 시작 전 고지 — 접히지 않습니다. */}
       <section className="mt-5 rounded-card bg-paper-2 px-4 py-[15px]">
-        <p className="text-[0.9375rem] leading-[1.4] font-extrabold text-ink">시작하기 전에</p>
+        <p className="text-[0.9375rem] leading-[1.45] font-extrabold text-ink">시작하기 전에</p>
         <ul className="mt-2 flex flex-col gap-1.5">
           {FREE_CONSENT_LINES.map((line) => (
             <li key={line} className="text-[0.9375rem] leading-[1.6] text-ink-soft">

@@ -34,12 +34,12 @@ export function MaskingPipeline({ steps, className }: MaskingPipelineProps) {
         <li key={s.step} className="flex gap-3 py-4">
           <span
             aria-hidden
-            className="chim-num w-[1rem] flex-none text-[0.9375rem] leading-[1.4] font-extrabold text-brand-700"
+            className="chim-num w-[1rem] flex-none text-[0.9375rem] leading-[1.45] font-extrabold text-brand-700"
           >
             {i + 1}
           </span>
           <div className="min-w-0">
-            <p className="text-[1.0625rem] leading-[1.4] font-extrabold text-ink">{s.step}</p>
+            <p className="text-[1.0625rem] leading-[1.45] font-extrabold text-ink">{s.step}</p>
             <p className="mt-1 text-[0.9375rem] leading-[1.6] text-ink-muted">{s.desc}</p>
             {/* 「지금 되는 것」 아래에 「계획」을 따로 세웁니다 — 같은 문단에 섞으면 구별되지 않습니다. */}
             {s.plan && (

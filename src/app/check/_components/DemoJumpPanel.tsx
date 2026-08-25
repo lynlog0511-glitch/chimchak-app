@@ -52,7 +52,7 @@ export function DemoJumpPanel() {
   return (
     <section
       aria-labelledby="demo-jump-title"
-      className="mt-[18px] rounded-[14px] bg-paper-2 px-4 py-[14px]"
+      className="mt-[18px] rounded-card bg-paper-2 px-4 py-[14px]"
     >
       <h2 id="demo-jump-title" className="text-[0.8438rem] leading-[1.45] font-extrabold text-ink">
         바로 보여 주기

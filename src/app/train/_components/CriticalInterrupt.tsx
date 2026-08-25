@@ -80,7 +80,7 @@ export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalI
         )}
       >
         {/* 그래버 — 22px 띠 하나. 「여기는 스크롤됩니다」를 형태로만 말합니다. */}
-        <div aria-hidden className="flex h-[22px] flex-none items-center justify-center">
+        <div aria-hidden className="flex h-[1.375rem] flex-none items-center justify-center">
           <span className="block h-[4px] w-[36px] rounded-full bg-line-strong" />
         </div>
 
@@ -128,7 +128,7 @@ export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalI
                     <button
                       type="button"
                       onClick={() => leave(alternative)}
-                      className="min-h-[48px] w-full rounded-[14px] border border-line-strong bg-white px-[15px] py-2.5 text-left text-[1.0625rem] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
+                      className="min-h-[48px] w-full rounded-card border border-line-strong bg-white px-[15px] py-2.5 text-left text-[1.0625rem] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
                     >
                       {alternative}
                     </button>

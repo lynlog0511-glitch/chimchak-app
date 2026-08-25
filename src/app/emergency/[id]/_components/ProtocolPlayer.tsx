@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { ProtocolStep } from "@/types";
-import { EyebrowLabel, cx } from "@/components";
+import { BackGlyph, EyebrowLabel, cx } from "@/components";
 import { isSpeechPlaybackSupported, primeVoices, stopSpeaking } from "@/lib/speech";
 import { Call119Bar } from "../../_components/Call119Bar";
 import {
@@ -92,9 +92,7 @@ export function ProtocolPlayer({ title, steps, backHref }: ProtocolPlayerProps) 
             href={backHref}
             className="-ml-2 flex min-h-[48px] items-center gap-[4px] px-2 text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 active:text-ink"
           >
-            <span aria-hidden className="text-[1.1875rem] leading-none">
-              ‹
-            </span>
+            <BackGlyph />
             안내 종료
           </Link>
           {/* 제목이 길어도 「N / M」은 잘리지 않습니다 — 잘리는 쪽은 언제나 제목입니다. */}
@@ -123,7 +121,7 @@ export function ProtocolPlayer({ title, steps, backHref }: ProtocolPlayerProps) 
         {resumedFromHidden && (
           <div
             role="status"
-            className="mb-3 rounded-[14px] bg-warn-soft px-4 py-[14px]"
+            className="mb-3 rounded-card bg-warn-soft px-4 py-[14px]"
           >
             <p className="text-[1.0625rem] leading-[1.45] font-bold text-warn-ink">
               119 통화 중이셨나요?
@@ -157,7 +155,7 @@ export function ProtocolPlayer({ title, steps, backHref }: ProtocolPlayerProps) 
             <button
               type="button"
               onClick={unblock}
-              className="flex min-h-[52px] w-full items-center justify-center rounded-[14px] border border-line-strong bg-paper px-3 text-[0.9375rem] font-bold text-ink transition-colors duration-150 active:bg-paper-2"
+              className="flex min-h-[52px] w-full items-center justify-center rounded-card border border-line-strong bg-paper px-3 text-[0.9375rem] font-bold text-ink transition-colors duration-150 active:bg-paper-2"
             >
               눌러서 소리 시작
             </button>
@@ -214,7 +212,7 @@ export function ProtocolPlayer({ title, steps, backHref }: ProtocolPlayerProps) 
 
       {/* 아래는 재생을 방해하지 않는 보조 영역입니다 — 위계를 낮춰 선 하나로만 나눕니다. */}
       {!ttsSupported && (
-        <p className="mt-5 rounded-[14px] bg-warn-soft px-4 py-3 text-[0.8438rem] leading-[1.6] font-semibold text-warn-ink">
+        <p className="mt-5 rounded-card bg-warn-soft px-4 py-3 text-[0.8438rem] leading-[1.6] font-semibold text-warn-ink">
           이 기기에서는 음성 안내를 사용할 수 없습니다. 자막이 같은 속도로 자동 진행되니 화면을 보고
           따라 주세요.
         </p>

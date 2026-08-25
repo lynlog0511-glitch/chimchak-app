@@ -38,13 +38,18 @@ function MetricTile({
   caption: string;
   tone: "ok" | "danger" | "neutral";
 }) {
-  const box = tone === "ok" ? "bg-ok-soft" : tone === "danger" ? "bg-danger-soft" : "bg-paper-2";
+  /* 면은 **잘못됐을 때만** 색을 씁니다(2026-08-25).
+     예전에는 정상(0건)일 때 ok-soft 연둣빛 면이 깔렸는데, 이 화면은 색 면이 11블록까지 늘어
+     정작 중요한 L3 빨강이 다른 색들 속에 묻히던 자리였습니다. 실측 패널은 이미 40px 숫자와
+     풀블리드 회색 띠로 충분히 갈라져 있어, 안쪽 면까지 칠할 이유가 없습니다.
+     숫자 색(ok-ink)은 남깁니다 — 면이 아니라 글자이고, 「0건」이 이 패널의 주장입니다. */
+  const box = tone === "danger" ? "bg-danger-soft" : "bg-paper-2";
   const numberTone =
     tone === "ok" ? "text-ok-ink" : tone === "danger" ? "text-danger-ink" : "text-brand-800";
 
   return (
     <div className={cx("rounded-card p-4", box)}>
-      <p className="text-[0.7813rem] leading-[1.5] font-bold text-ink-soft">{label}</p>
+      <p className="text-[0.7813rem] leading-[1.45] font-bold text-ink-soft">{label}</p>
       <p
         className={cx(
           "chim-num mt-1 text-[2.5rem] leading-[1.05] font-extrabold tracking-[-0.03em]",
@@ -54,7 +59,7 @@ function MetricTile({
         {value}
         <span className="text-[0.9375rem] font-semibold text-ink-muted"> {unit}</span>
       </p>
-      <p className="mt-2 text-[0.7813rem] leading-[1.55] text-ink-muted">{caption}</p>
+      <p className="mt-2 text-[0.7813rem] leading-[1.6] text-ink-muted">{caption}</p>
     </div>
   );
 }
@@ -71,13 +76,13 @@ export function LiveProofPanel({ className }: LiveProofPanelProps) {
 
   return (
     <div className={className}>
-      <p className="text-[0.7813rem] leading-[1.5] font-bold tracking-[0.06em] text-ink-muted">
+      <p className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-ink-muted">
         라이브 계측 상세
       </p>
-      <h3 className="mt-1 text-[1.0625rem] leading-[1.4] font-extrabold text-ink">
+      <h3 className="mt-1 text-[1.0625rem] leading-[1.45] font-extrabold text-ink">
         말이 아니라 계측치로 — 이 페이지가 열려 있는 동안
       </h3>
-      <p className="mt-2 text-[0.9375rem] leading-[1.65] text-ink-soft">
+      <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink-soft">
         아래 숫자는 저희가 적어 둔 값이 아니라, 지금 이 브라우저가 실제로 주고받은 요청을 세어
         보여 드리는 실측치입니다. 화면을 열어 두시는 동안 계속 갱신됩니다.
       </p>
@@ -102,19 +107,19 @@ export function LiveProofPanel({ className }: LiveProofPanelProps) {
             />
           </div>
 
-          <p className="chim-num mt-3 text-[0.7813rem] leading-[1.55] text-ink-muted">
+          <p className="chim-num mt-3 text-[0.7813rem] leading-[1.6] text-ink-muted">
             관측 시작 후 {formatElapsed(elapsed)} 경과
             {counts.device > 0 && ` · 기기 안에서만 만든 자원 ${counts.device}건`}
           </p>
 
           {clean ? (
-            <p className="mt-3 text-[0.9375rem] leading-[1.65] font-bold text-ok-ink">
+            <p className="mt-3 text-[0.9375rem] leading-[1.6] font-bold text-ok-ink">
               지금까지 이 화면에서 외부로 나간 요청은 없습니다. 판정·가명처리·기록은 전부 이
               기기에서 끝납니다.
             </p>
           ) : (
             <div className="mt-3 rounded-card bg-danger-soft p-4">
-              <p className="text-[0.9375rem] leading-[1.65] font-bold text-danger-ink">
+              <p className="text-[0.9375rem] leading-[1.6] font-bold text-danger-ink">
                 외부 출처 요청이 잡혔습니다. 감추지 않고 그대로 보여 드립니다.
               </p>
               <ul className="mt-2 space-y-1">
@@ -135,7 +140,7 @@ export function LiveProofPanel({ className }: LiveProofPanelProps) {
       {/* 2. 기기 저장 목록 */}
       {mounted && cacheVisible && (
         <div className="mt-6 border-t border-line pt-4">
-          <p className="text-[1.0625rem] leading-[1.4] font-extrabold text-ink">
+          <p className="text-[1.0625rem] leading-[1.45] font-extrabold text-ink">
             이 기기에 저장된 화면 — 서버가 죽어도 열리는 목록
           </p>
 
@@ -155,14 +160,14 @@ export function LiveProofPanel({ className }: LiveProofPanelProps) {
             <div className="mt-3 space-y-4">
               {cache.groups.map((group) => (
                 <div key={group.name}>
-                  <p className="text-[0.7813rem] leading-[1.4] font-bold tracking-[0.04em] text-ink-muted">
+                  <p className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.04em] text-ink-muted">
                     {group.name}
                   </p>
                   {group.entries.length > 0 && (
                     <ul className="mt-2 space-y-1">
                       {group.entries.map((path) => (
                         <li key={path}>
-                          <span className="text-[0.9375rem] leading-[1.55] font-bold text-ink">
+                          <span className="text-[0.9375rem] leading-[1.6] font-bold text-ink">
                             {ROUTE_LABEL[path] ?? path}
                           </span>
                           <span className="ml-2 text-[0.7813rem] break-all text-ink-muted">
@@ -173,7 +178,7 @@ export function LiveProofPanel({ className }: LiveProofPanelProps) {
                     </ul>
                   )}
                   {group.assetCount > 0 && (
-                    <p className="chim-num mt-2 text-[0.7813rem] leading-[1.55] text-ink-muted">
+                    <p className="chim-num mt-2 text-[0.7813rem] leading-[1.6] text-ink-muted">
                       그리고 이 화면들을 실제로 움직이는 데 필요한 자산 {group.assetCount}건이 함께
                       저장되어 있습니다.
                     </p>
@@ -181,7 +186,7 @@ export function LiveProofPanel({ className }: LiveProofPanelProps) {
                 </div>
               ))}
               {cache.swSupported && !cache.swActive && (
-                <p className="text-[0.7813rem] leading-[1.55] text-ink-muted">
+                <p className="text-[0.7813rem] leading-[1.6] text-ink-muted">
                   다만 지금 이 실행에서는 저장을 관리하는 서비스워커가 활성 상태가 아닙니다. 위
                   목록은 이전에 저장된 내용입니다.
                 </p>
@@ -193,7 +198,7 @@ export function LiveProofPanel({ className }: LiveProofPanelProps) {
 
       {/* 3. 직접 확인 안내 — 보더 없이 옅은 면으로만 묶습니다(v4 §2). */}
       <div className="mt-6 rounded-card bg-paper-2 p-4">
-        <p className="text-[0.9375rem] leading-[1.65] font-bold text-brand-800">
+        <p className="text-[0.9375rem] leading-[1.6] font-bold text-brand-800">
           직접 확인하실 수 있습니다. 브라우저 개발자도구(F12) → 네트워크 탭을 열어 두고 이 앱을
           사용해 보세요. 같은 목록이 그대로 보입니다.
         </p>

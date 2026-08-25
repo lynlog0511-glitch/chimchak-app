@@ -149,16 +149,16 @@ const CITABLE_DOCS = SOURCE_DOCS.filter((doc) => CITABLE_DOC_IDS.includes(doc.id
 function SourceDocAppendix() {
   return (
     <div className="mt-[16px] border-t border-line pt-[14px]">
-      <p className="text-[0.8125rem] leading-[1.5] font-bold text-ink">
+      <p className="text-[0.8125rem] leading-[1.45] font-bold text-ink">
         부록 · 판정 근거 문서 {CITABLE_DOCS.length}종
       </p>
-      <p className="mt-[6px] text-[0.7813rem] leading-[1.7] text-ink-soft">
+      <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
         이 훈련의 피드백은 아래 목록 안에서만 근거를 붙입니다. 목록 밖 문서를 근거로 든 판정은
         앱이 멈춰 세우고 확인 안내로 넘깁니다.
       </p>
       <ol className="mt-[8px]">
         {CITABLE_DOCS.map((doc, index) => (
-          <li key={doc.id} className="mt-[4px] text-[0.7813rem] leading-[1.7] text-ink">
+          <li key={doc.id} className="mt-[4px] text-[0.7813rem] leading-[1.6] text-ink">
             <span className="chim-num font-bold">{index + 1}.</span> {doc.title}{" "}
             <span className="text-ink-muted">({doc.kind})</span>
           </li>
@@ -184,10 +184,10 @@ function FillField({
   const filled = (value ?? "").trim();
   return (
     <span className={cx("flex min-w-0 items-baseline gap-[8px]", className)}>
-      <span className="flex-none text-[0.75rem] leading-[1.5] font-bold text-ink-muted">{label}</span>
+      <span className="flex-none text-[0.75rem] leading-[1.45] font-bold text-ink-muted">{label}</span>
       {/* 빈 칸일 때 들어가는 것은 줄바꿈 없는 공백(U+00A0) 하나입니다 —
           밑줄의 높이를 잃지 않게 두는 자리이고, 손으로 적으실 칸입니다. */}
-      <span className="min-w-[80px] flex-1 border-b border-ink-muted pb-[3px] text-[0.875rem] leading-[1.5] font-bold text-ink">
+      <span className="min-w-[80px] flex-1 border-b border-ink-muted pb-[3px] text-[0.875rem] leading-[1.45] font-bold text-ink">
         {filled.length > 0 ? filled : " "}
       </span>
     </span>
@@ -278,21 +278,21 @@ export function CertificateSheet() {
         </p>
       ) : lines.length === 0 ? (
         <div className="mt-4">
-          <div className="rounded-[14px] bg-paper-2 px-4 py-[14px]">
-            <p className="text-[0.9063rem] leading-[1.5] font-bold text-ink">
+          <div className="rounded-card bg-paper-2 px-4 py-[14px]">
+            <p className="text-[0.9375rem] leading-[1.45] font-bold text-ink">
               아직 이수한 훈련이 없습니다
             </p>
-            <p className="mt-[3px] text-[0.8125rem] leading-[1.6] text-ink-soft">
+            <p className="mt-[3px] text-[0.8438rem] leading-[1.6] text-ink-soft">
               시나리오를 하나 마치시면 이 자리에 시나리오·완료일·이수 횟수가 담긴 확인서가
               만들어집니다.
             </p>
             {/* 「인쇄 버튼이 왜 없지」로 끝나지 않게, 없는 이유를 화면이 먼저 답합니다 —
                 담길 줄이 없는 확인서를 인쇄하면 서명란만 있는 빈 종이가 나옵니다. */}
-            <p className="mt-[8px] text-[0.8125rem] leading-[1.6] text-ink-soft">
+            <p className="mt-[8px] text-[0.8438rem] leading-[1.6] text-ink-soft">
               그때까지는 인쇄와 파일 내려받기가 열리지 않습니다. 담길 줄이 없는 확인서는
               서명란만 있는 빈 종이가 되기 때문입니다.
             </p>
-            <p className="mt-[8px] text-[0.8125rem] leading-[1.6] text-ink-soft">
+            <p className="mt-[8px] text-[0.8438rem] leading-[1.6] text-ink-soft">
               예전 기기에서 이미 이수하셨다면 아래 칸에서 <b className="font-bold text-ink">이수
               사실 파일</b>을 고르시면 됩니다 — 합치고 나면 이 화면에서 바로 확인서가 만들어집니다.
             </p>
@@ -313,10 +313,10 @@ export function CertificateSheet() {
           {/* 인쇄 직전 기입란 — 여기 적은 값은 종이에만 실리고 저장되지 않습니다.
               확인서 시트가 보더 1px 카드라 이 블록은 면을 깔지 않습니다(가이드 §3 — 한 화면에서 혼용 금지). */}
           <div data-noprint className="border-b border-line px-[2px] pb-[18px]">
-            <p className="text-[0.875rem] leading-[1.5] font-bold text-ink">
+            <p className="text-[0.9375rem] leading-[1.45] font-bold text-ink">
               인쇄 전에 성명·소속을 채우실 수 있습니다
             </p>
-            <p className="mt-[4px] text-[0.8125rem] leading-[1.7] text-ink-soft">
+            <p className="mt-[4px] text-[0.8438rem] leading-[1.6] text-ink-soft">
               여기 적으신 내용은 <b className="font-bold text-ink">저장되지 않습니다</b>. 이 화면의
               인쇄에만 실리고, 화면을 닫으면 사라집니다. 비워 두시면 확인서에 빈 밑줄로 인쇄되어
               손으로 적으실 수 있습니다.
@@ -326,7 +326,7 @@ export function CertificateSheet() {
               <div className="min-w-0 flex-1">
                 <label
                   htmlFor="certificate-name"
-                  className="text-[0.8125rem] leading-[1.5] font-bold text-ink"
+                  className="text-[0.8438rem] leading-[1.45] font-bold text-ink"
                 >
                   성명
                 </label>
@@ -337,13 +337,13 @@ export function CertificateSheet() {
                   onChange={(event) => setLearnerName(event.target.value)}
                   autoComplete="off"
                   placeholder="이수하신 분 성함"
-                  className="mt-[6px] min-h-[48px] w-full rounded-[14px] border border-line-strong bg-white px-[13px] text-[0.9375rem] leading-[1.6] text-ink placeholder:text-tertiary focus:border-brand-400"
+                  className="mt-[6px] min-h-[48px] w-full rounded-card border border-line-strong bg-white px-[13px] text-[0.9375rem] leading-[1.6] text-ink placeholder:text-tertiary focus:border-brand-400"
                 />
               </div>
               <div className="min-w-0 flex-1">
                 <label
                   htmlFor="certificate-org"
-                  className="text-[0.8125rem] leading-[1.5] font-bold text-ink"
+                  className="text-[0.8438rem] leading-[1.45] font-bold text-ink"
                 >
                   소속
                 </label>
@@ -354,7 +354,7 @@ export function CertificateSheet() {
                   onChange={(event) => setLearnerOrg(event.target.value)}
                   autoComplete="off"
                   placeholder="예) ○○주야간보호센터"
-                  className="mt-[6px] min-h-[48px] w-full rounded-[14px] border border-line-strong bg-white px-[13px] text-[0.9375rem] leading-[1.6] text-ink placeholder:text-tertiary focus:border-brand-400"
+                  className="mt-[6px] min-h-[48px] w-full rounded-card border border-line-strong bg-white px-[13px] text-[0.9375rem] leading-[1.6] text-ink placeholder:text-tertiary focus:border-brand-400"
                 />
               </div>
             </div>
@@ -364,7 +364,7 @@ export function CertificateSheet() {
             data-print-sheet
             aria-labelledby="certificate-title"
             className={cx(
-              "mt-4 rounded-[14px] border border-line-strong px-4 py-[18px]",
+              "mt-4 rounded-card border border-line-strong px-4 py-[18px]",
               isPreview && "relative overflow-hidden",
             )}
           >
@@ -389,23 +389,23 @@ export function CertificateSheet() {
             )}
 
             {isPreview && (
-              <p className="mb-[12px] rounded-[12px] bg-warn-soft px-[12px] py-[10px] text-[0.875rem] leading-[1.7] font-bold text-warn-ink">
+              <p className="mb-[12px] rounded-field bg-warn-soft px-[12px] py-[10px] text-[0.875rem] leading-[1.6] font-bold text-warn-ink">
                 예시 미리보기 — 체험용 예시 기록 {demoCount}회가 섞여 있습니다. 이 문서는 발급되지
                 않았으며 증빙으로 쓸 수 없습니다. 내 이력 위쪽 안내줄에서 예시를 지우시면 실제
                 이수 사실로 다시 만들어집니다.
               </p>
             )}
 
-            <h2 id="certificate-title" className="text-[1.125rem] leading-[1.35] font-extrabold text-ink">
+            <h2 id="certificate-title" className="text-[1.125rem] leading-[1.3] font-extrabold text-ink">
               침착 훈련 이수 확인서
             </h2>
-            <p className="mt-[3px] text-[0.7813rem] leading-[1.5] text-ink-soft">
+            <p className="mt-[3px] text-[0.7813rem] leading-[1.45] text-ink-soft">
               발급일 {formatDate(issuedAt)} · 이 기기에 저장된 기록으로 만들었습니다
             </p>
 
             {/* 자료철에 끼우는 문서라 번호와 발급주체가 있어야 대조·문의가 가능합니다.
                 번호는 기록 집합에서 계산한 값이라 서버 없이도 재인쇄 시 같은 값이 나옵니다. */}
-            <p className="mt-[8px] text-[0.8125rem] leading-[1.5] font-bold text-ink">
+            <p className="mt-[8px] text-[0.8125rem] leading-[1.45] font-bold text-ink">
               발급번호{" "}
               {isPreview ? (
                 <span className="text-warn-ink">예시 — 발급되지 않음</span>
@@ -431,13 +431,13 @@ export function CertificateSheet() {
               <FillField label="소속" value={learnerOrg} className="flex-1" />
             </div>
 
-            <p className="mt-[14px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+            <p className="mt-[14px] text-[0.8438rem] leading-[1.6] text-ink-soft">
               아래 시나리오를 끝까지 진행하셨음을 확인합니다. 합계{" "}
               <span className="chim-num font-bold text-brand-800">{total}</span>회 ·{" "}
               <span className="chim-num font-bold text-brand-800">{lines.length}</span>종입니다.
             </p>
             {/* 증빙 서식은 언제나 시간으로 묻습니다 — 「N회」만으로는 옮겨 적을 칸이 없습니다. */}
-            <p className="mt-[6px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+            <p className="mt-[6px] text-[0.8438rem] leading-[1.6] text-ink-soft">
               {totalSec > 0 ? (
                 <>
                   총 이수 시수{" "}
@@ -453,7 +453,7 @@ export function CertificateSheet() {
             {/* 합계에 예시가 섞였다는 사실을 합계 바로 아래에서 밝힙니다 — 이 줄이 없으면
                 숫자만 옮겨 적히고 예시라는 사실은 종이에서 사라집니다. */}
             {isPreview && (
-              <p className="mt-[6px] text-[0.7813rem] leading-[1.7] font-bold text-warn-ink">
+              <p className="mt-[6px] text-[0.7813rem] leading-[1.6] font-bold text-warn-ink">
                 이 합계에는 체험용 예시 <span className="chim-num">{demoCount}</span>회가 포함되어
                 있습니다. 이 기기의 실제 이수 시수 누계에는 반영되지 않은 회차입니다.
               </p>
@@ -461,7 +461,7 @@ export function CertificateSheet() {
             {/* 가져온 회차는 상세가 이 기기에 없지만 사유가 「50건 상한」과 다릅니다 —
                 두 사유를 한 문장으로 뭉치면 종이가 사실과 다른 이유를 대게 됩니다. */}
             {importedCount > 0 && (
-              <p className="mt-[6px] text-[0.7813rem] leading-[1.7] text-ink-soft">
+              <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
                 이 가운데 <span className="chim-num font-bold">{importedCount}</span>회는 다른
                 기기의 이수 사실 파일에서 가져온 회차입니다 — 발급번호로 대조해 합쳤고, 같은
                 번호는 두 번 더하지 않습니다. 가져온 회차의 상세는 이 기기에 남지 않습니다.
@@ -470,7 +470,7 @@ export function CertificateSheet() {
             {/* 상세는 최근 50회까지만 남지만 합계·시수는 별도 누계로 세므로 줄지 않습니다.
                 그 차이를 감추면 「목록을 세어 보니 합계와 다르다」가 됩니다. */}
             {hiddenCount > 0 && (
-              <p className="mt-[6px] text-[0.7813rem] leading-[1.7] text-ink-soft">
+              <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
                 이 가운데 <span className="chim-num font-bold">{hiddenCount}</span>회는 상세가 이
                 기기에 남아 있지 않습니다. 최근 50회까지만 상세를 보관하고, 합계와 이수 시수는
                 따로 누계로 세기 때문에 줄지 않습니다.
@@ -484,11 +484,11 @@ export function CertificateSheet() {
                   <li key={line.scenarioId} className="py-[12px]">
                     {/* 파일에서 옮겨 온 회차가 섞인 줄은 머리 줄에서 먼저 갈라 둡니다 —
                         이 기기에서 마친 회차와 증빙 무게가 다르기 때문입니다. */}
-                    <p className="text-[0.75rem] leading-[1.4] text-ink-muted">
+                    <p className="text-[0.75rem] leading-[1.45] text-ink-muted">
                       <span className="chim-num">{line.scenarioId}</span> · {line.typeLabel}
                       {imported > 0 && " · 가져온 회차 포함"}
                     </p>
-                    <p className="mt-[2px] text-[0.9375rem] leading-[1.4] font-bold text-ink">
+                    <p className="mt-[2px] text-[0.9375rem] leading-[1.45] font-bold text-ink">
                       {line.title}
                     </p>
                     <p className="mt-[3px] text-[0.7813rem] leading-[1.6] text-ink-soft">
@@ -509,12 +509,12 @@ export function CertificateSheet() {
 
             {/* 서명란 — 종이로 오가는 서식이라 확인자·일자 칸을 비워 인쇄합니다. */}
             <div className="mt-[16px] border-t border-line pt-[14px]">
-              <p className="text-[0.8125rem] leading-[1.5] font-bold text-ink">
+              <p className="text-[0.8125rem] leading-[1.45] font-bold text-ink">
                 위 이수 사실을 확인합니다
               </p>
               {/* 검증 책임이 어디에 있는지 문서 스스로 밝혀 둡니다 — 서버도 서명도 없는 문서라
                   「무엇을 근거로 확인하는가」에 종이 자체가 답해야 합니다. */}
-              <p className="mt-[6px] text-[0.7813rem] leading-[1.7] text-ink-soft">
+              <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
                 이 확인서는 이수자 본인 기기에 남은 기록으로 만들어졌으며, 기관 확인자의 서명으로
                 효력이 생깁니다.
               </p>
@@ -525,19 +525,19 @@ export function CertificateSheet() {
             </div>
 
             <div className="mt-[16px] border-t border-line pt-[12px]">
-              <p className="text-[0.7813rem] leading-[1.7] font-bold text-ink">
+              <p className="text-[0.7813rem] leading-[1.6] font-bold text-ink">
                 본 확인서는 앱 기록 기반이며 법정 보수교육 이수 인정이 아닙니다 — 기관 자체
                 직무교육·정기평가 내부 증빙용입니다.
               </p>
-              <p className="mt-[6px] text-[0.7813rem] leading-[1.7] text-ink-soft">
+              <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
                 총 이수 시수는 이 기기에 남은 시작·종료 시각으로 계산한 실측치이며, 한 회차가 30분을
                 넘으면 30분까지만 셉니다.
               </p>
-              <p className="mt-[6px] text-[0.7813rem] leading-[1.7] text-ink-soft">
+              <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
                 이 확인서에는 이수 사실만 담습니다 — 판정 결과와 대화 내용은 포함하지 않으며,
                 말씀하신 발화 원문은 저장하지 않습니다.
               </p>
-              <p className="mt-[6px] text-[0.7813rem] leading-[1.7] text-ink-soft">
+              <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
                 훈련 속 인물은 전원 가상이며, 대사는 검수된 문장을 바탕으로 합니다. 실제 인물·기관과
                 무관합니다.
               </p>
@@ -557,8 +557,8 @@ export function CertificateSheet() {
             <p
               className={
                 inApp
-                  ? "mt-2 rounded-[14px] bg-warn-soft px-4 py-[12px] text-[0.8438rem] leading-[1.7] font-bold text-warn-ink"
-                  : "mt-[10px] text-center text-[0.8125rem] leading-[1.6] text-ink-soft"
+                  ? "mt-2 rounded-card bg-warn-soft px-4 py-[12px] text-[0.8438rem] leading-[1.6] font-bold text-warn-ink"
+                  : "mt-[10px] text-center text-[0.8438rem] leading-[1.6] text-ink-soft"
               }
             >
               {inApp
@@ -568,11 +568,11 @@ export function CertificateSheet() {
             {/* 예시가 섞인 파일은 화면 표시를 잃은 채 자료철로 흘러갈 수 있어 내려받기를 잠급니다.
                 인쇄물에는 워터마크가 남지만, CSV 한 장에는 남길 자리가 없습니다. */}
             {isPreview ? (
-              <div className="mt-2 rounded-[14px] bg-paper-2 px-4 py-[14px]">
-                <p className="text-[0.875rem] leading-[1.5] font-bold text-ink">
+              <div className="mt-2 rounded-card bg-paper-2 px-4 py-[14px]">
+                <p className="text-[0.9375rem] leading-[1.45] font-bold text-ink">
                   이수 사실 파일 내려받기는 잠겨 있습니다
                 </p>
-                <p className="mt-[4px] text-[0.8125rem] leading-[1.7] text-ink-soft">
+                <p className="mt-[4px] text-[0.8438rem] leading-[1.6] text-ink-soft">
                   예시가 섞인 파일이 증빙으로 돌아다니지 않도록 막아 두었습니다. 내 이력 위쪽
                   안내줄에서 예시를 지우시면 다시 열립니다.
                 </p>
@@ -598,7 +598,7 @@ export function CertificateSheet() {
                     빈 문자열일 때도 상자는 남겨 둬야 화면 낭독기가 바뀐 줄을 읽어 줍니다. */}
                 <div role="status" aria-live="polite">
                   {downloadName.length > 0 && (
-                    <p className="mt-2 text-[0.8438rem] leading-[1.7] font-semibold text-ok-ink">
+                    <p className="mt-2 text-[0.8438rem] leading-[1.6] font-semibold text-ok-ink">
                       내려받기를 시작했습니다 — 파일 이름{" "}
                       <span className="font-bold break-all">{downloadName}</span>. 기기의
                       「다운로드」 폴더에서 찾으실 수 있습니다. 보이지 않으면 카카오톡·네이버 등 앱
@@ -611,12 +611,12 @@ export function CertificateSheet() {
             <BigButton href="/history" variant="secondary" block className="mt-2">
               내 이력으로 돌아가기
             </BigButton>
-            <p className="mt-[10px] text-center text-[0.8125rem] leading-[1.6] text-ink-soft">
+            <p className="mt-[10px] text-center text-[0.8438rem] leading-[1.6] text-ink-soft">
               성명·소속을 채우신 뒤 위 버튼을 누르시면 인쇄 창이 열립니다. 적으신 내용은 저장되지
               않습니다.
             </p>
             {!isPreview && (
-              <p className="mt-[6px] text-center text-[0.8125rem] leading-[1.6] text-ink-soft">
+              <p className="mt-[6px] text-center text-[0.8438rem] leading-[1.6] text-ink-soft">
                 내려받는 파일에는 발급번호·시나리오·이수 횟수·이수 시수만 담깁니다 — 성명·소속과
                 대화 내용은 들어가지 않습니다. 기기를 바꾸실 때 옮겨 두셨다가, 새 기기의 이 화면에서
                 아래 칸으로 되돌려 넣으시면 됩니다.

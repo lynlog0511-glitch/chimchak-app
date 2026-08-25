@@ -67,7 +67,7 @@ export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: Dr
 
   return (
     <div>
-      <h2 ref={headingRef} tabIndex={-1} className="text-[1.0625rem] leading-[1.45] font-bold text-ink">
+      <h2 ref={headingRef} tabIndex={-1} className="text-[1.1875rem] leading-[1.3] font-bold tracking-[-0.015em] text-ink">
         급여제공기록지 초안을 확인하고 고쳐 주세요
       </h2>
       <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-muted">
@@ -100,7 +100,7 @@ export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: Dr
              `focus:border-brand-400`도 뗐습니다: 전역 포커스 outline(brand-600)과 겹쳐
              틸 두 겹이 번져 보였습니다. 「비어 있음」 경고 보더는 상태 표시라 그대로 둡니다. */
           const shared = cx(
-            "mt-[6px] w-full rounded-[14px] border bg-paper-2 p-[13px] text-[1.0625rem] leading-[1.6] text-ink placeholder:text-tertiary",
+            "mt-[6px] w-full rounded-card border bg-paper-2 p-[13px] text-[1.0625rem] leading-[1.6] text-ink placeholder:text-tertiary",
             empty ? "border-warn-line focus:border-warn-ink" : "border-line-strong",
           );
 
@@ -143,7 +143,7 @@ export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: Dr
         })}
       </div>
 
-      <div className="mt-6 rounded-[14px] bg-paper-2 px-4 py-[14px]">
+      <div className="mt-6 rounded-card bg-paper-2 px-4 py-[14px]">
         <p className="text-[0.8438rem] leading-[1.45] font-bold text-ink">
           확정은 직접 누르셔야 저장됩니다
         </p>

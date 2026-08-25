@@ -147,7 +147,7 @@ function Th({
       scope="col"
       data-noprint={noPrint ? "" : undefined}
       className={cx(
-        "py-[8px] text-[0.75rem] leading-[1.45] font-bold tracking-[0.06em] text-ink-muted",
+        "py-[8px] text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-ink-muted",
         numeric ? "pl-3 text-right" : "pr-3 text-left",
       )}
     >
@@ -169,7 +169,7 @@ function Td({
     <td
       data-noprint={noPrint ? "" : undefined}
       className={cx(
-        "py-[11px] align-top text-[0.875rem] leading-[1.5] text-ink",
+        "py-[11px] align-top text-[0.9375rem] leading-[1.45] text-ink",
         numeric ? "pl-3 text-right whitespace-nowrap" : "pr-3 text-left",
       )}
     >
@@ -186,8 +186,8 @@ function FillField({ label, value, className }: { label: string; value?: string;
   const filled = (value ?? "").trim();
   return (
     <span className={cx("flex min-w-0 items-baseline gap-[8px]", className)}>
-      <span className="flex-none text-[0.75rem] leading-[1.5] font-bold text-ink-muted">{label}</span>
-      <span className="min-w-[80px] flex-1 border-b border-ink-muted pb-[3px] text-[0.875rem] leading-[1.5] font-bold text-ink">
+      <span className="flex-none text-[0.7813rem] leading-[1.45] font-bold text-ink-muted">{label}</span>
+      <span className="min-w-[80px] flex-1 border-b border-ink-muted pb-[3px] text-[0.9375rem] leading-[1.45] font-bold text-ink">
         {filled.length > 0 ? filled : " "}
       </span>
     </span>
@@ -320,17 +320,17 @@ export function ConsoleClient() {
       <style dangerouslySetInnerHTML={{ __html: PRINT_CSS }} />
 
       {/* 이 화면의 정체를 맨 위에서 한 번 더 — 제목 아래 부제만으로는 「연결된 콘솔」로 읽힙니다. */}
-      <div data-noprint className="mt-4 rounded-[14px] bg-paper-2 px-4 py-[14px]">
-        <p className="text-[0.9063rem] leading-[1.75] text-ink">
+      <div data-noprint className="mt-4 rounded-card bg-paper-2 px-4 py-[14px]">
+        <p className="text-[0.9375rem] leading-[1.6] text-ink">
           기관 콘솔은 <b className="font-bold">파일럿 뒤에 연결할 자리</b>이고, 이 화면은 그 자리를
           지금 실물로 보여 드리는 미리보기입니다. 서버도 계정도 없이 이 기기 안에서만 동작합니다.
           직원분들이 각자 내려받은 이수 사실 파일을 담당자가 모아서 올리시는 방식입니다.
         </p>
-        <p className="mt-[8px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+        <p className="mt-[8px] text-[0.8438rem] leading-[1.6] text-ink-soft">
           지금은 파일을 손으로 모으지만, 콘솔 연결 뒤에는 이수 사실만 자동으로 올라옵니다. 대화
           내용과 판정 결과는 그때도 올라가지 않습니다.
         </p>
-        <p className="mt-[8px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+        <p className="mt-[8px] text-[0.8438rem] leading-[1.6] text-ink-soft">
           올리신 파일은 <b className="font-bold text-ink">이 기기에도 저장하지 않습니다</b>. 새로
           고치시면 목록이 사라집니다. 이 기기에 남아 있는 본인의 이수 기록도 읽지 않습니다.
         </p>
@@ -342,10 +342,10 @@ export function ConsoleClient() {
         aria-labelledby="console-upload-title"
         className="mt-5 border-t border-line pt-5"
       >
-        <h2 id="console-upload-title" className="text-[1.0625rem] leading-[1.4] font-bold text-ink">
+        <h2 id="console-upload-title" className="text-[1.0625rem] leading-[1.45] font-bold text-ink">
           이수 사실 파일 올리기
         </h2>
-        <p className="mt-[6px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+        <p className="mt-[6px] text-[0.8438rem] leading-[1.6] text-ink-soft">
           직원분이 이수 확인서 화면에서 내려받은 파일(CSV)을 여러 개 한 번에 고르실 수 있습니다. 한
           벌이 한 분이고, 같은 발급번호는 두 번 세지 않습니다.
         </p>
@@ -355,8 +355,8 @@ export function ConsoleClient() {
           aria-disabled={busy}
           className={
             busy
-              ? "mt-[12px] inline-flex min-h-[48px] cursor-not-allowed items-center justify-center gap-2 rounded-[14px] border border-line-strong bg-white px-5 py-2.5 text-[1.0625rem] font-semibold text-ink opacity-45"
-              : "mt-[12px] inline-flex min-h-[48px] cursor-pointer items-center justify-center gap-2 rounded-[14px] border border-line-strong bg-white px-5 py-2.5 text-[1.0625rem] font-semibold text-ink focus-within:outline focus-within:outline-[3px] focus-within:outline-offset-2 focus-within:outline-brand-700"
+              ? "mt-[12px] inline-flex min-h-[48px] cursor-not-allowed items-center justify-center gap-2 rounded-card border border-line-strong bg-white px-5 py-2.5 text-[1.0625rem] font-semibold text-ink opacity-45"
+              : "mt-[12px] inline-flex min-h-[48px] cursor-pointer items-center justify-center gap-2 rounded-card border border-line-strong bg-white px-5 py-2.5 text-[1.0625rem] font-semibold text-ink focus-within:outline focus-within:outline-[3px] focus-within:outline-offset-2 focus-within:outline-brand-700"
           }
         >
           {busy ? "파일을 읽는 중입니다…" : "이수 사실 파일 고르기"}
@@ -379,20 +379,20 @@ export function ConsoleClient() {
 
         <div role="status" aria-live="polite">
           {notice.length > 0 && (
-            <p className="mt-[10px] text-[0.8438rem] leading-[1.7] font-semibold text-ink">{notice}</p>
+            <p className="mt-[10px] text-[0.8438rem] leading-[1.6] font-semibold text-ink">{notice}</p>
           )}
         </div>
 
         {rejects.length > 0 && (
-          <div className="mt-[10px] rounded-[14px] bg-warn-soft px-4 py-[12px]">
-            <p className="text-[0.875rem] leading-[1.5] font-bold text-warn-ink">
+          <div className="mt-[10px] rounded-card bg-warn-soft px-4 py-[12px]">
+            <p className="text-[0.9375rem] leading-[1.45] font-bold text-warn-ink">
               표에 올리지 않은 파일 <span className="chim-num">{rejects.length}</span>벌
             </p>
             <ul className="mt-[6px]">
               {rejects.map((row) => (
                 <li
                   key={`${row.fileName}-${row.message}`}
-                  className="mt-[4px] text-[0.8438rem] leading-[1.7] text-warn-ink"
+                  className="mt-[4px] text-[0.8438rem] leading-[1.6] text-warn-ink"
                 >
                   <b className="font-bold break-all">{row.fileName}</b> — {row.message}
                 </li>
@@ -410,32 +410,32 @@ export function ConsoleClient() {
         aria-labelledby="console-verify-title"
         className="mt-6 border-t border-line pt-5"
       >
-        <h2 id="console-verify-title" className="text-[1.0625rem] leading-[1.4] font-bold text-ink">
+        <h2 id="console-verify-title" className="text-[1.0625rem] leading-[1.45] font-bold text-ink">
           이 화면이 파일에서 대조하는 것
         </h2>
-        <p className="mt-[6px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+        <p className="mt-[6px] text-[0.8438rem] leading-[1.6] text-ink-soft">
           콘솔이 따로 판정하지 않고 앱과 같은 검사를 씁니다. 이수 확인서 화면에서 걸리는
           파일은 여기서도 똑같이 걸립니다.
         </p>
         <ul className="chim-hairline mt-[8px] border-y border-line">
-          <li className="py-[10px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+          <li className="py-[10px] text-[0.8438rem] leading-[1.6] text-ink-soft">
             <b className="font-bold text-ink">머리글이 앱 서식과 같은가</b> — 열 이름과 열 수가 한
             글자라도 다르면 받지 않습니다.
           </li>
-          <li className="py-[10px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+          <li className="py-[10px] text-[0.8438rem] leading-[1.6] text-ink-soft">
             <b className="font-bold text-ink">발급번호가 한 파일에 하나인가</b> — 서식은
             「CHK-0000-0000」 하나뿐이고, 행마다 다른 번호가 섞이면 받지 않습니다.
           </li>
-          <li className="py-[10px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+          <li className="py-[10px] text-[0.8438rem] leading-[1.6] text-ink-soft">
             <b className="font-bold text-ink">편성표에 있는 시나리오인가</b> — 이 앱에 없는 번호로
             행을 늘린 파일은 받지 않습니다.
           </li>
-          <li className="py-[10px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+          <li className="py-[10px] text-[0.8438rem] leading-[1.6] text-ink-soft">
             <b className="font-bold text-ink">숫자가 앱이 만들 수 있는 값인가</b> — 줄 값의 합이
             파일에 적힌 합계와 맞아야 하고, 한 회차는 30분까지만 셉니다.
           </li>
         </ul>
-        <p className="mt-[10px] text-[0.8438rem] leading-[1.7] text-ink">
+        <p className="mt-[10px] text-[0.8438rem] leading-[1.6] text-ink">
           다만 여기까지가 한계입니다. <b className="font-bold">발급번호는 대조용</b>이며,
           위조 방지는 콘솔 연결 시 서버 서명으로 이관합니다. 지금 이 묶음의 효력은 확인자 서명이
           만듭니다.
@@ -446,14 +446,14 @@ export function ConsoleClient() {
       {hasEntries ? (
         <>
           <div data-noprint className="mt-6 border-t border-line pt-5">
-            <h2 className="text-[1.0625rem] leading-[1.4] font-bold text-ink">증빙 묶음</h2>
-            <p className="mt-[6px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+            <h2 className="text-[1.0625rem] leading-[1.45] font-bold text-ink">증빙 묶음</h2>
+            <p className="mt-[6px] text-[0.8438rem] leading-[1.6] text-ink-soft">
               아래 표가 그대로 인쇄됩니다. 기관명은 인쇄에만 실리고{" "}
               <b className="font-bold text-ink">저장되지 않습니다</b>. 비워 두시면 빈 밑줄로
               인쇄되어 손으로 적으실 수 있습니다.
             </p>
             <div className="mt-[12px] max-w-[360px]">
-              <label htmlFor="console-org" className="text-[0.8125rem] leading-[1.5] font-bold text-ink">
+              <label htmlFor="console-org" className="text-[0.8438rem] leading-[1.45] font-bold text-ink">
                 기관명
               </label>
               <input
@@ -463,7 +463,7 @@ export function ConsoleClient() {
                 onChange={(event) => setOrgName(event.target.value)}
                 autoComplete="off"
                 placeholder="예) ○○주야간보호센터"
-                className="mt-[6px] min-h-[48px] w-full rounded-[14px] border border-line-strong bg-white px-[13px] text-[0.9375rem] leading-[1.6] text-ink placeholder:text-tertiary focus:border-brand-400"
+                className="mt-[6px] min-h-[48px] w-full rounded-card border border-line-strong bg-white px-[13px] text-[0.9375rem] leading-[1.6] text-ink placeholder:text-tertiary focus:border-brand-400"
               />
             </div>
           </div>
@@ -471,7 +471,7 @@ export function ConsoleClient() {
           <section
             data-print-sheet
             aria-labelledby="console-sheet-title"
-            className="mt-4 rounded-[14px] border border-line-strong px-4 py-[18px]"
+            className="mt-4 rounded-card border border-line-strong px-4 py-[18px]"
           >
             {/* 인쇄 전용 머리줄 — 이 묶음이 콘솔 연결 전의 표라는 사실이 종이에도 남습니다. */}
             <p aria-hidden data-preview-band className="hidden">
@@ -480,11 +480,11 @@ export function ConsoleClient() {
 
             <h2
               id="console-sheet-title"
-              className="text-[1.125rem] leading-[1.35] font-extrabold text-ink"
+              className="text-[1.125rem] leading-[1.3] font-extrabold text-ink"
             >
               기관 이수 현황 묶음
             </h2>
-            <p className="mt-[3px] text-[0.7813rem] leading-[1.5] text-ink-soft">
+            <p className="mt-[3px] text-[0.7813rem] leading-[1.45] text-ink-soft">
               만든 날 {formatDate(madeAt)} · 이수 사실 파일{" "}
               <span className="chim-num">{entries.length}</span>벌을 이 기기에서 모아 만든 표입니다
             </p>
@@ -494,7 +494,7 @@ export function ConsoleClient() {
               <FillField label="작성자" className="flex-1" />
             </div>
 
-            <p className="mt-[14px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+            <p className="mt-[14px] text-[0.8438rem] leading-[1.6] text-ink-soft">
               올라온 이수 사실 파일{" "}
               <span className="chim-num font-bold text-brand-800">{totals.people}</span>벌 · 이수
               회차 합계 <span className="chim-num font-bold text-brand-800">{totals.count}</span>회
@@ -502,7 +502,7 @@ export function ConsoleClient() {
               <span className="chim-num font-bold text-brand-800">{totals.courses.length}</span>
               종입니다.
             </p>
-            <p className="mt-[6px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+            <p className="mt-[6px] text-[0.8438rem] leading-[1.6] text-ink-soft">
               총 이수 시수{" "}
               <span className="chim-num font-bold text-brand-800">
                 {formatTotalDuration(totals.seconds)}
@@ -546,14 +546,14 @@ export function ConsoleClient() {
                           {entry.number}
                         </span>
                         {entry.issuedAt.length > 0 && (
-                          <span className="mt-[2px] block text-[0.75rem] leading-[1.5] text-ink-muted">
+                          <span className="mt-[2px] block text-[0.75rem] leading-[1.45] text-ink-muted">
                             파일 만든 시각 <span className="chim-num">{entry.issuedAt}</span>
                           </span>
                         )}
                         {/* 파일 이름은 화면에서만 — 이름에 성함이 들어 있을 수 있습니다. */}
                         <span
                           data-noprint
-                          className="mt-[2px] block text-[0.75rem] leading-[1.5] break-all text-ink-muted"
+                          className="mt-[2px] block text-[0.75rem] leading-[1.45] break-all text-ink-muted"
                         >
                           {entry.fileName}
                         </span>
@@ -624,10 +624,10 @@ export function ConsoleClient() {
 
             {/* 서명란 — 종이로 오가는 서식이라 확인자·일자 칸을 비워 인쇄합니다. */}
             <div className="mt-[18px] border-t border-line pt-[14px]">
-              <p className="text-[0.8125rem] leading-[1.5] font-bold text-ink">
+              <p className="text-[0.8125rem] leading-[1.45] font-bold text-ink">
                 위 이수 현황을 확인합니다
               </p>
-              <p className="mt-[6px] text-[0.7813rem] leading-[1.7] text-ink-soft">
+              <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
                 이 묶음은 직원분들이 각자 기기에서 내려받은 이수 사실 파일을 담당자가 모아 만든
                 표이며, 기관 확인자의 서명으로 효력이 생깁니다.
               </p>
@@ -638,15 +638,15 @@ export function ConsoleClient() {
             </div>
 
             <div className="mt-[16px] border-t border-line pt-[12px]">
-              <p className="text-[0.7813rem] leading-[1.7] font-bold text-ink">
+              <p className="text-[0.7813rem] leading-[1.6] font-bold text-ink">
                 본 묶음은 앱 기록 기반이며 법정 보수교육 이수 인정이 아닙니다 — 기관 자체
                 직무교육·정기평가 내부 증빙용입니다.
               </p>
-              <p className="mt-[6px] text-[0.7813rem] leading-[1.7] text-ink-soft">
+              <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
                 발급번호는 대조용입니다 — 위조 방지는 콘솔 연결 시 서버 서명으로 이관합니다. 각
                 파일은 앱 서식·합계·편성표 대조를 통과했고, 그 위의 검증은 지금 이 구조에 없습니다.
               </p>
-              <p className="mt-[6px] text-[0.7813rem] leading-[1.7] text-ink-soft">
+              <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
                 이 묶음에는 이수 사실만 담습니다 — 판정 결과·대화 내용·발화 원문·성명·소속은 들어
                 있지 않습니다. 파일을 올린 기기에도 아무것도 저장하지 않습니다.
               </p>
@@ -658,7 +658,7 @@ export function ConsoleClient() {
             <BigButton onClick={() => window.print()} size="lg" block className="mt-4">
               증빙 묶음 인쇄 · PDF로 저장
             </BigButton>
-            <p className="mt-[10px] text-center text-[0.8125rem] leading-[1.6] text-ink-soft">
+            <p className="mt-[10px] text-center text-[0.8438rem] leading-[1.6] text-ink-soft">
               인쇄 창이 열리지 않으면 카카오톡·네이버 등 앱 안의 브라우저라 그렇습니다. 오른쪽 위
               메뉴에서 「다른 브라우저로 열기」를 고르신 뒤 다시 눌러 주십시오.
             </p>
@@ -669,11 +669,11 @@ export function ConsoleClient() {
         </>
       ) : (
         <div data-noprint>
-          <div className="mt-6 rounded-[14px] bg-paper-2 px-4 py-[14px]">
-            <p className="text-[0.9063rem] leading-[1.5] font-bold text-ink">
+          <div className="mt-6 rounded-card bg-paper-2 px-4 py-[14px]">
+            <p className="text-[0.9375rem] leading-[1.45] font-bold text-ink">
               아직 올라온 파일이 없습니다
             </p>
-            <p className="mt-[4px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+            <p className="mt-[4px] text-[0.8438rem] leading-[1.6] text-ink-soft">
               이수 사실 파일을 한 벌이라도 올리시면 이 자리에 직원별 이수 현황과 과정별 합계가
               만들어지고, 그대로 인쇄하실 수 있습니다. 손에 파일이 없으시면 위 「올려 보실 예시 파일
               만들기」에서 세 벌을 내려받아 올려 보십시오.

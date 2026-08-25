@@ -253,7 +253,7 @@ export function MaskReview({
           : "가릴 항목을 찾지 못했어요. 확정 뒤에 남는 건 이 글뿐입니다"}
       </h2>
 
-      <div className="mt-[8px] mb-[10px] rounded-[14px] bg-paper-2 px-4 py-[15px] text-[1rem] leading-[1.85] text-ink">
+      <div className="mt-[8px] mb-[10px] rounded-card bg-paper-2 px-4 py-[15px] text-[1rem] leading-[1.85] text-ink">
         {display.map((part, index) => {
           if (part.type === "text") return <span key={index}>{part.text}</span>;
 
@@ -326,7 +326,7 @@ export function MaskReview({
           }}
           aria-pressed={picking}
           className={cx(
-            "flex min-h-[48px] items-center rounded-[14px] px-4 text-[0.8438rem] font-semibold transition-colors duration-150",
+            "flex min-h-[48px] items-center rounded-card px-4 text-[0.8438rem] font-semibold transition-colors duration-150",
             picking
               ? "bg-brand-tint text-brand-on-tint"
               : "bg-paper-2 text-ink active:bg-neutral-line",
@@ -343,7 +343,7 @@ export function MaskReview({
 
       {/* 종류 고르기 — 누른 낱말이 이름이 아니었을 때 바꾸는 자리입니다. */}
       {editing !== null && editingSpan && (
-        <div className="mb-4 rounded-[14px] bg-paper-2 px-4 py-[14px]">
+        <div className="mb-4 rounded-card bg-paper-2 px-4 py-[14px]">
           <p className="text-[0.8438rem] leading-[1.45] font-bold text-ink">
             「{text.slice(editingSpan.start, editingSpan.end)}」 가림 — 이름이 아니면 종류를 바꿔
             주세요
@@ -358,7 +358,7 @@ export function MaskReview({
                   onClick={() => changeKind(editing, kind)}
                   aria-pressed={active}
                   className={cx(
-                    "flex min-h-[48px] items-center rounded-[14px] px-4 text-[0.8438rem] font-semibold transition-colors duration-150",
+                    "flex min-h-[48px] items-center rounded-card px-4 text-[0.8438rem] font-semibold transition-colors duration-150",
                     active
                       ? "bg-brand-tint text-brand-on-tint"
                       : "bg-white text-ink-soft active:bg-neutral-line",
@@ -413,7 +413,7 @@ export function MaskReview({
 
           <div className="pb-4">
             <EyebrowLabel>말씀하신 원문 · 이 기기 안에만 있습니다</EyebrowLabel>
-            <p className="mt-[8px] rounded-[14px] bg-paper-2 px-4 py-[14px] text-[1rem] leading-[1.85] text-ink">
+            <p className="mt-[8px] rounded-card bg-paper-2 px-4 py-[14px] text-[1rem] leading-[1.85] text-ink">
               {parts.map((part, index) =>
                 part.kind ? (
                   <mark

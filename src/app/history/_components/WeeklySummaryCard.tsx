@@ -29,9 +29,9 @@ export function WeeklySummaryCard({
 
   return (
     <section aria-labelledby="weekly-summary-title" className={className}>
-      <div className="rounded-[14px] bg-paper-2 px-4 py-[14px]">
+      <div className="rounded-card bg-paper-2 px-4 py-[14px]">
         <EyebrowLabel id="weekly-summary-title">이번 주</EyebrowLabel>
-        <p className="mt-[6px] text-[1.0625rem] leading-[1.35] font-bold text-ink">
+        <p className="mt-[6px] text-[1.0625rem] leading-[1.3] font-bold text-ink">
           {summary.thisWeek > 0 ? (
             <>
               <span className="chim-num">{summary.thisWeek}</span>회 완주하셨어요

@@ -729,7 +729,7 @@ export function CueResponder({
               <button
                 type="button"
                 onClick={closeMicIntro}
-                className="mt-2 min-h-[48px] w-full rounded-[14px] bg-white text-[0.9375rem] font-semibold text-ink transition-colors duration-150 active:bg-paper-2"
+                className="mt-2 min-h-[48px] w-full rounded-card bg-white text-[0.9375rem] font-semibold text-ink transition-colors duration-150 active:bg-paper-2"
               >
                 알겠습니다
               </button>
@@ -739,7 +739,7 @@ export function CueResponder({
           {notice && (
             <p
               role="status"
-              className="mb-2.5 rounded-[14px] bg-warn-soft px-3.5 py-2.5 text-[0.7813rem] leading-[1.6] font-semibold text-warn-ink"
+              className="mb-2.5 rounded-card bg-warn-soft px-3.5 py-2.5 text-[0.7813rem] leading-[1.6] font-semibold text-warn-ink"
             >
               {notice}
             </p>
@@ -770,7 +770,7 @@ export function CueResponder({
                   <button
                     type="button"
                     onClick={() => sendAlternative(chosenAlternative)}
-                    className="min-h-[48px] w-full rounded-[14px] border border-line-strong bg-white px-[15px] py-2 text-left text-[1.0625rem] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
+                    className="min-h-[48px] w-full rounded-card border border-line-strong bg-white px-[15px] py-2 text-left text-[1.0625rem] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
                   >
                     {chosenAlternative}
                   </button>
@@ -781,7 +781,7 @@ export function CueResponder({
                   <button
                     type="button"
                     onClick={() => pick(branch.id)}
-                    className="min-h-[48px] w-full rounded-[14px] border border-line-strong bg-white px-[15px] py-2 text-left text-[1.0625rem] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
+                    className="min-h-[48px] w-full rounded-card border border-line-strong bg-white px-[15px] py-2 text-left text-[1.0625rem] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
                   >
                     {branch.fallbackOption}
                   </button>
@@ -814,7 +814,7 @@ export function CueResponder({
                 }}
                 rows={3}
                 placeholder="여기에 하실 말씀을 적으시거나, 말씀하신 내용을 확인해 주세요."
-                className="mt-1 w-full rounded-[14px] border border-line-strong bg-paper-2 px-3.5 py-3 text-[1.0625rem] leading-[1.6] text-ink placeholder:text-tertiary"
+                className="mt-1 w-full rounded-card border border-line-strong bg-paper-2 px-3.5 py-3 text-[1.0625rem] leading-[1.6] text-ink placeholder:text-tertiary"
               />
 
               {reportMode && text.trim().length > 0 && (
@@ -874,7 +874,7 @@ export function CueResponder({
           {filledExample && (
             <p
               aria-hidden
-              className="mt-2 rounded-[14px] bg-tint px-3.5 py-2.5 text-[0.8438rem] leading-[1.6] font-semibold text-brand-800"
+              className="mt-2 rounded-card bg-tint px-3.5 py-2.5 text-[0.8438rem] leading-[1.6] font-semibold text-brand-800"
             >
               입력창에 채워 드렸습니다. 아직 보내지 않았습니다. 아래 「이 내용으로 답하기」를
               누르시면 규칙 엔진이 판정합니다.

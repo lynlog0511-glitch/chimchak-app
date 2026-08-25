@@ -21,16 +21,16 @@ export function DocWhitelist() {
 
   return (
     <div>
-      <p className="text-[0.7813rem] leading-[1.5] font-bold tracking-[0.04em] text-ink-muted">
+      <p className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.04em] text-ink-muted">
         인용 가능 {citable.length}종
       </p>
       <ul className="chim-hairline mt-1 border-y border-line">
         {citable.map((doc) => (
           <li key={doc.id} className="py-4">
-            <p className="text-[0.7813rem] leading-[1.4] font-bold tracking-[0.04em] text-brand-700">
+            <p className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.04em] text-brand-700">
               {doc.kind}
             </p>
-            <p className="mt-1 text-[1.0625rem] leading-[1.4] font-extrabold text-ink">
+            <p className="mt-1 text-[1.0625rem] leading-[1.45] font-extrabold text-ink">
               {doc.title}
             </p>
             {doc.note && (
@@ -42,7 +42,7 @@ export function DocWhitelist() {
 
       {excluded.length > 0 && (
         <>
-          <p className="mt-6 text-[0.7813rem] leading-[1.5] font-bold tracking-[0.04em] text-ink-muted">
+          <p className="mt-6 text-[0.7813rem] leading-[1.45] font-bold tracking-[0.04em] text-ink-muted">
             인용 제외 {excluded.length}종 · 저작권
           </p>
           <ul className="chim-hairline mt-1 border-y border-line">
@@ -50,10 +50,10 @@ export function DocWhitelist() {
               <li key={doc.id} className="py-4">
                 {/* 「인용 제외」는 장식이 아니라 이 문서를 쓸 수 없다는 사실이라,
                     종류 줄과 같은 자리에 같은 크기로 세웁니다(색 면은 쓰지 않습니다). */}
-                <p className="text-[0.7813rem] leading-[1.4] font-bold tracking-[0.04em] text-ink-muted">
+                <p className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.04em] text-ink-muted">
                   {doc.kind} · 인용 제외
                 </p>
-                <p className="mt-1 text-[1.0625rem] leading-[1.4] font-extrabold text-ink-soft">
+                <p className="mt-1 text-[1.0625rem] leading-[1.45] font-extrabold text-ink-soft">
                   {doc.title}
                 </p>
                 {doc.note && (

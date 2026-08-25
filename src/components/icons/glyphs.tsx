@@ -65,7 +65,15 @@ export interface GlyphProps {
   size?: GlyphSize | number;
   /** 색은 `text-*`로 상속됩니다. */
   className?: string;
-  /** 기본 2 — 24 viewBox 기준이라 14px에서 약 1.17px로 그려집니다(Pretendard 획과 비슷). */
+  /**
+   * 기본 1.5 — 아이콘 시스템(IconBase 1.75)과 한 벌입니다.
+   *
+   * 예전 기본값은 2였습니다. 14px 글리프에서 상대 무게 2/14 = 0.143인데 탭바 아이콘은
+   * 1.75/22 = 0.080이라 **1.8배 무거웠고**, /train 한 화면에서 하단 내비 아이콘은 얌전한데
+   * 「전체 12종 편성표 ⌄」 옆 작은 셰브론만 새까맣게 튀었습니다.
+   * 작은 글리프의 상대 무게를 조금 올려 주는 것은 옳은 광학 보정이지만 1.8배는 보정이 아닙니다 —
+   * 1.5는 14px에서 0.107(1.34배)로, 정상적인 보정 범위입니다.
+   */
   strokeWidth?: number;
 }
 
@@ -74,7 +82,7 @@ interface GlyphBaseProps extends GlyphProps {
   style?: CSSProperties;
 }
 
-function GlyphBase({ size = "sm", className, strokeWidth = 2, children, style }: GlyphBaseProps) {
+function GlyphBase({ size = "sm", className, strokeWidth = 1.5, children, style }: GlyphBaseProps) {
   const px = typeof size === "number" ? size : GLYPH_PX[size];
 
   return (

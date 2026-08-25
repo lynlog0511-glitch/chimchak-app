@@ -45,7 +45,7 @@ const CALL_ARM_MS = 6000;
 /* 크기·모양은 응급 탭의 119 바와 같은 값입니다(58px · r14 · 19px w800) —
    같은 버튼이 자리에 따라 다르게 보이지 않게, 갈리는 것은 확인 한 단계뿐입니다. */
 const CALL_BAR_BASE =
-  "flex min-h-[58px] items-center justify-center rounded-[14px] px-4 py-2 text-center text-[1.1875rem] font-extrabold transition-colors duration-150";
+  "flex min-h-[58px] items-center justify-center rounded-card px-4 py-2 text-center text-[1.1875rem] font-extrabold transition-colors duration-150";
 
 function SessionCall119({ className }: { className?: string }) {
   const [armed, setArmed] = useState(false);
@@ -225,7 +225,7 @@ export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolI
             <button
               type="button"
               onClick={unblock}
-              className="flex min-h-[52px] w-full items-center justify-center rounded-[14px] border border-line-strong bg-paper px-3 text-[0.9375rem] font-bold text-ink transition-colors duration-150 active:bg-paper-2"
+              className="flex min-h-[52px] w-full items-center justify-center rounded-card border border-line-strong bg-paper px-3 text-[0.9375rem] font-bold text-ink transition-colors duration-150 active:bg-paper-2"
             >
               눌러서 소리 시작
             </button>

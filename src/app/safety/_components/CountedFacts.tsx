@@ -22,11 +22,26 @@ export interface CountedFactsProps {
   className?: string;
 }
 
+/**
+ * 설계 문서에 실린 값 — **옮겨 적은 값**입니다(이 화면이 센 값이 아닙니다).
+ *
+ * 여기 나란히 두는 이유: 기획서를 손에 든 분이 앱에서 가장 먼저 대조하는 칸이 바로 아래 표인데,
+ * 두 값이 다릅니다. 다른 것은 설계의 결과(시나리오를 더하고 중립 분기를 보강했습니다)인데,
+ * 화면이 현재값만 단독으로 세우면 그 차이가 **관리 실패처럼** 읽힐 수 있습니다.
+ * 바로 위 규칙 엔진 카드가 이미 「인용치 / 실측치」를 위아래로 갈라 두는 문법을 쓰고 있어,
+ * 같은 화면 안에서 한 패널만 대조를 안 보여 주던 자리이기도 합니다.
+ */
+const QUOTED_ROWS: readonly { k: string; v: string }[] = [
+  { k: "열린 시나리오", v: "5종" },
+  { k: "응답해야 하는 상황(CUE)", v: "42개" },
+  { k: "갈라지는 분기", v: "172개" },
+];
+
 function Row({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex items-baseline gap-3 py-3">
-      <dt className="min-w-0 flex-1 text-[0.9375rem] leading-[1.5] text-ink-muted">{k}</dt>
-      <dd className="chim-num flex-none text-[0.9375rem] leading-[1.5] font-extrabold text-ink">
+      <dt className="min-w-0 flex-1 text-[0.9375rem] leading-[1.45] text-ink-muted">{k}</dt>
+      <dd className="chim-num flex-none text-[0.9375rem] leading-[1.45] font-extrabold text-ink">
         {v}
       </dd>
     </div>
@@ -53,7 +68,7 @@ export function CountedFacts({ className }: CountedFactsProps) {
       aria-labelledby="counted-facts-title"
       className={cx("rounded-card bg-paper-2 p-4", className)}
     >
-      <h3 id="counted-facts-title" className="text-[1.0625rem] leading-[1.4] font-extrabold text-ink">
+      <h3 id="counted-facts-title" className="text-[1.0625rem] leading-[1.45] font-extrabold text-ink">
         설계 문서에 적은 숫자를 이 기기에서 다시 셉니다
       </h3>
       <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink-soft">
@@ -61,14 +76,31 @@ export function CountedFacts({ className }: CountedFactsProps) {
         데이터를 그대로 세어 표시합니다.
       </p>
 
-      <dl className="chim-hairline mt-3 border-y border-line">
+      <p className="mt-4 text-[0.7813rem] leading-[1.45] font-bold tracking-[0.04em] text-ink-muted">
+        설계 문서 시점 — 옮겨 적은 값
+      </p>
+      <dl className="chim-hairline mt-1 border-y border-line">
+        {QUOTED_ROWS.map((row) => (
+          <Row key={row.k} k={row.k} v={row.v} />
+        ))}
+      </dl>
+
+      <p className="mt-4 text-[0.7813rem] leading-[1.45] font-bold tracking-[0.04em] text-brand-800">
+        지금 이 화면이 세는 값
+      </p>
+      <dl className="chim-hairline mt-1 border-y border-line">
         <Row k="열린 시나리오" v={`${counted.scenarios}종`} />
         <Row k="응답해야 하는 상황(CUE)" v={`${counted.cues}개`} />
         <Row k="갈라지는 분기" v={`${counted.branches}개`} />
         <Row k="루브릭 항목" v={`${counted.rubric}항목`} />
       </dl>
 
-      <p className="mt-4 text-[0.7813rem] leading-[1.5] font-bold tracking-[0.04em] text-ink-muted">
+      <p className="mt-3 text-[0.7813rem] leading-[1.6] text-ink-muted">
+        두 칸이 다른 까닭은 시나리오 1종을 더하고 중립 분기를 보강했기 때문입니다. 위 칸은 설계
+        문서에 적은 그날의 값이고, 아래 칸은 이 화면이 지금 세는 값입니다.
+      </p>
+
+      <p className="mt-4 text-[0.7813rem] leading-[1.45] font-bold tracking-[0.04em] text-ink-muted">
         루브릭 {counted.rubric}항목의 판정 주체 배정
       </p>
       <dl className="chim-hairline mt-1 border-y border-line">

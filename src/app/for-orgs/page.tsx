@@ -30,7 +30,7 @@ const PROJECTED_MINUTES = Math.round((ACTIVE_MINUTES / ACTIVE_COUNT) * TOTAL_COU
  */
 function PlanMark() {
   return (
-    <span className="mr-[6px] inline-flex items-center rounded-chip border border-line-strong px-[7px] py-[1px] align-[2px] text-[0.7188rem] leading-[1.5] font-bold whitespace-nowrap text-ink-soft">
+    <span className="mr-[6px] inline-flex items-center rounded-chip border border-line-strong px-[7px] py-[1px] align-[2px] text-[0.7188rem] leading-[1.45] font-bold whitespace-nowrap text-ink-soft">
       계획
     </span>
   );
@@ -47,8 +47,8 @@ function Section({
 }) {
   return (
     <section className="mt-7">
-      <h2 className="text-[1.0625rem] leading-[1.4] font-bold text-ink">{title}</h2>
-      {lead && <p className="mt-[6px] text-[0.8438rem] leading-[1.7] text-ink-soft">{lead}</p>}
+      <h2 className="text-[1.1875rem] leading-[1.3] font-bold tracking-[-0.015em] text-ink">{title}</h2>
+      {lead && <p className="mt-[6px] text-[0.8438rem] leading-[1.6] text-ink-soft">{lead}</p>}
       {children}
     </section>
   );
@@ -58,11 +58,11 @@ function Section({
 function StateRow({ title, desc, plan }: { title: string; desc: string; plan?: boolean }) {
   return (
     <li className="py-[11px]">
-      <p className="text-[0.875rem] leading-[1.45] font-bold text-ink">
+      <p className="text-[0.9375rem] leading-[1.45] font-bold text-ink">
         {plan && <PlanMark />}
         {title}
       </p>
-      <p className="mt-[3px] text-[0.8438rem] leading-[1.7] text-ink-soft">{desc}</p>
+      <p className="mt-[3px] text-[0.8438rem] leading-[1.6] text-ink-soft">{desc}</p>
     </li>
   );
 }
@@ -95,7 +95,7 @@ export default function ForOrgsPage() {
         }
       />
 
-      <p className="mt-4 text-[0.9063rem] leading-[1.75] text-ink">
+      <p className="mt-4 text-[0.9375rem] leading-[1.6] text-ink">
         이 화면은 견적서가 아닙니다. 가격과 계약 조건은 기관 사정에 따라 달라지므로 여기에 적지
         않고, 대신 앱이 <b className="font-bold">이미 재고 있는 값</b>만 놓았습니다. 아래 숫자는
         모두 지금 보고 계신 기기에서 잰 실측치이며, 없는 값은 없다고 적습니다.
@@ -142,25 +142,25 @@ export default function ForOrgsPage() {
       >
         {/* 「무엇을 어디까지 재 봤는가」는 /safety의 검증 계단과 같은 데이터를 인용합니다 —
             두 화면이 다른 숫자를 말하지 않도록 문장을 데이터 쪽에 두었습니다. */}
-        <div className="mt-[10px] rounded-[14px] bg-paper-2 px-4 py-[14px]">
-          <p className="text-[0.875rem] leading-[1.45] font-bold text-ink">
+        <div className="mt-[10px] rounded-card bg-paper-2 px-4 py-[14px]">
+          <p className="text-[0.9375rem] leading-[1.45] font-bold text-ink">
             검증 계단 — 어디까지 재 봤는지
           </p>
           <ul className="chim-hairline mt-[8px] border-y border-line">
             {VERIFICATION_LADDER.map((step) => (
               <li key={step.id} className="py-[10px]">
-                <p className="text-[0.875rem] leading-[1.45] font-bold text-ink">
+                <p className="text-[0.9375rem] leading-[1.45] font-bold text-ink">
                   <span className="chim-num">{step.no}</span>{" "}
                   {step.origin === "not-yet" && <PlanMark />}
                   {step.title}
                 </p>
-                <p className="mt-[3px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+                <p className="mt-[3px] text-[0.8438rem] leading-[1.6] text-ink-soft">
                   {step.result}
                 </p>
               </li>
             ))}
           </ul>
-          <p className="mt-[8px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+          <p className="mt-[8px] text-[0.8438rem] leading-[1.6] text-ink-soft">
             ①은 앱 안에서 지금 다시 돌려 보실 수 있고, ②·③은 앱 밖 하네스 실행 기록을 옮겨 적은
             값이며, ④는 8월 파일럿({PILOT_SCOPE})에서 잽니다. 1차 결과가 나오기 전까지 ④ 칸에는
             숫자를 적지 않습니다. 상세는 「안전·개인정보 설계」 화면의 검증 계단에 있습니다.
@@ -221,7 +221,7 @@ export default function ForOrgsPage() {
             콘솔 미리보기 열어 보기 ›
           </Link>
         </p>
-        <p className="text-[0.8438rem] leading-[1.7] text-ink-soft">
+        <p className="text-[0.8438rem] leading-[1.6] text-ink-soft">
           직원분들의 이수 사실 파일을 올리면 직원별 이수 현황과 과정별 합계, 증빙 묶음 인쇄까지
           그대로 해 보실 수 있습니다. 서버 없이 이 기기 안에서만 동작하고, 올리신 파일은 저장하지
           않습니다. 파일럿 뒤에 연결할 자리를 지금 실물로 보여 드리는 화면입니다.
@@ -232,13 +232,13 @@ export default function ForOrgsPage() {
         title="직원 반발을 막는 선"
         lead="도입 자리에서 가장 먼저 나오는 질문이라 화면에 미리 적었습니다."
       >
-        <div className="mt-[10px] rounded-[14px] bg-paper-2 px-4 py-[14px]">
-          <p className="text-[0.8438rem] leading-[1.7] text-ink">
+        <div className="mt-[10px] rounded-card bg-paper-2 px-4 py-[14px]">
+          <p className="text-[0.8438rem] leading-[1.6] text-ink">
             내부 판정 결과와 대화 내용은 기관 관리자에게 공개되지 않고 인사평가에 연동하지 않습니다.
             관리자에게 가는 것은 이수 여부와 이수 시수까지입니다. 이 경계는 위수탁 계약에 그대로
             적습니다.
           </p>
-          <p className="mt-[8px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+          <p className="mt-[8px] text-[0.8438rem] leading-[1.6] text-ink-soft">
             학습자 화면에도 같은 문장이 늘 표시되어 있어, 직원분들이 앱을 열자마자 확인하실 수
             있습니다.
           </p>
@@ -251,29 +251,29 @@ export default function ForOrgsPage() {
       >
         <ol className="chim-hairline mt-[8px] border-y border-line">
           <li className="py-[12px]">
-            <p className="text-[0.875rem] leading-[1.45] font-bold text-ink">
+            <p className="text-[0.9375rem] leading-[1.45] font-bold text-ink">
               <span className="chim-num">1</span>. 무상 파일럿 — 범위와 기간
             </p>
-            <p className="mt-[3px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+            <p className="mt-[3px] text-[0.8438rem] leading-[1.6] text-ink-soft">
               한 기관 한 팀(요양보호사 25명 안팎)이 훈련 {ACTIVE_COUNT}종과 응급 {PROTOCOL_COUNT}종을
               각자 기기에서 씁니다. 계정을 만들지 않고 설치도 필요 없습니다. 기본 제안은 4주이며 기관
               일정에 맞춰 조정합니다.
             </p>
           </li>
           <li className="py-[12px]">
-            <p className="text-[0.875rem] leading-[1.45] font-bold text-ink">
+            <p className="text-[0.9375rem] leading-[1.45] font-bold text-ink">
               <span className="chim-num">2</span>. 협의 자리에 드리는 문서
             </p>
-            <p className="mt-[3px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+            <p className="mt-[3px] text-[0.8438rem] leading-[1.6] text-ink-soft">
               위수탁 계약서(안) · 개인정보 처리방침(안) · 보안 점검표 · 운영 안내서 · 이수 확인서 서식
               견본. 앱 안에 들어 있는 문서가 아니라 협의 자리에서 서면으로 드리는 서류입니다.
             </p>
           </li>
           <li className="py-[12px]">
-            <p className="text-[0.875rem] leading-[1.45] font-bold text-ink">
+            <p className="text-[0.9375rem] leading-[1.45] font-bold text-ink">
               <span className="chim-num">3</span>. 전환 조건
             </p>
-            <p className="mt-[3px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+            <p className="mt-[3px] text-[0.8438rem] leading-[1.6] text-ink-soft">
               파일럿이 끝나면 기간 중 쌓인 이수 시수와 기록 작성 소요를 정리해 드립니다. 가명처리가
               놓친 사례는 앱이 모으지 않으므로 파일럿 기간에 서면으로 받습니다. 그 자료를 보고 계속
               쓰실지 정하시고, 그때 범위·기간·계약 문서를 확정합니다.
@@ -282,22 +282,22 @@ export default function ForOrgsPage() {
         </ol>
         {/* 가격을 적지 않는 화면이라도 「그래서 얼마냐」에 침묵하면 감추는 것처럼 보입니다.
             공표한 기준가와 그 값이 아직 확정이 아니라는 사실만 한 줄로 밝힙니다. */}
-        <p className="mt-[10px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+        <p className="mt-[10px] text-[0.8438rem] leading-[1.6] text-ink-soft">
           가격 원칙 · 설계 문서에 공표한 기준가(기관 연 90만 원부터, 팀 결정가)는 파일럿 실측을 보고
           확정합니다. 이 화면은 견적서가 아니므로 기관별 조건은 협의 자리에서 다룹니다.
         </p>
-        <p className="mt-[8px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+        <p className="mt-[8px] text-[0.8438rem] leading-[1.6] text-ink-soft">
           파일럿이 끝나도 기기에 쌓인 이수 사실은 사라지지 않습니다. 확인서로 인쇄하시거나 이수 사실
           파일로 내려받아 두시면 앱과 무관하게 남습니다. 반대로 기기에서 기록을 지우면 되살릴 수
           없으므로, 그 전에 남겨 두시는 편이 안전합니다.
         </p>
-        <p className="mt-[8px] text-[0.8438rem] leading-[1.7] text-ink-soft">
+        <p className="mt-[8px] text-[0.8438rem] leading-[1.6] text-ink-soft">
           도입 문의 경로는 협의 단계에서 안내드립니다.
         </p>
       </Section>
 
-      <div className="mt-7 rounded-[14px] bg-paper-2 px-4 py-[14px]">
-        <p className="text-[0.8438rem] leading-[1.7] font-bold text-ink">
+      <div className="mt-7 rounded-card bg-paper-2 px-4 py-[14px]">
+        <p className="text-[0.8438rem] leading-[1.6] font-bold text-ink">
           이 앱의 기록과 이수 확인서는 법정 보수교육 이수 인정이 아닙니다 — 기관 자체
           직무교육·정기평가 내부 증빙용입니다.
         </p>

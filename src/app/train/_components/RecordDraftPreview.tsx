@@ -70,7 +70,7 @@ export function RecordDraftPreview({
       </p>
 
       {/* 기록 초안 본문은 코어 콘텐츠입니다 — 17px 하한(§3). */}
-      <p className="mt-2.5 rounded-[14px] bg-white px-3.5 py-3 text-[1.0625rem] leading-[1.6] text-ink">
+      <p className="mt-2.5 rounded-card bg-white px-3.5 py-3 text-[1.0625rem] leading-[1.6] text-ink">
         {parts.map((part, index) =>
           part.masked ? (
             <mark
@@ -105,7 +105,7 @@ export function RecordDraftPreview({
             <div
               key={slot}
               className={cx(
-                "flex gap-2 rounded-[14px] px-3 py-2 text-[0.8438rem] leading-[1.6]",
+                "flex gap-2 rounded-card px-3 py-2 text-[0.8438rem] leading-[1.6]",
                 filled ? "bg-white" : "bg-warn-soft",
               )}
             >

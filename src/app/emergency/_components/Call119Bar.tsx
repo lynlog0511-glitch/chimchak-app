@@ -64,7 +64,7 @@ export function Call119Bar({ size = "md", className }: Call119BarProps) {
         href="tel:119"
         className={cx(
           "flex w-full items-center justify-center px-4 py-2",
-          "rounded-[14px] bg-danger text-center font-extrabold text-white",
+          "rounded-card bg-danger text-center font-extrabold text-white",
           "transition-colors duration-150 active:bg-danger-ink",
           SIZE[size],
         )}

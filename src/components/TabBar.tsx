@@ -35,19 +35,25 @@ export interface TabBarProps {
 /**
  * 하단 탭바 — **아이콘 + 라벨 5칸** (2026-08-25 팀장 지시로 텍스트 온리에서 전환).
  *
- * 아이콘 22px 라인(스트로크 1.75, 활성 2) 위에 라벨 — 아이콘은 언제나 장식이고
- * 의미는 라벨이 전달합니다. 응급 아이콘은 경광등입니다(의료 십자가는 의료기기
- * 아님 경계와 충돌해 쓰지 않습니다).
+ * 아이콘 22px(1.375rem) 위에 라벨 — 아이콘은 언제나 장식이고 의미는 라벨이 전달합니다.
+ * 응급 아이콘은 경광등입니다(의료 십자가는 의료기기 아님 경계와 충돌해 쓰지 않습니다).
  *
- * 라벨 13.5px · 비활성 `ink-soft`(#454f4c) w600 · 활성 w700 —
- * 홈/훈련/보고/이력은 `brand-800`(#14665f), 응급만 `danger-ink`(#b03636)입니다.
+ * ── 활성 표시 = 채움(2026-08-25) ──────────────────────────────
+ * 활성 칸만 아이콘을 **채웁니다**(`filled` — fill=currentColor). iOS 관용법이고,
+ * 가이드의 「그림자 없음·면과 헤어라인」 문법과도 어긋나지 않습니다.
+ * 예전에는 스트로크를 1.75→2로 올려 활성을 말했는데, 22px에서 0.23px 차이라
+ * 1x 화면에서는 「굵어졌다」가 아니라 「흐릿해졌다」로만 읽혔습니다.
+ * 채움/비움은 크기·해상도와 무관하게 확실합니다.
+ *
+ * 라벨 13.5px · 비활성 `ink-muted`(#5a625f · 6.27:1) w600 · 활성 w700 —
+ * 홈/훈련/보고/이력은 `brand-800`(#14665f · 6.78:1), 응급만 `danger-ink`(#b03636)입니다.
  * 응급 탭도 **활성일 때만** 빨강입니다(평소에는 다른 탭과 같은 회색).
  *
- * 비활성 색은 `ink-faint`(#9aa5a2)였습니다 — 흰 지면 위 **2.54:1**로, 앱에서 상시 노출되는
- * 글자 중 가장 안 읽히는 자리였습니다(초보 m31 실측 「약 2.4:1 · 돋보기 없이는 못 읽음」).
- * `ink-muted`도 그때는 3.22:1이라 미달이었고(지금은 6.27:1), 4.5:1을 넉넉히 넘는 `ink-soft`(8.48:1)를 씁니다.
- * 크기도 12.5→13px로 한 단 올렸습니다(터치 영역 48px·5칸 균등은 그대로).
- * 위계는 색이 아니라 **굵기(600/700)와 활성 틸**이 만듭니다 — 안 보이게 만들어 낮추지 않습니다.
+ * 비활성 색은 `ink-faint`(#9aa5a2)였다가 `ink-soft`(8.48:1)였습니다. ink-soft는 읽히기는 했지만
+ * **활성(6.78:1)보다 진해서** 값 위계가 뒤집혀 있었습니다 — 다섯 칸이 다 비슷한 무게로 서서
+ * 「지금 어디」가 한눈에 안 잡히던 자리입니다. `ink-muted`는 6.27:1로 AA를 넉넉히 넘으면서
+ * 활성보다 한 단 옅어, 채움과 함께 위계를 바로 세웁니다.
+ * 크기는 12.5→13.5px 그대로이고 터치 영역 48px·5칸 균등도 그대로입니다.
  *
  * 위치는 `PageShell`이 잡습니다(`.chim-tabbar` = 문서 흐름 안 sticky).
  * **어느 뷰포트에서도 섭니다** — 이 앱의 유일한 이동 수단이라 폭으로 접지 않습니다.
@@ -68,16 +74,18 @@ export function TabBar({ active, className }: TabBarProps) {
                 href={item.href}
                 aria-current={isActive ? "page" : undefined}
                 className={cx(
-                  "flex min-h-[54px] flex-col items-center justify-center gap-[3px] rounded-field px-1 pt-[5px] pb-[3px] text-center text-[0.8438rem] leading-[1.2]",
+                  "flex min-h-[54px] flex-col items-center justify-center gap-[3px] rounded-field px-1 pt-[5px] pb-[3px] text-center text-[0.8438rem] leading-[1.3]",
                   "transition-colors duration-150 ease-soft active:bg-paper-2",
                   isActive
                     ? item.danger
                       ? "text-danger-ink"
                       : "text-brand-800"
-                    : "text-ink-soft",
+                    : "text-ink-muted",
                 )}
               >
-                <Icon className="h-[22px] w-[22px] flex-none" strokeWidth={isActive ? 2 : 1.75} />
+                {/* 글자와 짝지어 서는 장식 기하라 rem입니다 — 「아주 크게」에서 라벨만 커지고
+                    아이콘은 그대로 남아 25% 작아 보이던 자리입니다(터치 타겟 54px은 물리 치수라 px 유지). */}
+                <Icon className="h-[1.375rem] w-[1.375rem] flex-none" filled={isActive} />
                 {/* 굵기(600→700)가 바뀌면 글자 폭도 함께 바뀝니다 — 탭을 옮길 때마다 라벨이
                     좌우로 미세하게 흔들리던 자리입니다. 보이지 않는 bold 사본으로 **굵을 때의 폭**을
                     미리 잡아 두면, 색만 150ms에 걸쳐 바뀌고 글자는 제자리에 섭니다.

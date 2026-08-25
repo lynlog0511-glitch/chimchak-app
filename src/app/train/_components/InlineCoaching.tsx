@@ -185,14 +185,14 @@ function OnlineCoachingBlock({ outcome }: { outcome: OnlineCoachOutcome }) {
       </p>
       <p className="mt-1 text-[0.9375rem] leading-[1.6] text-ink">{outcome.message}</p>
       {blocked ? (
-        <p className="mt-1 text-[0.7813rem] leading-[1.5] text-ink-muted">
+        <p className="mt-1 text-[0.7813rem] leading-[1.45] text-ink-muted">
           차단 사유 · {outcome.blockedLabel}
           {passedSteps.length > 0 && ` (지난 단 — ${passedSteps.join(" · ")})`}
         </p>
       ) : (
         outcome.docId && <SourceChip docId={outcome.docId} className="mt-1.5" />
       )}
-      <p className="mt-1.5 text-[0.6875rem] leading-[1.5] text-ink-muted">
+      <p className="mt-1.5 text-[0.6875rem] leading-[1.45] text-ink-muted">
         판정·어르신 상태·기록은 위 그대로입니다. 이 문장 하나만 더해졌습니다.
       </p>
     </div>

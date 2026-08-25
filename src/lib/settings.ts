@@ -9,17 +9,20 @@
  *   브라우저에는 어떤 키도 두지 않는다(src/app/api/coach/route.ts).
  * - 발화 원문·개인정보는 여기 들어오지 않는다.
  * - SSR 가드: 서버 렌더링 중에는 조용히 기본값으로 동작하고 document를 건드리지 않는다.
- * - 글자 크기는 html의 font-size를 바꾸는 방식이다. 디자인 토큰과 컴포넌트가 전부 rem 기준이라
- *   루트 한 곳만 올리면 화면 전체가 비례해서 커진다(글자·터치 타겟·여백이 함께 커진다).
- *   globals.css의 `html { font-size: 16px }` 는 그대로 두고, 인라인 스타일로만 덮어쓴다.
+ * - 글자 크기는 html의 font-size를 **백분율**로 바꾸는 방식이다. 백분율이라 브라우저·OS의
+ *   글꼴 설정 위에 곱해진다 — 이미 크게 써 오신 분의 설정을 덮어쓰지 않는다.
+ *   globals.css는 루트 font-size를 아예 선언하지 않고, 여기서 인라인 스타일로만 얹는다.
+ * - 글자와 **그 값에서 파생되는 것**(rem 크기·rem 간격·마이크 버튼·탭 아이콘)은 함께 커진다.
+ *   반면 임의값 px로 잡힌 간격과 터치 타겟 하한(48/54/56px)은 그대로다 — 그건 물리 치수이고,
+ *   이미 하한을 넘겨 두었으므로 줄어드는 방향으로는 움직이지 않는다.
  *
  * @example
- * initSettings();                       // AppHeader 마운트 시 1회
- * setSetting("fontScale", "large");     // 즉시 18px로 반영 + 저장
+ * initSettings();                       // 첫 페인트 직후 1회(부팅은 layout.tsx의 동기 스크립트)
+ * setSetting("fontScale", "large");     // 즉시 112.5%로 반영 + 저장
  * getSpeechRateValue();                 // 0.95 (speech.ts가 speak()의 기본 rate로 사용)
  */
 
-/** 글자 크기 — 표준 16px / 크게 18px / 아주 크게 20px (루트 기준, 나머지는 rem 비례) */
+/** 글자 크기 — 표준 100% / 크게 112.5% / 아주 크게 125% (브라우저 기본 글꼴에 곱한다) */
 export type FontScale = "standard" | "large" | "xlarge";
 
 /** 음성 빠르기 — 느리게 0.8 / 표준 0.95 / 빠르게 1.1 */
@@ -61,11 +64,22 @@ export const DEFAULT_SETTINGS: ChimchakSettings = {
   onlineCoaching: DEFAULT_ONLINE_COACHING,
 };
 
-/** 루트 font-size(px). rem 기반이라 이 값 하나가 화면 전체 비율을 정한다. */
-export const FONT_SCALE_PX: Record<FontScale, number> = {
-  standard: 16,
-  large: 18,
-  xlarge: 20,
+/**
+ * 루트 font-size — **백분율**이다(2026-08-25에 px에서 바꿨다).
+ *
+ * 백분율은 부모, 즉 브라우저 기본 글꼴 크기에 **곱해진다**. 그래서
+ * - 기본 16px 브라우저: 16 / 18 / 20px — 예전 px 값과 한 픽셀도 다르지 않다.
+ * - 휴대폰·브라우저에서 이미 글꼴을 크게 설정해 둔 분: 그 크기 위에 한 단 더 커진다.
+ *
+ * px로 못 박았을 때는 두 번째 경우가 통째로 무시됐다 — 다른 앱은 다 커졌는데 이 앱만 작으니
+ * 「내 설정이 안 먹는다」가 아니라 「이 앱이 작다」로 읽히고, 그 상태에서 앱 안 설정을 스스로
+ * 찾아 들어갈 확률은 낮다. 주 사용자가 중고령이라고 명시한 앱에서 이 방향은 반대였다.
+ * (`globals.css`의 `html { font-size }` 선언과 `-webkit-text-size-adjust`도 같은 날 지웠다.)
+ */
+export const FONT_SCALE_PERCENT: Record<FontScale, string> = {
+  standard: "100%",
+  large: "112.5%" /* 기본 16px에서 18px */,
+  xlarge: "125%" /* 기본 16px에서 20px */,
 };
 
 /** SpeechSynthesisUtterance.rate 값 */
@@ -202,15 +216,15 @@ export function saveSettings(settings: ChimchakSettings): void {
 /* ── 적용 ──────────────────────────────────────────────── */
 
 /**
- * 글자 크기를 화면에 반영한다. 루트 font-size만 바꾸면 rem 기반 레이아웃이 통째로 비례한다.
+ * 글자 크기를 화면에 반영한다. 루트 font-size만 바꾸면 rem 기반 값이 통째로 비례한다.
  *
  * @example
- * applyFontScale("xlarge"); // html { font-size: 20px }
+ * applyFontScale("xlarge"); // html { font-size: 125% }
  */
 export function applyFontScale(scale: FontScale): void {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
-  root.style.fontSize = `${FONT_SCALE_PX[scale]}px`;
+  root.style.fontSize = FONT_SCALE_PERCENT[scale];
   root.dataset.chimFontScale = scale;
 }
 

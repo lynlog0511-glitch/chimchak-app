@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { ChevronGlyph } from "@/components/icons";
 import { unlockAudio } from "@/lib/speech";
 import Link from "next/link";
-import { BigButton, InlineDisclaimer, SourceChip } from "@/components";
+import { BackGlyph, BigButton, InlineDisclaimer, SourceChip } from "@/components";
 import { progressStepCount, type SessionProgress } from "@/lib/storage";
 import type { PersonaDef, Scenario, ScenarioType } from "@/types";
 import { FICTION_NOTICE, initialOf, PRACTICE_LINE, ROLE_LABEL } from "./constants";
@@ -161,7 +161,7 @@ function ResumeBlock({
   const meta = savedAt ? `${step}번째 상황까지 · ${savedAt} 저장` : `${step}번째 상황까지`;
 
   return (
-    <div className="rounded-[14px] bg-paper-2 px-4 py-[16px]">
+    <div className="rounded-card bg-paper-2 px-4 py-[16px]">
       <h2 className="text-[0.9375rem] leading-[1.45] font-bold text-ink">진행하던 훈련이 있습니다</h2>
       <p className="mt-1 text-[0.7813rem] leading-[1.45] font-semibold text-ink-muted">{meta}</p>
       <p className="mt-2 text-[0.7813rem] leading-[1.6] text-ink-muted">
@@ -234,9 +234,7 @@ export function BriefingPanel({
           href="/train"
           className="-ml-[2px] inline-flex min-h-[48px] items-center gap-[10px] rounded-field pr-2 text-[0.8438rem] leading-none font-semibold text-ink-muted transition-colors duration-150 hover:text-ink active:bg-paper-2"
         >
-          <span aria-hidden className="text-[1.375rem] leading-none text-ink-soft">
-            ‹
-          </span>
+          <BackGlyph />
           훈련 목록
         </Link>
       </div>
@@ -256,7 +254,7 @@ export function BriefingPanel({
       </h1>
 
       {/* 상황 지문 — 이 화면에서 면(paper-2)을 쓰는 곳은 여기 하나입니다. */}
-      <div className="mt-[14px] rounded-[14px] bg-paper-2 px-4 py-[16px]">
+      <div className="mt-[14px] rounded-card bg-paper-2 px-4 py-[16px]">
         <p className="text-[0.9375rem] leading-[1.6] text-ink">{scenario.context}</p>
         {pressure && (
           <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink-soft">
@@ -349,7 +347,7 @@ export function BriefingPanel({
               <li key={persona.name} className="flex gap-2.5">
                 <span
                   aria-hidden
-                  className="flex h-[38px] w-[38px] flex-none items-center justify-center rounded-full bg-paper-out text-[0.8438rem] font-bold text-ink-soft"
+                  className="flex h-[2.375rem] w-[2.375rem] flex-none items-center justify-center rounded-full bg-paper-out text-[0.8438rem] font-bold text-ink-soft"
                 >
                   {initialOf(persona.name)}
                 </span>

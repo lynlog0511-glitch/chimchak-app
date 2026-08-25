@@ -85,7 +85,7 @@ export function InstallHint({ className }: { className?: string }) {
   if (route === "none") return null;
 
   return (
-    <div className={cx("rounded-[14px] bg-paper-2 px-4 py-[14px]", className)}>
+    <div className={cx("rounded-card bg-paper-2 px-4 py-[14px]", className)}>
       <EyebrowLabel>홈 화면에 추가</EyebrowLabel>
       <p className="mt-[6px] text-[0.9375rem] leading-[1.6] font-bold text-ink">
         아이콘 하나로 이 안내를 엽니다
@@ -100,7 +100,7 @@ export function InstallHint({ className }: { className?: string }) {
           <button
             type="button"
             onClick={() => void install()}
-            className="mt-3 flex min-h-[48px] w-full items-center justify-center rounded-[14px] bg-neutral-soft px-5 text-[1.0625rem] font-semibold text-ink transition-colors duration-150 active:bg-neutral-line"
+            className="mt-3 flex min-h-[48px] w-full items-center justify-center rounded-card bg-neutral-soft px-5 text-[1.0625rem] font-semibold text-ink transition-colors duration-150 active:bg-neutral-line"
           >
             홈 화면에 추가
           </button>

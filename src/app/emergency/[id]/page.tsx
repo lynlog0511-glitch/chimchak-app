@@ -101,7 +101,7 @@ export default async function ProtocolPage({ params }: PageParams) {
       </section>
 
       {/* 앱이 하지 않는 것 — 기본 접힘. 보더 없이 면 한 장으로 둡니다. */}
-      <details className="group mt-4 rounded-[14px] bg-paper-2">
+      <details className="group mt-4 rounded-card bg-paper-2">
         <summary className="flex min-h-[56px] cursor-pointer list-none items-center gap-3 px-4 py-3 text-[0.9375rem] leading-[1.45] font-bold text-ink [&::-webkit-details-marker]:hidden">
           <span className="flex-1">
             앱이 하지 않는 것 — 119 상황실이 목소리로 직접 지도합니다

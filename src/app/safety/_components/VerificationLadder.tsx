@@ -40,35 +40,35 @@ const STATE_LABEL = {
 function GuardTable() {
   return (
     <div className="mt-3 rounded-card bg-paper-2 p-4">
-      <p className="text-[0.7813rem] leading-[1.5] font-bold tracking-[0.04em] text-ink-muted">
+      <p className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.04em] text-ink-muted">
         같은 모델 · 같은 {GUARD_BENCHMARK.questionCount}문항 · 다른 것은 근거 가드 하나
       </p>
       <ul className="chim-hairline mt-2 border-y border-line">
         {GUARD_BENCHMARK.rows.map((row) => (
           <li key={row.condition} className="py-3">
-            <p className="text-[0.9375rem] leading-[1.5] font-bold text-ink">{row.condition}</p>
+            <p className="text-[0.9375rem] leading-[1.45] font-bold text-ink">{row.condition}</p>
             <dl className="mt-2 space-y-2">
               <div className="flex items-baseline gap-3">
-                <dt className="min-w-0 flex-1 text-[0.9375rem] leading-[1.5] text-ink-muted">
+                <dt className="min-w-0 flex-1 text-[0.9375rem] leading-[1.45] text-ink-muted">
                   허용 목록 밖 인용
                 </dt>
-                <dd className="chim-num flex-none text-[0.9375rem] leading-[1.5] font-extrabold text-ink">
+                <dd className="chim-num flex-none text-[0.9375rem] leading-[1.45] font-extrabold text-ink">
                   {row.outside}
                 </dd>
               </div>
               <div className="flex items-baseline gap-3">
-                <dt className="min-w-0 flex-1 text-[0.9375rem] leading-[1.5] text-ink-muted">
+                <dt className="min-w-0 flex-1 text-[0.9375rem] leading-[1.45] text-ink-muted">
                   정답 근거 인용
                 </dt>
-                <dd className="chim-num flex-none text-[0.9375rem] leading-[1.5] font-extrabold text-ink">
+                <dd className="chim-num flex-none text-[0.9375rem] leading-[1.45] font-extrabold text-ink">
                   {row.correct}
                 </dd>
               </div>
               <div className="flex items-baseline gap-3">
-                <dt className="min-w-0 flex-1 text-[0.9375rem] leading-[1.5] text-ink-muted">
+                <dt className="min-w-0 flex-1 text-[0.9375rem] leading-[1.45] text-ink-muted">
                   판정 대상 · 폐기
                 </dt>
-                <dd className="flex-none text-[0.9375rem] leading-[1.5] text-ink">
+                <dd className="flex-none text-[0.9375rem] leading-[1.45] text-ink">
                   {row.judged} · {row.blocked}
                 </dd>
               </div>
@@ -108,16 +108,16 @@ export function VerificationLadder({ proof, className }: VerificationLadderProps
     <ol className={cx("chim-hairline border-y border-line", className)}>
       {VERIFICATION_LADDER.map((step) => (
         <li key={step.id} className="py-5">
-          <p className="text-[0.7813rem] leading-[1.5] font-bold tracking-[0.04em] text-ink-muted">
+          <p className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.04em] text-ink-muted">
             <span className="chim-num">{step.no}</span> · {STATE_LABEL[step.state]}
             {step.measuredAt && ` · 실측 ${step.measuredAt}`}
           </p>
-          <p className="mt-1 text-[1.0625rem] leading-[1.4] font-extrabold text-ink">
+          <p className="mt-1 text-[1.0625rem] leading-[1.45] font-extrabold text-ink">
             {step.title}
             {step.origin === "not-yet" && <PlanTag className="ml-2" />}
           </p>
-          <p className="mt-2 text-[0.9375rem] leading-[1.65] text-ink-soft">{step.hypothesis}</p>
-          <p className="mt-2 text-[0.9375rem] leading-[1.65] text-ink">{step.result}</p>
+          <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink-soft">{step.hypothesis}</p>
+          <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink">{step.result}</p>
           <p className="mt-2 text-[0.7813rem] leading-[1.6] text-ink-muted">
             {LADDER_ORIGIN_NOTE[step.origin]}
           </p>

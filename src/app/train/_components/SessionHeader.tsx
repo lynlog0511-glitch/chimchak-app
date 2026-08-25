@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { StatusDot, type StatusTone } from "@/components";
+import { BackGlyph, StatusDot, type StatusTone } from "@/components";
 import { cx } from "@/components/utils";
 
 export interface SessionHeaderProps {
@@ -40,18 +40,20 @@ export function SessionHeader({
   action,
   className,
 }: SessionHeaderProps) {
+  /* ‹ 글리프 자체는 `BackGlyph`가 한 벌로 들고 있습니다(라벨 옆 17px / 단독 19px · ink-soft).
+     여기는 라벨 없이 혼자 서는 아이콘 버튼이라 `solo`입니다. */
   const backClass =
-    "-ml-[14px] flex h-12 w-12 flex-none items-center justify-center rounded-field text-[1.0625rem] leading-none text-ink-soft transition-colors duration-150 active:bg-paper-2";
+    "-ml-[14px] flex h-12 w-12 flex-none items-center justify-center rounded-field transition-colors duration-150 active:bg-paper-2";
 
   return (
     <header className={cx("flex items-start pt-1.5 pb-3", className)}>
       {backHref ? (
         <Link href={backHref} aria-label={backLabel} onClick={onBack} className={backClass}>
-          <span aria-hidden>‹</span>
+          <BackGlyph size="solo" />
         </Link>
       ) : onBack ? (
         <button type="button" aria-label={backLabel} onClick={onBack} className={backClass}>
-          <span aria-hidden>‹</span>
+          <BackGlyph size="solo" />
         </button>
       ) : null}
 

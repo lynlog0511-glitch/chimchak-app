@@ -157,7 +157,7 @@ export function FreeComposer({
               placeholder={COMPOSER_PLACEHOLDER}
               className={cx(
                 "min-h-12 min-w-0 flex-1 resize-none rounded-[18px] border border-line-strong bg-paper-2",
-                "px-4 py-3 text-[1.0625rem] leading-[1.5] text-ink placeholder:text-ink-muted",
+                "px-4 py-3 text-[1.0625rem] leading-[1.45] text-ink placeholder:text-ink-muted",
                 "disabled:opacity-60",
               )}
             />

@@ -26,7 +26,7 @@ export interface ProtocolAddressCardProps {
  */
 export function ProtocolAddressCard({ address, className }: ProtocolAddressCardProps) {
   return (
-    <div className={cx("rounded-[14px] bg-paper-2 px-4 py-[14px]", className)}>
+    <div className={cx("rounded-card bg-paper-2 px-4 py-[14px]", className)}>
       {/* 이 카드에서 가장 큰 글자 — 자막(29px) 다음으로 눈이 가는 자리입니다. */}
       <p className="text-[1.0625rem] leading-[1.45] font-bold text-ink">
         실제 방문지 주소를 미리 확인해 적어 두세요

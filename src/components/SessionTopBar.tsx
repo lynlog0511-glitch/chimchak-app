@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { BackGlyph } from "./BackGlyph";
 import { StatusDot, type StatusTone } from "./StatusDot";
 import { cx } from "./utils";
 
@@ -50,18 +51,20 @@ export function SessionTopBar({
   action,
   className,
 }: SessionTopBarProps) {
+  /* ‹ 글리프는 `BackGlyph` 한 벌을 씁니다 — 이 파일과 `SessionHeader`가 거의 같은 backClass를
+     두 벌 들고 있던 자리이고, 크기·색이 갈리기 시작한 지점이기도 합니다. */
   const backClass =
-    "-ml-[14px] flex h-12 w-12 flex-none items-center justify-center rounded-field text-[1.0625rem] leading-[1.3] text-ink-soft transition-colors duration-150 active:bg-paper-2";
+    "-ml-[14px] flex h-12 w-12 flex-none items-center justify-center rounded-field transition-colors duration-150 active:bg-paper-2";
 
   return (
     <header className={cx("flex items-center pt-1.5 pb-3", className)}>
       {backHref ? (
         <Link href={backHref} aria-label={backLabel} onClick={onBack} className={backClass}>
-          <span aria-hidden>‹</span>
+          <BackGlyph size="solo" />
         </Link>
       ) : onBack ? (
         <button type="button" aria-label={backLabel} onClick={onBack} className={backClass}>
-          <span aria-hidden>‹</span>
+          <BackGlyph size="solo" />
         </button>
       ) : null}
 

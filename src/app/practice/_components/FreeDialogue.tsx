@@ -116,7 +116,7 @@ export function FreeDialogue({
             <div key={item.id} className="animate-fade-up flex gap-2.5">
               <span
                 aria-hidden
-                className="flex h-[38px] w-[38px] flex-none items-center justify-center rounded-full bg-paper-out text-[0.8438rem] font-bold text-ink-soft"
+                className="flex h-[2.375rem] w-[2.375rem] flex-none items-center justify-center rounded-full bg-paper-out text-[0.8438rem] font-bold text-ink-soft"
               >
                 {initialOf(persona)}
               </span>
@@ -158,7 +158,7 @@ export function FreeDialogue({
           <div className="animate-pop-in flex gap-2.5">
             <span
               aria-hidden
-              className="flex h-[38px] w-[38px] flex-none items-center justify-center rounded-full bg-paper-out text-[0.8438rem] font-bold text-ink-soft"
+              className="flex h-[2.375rem] w-[2.375rem] flex-none items-center justify-center rounded-full bg-paper-out text-[0.8438rem] font-bold text-ink-soft"
             >
               {initialOf(persona)}
             </span>

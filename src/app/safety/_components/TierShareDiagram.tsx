@@ -30,7 +30,16 @@ interface TierRow {
   label: string;
   /** 채운 칸 수 = 생성이 허용된 범위의 순서 (비율이 아닙니다) */
   filled: number;
-  /** 막대 색 (틸 → 옅은 틸 → 빨강) */
+  /**
+   * 막대 색 — **무채 계조 두 단 + L3만 빨강**입니다.
+   *
+   * 예전에는 L1 `brand-600` · L2 `brand-400`으로 그렸습니다. 그런데 이 화면은
+   * 「위험할수록 AI가 물러납니다」라는 **절제의 논리**를 말하는 자리인데, 색으로는
+   * 틸·연두·주황·빨강 면이 번갈아 나오며 정반대를 말하고 있었습니다(색 면 11블록 —
+   * 가이드 §1은 화면당 1~2블록). 색 면을 구역당 하나로 배급하면서, 이 구역이 쓰는 색은
+   * **L3의 빨강 하나**만 남겼습니다. L1·L2는 값(밝기)으로만 갈립니다 —
+   * 채운 칸 수가 이미 순서를 말하고 있어서 색이 한 번 더 말할 필요가 없습니다.
+   */
   bar: string;
   /** 오른쪽 한 마디 */
   note: string;
@@ -48,14 +57,14 @@ const ROWS: readonly TierRow[] = [
   {
     label: "L1 대화",
     filled: 3,
-    bar: "bg-brand-600",
+    bar: "bg-ink-soft",
     note: "역할 연기만",
     say: "L1 대화 단계 — 허용 범위가 가장 넓습니다. 어르신 역할 연기만 맡습니다.",
   },
   {
     label: "L2 채점",
     filled: 1,
-    bar: "bg-brand-400",
+    bar: "bg-faint",
     note: "규칙 사전",
     say: "L2 채점 단계 — 범위를 좁혔습니다. 판정은 규칙 사전이 합니다.",
   },
@@ -82,7 +91,7 @@ export function TierShareDiagram({ className }: TierShareDiagramProps) {
             key={row.label}
             className={cx("flex items-center gap-3", i < ROWS.length - 1 && "mb-3")}
           >
-            <span className="w-[3.5rem] flex-none text-[0.7813rem] leading-[1.4] font-bold text-ink">
+            <span className="w-[3.5rem] flex-none text-[0.7813rem] leading-[1.45] font-bold text-ink">
               {row.label}
             </span>
             <span aria-hidden className="flex min-w-0 flex-1 gap-1">
@@ -104,7 +113,7 @@ export function TierShareDiagram({ className }: TierShareDiagramProps) {
             <span
               className={cx(
                 "w-[5.5rem] flex-none text-right",
-                row.noteClass ?? "text-[0.7813rem] leading-[1.4] text-ink-muted",
+                row.noteClass ?? "text-[0.7813rem] leading-[1.45] text-ink-muted",
               )}
             >
               {row.note}

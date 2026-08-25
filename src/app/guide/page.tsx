@@ -58,8 +58,8 @@ function Section({
 }) {
   return (
     <section className="mt-7">
-      <h2 className="text-[1.0625rem] leading-[1.4] font-bold text-ink">{title}</h2>
-      {lead && <p className="mt-[6px] text-[0.8438rem] leading-[1.7] text-ink-soft">{lead}</p>}
+      <h2 className="text-[1.1875rem] leading-[1.3] font-bold tracking-[-0.015em] text-ink">{title}</h2>
+      {lead && <p className="mt-[6px] text-[0.8438rem] leading-[1.6] text-ink-soft">{lead}</p>}
       {children}
     </section>
   );
@@ -221,7 +221,7 @@ export default function GuidePage() {
 
       {/* 리드 문단은 이 화면에서 처음 읽는 문장입니다 — 14.5px은 가이드 §7-8의 가독 하한
           (읽어야 하는 문장 15px)을 어기는 값이라 한 단 올렸습니다(페르소나 디자이너 high). */}
-      <p className="mt-4 text-[0.9375rem] leading-[1.75] text-ink">
+      <p className="mt-4 text-[0.9375rem] leading-[1.6] text-ink">
         <b className="font-bold">{PRACTICE_LINE}</b> 그래서 이 앱에는 시험도 등수도 없습니다. 매일
         여실 화면은 네 개뿐이고, 각각이 하루의 어느 자리에 놓이는지만 알고 계시면 됩니다.
       </p>
@@ -259,10 +259,10 @@ export default function GuidePage() {
         <ol className="chim-hairline mt-[8px] border-y border-line">
           {STEPS.map((step, index) => (
             <li key={step.title} className="py-[12px]">
-              <p className="text-[0.875rem] leading-[1.45] font-bold text-ink">
+              <p className="text-[0.9375rem] leading-[1.45] font-bold text-ink">
                 <span className="chim-num">{index + 1}</span>. {step.title}
               </p>
-              <p className="mt-[3px] text-[0.8438rem] leading-[1.7] text-ink-soft">{step.desc}</p>
+              <p className="mt-[3px] text-[0.8438rem] leading-[1.6] text-ink-soft">{step.desc}</p>
             </li>
           ))}
         </ol>
@@ -275,7 +275,7 @@ export default function GuidePage() {
             다른 상황 먼저 둘러보기
           </BigButton>
         </div>
-        <p className="mt-[10px] text-center text-[0.8125rem] leading-[1.6] text-ink-soft">
+        <p className="mt-[10px] text-center text-[0.8438rem] leading-[1.6] text-ink-soft">
           「{FIRST_SCENARIO.title}」 — {FIRST_SCENARIO.typeLabel}. 중간에 그만두셔도 이어서 하실 수
           있습니다.
         </p>
@@ -287,10 +287,10 @@ export default function GuidePage() {
             <div
               key={item.q}
               {...(item.id ? { id: item.id } : {})}
-              className="scroll-mt-4 rounded-[14px] bg-paper-2 px-4 py-[14px]"
+              className="scroll-mt-4 rounded-card bg-paper-2 px-4 py-[14px]"
             >
               <h3 className="text-[0.9375rem] leading-[1.45] font-bold text-ink">{item.q}</h3>
-              <p className="mt-[6px] text-[0.8438rem] leading-[1.7] text-ink-soft">{item.a}</p>
+              <p className="mt-[6px] text-[0.8438rem] leading-[1.6] text-ink-soft">{item.a}</p>
               <p className="mt-[2px]">
                 <Link
                   href={item.href}

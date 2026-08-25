@@ -129,7 +129,7 @@ function SpeakerAvatar({
     return (
       <span
         aria-hidden
-        className="flex h-[38px] w-[38px] flex-none items-center justify-center rounded-full bg-danger-soft text-[0.8438rem] font-bold text-danger-ink"
+        className="flex h-[2.375rem] w-[2.375rem] flex-none items-center justify-center rounded-full bg-danger-soft text-[0.8438rem] font-bold text-danger-ink"
       >
         안
       </span>
@@ -140,7 +140,7 @@ function SpeakerAvatar({
     <span
       aria-hidden
       style={ring ? { boxShadow: ring } : undefined}
-      className="flex h-[38px] w-[38px] flex-none items-center justify-center rounded-full bg-paper-out text-[0.8438rem] font-bold text-ink-soft"
+      className="flex h-[2.375rem] w-[2.375rem] flex-none items-center justify-center rounded-full bg-paper-out text-[0.8438rem] font-bold text-ink-soft"
     >
       {initialOf(name)}
     </span>

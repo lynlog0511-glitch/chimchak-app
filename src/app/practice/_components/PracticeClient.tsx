@@ -81,7 +81,7 @@ function Gate({
 }) {
   return (
     <section className="mt-4 rounded-card bg-paper-2 px-4 py-[15px]">
-      <h2 className="text-[1.0625rem] leading-[1.4] font-extrabold text-ink">{title}</h2>
+      <h2 className="text-[1.0625rem] leading-[1.45] font-extrabold text-ink">{title}</h2>
       <p className="mt-1.5 text-[0.9375rem] leading-[1.6] text-ink-soft">{body}</p>
       <p className="mt-2 text-[0.8438rem] leading-[1.6] text-ink-muted">
         {onEnable ? GATE_ENABLE_HINT : GATE_SETTINGS_HINT}
@@ -91,7 +91,7 @@ function Gate({
           {/* 스위치를 켜는 자리는 곧 **동의를 받는 자리**입니다. 설정 팝오버에서 이 버튼을
               누르실 때 읽으시는 고지와 **한 글자도 다르지 않은 문장**을 여기에도 둡니다 —
               지름길을 만들면서 고지를 건너뛰면, 편의를 얻은 만큼 동의가 얇아집니다. */}
-          <div className="mt-3 rounded-[14px] bg-paper px-[14px] py-[12px]">
+          <div className="mt-3 rounded-card bg-paper px-[14px] py-[12px]">
             <p className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.04em] text-ink-muted">
               {ONLINE_MODE_LABEL}
             </p>

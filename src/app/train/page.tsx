@@ -260,12 +260,12 @@ export default function TrainIndexPage() {
         </div>
       </details>
 
-      {/* 자유 대화 연습으로 들어가는 유일한 문 — 탭바에는 넣지 않습니다.
+      {/* 자유 연습으로 들어가는 유일한 문 — 탭바에는 넣지 않습니다.
           위 카드들과 같은 문법(paper-2 면 · radius 14 · eyebrow → 제목 → 한 줄)을 쓰되,
           「검증된 여섯 종」과 나란히 놓지 않으려고 편성표 아래에 따로 세웁니다.
-          카드에 적는 세 낱말(실험 · 온라인 · 채점 없음)이 이 모드의 조건 전부입니다 —
+          카드에 적는 두 낱말(온라인 · 채점 없음)이 이 모드의 조건 전부입니다 —
           들어가 보고 나서야 「회선이 필요하다」를 알게 되지 않도록 문 앞에 적어 둡니다. */}
-      <section className="mt-4 border-t border-line pt-4" aria-label="자유 대화 연습">
+      <section className="mt-4 border-t border-line pt-4" aria-label="자유 연습">
         <Link
           href={FREE_PRACTICE_HREF}
           prefetch={false}
@@ -286,7 +286,7 @@ export default function TrainIndexPage() {
               온라인 모드를 켜야 열립니다
             </span>
             <span aria-hidden className="ml-auto text-[0.875rem] leading-none font-bold text-brand-700">
-              열어보기 ›
+              열어 보기 ›
             </span>
           </span>
         </Link>

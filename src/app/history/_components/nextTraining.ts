@@ -212,7 +212,7 @@ export const NEXT_TRAINING_CANDIDATES: NextTrainingCandidate[] = [
  * (약점 항목으로 고른 경우의 이유 문장은 항목 표 `WEAKNESS_THEMES`의 `sentence`가 맡습니다.)
  */
 export const NEXT_TRAINING_REASON_TEXT: Record<NextTrainingReason, string> = {
-  untried: "아직 해보지 않은 유형입니다",
+  untried: "아직 해 보지 않은 유형입니다",
   weakness: "최근 코칭이 가리킨 항목을 다루는 장면입니다",
   coaching: "코칭이 남은 유형입니다",
   stale: "가장 오래전에 연습한 유형입니다",
@@ -248,7 +248,7 @@ export interface PickNextTrainingOptions {
  * 같은 입력이면 같은 결과가 나오는 순수 함수이고, 무작위·가중치·점수는 쓰지 않습니다.
  *
  * @example
- * pickNextTraining([]) // => 첫 후보 + "아직 해보지 않은 유형입니다"
+ * pickNextTraining([]) // => 첫 후보 + "아직 해 보지 않은 유형입니다"
  * @example
  * pickNextTraining(records, { excludeScenarioId: "CHK-A01" }) // 방금 마친 회차는 빼고 고릅니다
  */
@@ -399,7 +399,7 @@ export function nextTrainingSentence(pick: NextTrainingPick): string {
 
   switch (pick.reason) {
     case "untried":
-      return `${label}${topicParticle} 아직 해보지 않으셨어요`;
+      return `${label}${topicParticle} 아직 해 보지 않으셨어요`;
     case "weakness":
       return (
         WEAKNESS_THEMES.find((def) => def.theme === pick.theme)?.sentence ??

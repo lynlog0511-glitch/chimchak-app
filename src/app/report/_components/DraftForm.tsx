@@ -154,7 +154,7 @@ export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: Dr
           <span className="mr-[6px] inline-flex items-center rounded-chip border border-line-strong px-[7px] py-[1px] align-[2px] text-[0.6875rem] leading-[1.45] font-bold whitespace-nowrap text-ink-soft">
             계획
           </span>
-          기관 시스템으로 보내는 기능은 아직 없습니다. 나중에 생기더라도 확정 버튼을 누르신
+          기관 시스템으로 보내는 기능은 아직 없습니다. 연동하게 되더라도 확정 버튼을 누르신
           뒤에, 가려진 글만 나갑니다.
         </p>
       </div>

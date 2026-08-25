@@ -77,7 +77,7 @@ function ReportRow({ report }: { report: StoredReport }) {
         <span className="min-w-0 flex-1">
           <span className="block text-[0.7813rem] leading-[1.4] text-tertiary">
             {isExample && <span className="font-bold text-warn-ink">예시 · </span>}
-            {formatShortDate(report.createdAt)} · 가명처리 2단 통과
+            {formatShortDate(report.createdAt)} · 가명처리 완료
             {isDisplayableElapsed(report.elapsedSec) &&
               ` · ${formatElapsedDuration(report.elapsedSec)} 동안 작성`}
           </span>

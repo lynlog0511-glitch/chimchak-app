@@ -202,7 +202,7 @@ export default function ForOrgsPage() {
           <StateRow
             plan
             title={`나머지 시나리오 ${TOTAL_COUNT - ACTIVE_COUNT}종`}
-            desc={`전체 ${TOTAL_COUNT}종이 열리면 같은 방식으로 1인당 약 ${PROJECTED_MINUTES}분이 됩니다 — 열린 ${ACTIVE_COUNT}종의 소요를 그대로 곱한 추정치이지 실측치가 아닙니다. 위험 판단 유형은 동작 교정으로 오인될 위험을 통제하기 어려워 다음 단계로 미뤘습니다.`}
+            desc={`전체 ${TOTAL_COUNT}종이 열리면 같은 방식으로 1인당 약 ${PROJECTED_MINUTES}분이 됩니다 — 열린 ${ACTIVE_COUNT}종의 소요를 그대로 곱한 추정치이지 실측치가 아닙니다. 위험 판단 유형은 동작 교정으로 오인될 위험을 통제하기 어려워 이번 제공 범위에 넣지 않았습니다.`}
           />
           <StateRow
             plan

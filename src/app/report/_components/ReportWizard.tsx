@@ -182,7 +182,7 @@ export function ReportWizard() {
             <p className="mt-[10px] text-[0.9375rem] leading-[1.6] text-warn-ink">{SAVE_FAILED_BODY}</p>
           )}
           <p className="mt-[10px] text-[0.8438rem] leading-[1.6] text-ink">
-            지금 남은 것은 가명처리 2단을 통과한 텍스트뿐이며, 말씀하신 음성과 원문은 저장하지
+            지금 남은 것은 가명처리를 두 번 거친 글뿐이며, 말씀하신 음성과 원문은 저장하지
             않았습니다.
           </p>
           {/* 기관 시스템 이야기는 앱을 통틀어 이 한 곳에서만 합니다 —
@@ -191,7 +191,7 @@ export function ReportWizard() {
             <span className="mr-[6px] inline-flex items-center rounded-chip border border-line-strong px-[7px] py-[1px] align-[2px] text-[0.6875rem] leading-[1.45] font-bold whitespace-nowrap text-ink-soft">
               계획
             </span>
-            기관 시스템으로 보내는 기능은 아직 없습니다. 나중에 생기더라도 확정 버튼을 누르신
+            기관 시스템으로 보내는 기능은 아직 없습니다. 연동하게 되더라도 확정 버튼을 누르신
             뒤에, 가려진 글만 나갑니다.
           </p>
           <p className="mt-[8px] text-[0.7813rem] leading-[1.6] text-ink-soft">

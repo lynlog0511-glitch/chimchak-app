@@ -43,7 +43,7 @@ export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalI
   /** Esc — 대안을 고르지 않고 같은 장면으로 (퇴장 모션을 태운 뒤 닫힙니다). */
   const dismiss = useCallback(() => leave(), [leave]);
 
-  // 마운트 초점(스크롤 없이) · Esc = 다시 해보기 · Tab 가두기 · 배경 스크롤 잠금.
+  // 마운트 초점(스크롤 없이) · Esc = 다시 해 보기 · Tab 가두기 · 배경 스크롤 잠금.
   // 네 가지는 종료 확인 모달과 규칙 엔진 시연 시트도 같은 훅으로 씁니다.
   useModalDismiss({ panelRef, initialFocusRef: retryRef, onDismiss: dismiss });
 
@@ -118,7 +118,7 @@ export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalI
           {alternatives.length > 0 && (
             <>
               <h3 className="mt-3.5 mb-[8px] text-[0.7813rem] leading-[1.45] font-bold text-ink-muted">
-                대신 이렇게 말해볼 수 있어요
+                대신 이렇게 말해 볼 수 있어요
               </h3>
               <ul className="flex flex-col gap-[8px]">
                 {alternatives.map((alternative) => (
@@ -177,7 +177,7 @@ export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalI
             onClick={() => leave()}
             className="min-h-[54px] w-full rounded-[14px] bg-brand-700 px-5 text-[1rem] font-bold text-white transition-colors duration-150 hover:bg-brand-800 active:bg-brand-900"
           >
-            같은 장면에서 다시 해보기 — 벌점 없음
+            같은 장면에서 다시 해 보기 — 벌점 없음
           </button>
 
           {/* 이 시트가 입력 도크의 고지를 덮으므로, 고지 문구를 여기에도 그대로 둡니다 (안전 규칙 §3-2). */}

@@ -51,7 +51,7 @@ export const TIER_SHORT: Record<Tier, string> = {
 export const TIER_NOW_NOTE: Record<Tier, string> = {
   L1: "지금은 훈련 대화 구간입니다 — 대사는 시나리오 데이터의 고정 문구를 재생합니다.",
   L2: "방금 응답을 채점했습니다 — 규칙 사전과 루브릭이 근거 문서 안에서만 판정합니다.",
-  L3: "지금부터 생성 호출 0건 — 검수된 고정 안내만 재생",
+  L3: "지금부터는 AI가 아무것도 만들지 않습니다 — 검수된 고정 안내만 재생합니다.",
 };
 
 /** 계층 표시기 — 이 시나리오에서 쓰지 않는 계층에 붙는 문구입니다. */
@@ -168,8 +168,8 @@ export function triggerStageLine(triggerName: string): string {
 
 /* ── 세션 헤더 (시안 4a 컴팩트 헤더) ───────────────────────── */
 
-/** L3 구간 — 생성 호출이 0건임을 헤더에서 바로 밝힙니다. */
-export const SESSION_STATUS_PROTOCOL = "응급 안내 · 생성 0건";
+/** L3 구간 — AI가 만든 문장이 아님을 헤더에서 바로 밝힙니다(말풍선 라벨과 같은 어휘). */
+export const SESSION_STATUS_PROTOCOL = "응급 안내 · AI 생성 아님";
 export const SESSION_STATUS_ENDED = "훈련을 마쳤습니다";
 
 /** 화자 → 사람이 부르는 역할 이름 (헤더 「AI는 … 역만 맡습니다」에 씁니다) */

@@ -33,7 +33,7 @@ export function ReviewLedger({ className }: ReviewLedgerProps) {
     },
     {
       k: "시나리오 대사",
-      v: "먼저 연 3종은 2차 교차 감수 진행 중 — 아직 끝나지 않았습니다. 뒤에 더한 2종(CHK-A02·CHK-C02)은 초안으로, 현직 감수 대기 상태임을 훈련 카드에도 그대로 적었습니다.",
+      v: "먼저 연 3종은 2차 교차 감수 진행 중 — 아직 끝나지 않았습니다. 뒤에 더한 3종(CHK-A02·CHK-B01·CHK-C02)은 초안으로, 현직 감수 대기 상태임을 훈련 카드에도 그대로 적었습니다.",
     },
     {
       k: `응급 안내 ${PROTOCOLS.length}종`,

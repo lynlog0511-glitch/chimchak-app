@@ -144,7 +144,7 @@ export function TrainingRow({ record, typeLabel }: TrainingRowProps) {
 
           <p className="mt-[12px] text-[0.7813rem] leading-[1.5] text-tertiary">
             주고받은 대화 <span className="chim-num">{record.turnCount}</span>번
-            {record.retriesUsed > 0 && " · 다시 해보기 사용"} · 마친 시각{" "}
+            {record.retriesUsed > 0 && " · 다시 해 보기 사용"} · 마친 시각{" "}
             {formatDateTime(record.endedAt)}
           </p>
           {/* 안심 문구 — 캡션 등급(11.5px tertiary)에서 읽히는 등급으로 올려 둡니다. */}

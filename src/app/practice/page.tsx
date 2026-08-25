@@ -20,7 +20,7 @@ import { PracticeClient } from "./_components/PracticeClient";
 export const metadata: Metadata = {
   title: FREE_ENTRY_TITLE,
   description:
-    "검수된 여섯 상황 밖의 장면을 그 자리에서 만들어 자유롭게 대화해 보는 실험 모드입니다. 온라인에서만 열리고 채점하지 않습니다.",
+    "검수된 여섯 상황 밖의 장면을 그 자리에서 만들어 자유롭게 대화해 보는 연습 모드입니다. 온라인에서만 열리고 채점하지 않습니다.",
 };
 
 export default function PracticePage() {

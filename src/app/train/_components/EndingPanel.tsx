@@ -613,7 +613,7 @@ export function EndingPanel({
           </BigButton>
         ) : (
           <BigButton onClick={onRestart} size="lg" block>
-            같은 장면 다시 해보기 — 벌점 없음
+            같은 장면 다시 해 보기 — 벌점 없음
           </BigButton>
         )}
 

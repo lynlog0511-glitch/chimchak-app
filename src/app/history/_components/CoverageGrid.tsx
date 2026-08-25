@@ -60,7 +60,7 @@ export function CoverageGrid({
   /**
    * 다음 칸 — 지금 열려 있는 유형 가운데 아직 비어 있는 첫 칸입니다.
    * 「—」만 보고는 그 칸이 못 여는 칸인지 아직 안 한 칸인지 갈리지 않아, 한 줄로 밝혀 둡니다.
-   * (아직 열지 않은 유형은 애초에 후보가 아니므로 아래 「준비 중」 줄이 따로 맡습니다.)
+   * (아직 열지 않은 유형은 애초에 후보가 아니므로 아래 「아직 열리지 않은 유형」 줄이 따로 맡습니다.)
    */
   const nextCell = ORDER.find((type) => activeTypes.includes(type) && counts[type] === 0);
   const openCount = ORDER.filter((type) => activeTypes.includes(type)).length;
@@ -79,7 +79,7 @@ export function CoverageGrid({
             done > 0
               ? `${TYPE_SHORT_LABELS[type]} ${done}회` +
                 (recent ? ` · 최근 이수일 ${formatShortDate(recent)}` : "")
-              : `${TYPE_SHORT_LABELS[type]} 아직 해보지 않으셨습니다`;
+              : `${TYPE_SHORT_LABELS[type]} 아직 해 보지 않으셨습니다`;
           return (
             <li
               key={type}
@@ -134,7 +134,7 @@ export function CoverageGrid({
       {/* 아직 열지 않은 유형은 「—」로만 두면 이유를 알 수 없어, 아래 한 줄로 조용히 적어 둡니다. */}
       {pending.length > 0 && (
         <p className="mt-[6px] text-[0.8438rem] leading-[1.5] text-tertiary">
-          {pending.map((type) => TYPE_SHORT_LABELS[type]).join(" · ")}은 준비 중입니다
+          {pending.map((type) => TYPE_SHORT_LABELS[type]).join(" · ")}은 아직 열리지 않은 유형입니다
         </p>
       )}
     </div>

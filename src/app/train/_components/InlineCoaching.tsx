@@ -133,8 +133,8 @@ const ONLINE_HEAD_BLOCKED = "AI 생성 코칭 · 근거 가드가 막았습니�
 
 function OnlineCoachingBlock({ outcome }: { outcome: OnlineCoachOutcome }) {
   const blocked = outcome.status === "blocked";
-  /* 가드가 실제로 돌았다는 사실을 문장으로 남깁니다 — 지난 단은 이름으로, 막힌 단은 사유로.
-     이 줄이 없으면 「근거 가드 통과」가 그냥 붙여 둔 라벨처럼 읽힙니다. */
+  /* 막힌 경우에만 어디까지 지났는지 함께 적습니다 — 사유를 이해하는 데 쓰이는 정보입니다.
+     통과한 경우의 단 이름 나열은 훈련하시는 분의 다음 행동에 쓰이지 않아 적지 않습니다. */
   const passedSteps = outcome.steps.filter((step) => step.passed).map((step) => step.label);
   return (
     <div className="mt-2 rounded-card bg-paper-2 px-3.5 py-3">
@@ -153,12 +153,7 @@ function OnlineCoachingBlock({ outcome }: { outcome: OnlineCoachOutcome }) {
           {passedSteps.length > 0 && ` (지난 단 — ${passedSteps.join(" · ")})`}
         </p>
       ) : (
-        <>
-          {outcome.docId && <SourceChip docId={outcome.docId} className="mt-1.5" />}
-          <p className="mt-1 text-[0.7813rem] leading-[1.5] text-ink-muted">
-            지난 단 — {passedSteps.join(" · ")}
-          </p>
-        </>
+        outcome.docId && <SourceChip docId={outcome.docId} className="mt-1.5" />
       )}
       <p className="mt-1.5 text-[0.6875rem] leading-[1.5] text-ink-muted">
         판정도, 어르신 상태도, 기록도 위 그대로입니다 — 이 문장 하나만 더해졌습니다.

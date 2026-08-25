@@ -89,7 +89,8 @@ export function LiveMeterPanel({ className }: LiveMeterPanelProps) {
 
       {mounted && !measuring && stored === 0 && (
         <p className="mt-3 text-[0.9375rem] leading-[1.6] text-ink-soft">
-          지금 이 실행에서는 아직 저장 전입니다 — 응급 안내는 배포본 실행에서 자동으로 저장됩니다.
+          응급 안내가 아직 이 기기에 저장되지 않았습니다 — 자동 저장이 끝나면 연결이 끊겨도
+          열립니다.
         </p>
       )}
 

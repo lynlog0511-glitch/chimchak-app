@@ -3,7 +3,6 @@ import type { SourceDoc } from "@/types";
 import { EyebrowLabel } from "./EyebrowLabel";
 import { SourceDocsProvider } from "./SourceDocsContext";
 import { TabBar } from "./TabBar";
-import { TopNav } from "./TopNav";
 import type { TabKey } from "./navItems";
 import { DEFAULT_SOURCE_DOCS } from "./sourceDocsDefault";
 import { cx } from "./utils";
@@ -12,25 +11,23 @@ export interface PageShellProps {
   children: ReactNode;
 
   /* ── v4 앱 프레임 ─────────────────────────────────────────── */
-  /** 하단 탭바 노출 (기본 true). 세션·전체화면 재생기처럼 이동을 막는 화면에서 false. md↑에서는 자동으로 숨습니다. */
+  /** 하단 탭바 노출 (기본 true). 세션·전체화면 재생기처럼 이동을 막는 화면에서만 false.
+      **뷰포트로는 접히지 않습니다** — 어느 폭에서도 이 앱의 유일한 이동 수단입니다. */
   tabBar?: boolean;
   /**
-   * md↑ 상단 가로 네비 노출 (기본 true · 시안 7c).
-   * 세션(7d)처럼 **자체 헤더가 상단을 차지하는 화면**에서만 false로 끕니다.
-   * 모바일에는 애초에 나타나지 않습니다.
+   * @deprecated 아무 일도 하지 않습니다.
+   * 데스크톱 상단 가로 네비(시안 7c)는 2026-08-25 전 뷰포트 앱 프레임 확정과 함께 없앴습니다 —
+   * 이동은 어느 폭에서도 하단 탭바 하나가 맡습니다. 넘겨도 무해하도록 prop만 남깁니다.
    */
   topNav?: boolean;
   /**
-   * md↑에서 본문을 읽기 폭(560px)으로 좁혀 960 프레임 안 가운데 둘지 (기본 true).
-   * 목록형 화면(응급·기록·성장·훈련 목록…)의 기본값이고,
-   * **홈(7c)·세션(7d)처럼 960 전폭 2단 레이아웃을 직접 짜는 화면은 `narrow={false}`** 로 끕니다.
-   * `fill`(세션)에서는 무시됩니다 — 그 화면은 폭을 스스로 잡습니다.
+   * @deprecated 아무 일도 하지 않습니다.
+   * 읽기 폭(560px)은 960px 프레임이 있던 시절의 개념입니다. 지금은 프레임 자체가 430px이라
+   * 한 줄이 40자를 넘지 않고, 폭은 프레임이 잡습니다. 넘겨도 무해하도록 prop만 남깁니다.
    */
   narrow?: boolean;
-  /**
-   * 좌우 여백 20px (기본 true). 세션처럼 18px을 쓰거나 전폭 요소가 있으면 false.
-   * md↑에서 `narrow={false}`(960 전폭)인 화면만 40px로 넓어집니다 — 시안 7c.
-   */
+  /** 좌우 여백 20px (기본 true). 세션처럼 18px을 쓰거나 전폭 요소가 있으면 false.
+      전 뷰포트 한 값입니다. */
   pad?: boolean;
   /** 뷰포트에 고정하고 본문만 스크롤 — 하단 입력 도크가 있는 세션 화면용. */
   fill?: boolean;
@@ -49,7 +46,7 @@ export interface PageShellProps {
   eyebrow?: string;
   /** @deprecated `ScreenHeader`의 subtitle을 쓰세요. */
   description?: string;
-  /** @deprecated `narrow={false}`와 같습니다(md↑ 960 전폭). */
+  /** @deprecated 아무 일도 하지 않습니다(`narrow`와 함께 폐기). */
   wide?: boolean;
   /** @deprecated `pad={false}`와 같습니다. */
   bleed?: boolean;
@@ -60,12 +57,13 @@ export interface PageShellProps {
 /**
  * 앱 셸 — 화면 하나의 껍데기입니다 (v4 §0 · 가이드 §5).
  *
- * **모바일(<md)**: v4 그대로입니다 — 전폭 흰 화면 + 문서 흐름 안 sticky 하단 탭바.
- * **데스크톱(md↑, 시안 7c·7d)**: 하단 탭바를 접고 **상단 가로 네비 + 960px 중앙 프레임**이 됩니다.
- * 목록형 화면은 그 안에서 다시 560px 읽기 폭으로 좁힙니다(`narrow`) — 한 줄이 40자를 넘지 않게.
- * 홈·세션처럼 2단 레이아웃을 직접 짜는 화면만 `narrow={false}`로 960 전폭을 씁니다.
+ * **화면은 어느 뷰포트에서도 같은 앱입니다**(2026-08-25 확정). 웹 셸로 변신하지 않습니다.
+ * · 좁은 폭(<480px): 전폭 흰 화면 + 문서 흐름 안 sticky 하단 탭바.
+ * · 480px↑: 같은 화면이 지면 위 가운데 **430px 세로 기둥**으로 서고, 좌우는 hairline 1px입니다.
+ *   그림자·베젤·폰 목업은 없습니다. 탭바는 그대로 섭니다 — 접히는 뷰포트가 없습니다.
+ * 폭은 프레임이 잡으므로 화면 안에서는 뷰포트 분기(읽기 폭·2단)를 쓰지 않습니다.
  *
- * 전역 헤더·전역 고지 바는 여전히 없습니다 — 각 화면이 `ScreenHeader`/`SessionTopBar`와
+ * 전역 헤더·전역 고정 고지 바는 여전히 없습니다 — 각 화면이 `ScreenHeader`/`SessionTopBar`와
  * `InlineDisclaimer`를 **반드시 한 번** 직접 넣습니다.
  *
  * @example 목록 화면 (기본값)
@@ -75,17 +73,12 @@ export interface PageShellProps {
  *   <InlineDisclaimer size="md" className="mt-3" />
  * </PageShell>
  *
- * @example 홈 — 데스크톱에서 960 전폭 2단
- * <PageShell narrow={false}>...</PageShell>
- *
  * @example 세션 — 자체 헤더 + 하단 도크 고정
- * <PageShell fill pad={false} tabBar={false} topNav={false}>...</PageShell>
+ * <PageShell fill pad={false} tabBar={false}>...</PageShell>
  */
 export function PageShell({
   children,
   tabBar = true,
-  topNav = true,
-  narrow = true,
   activeTab,
   pad,
   fill = false,
@@ -94,26 +87,16 @@ export function PageShell({
   title,
   eyebrow,
   description,
-  wide = false,
   bleed = false,
   headerSlot,
 }: PageShellProps) {
   const padded = pad ?? !bleed;
-  // fill(세션)은 본문이 스크롤 컨테이너라 가운데 정렬을 화면이 직접 잡습니다 — 여기서 폭을 물리지 않습니다.
-  const narrowed = narrow && !wide && !fill;
   const hasLegacyHead = Boolean(title || eyebrow || description || headerSlot);
 
   return (
     <SourceDocsProvider docs={sourceDocs ?? DEFAULT_SOURCE_DOCS}>
       <div className="chim-frame">
-        <div
-          className={cx(
-            "chim-screen",
-            fill && "chim-screen--fill",
-            // 상단 네비가 있는 화면에서만 md↑ 하단 탭바를 접습니다(네비가 없으면 탭바가 유일한 이동 수단).
-            topNav && "chim-screen--desknav",
-          )}
-        >
+        <div className={cx("chim-screen", fill && "chim-screen--fill")}>
           <a
             href="#chim-content"
             className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-field focus:bg-brand-700 focus:px-4 focus:py-2 focus:font-bold focus:text-white"
@@ -121,15 +104,12 @@ export function PageShell({
             본문으로 건너뛰기
           </a>
 
-          {topNav && <TopNav active={activeTab} />}
-
           <main
             id="chim-content"
             className={cx(
               "flex-1",
               fill && "flex min-h-0 flex-col overflow-y-auto overscroll-contain",
               padded && "chim-pad",
-              narrowed && "chim-narrow",
               className,
             )}
           >

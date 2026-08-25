@@ -31,10 +31,10 @@ export default async function TrainSessionPage({ params }: PageProps) {
   if (!scenario) notFound();
 
   return (
-    /* 좌우 여백 18px(md↑ 32px)과 상단 바는 화면이 직접 그리므로 셸의 여백·탭바·상단 네비를 끕니다.
-       **모바일에서는 페이지 스크롤 하나**입니다(가이드 §5) — 그래서 셸의 `fill`(뷰포트 고정 +
-       내부 스크롤)을 쓰지 않고, 뷰포트 고정 2단은 md↑에서 화면이 직접 잡습니다(시안 7d). */
-    <PageShell sourceDocs={SOURCE_DOCS} narrow={false} pad={false} tabBar={false} topNav={false}>
+    /* 좌우 여백 18px과 상단 바는 화면이 직접 그리므로 셸의 여백·탭바를 끕니다.
+       **페이지 스크롤 하나**입니다(가이드 §5) — 그래서 셸의 `fill`(뷰포트 고정 + 내부 스크롤)도
+       쓰지 않습니다. 세션은 어느 폭에서도 세로 흐름 한 벌입니다. */
+    <PageShell sourceDocs={SOURCE_DOCS} pad={false} tabBar={false}>
       <TrainSession scenario={scenario} protocols={PROTOCOLS} />
     </PageShell>
   );

@@ -584,10 +584,9 @@ export function DialogueLog({
               <div
                 key={item.key}
                 ref={item.key === lineKey ? latestLineRef : undefined}
-                /* 모바일에서는 페이지가 스크롤되고 헤더가 위에 도킹돼 있습니다 —
-                   그 실측 높이(--session-head-h)만큼 비워야 대사가 헤더 밑에 깔리지 않습니다.
-                   md↑에서는 본문 상자가 따로 스크롤하므로 헤더를 셈에 넣지 않습니다. */
-                className="scroll-mt-[calc(var(--session-head-h,0px)_+_12px)] md:scroll-mt-3"
+                /* 페이지가 스크롤되고 헤더가 위에 도킹돼 있습니다 —
+                   그 실측 높이(--session-head-h)만큼 비워야 대사가 헤더 밑에 깔리지 않습니다. */
+                className="scroll-mt-[calc(var(--session-head-h,0px)_+_12px)]"
               >
                 <LineBubble
                   item={item}

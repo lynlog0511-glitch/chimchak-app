@@ -601,8 +601,8 @@ export function EndingPanel({
       {/* 다음 행동 — 문법에 따라 「다음 상황으로」 또는 「같은 장면 다시」가 주인공이 됩니다.
           훈련 → 보고 → 성장의 순환이 마지막 힌지에서 끊기지 않도록 **두 마무리 모두**
           보조 2분할(보고 연습 · 성장 기록)을 답니다(가이드 §4.7).
-          모바일에서는 이 블록을 화면 아래에 도킹해, 로그를 끝까지 내리지 않아도 닿게 합니다. */}
-      <div className="sticky bottom-0 z-10 mt-5 border-t border-line bg-paper pt-3.5 pb-[calc(20px_+_var(--chim-safe-b))] md:static md:pb-0">
+          이 블록은 화면 아래에 도킹해, 로그를 끝까지 내리지 않아도 닿게 합니다. */}
+      <div className="sticky bottom-0 z-10 mt-5 border-t border-line bg-paper pt-3.5 pb-[calc(20px_+_var(--chim-safe-b))]">
         {shape === "forward" ? (
           <BigButton
             href={suggestion ? scenarioHref(suggestion.candidate.id) : "/train"}

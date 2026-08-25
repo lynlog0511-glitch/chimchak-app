@@ -52,7 +52,7 @@ type MicPermission = "unknown" | "prompt" | "granted" | "denied";
 /**
  * 도크(컴포저)가 가져갈 수 있는 세로 상한 — **전 뷰포트 공통**입니다.
  *
- * 예전에는 `md:` 전용이었습니다. 그래서 모바일에서는 도크가 뷰포트의 60%(표준 504/844),
+ * 예전에는 넓은 폭 전용이었습니다. 그래서 좁은 폭에서는 도크가 뷰포트의 60%(표준 504/844),
  * 「아주 크게」에서 75%(633/844)까지 부풀어 대화 로그 가시 띠가 262px·114px로 고정됐습니다 —
  * **접근성 설정을 켤수록 읽을 면적이 줄어드는 역전**입니다(평가 UI/UX m1·초보 c2 실측).
  *
@@ -510,8 +510,7 @@ export function CueResponder({
   if (listening) {
     return (
       <div className="flex-none border-t border-line bg-paper">
-        {/* md↑에서는 가운데 대화 폭(560px)에 맞춰 도크 안쪽만 좁힙니다 — 시안 7d */}
-        <div className="mx-auto w-full max-w-[624px] px-[18px] pt-3.5 pb-7 md:px-8">
+        <div className="mx-auto w-full max-w-[624px] px-[18px] pt-3.5 pb-7">
           <p className="mb-3.5 text-[1.0625rem] leading-[1.45] font-bold text-ink">{cue.prompt}</p>
 
           <div className="rounded-panel bg-paper-2 px-4 py-3.5">
@@ -589,7 +588,7 @@ export function CueResponder({
           답해야 하는 질문이 답하는 도중에 위로 밀려 사라지지 않고, 스크롤이 필요한 만큼은
           아래 ②(제안 버튼·입력창)가 전부 가져갑니다. 예전에는 이 셋이 한 상자에 있어
           지시문 76px이 목록 몫을 먼저 떼어 갔습니다. */}
-      <div className="mx-auto w-full max-w-[624px] flex-none px-[18px] pt-3 md:px-8">
+      <div className="mx-auto w-full max-w-[624px] flex-none px-[18px] pt-3">
         {/* 지시문은 코어 콘텐츠입니다 — 17px w700 (§3).
             턴이 넘어가면 초점이 여기로 옵니다(tabIndex={-1}). */}
         <h2
@@ -633,7 +632,7 @@ export function CueResponder({
       <div
         ref={listRef}
         className={cx(
-          "mx-auto min-h-0 w-full max-w-[624px] flex-1 overflow-y-auto overscroll-contain px-[18px] pt-2.5 pb-1.5 md:px-8",
+          "mx-auto min-h-0 w-full max-w-[624px] flex-1 overflow-y-auto overscroll-contain px-[18px] pt-2.5 pb-1.5",
           listSnaps && "snap-y snap-proximity scroll-pt-2.5",
         )}
       >
@@ -804,7 +803,7 @@ export function CueResponder({
           마이크와 직접 입력이 도크 안에 그대로 남습니다.
           위 목록에 못 보신 것이 남아 있으면 헤어라인 아래 한 줄로 알려 드립니다
           (그림자·그라데이션은 가이드가 금지합니다 — §7-4·§3). */}
-      <div className="mx-auto w-full max-w-[624px] flex-none border-t border-line px-[18px] pt-2.5 pb-[calc(28px_+_var(--chim-safe-b))] md:px-8">
+      <div className="mx-auto w-full max-w-[624px] flex-none border-t border-line px-[18px] pt-2.5 pb-[calc(28px_+_var(--chim-safe-b))]">
         {/* 예전에는 `aria-hidden`이었습니다 — 목록이 잘렸다는 사실이 화면을 보는 분에게만 갔습니다.
             보기 목록은 스크린리더에서도 잘려 있으므로(스크롤 상자 안의 항목) 같은 사실을 같이 전합니다.
             `aria-live`는 걸지 않습니다 — 스크롤할 때마다 읽히면 안내가 아니라 소음이 됩니다. */}

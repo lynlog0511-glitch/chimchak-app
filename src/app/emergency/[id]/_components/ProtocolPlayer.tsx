@@ -127,7 +127,7 @@ export function ProtocolPlayer({ title, steps, backHref }: ProtocolPlayerProps) 
 
         <p
           aria-live="polite"
-          className="mt-3 text-[1.8125rem] leading-[1.45] font-extrabold tracking-[-0.015em] text-ink md:text-[2.5rem]"
+          className="mt-3 text-[1.8125rem] leading-[1.45] font-extrabold tracking-[-0.015em] text-ink"
         >
           {silent ? "안내 음성을 여기서 멈춥니다." : voiceText}
         </p>

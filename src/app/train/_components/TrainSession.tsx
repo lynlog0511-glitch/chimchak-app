@@ -33,7 +33,6 @@ import { EndingPanel } from "./EndingPanel";
 import { ProtocolInline } from "./ProtocolInline";
 import { SessionHeader } from "./SessionHeader";
 import { SessionProgressBar } from "./SessionProgressBar";
-import { SessionRail } from "./SessionRail";
 import {
   EMOTION_WORD,
   emotionLevel,
@@ -275,9 +274,9 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
    */
   const [chosenAlternative, setChosenAlternative] = useState<string>("");
 
-  /* ── 하단 도킹 (모바일: 페이지 스크롤 하나 + 컴포저 도크) ─────────
+  /* ── 하단 도킹 (페이지 스크롤 하나 + 컴포저 도크) ────────────────
      도크가 로그 바닥을 가리므로, 그 높이만큼을 스크롤 여백으로 로그에 알려 줍니다.
-     md↑ 2단에서는 도크가 대화 아래 자기 자리에 서므로 가리는 것이 없어 0입니다. */
+     도크는 어느 폭에서도 sticky이므로 뷰포트 분기 없이 실측 하나만 씁니다. */
   const [dockNode, setDockNode] = useState<HTMLDivElement | null>(null);
   const [dockHeight, setDockHeight] = useState(0);
   /**
@@ -298,9 +297,8 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
       setDockLimit(0);
       return undefined;
     }
-    const desktop = window.matchMedia("(min-width: 768px)");
     const measure = () => {
-      const height = desktop.matches ? 0 : Math.round(dockNode.getBoundingClientRect().height);
+      const height = Math.round(dockNode.getBoundingClientRect().height);
       setDockHeight(height);
       if (anchorShownRef.current) return;
       /* 도크는 CSS로도 45dvh를 넘지 않지만, 관찰자 쪽 상한을 한 번 더 걸어 둡니다 —
@@ -311,11 +309,9 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     const observer =
       typeof ResizeObserver === "undefined" ? undefined : new ResizeObserver(measure);
     observer?.observe(dockNode);
-    desktop.addEventListener("change", measure);
     window.addEventListener("resize", measure);
     return () => {
       observer?.disconnect();
-      desktop.removeEventListener("change", measure);
       window.removeEventListener("resize", measure);
     };
   }, [dockNode]);
@@ -779,15 +775,15 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     <>
       {/* ⚑CF 시트가 떠 있는 동안 세션은 뒤로 물러납니다 (시안 6c — 배경 .25 + 딤 .32).
 
-          **모바일: 페이지 스크롤 하나**(가이드 §5). 대화가 251px 창에 갇혀 있던 구조를 걷어내고,
+          **페이지 스크롤 하나**(가이드 §5). 대화가 251px 창에 갇혀 있던 구조를 걷어내고,
           컴포저만 화면 아래에 도킹합니다 — 내용이 길면 페이지가 늘어나는 것이 정상입니다.
-          **md↑**: 시안 7d 그대로 뷰포트에 고정된 2단(대화 + 레일)입니다. */}
+          (2026-08-25: md↑ 뷰포트 고정 2단(시안 7d — 대화 + 우측 레일)을 걷어냈습니다.
+           앱 프레임이 어느 폭에서도 430px이라 둘째 칸이 설 자리가 없습니다.) */}
       <div
         ref={sessionBoxRef}
         aria-hidden={behindModal || undefined}
         className={cx(
           "flex min-h-[calc(100dvh_-_var(--chim-safe-t))] flex-col",
-          "md:h-[calc(100dvh_-_var(--chim-safe-t))] md:min-h-0 md:overflow-hidden",
           /* 배경이 물러나는 것도 시트·딤과 **같은 240ms**입니다 — 예전에는 여기만 0s 하드컷이라
              ⚑CF의 첫 프레임이 「멈춰 세웠다」가 아니라 「화면이 깜빡했다」로 읽혔습니다(모션 감사 2).
              물러나는 깊이는 시안 6c의 .25입니다(옛 구현값 .30에서 한 단 더 내려 딤 강화와 짝을 맞춥니다) —
@@ -796,12 +792,9 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
           interrupted && "pointer-events-none opacity-25",
         )}
       >
-        {/* 모바일에서 헤더를 상단에 도킹합니다 — 「종료」(이탈 경로)·진행바·계층 상태점은
+        {/* 헤더를 상단에 도킹합니다 — 「종료」(이탈 경로)·진행바·계층 상태점은
             스크롤 중에도 보여야 합니다. L3의 sticky 119 바는 이 아래(top-[3.25rem])에 겹겹이 섭니다. */}
-        <div
-          ref={headBoxRef}
-          className="sticky top-0 z-30 flex-none bg-paper px-[18px] md:static md:border-b md:border-line md:px-8"
-        >
+        <div ref={headBoxRef} className="sticky top-0 z-30 flex-none bg-paper px-[18px]">
           <SessionHeader
             title={scenario.title}
             status={statusText}
@@ -809,7 +802,6 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
             backHref={ended ? "/train" : undefined}
             onBack={ended ? undefined : handleBackToBriefing}
             backLabel={ended ? "훈련 목록으로" : "브리핑으로 돌아가기"}
-            progress={progress}
             action={
               <div className="-mr-2 flex items-center">
                 {/* 글자 크기 — 세션 안에는 진입점이 0건이라, 대사가 작다고 느낀 분이 훈련을 나갔다가
@@ -839,170 +831,150 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
               </div>
             }
           />
-          {/* 모바일 진행바 — 데스크톱에서는 헤더 안으로 들어갑니다(시안 7d). */}
-          <SessionProgressBar index={progress.index} total={progress.total} className="md:hidden" />
+          {/* 진행바 — 헤더 아래 전폭 한 줄입니다(시안 4a). */}
+          <SessionProgressBar index={progress.index} total={progress.total} />
         </div>
 
-        {/* md↑ 2단 — 대화는 가운데 560px, 곁의 것은 오른쪽 270px 레일로 (시안 7d). */}
-        <div className="flex flex-1 flex-col md:min-h-0 md:flex-row">
-          <div className="flex flex-1 flex-col md:min-h-0 md:border-r md:border-line">
-            {/* 본문 — 지문과 대화. 말하는 중에는 옅어집니다(시안 4b).
-                내부 스크롤 상자는 md↑에서만 켭니다. */}
-            <div
-              className={cx(
-                "flex-1 px-[18px] pt-4 pb-6 transition-opacity duration-200 md:min-h-0 md:overflow-y-auto md:overscroll-contain md:px-8 md:pt-6",
-                listening && "pointer-events-none opacity-45",
-              )}
+        {/* 본문 — 지문과 대화. 말하는 중에는 옅어집니다(시안 4b). */}
+        <div
+          className={cx(
+            "flex-1 px-[18px] pt-4 pb-6 transition-opacity duration-200",
+            listening && "pointer-events-none opacity-45",
+          )}
+        >
+          <p className="text-center text-[0.7813rem] leading-[1.6] text-tertiary">
+            {scenario.context}
+          </p>
+          {/* 가상 인물 고지 — 화면마다 한 번은 또렷하게 남습니다(말풍선의 「가상 인물」과 별도). */}
+          <p className="mt-1 text-center text-[0.6875rem] leading-[1.6] text-ink-muted">
+            {FICTION_NOTICE}
+          </p>
+          {/* 여기 있던 생성 자리 고지(「…경량 LLM 어댑터 자리는 근거 가드 검증을 통과한
+              구간부터 엽니다」)는 2026-08-24에 걷어냈습니다. 어르신 대사 바로 위 두 줄이
+              개발 로드맵을 말하고 있었고, 훈련하러 오신 분이 읽을 문장이 아니었습니다.
+              같은 사실은 /safety §02가 그대로 들고 있고, 이 화면에서는 실제로 생성이 붙은
+              턴에만 말풍선이 「AI 생성」을 답니다 — 단언이 아니라 그 자리의 사실로 남깁니다. */}
+
+          {/* 고지는 로그 위에 한 번 둡니다 — 예전에는 입력 도크 안에 상주해
+              상시 안내문 넉 줄(141px)의 한 몫을 하고 있었습니다(평가 UI/UX m1). */}
+          <InlineDisclaimer tone="readable" className="mt-1 mb-4" />
+
+          <DialogueLog
+            items={state.log}
+            gaugeLabel={scenario.gauge.label}
+            emotion={emotion}
+            speaking={speakingKey.length > 0}
+            bottomInset={dockHeight}
+            tailInset={dockLimit}
+            autoScroll={!ended}
+            pendingLineKey={pendingLineKey}
+            onTailOffscreen={composing ? handleTailOffscreen : undefined}
+            scrollToTailRef={scrollToTailRef}
+            variations={variations}
+          />
+
+          {/* 규칙 엔진 시연 진입 — 컴포저 밖, 대화 로그 바로 아래입니다.
+              발표자가 찾는 자리이자, 평소에는 대화 끝에 조용히 남는 한 줄입니다.
+              헤어라인 하나로 대화와 갈라 둡니다 — 시연 장치가 대사처럼 읽히지 않게.
+              (시트는 body로 포털되므로 여기서 열어도 뜨는 자리는 같습니다.) */}
+          {stageOn && composing && demoExamples.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setRuleDemoOpen(true)}
+              aria-haspopup="dialog"
+              className="mt-3 flex min-h-[48px] w-full items-center justify-between gap-3 rounded-field border-t border-line px-1 pt-1 text-left text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
             >
-              <div className="md:mx-auto md:max-w-[560px]">
-                <p className="text-center text-[0.7813rem] leading-[1.6] text-tertiary">
-                  {scenario.context}
+              <span>{RULE_DEMO_TITLE}</span>
+              <span aria-hidden className="flex-none text-[0.8438rem] text-ink-ghost">
+                ›
+              </span>
+            </button>
+          )}
+
+          {ended && record ? (
+            /* 대사 줄과 같은 규칙으로 헤더 실측 높이를 비웁니다 —
+               `scroll-mt-3`만 두면 완주 직후 ✓ 54px 마크의 87%가 sticky 헤더에 깔립니다
+               (「아주 크게」에서는 제목 줄까지 통째로 — 평가 UI/UX mi3 실측). */
+            <div ref={endingRef} className="scroll-mt-[calc(var(--session-head-h,0px)_+_12px)]">
+              {sessionSaveFailed && (
+                <p className="mt-6 rounded-card bg-warn-soft px-4 py-3 text-[0.9375rem] leading-[1.6] text-warn-ink">
+                  {SESSION_SAVE_FAILED_BODY}
                 </p>
-                {/* 가상 인물 고지 — 화면마다 한 번은 또렷하게 남습니다(말풍선의 「가상 인물」과 별도). */}
-                <p className="mt-1 text-center text-[0.6875rem] leading-[1.6] text-ink-muted">
-                  {FICTION_NOTICE}
+              )}
+              <EndingPanel
+                scenario={scenario}
+                session={state.session}
+                ending={ending}
+                record={record}
+                advisoryEnding={advisoryEnding}
+                criticalFeedback={criticalScene?.feedback}
+                criticalAlternatives={criticalScene?.alternatives}
+                onRestart={handleRestart}
+                className="mt-6"
+              />
+            </div>
+          ) : inProtocol ? (
+            protocol ? (
+              <ProtocolInline
+                protocol={protocol}
+                ttsOn={ttsOn}
+                onDone={() => dispatch({ type: "protocolDone" })}
+                className="mt-6"
+              />
+            ) : (
+              <div className="mt-6 rounded-card bg-danger-soft p-4">
+                <p className="text-[0.9375rem] leading-[1.6] font-bold text-danger-ink">
+                  응급 안내를 불러오지 못했습니다. 아래 버튼으로 이어서 진행해 주세요.
                 </p>
-                {/* 여기 있던 생성 자리 고지(「…경량 LLM 어댑터 자리는 근거 가드 검증을 통과한
-                    구간부터 엽니다」)는 2026-08-24에 걷어냈습니다. 어르신 대사 바로 위 두 줄이
-                    개발 로드맵을 말하고 있었고, 훈련하러 오신 분이 읽을 문장이 아니었습니다.
-                    같은 사실은 /safety §02가 그대로 들고 있고, 이 화면에서는 실제로 생성이 붙은
-                    턴에만 말풍선이 「AI 생성」을 답니다 — 단언이 아니라 그 자리의 사실로 남깁니다. */}
+                <BigButton
+                  onClick={() => dispatch({ type: "protocolDone" })}
+                  size="lg"
+                  block
+                  className="mt-3"
+                >
+                  이어서 인계·보고로 돌아가기
+                </BigButton>
+              </div>
+            )
+          ) : null}
+        </div>
 
-                {/* 고지는 로그 위에 한 번 둡니다 — 예전에는 입력 도크 안에 상주해
-                    상시 안내문 넉 줄(141px)의 한 몫을 하고 있었습니다(평가 UI/UX m1). */}
-                <InlineDisclaimer tone="readable" className="mt-1 mb-4" />
-
-                <DialogueLog
-                  items={state.log}
-                  gaugeLabel={scenario.gauge.label}
-                  emotion={emotion}
-                  speaking={speakingKey.length > 0}
-                  bottomInset={dockHeight}
-                  tailInset={dockLimit}
-                  autoScroll={!ended}
-                  pendingLineKey={pendingLineKey}
-                  onTailOffscreen={composing ? handleTailOffscreen : undefined}
-                  scrollToTailRef={scrollToTailRef}
-                  variations={variations}
-                />
-
-                {/* 규칙 엔진 시연 진입 — 컴포저 밖, 대화 로그 바로 아래입니다.
-                    발표자가 찾는 자리이자, 평소에는 대화 끝에 조용히 남는 한 줄입니다.
-                    헤어라인 하나로 대화와 갈라 둡니다 — 시연 장치가 대사처럼 읽히지 않게.
-                    (시트는 body로 포털되므로 여기서 열어도 뜨는 자리는 같습니다.) */}
-                {stageOn && composing && demoExamples.length > 0 && (
+        {/* 입력 도크 — 대화 중에만 섭니다. 그 밖의 구간에서는 고지 한 줄만 남깁니다.
+            화면 아래에 붙어 있습니다(sticky) — 어느 폭에서도 같습니다. */}
+        {composing && cue && turn ? (
+          <div ref={setDockNode} className="sticky bottom-0 z-20">
+            <CueResponder
+              scenario={scenario}
+              session={state.session}
+              cue={cue}
+              attempt={state.attempt}
+              micSupported={micSupported}
+              chosenAlternative={chosenAlternative || undefined}
+              anchor={
+                tailOffscreen ? (
                   <button
                     type="button"
-                    onClick={() => setRuleDemoOpen(true)}
-                    aria-haspopup="dialog"
-                    className="mt-3 flex min-h-[48px] w-full items-center justify-between gap-3 rounded-field border-t border-line px-1 pt-1 text-left text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
+                    onClick={() => scrollToTailRef.current?.()}
+                    className="flex min-h-[48px] w-full items-center justify-center gap-1.5 border-b border-line bg-tint px-[18px] text-[0.8438rem] leading-[1.45] font-bold text-brand-800 transition-colors duration-150 active:bg-mint-200"
                   >
-                    <span>{RULE_DEMO_TITLE}</span>
-                    <span aria-hidden className="flex-none text-[0.8438rem] text-ink-ghost">
-                      ›
-                    </span>
+                    {TAIL_ANCHOR}
+                    <span aria-hidden>↓</span>
                   </button>
-                )}
-
-                {ended && record ? (
-                  /* 대사 줄과 같은 규칙으로 헤더 실측 높이를 비웁니다 —
-                     `scroll-mt-3`만 두면 완주 직후 ✓ 54px 마크의 87%가 sticky 헤더에 깔립니다
-                     (「아주 크게」에서는 제목 줄까지 통째로 — 평가 UI/UX mi3 실측). */
-                  <div
-                    ref={endingRef}
-                    className="scroll-mt-[calc(var(--session-head-h,0px)_+_12px)] md:scroll-mt-3"
-                  >
-                    {sessionSaveFailed && (
-                      <p className="mt-6 rounded-card bg-warn-soft px-4 py-3 text-[0.9375rem] leading-[1.6] text-warn-ink">
-                        {SESSION_SAVE_FAILED_BODY}
-                      </p>
-                    )}
-                    <EndingPanel
-                      scenario={scenario}
-                      session={state.session}
-                      ending={ending}
-                      record={record}
-                      advisoryEnding={advisoryEnding}
-                      criticalFeedback={criticalScene?.feedback}
-                      criticalAlternatives={criticalScene?.alternatives}
-                      onRestart={handleRestart}
-                      className="mt-6"
-                    />
-                  </div>
-                ) : inProtocol ? (
-                  protocol ? (
-                    <ProtocolInline
-                      protocol={protocol}
-                      ttsOn={ttsOn}
-                      onDone={() => dispatch({ type: "protocolDone" })}
-                      className="mt-6"
-                    />
-                  ) : (
-                    <div className="mt-6 rounded-card bg-danger-soft p-4">
-                      <p className="text-[0.9375rem] leading-[1.6] font-bold text-danger-ink">
-                        응급 안내를 불러오지 못했습니다. 아래 버튼으로 이어서 진행해 주세요.
-                      </p>
-                      <BigButton
-                        onClick={() => dispatch({ type: "protocolDone" })}
-                        size="lg"
-                        block
-                        className="mt-3"
-                      >
-                        이어서 인계·보고로 돌아가기
-                      </BigButton>
-                    </div>
-                  )
-                ) : null}
-              </div>
-            </div>
-
-            {/* 입력 도크 — 대화 중에만 섭니다. 그 밖의 구간에서는 고지 한 줄만 남깁니다.
-                모바일에서는 화면 아래에 붙어 있고(sticky), md↑에서는 대화 아래 제자리에 섭니다. */}
-            {composing && cue && turn ? (
-              <div ref={setDockNode} className="sticky bottom-0 z-20 md:static md:flex-none">
-                <CueResponder
-                  scenario={scenario}
-                  session={state.session}
-                  cue={cue}
-                  attempt={state.attempt}
-                  micSupported={micSupported}
-                  chosenAlternative={chosenAlternative || undefined}
-                  anchor={
-                    tailOffscreen ? (
-                      <button
-                        type="button"
-                        onClick={() => scrollToTailRef.current?.()}
-                        className="flex min-h-[48px] w-full items-center justify-center gap-1.5 border-b border-line bg-tint px-[18px] text-[0.8438rem] leading-[1.45] font-bold text-brand-800 transition-colors duration-150 active:bg-mint-200 md:px-8"
-                      >
-                        {TAIL_ANCHOR}
-                        <span aria-hidden>↓</span>
-                      </button>
-                    ) : null
-                  }
-                  demoExamples={demoExamples}
-                  /* 스위치를 끄면 시트도 함께 닫힙니다 — 열어 둔 채 꺼도 화면에 남지 않게. */
-                  demoOpen={stageOn && ruleDemoOpen}
-                  onDemoClose={closeRuleDemo}
-                  onSubmit={handleSubmit}
-                  onListeningChange={setListening}
-                />
-              </div>
-            ) : (
-              <div className="border-t border-line bg-paper px-[18px] pt-3 pb-6 md:flex-none md:px-8">
-                <InlineDisclaimer tone="readable" />
-              </div>
-            )}
+                ) : null
+              }
+              demoExamples={demoExamples}
+              /* 스위치를 끄면 시트도 함께 닫힙니다 — 열어 둔 채 꺼도 화면에 남지 않게. */
+              demoOpen={stageOn && ruleDemoOpen}
+              onDemoClose={closeRuleDemo}
+              onSubmit={handleSubmit}
+              onListeningChange={setListening}
+            />
           </div>
-
-          <SessionRail
-            scenario={scenario}
-            session={state.session}
-            emotion={emotion}
-            lastDelta={state.lastFeedback?.gaugeDelta}
-            log={state.log}
-            className="hidden md:block"
-          />
-        </div>
+        ) : (
+          <div className="border-t border-line bg-paper px-[18px] pt-3 pb-6">
+            <InlineDisclaimer tone="readable" />
+          </div>
+        )}
       </div>
 
       {/* 종료 확인 — ⚑CF 시트와 같은 훅으로 초점·Esc·Tab을 다룹니다(모달 문법 하나로 통일) */}

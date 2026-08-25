@@ -12,9 +12,6 @@ export type { PageShellProps } from "./PageShell";
 export { TabBar } from "./TabBar";
 export type { TabBarProps } from "./TabBar";
 
-export { TopNav } from "./TopNav";
-export type { TopNavProps } from "./TopNav";
-
 export { NAV_ITEMS, matchesNav } from "./navItems";
 export type { NavItem, TabKey } from "./navItems";
 
@@ -84,7 +81,8 @@ export { cx } from "./utils";
  * v3에서 넘어온 조각 여섯은 **파일째 지웠습니다**(2026-08-06).
  *   AppHeader · DisclaimerBar — v4에서 전역 헤더와 전역 고정 고지 바를 없앴습니다.
  *     상단 바는 `ScreenHeader`/`SessionTopBar`가, 고지는 `InlineDisclaimer`가 대신합니다.
- *   Gauge — 세션 우측 레일이 자체 구현(`SessionRail`)을 쓰고, 그쪽으로 갈아탈 계획이 없습니다.
+ *   Gauge — 세션 우측 레일이 자체 구현을 쓰고 있었습니다(그 레일도 2026-08-25에 사라졌습니다 —
+ *     전 뷰포트 앱 프레임에서는 둘째 칸이 설 자리가 없습니다).
  *   FeedbackCard — 세션 안에서는 `InlineCoaching`이, 이력 화면에서는 각 행이 직접 그립니다.
  *   AiBadge — 「AI 생성 · 가상 인물」 표기는 말풍선(`DialogueLog`)이 직접 답니다.
  *   illustrations/MiniChart — 어느 화면도 그리지 않았습니다.

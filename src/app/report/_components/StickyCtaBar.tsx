@@ -9,10 +9,9 @@ import { cx } from "@/components";
  * `TabBar`는 `pt-1(4) + 링크 min-h 48 + pb-2(8) + 헤어라인 1` = 61px이고 전부 px 고정값이라
  * 글자 크기 설정(16/18/20px)을 바꿔도 값이 변하지 않습니다. safe-area는 탭바가 자기 padding으로
  * 따로 먹으므로 여기서 한 번 더 더해 줍니다.
- * md↑에서는 탭바가 접히고 상단 가로 네비가 그 역할을 하므로 오프셋이 0이 됩니다.
+ * 탭바는 어느 폭에서도 서므로 이 오프셋도 한 값입니다.
  */
-const DOCK_POSITION =
-  "sticky bottom-[calc(61px_+_var(--chim-safe-b))] md:bottom-[var(--chim-safe-b)]";
+const DOCK_POSITION = "sticky bottom-[calc(61px_+_var(--chim-safe-b))]";
 
 export interface StickyCtaBarProps {
   children: ReactNode;

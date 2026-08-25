@@ -159,7 +159,7 @@ export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolI
 
         <p
           aria-live="polite"
-          className="mt-3 text-[1.8125rem] leading-[1.45] font-extrabold tracking-[-0.015em] text-ink md:text-[2.5rem]"
+          className="mt-3 text-[1.8125rem] leading-[1.45] font-extrabold tracking-[-0.015em] text-ink"
         >
           {silent ? "안내를 마쳤습니다. 지금은 말을 걸지 않겠습니다." : step?.voice}
         </p>

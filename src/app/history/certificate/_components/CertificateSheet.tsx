@@ -45,10 +45,14 @@ const PRINT_CSS = `
     print-color-adjust: exact;
   }
   /* 표식은 배경이 아니라 글자라 잉크 절약·흑백 인쇄에서 옅은 색이 거의 사라집니다.
-     종이에서는 검정 계열로 진하게 바꿔, 색 설정과 무관하게 남게 합니다. */
+     종이에서는 검정 계열로 진하게 바꿔, 색 설정과 무관하게 남게 합니다.
+     크기도 여기서 올립니다 — 화면에서는 430px 앱 프레임 안 28px이 맞고, A4 전폭에서는
+     그 크기가 표식으로 읽히지 않습니다. 예전에는 화면 쪽 768px↑ 확대 변형이 A4 폭(≈794px)에도
+     함께 걸려 두 가지 일을 하고 있었습니다(뷰포트 분기 폐기와 함께 인쇄 규칙으로 옮깁니다). */
   [data-demo-watermark] > span {
     color: #000000 !important;
     opacity: 0.28 !important;
+    font-size: 2.5rem !important;
   }
   /* 색을 아예 버리는 인쇄 설정까지 대비한 둘째 보증 — 매 쪽 머리에 한 줄로 박습니다.
      흰 바탕과 아래 실선을 함께 두어, 뒤 문장과 겹쳐 읽히지 않고 머리띠로 보이게 합니다. */
@@ -358,7 +362,7 @@ export function CertificateSheet() {
                   data-demo-watermark
                   className="pointer-events-none absolute inset-0 flex items-center justify-center"
                 >
-                  <span className="rotate-[-24deg] text-[1.75rem] leading-none font-extrabold whitespace-nowrap text-warn-ink opacity-[0.16] md:text-[2.5rem]">
+                  <span className="rotate-[-24deg] text-[1.75rem] leading-none font-extrabold whitespace-nowrap text-warn-ink opacity-[0.16]">
                     예시 — 발급되지 않음
                   </span>
                 </div>

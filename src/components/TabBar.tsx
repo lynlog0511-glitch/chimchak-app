@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { NAV_ITEMS, matchesNav, type TabKey } from "./navItems";
 import { cx } from "./utils";
 
-/** 목록·판정 로직은 데스크톱 상단 네비(`TopNav`)와 공유합니다. */
+/** 목록·활성 판정은 `navItems`가 한 곳에서 들고 있습니다. */
 export type { TabKey };
 
 export interface TabBarProps {
@@ -28,7 +28,7 @@ export interface TabBarProps {
  * 위계는 색이 아니라 **굵기(600/700)와 활성 틸**이 만듭니다 — 안 보이게 만들어 낮추지 않습니다.
  *
  * 위치는 `PageShell`이 잡습니다(`.chim-tabbar` = 문서 흐름 안 sticky).
- * **md↑에서는 숨습니다** — 그 자리는 상단 가로 네비(`TopNav`, 시안 7c)가 대신합니다.
+ * **어느 뷰포트에서도 섭니다** — 이 앱의 유일한 이동 수단이라 폭으로 접지 않습니다.
  * 각 칸의 터치 영역은 48px 이상입니다.
  */
 export function TabBar({ active, className }: TabBarProps) {

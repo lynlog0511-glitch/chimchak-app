@@ -46,12 +46,14 @@
    스펙 원본은 시안 HTML의 인라인 px·hex입니다. 이 파일은 그 값을 이름에 담아 둔 것뿐이며,
    충돌하면 시안이 이깁니다.
 
-   v4에서 바뀐 골격:
-     · 모바일(<md)은 **앱 프레임**입니다 — 전폭 흰 화면 + 문서 흐름 안 sticky 하단 탭바.
-     · 데스크톱(md↑, 시안 7c·7d)은 **웹 셸**로 바뀝니다 —
-       상단 가로 네비(워드마크 + 텍스트 링크 5개 + 설정) + 중앙 960px 프레임, 하단 탭바는 접힙니다.
-       목록형 화면은 960 안에서 다시 560px 읽기 폭으로 좁힙니다(`.chim-narrow`).
-       컬럼 밖 지면은 #f1f2f0, 화면 안은 흰색.
+   골격 — **전 뷰포트 앱 프레임**입니다(2026-08-25 확정):
+     · 이 서비스는 처음부터 「휴대폰앱처럼 쓰이는」 제품입니다. 그래서 뷰포트가 넓어져도
+       웹 셸로 변신하지 않습니다 — 화면 구성은 어디서나 하나뿐입니다.
+     · 좁은 폭(<480px)에서는 전폭 흰 화면, 480px↑에서는 같은 화면이 지면(#f1f2f0) 위 가운데
+       **430px 세로 기둥**(`--chim-frame-w`)으로 섭니다. 좌우 구분은 hairline 1px뿐입니다 —
+       그림자·베젤·폰 목업 프레임은 쓰지 않습니다.
+     · 하단 탭바는 **모든 뷰포트에서** 섭니다. 이 앱의 유일한 이동 수단이라 접지 않습니다.
+     · 프레임 안 콘텐츠는 폭 430px 하나로 설계합니다 — 읽기 폭·2단 같은 뷰포트 분기가 없습니다.
      · 전역 헤더·전역 고정 고지 바가 없습니다. 각 화면이 자기 상단 바와 인라인 고지를 가집니다.
      · 그림자는 쓰지 않습니다. 구분은 hairline #eef0ef 1px과 면(#f5f6f6) 차이로만.
 
@@ -126,8 +128,10 @@
   --color-paper-2: #f5f6f6; /* surface — 면 카드·AI 말풍선·입력 pill·보조 버튼 */
   --color-paper-out: #f1f2f0; /* 데스크톱 컬럼 밖 지면·아바타 바탕 */
 
-  /* ★ 데스크톱 세션 우측 레일 면 — **값은 paper-2와 같습니다**(역할 별칭입니다).
-     시안에 없던 생 hex `#fbfcfc`(SessionRail)를 대신합니다.
+  /* ★ 세션 우측 레일 면 — **값은 paper-2와 같습니다**(역할 별칭입니다).
+     ※ 2026-08-25 전 뷰포트 앱 프레임 확정으로 그 레일 자체가 사라져 **현재 참조 0건**입니다.
+       이름은 남겨 둡니다(토큰 이름은 지우지 않는 것이 이 파일의 규칙입니다).
+     시안에 없던 생 hex `#fbfcfc`(세션 레일)를 대신하던 값입니다.
      #fbfcfc는 흰색과 상대휘도 차가 1.5% 수준이라 '다른 면'으로도 '같은 지면'으로도 읽히지 않고
      흰 지면이 탁해 보이는 효과만 냈습니다(심미 mi47 실측). 중간값은 쓰지 않습니다 —
      가이드 §1이 '카드·입력 필드·보조 블록'에 지정한 면은 paper-2 하나뿐이고, 레일은 보조 블록입니다.
@@ -230,12 +234,9 @@
   /* 앱 프레임 — 좌우 여백(시안 20px, 세션만 18px) */
   --chim-pad-x: 20px;
 
-  /* 데스크톱 셸 (시안 7c·7d) — 화면 프레임 960px, 그 안 읽기 폭 560px, 좌우 여백 40px */
-  --chim-desk-w: 960px;
-  --chim-read-w: 560px;
-  --chim-desk-pad-x: 40px;
-
-  /* v4 초기 앱 프레임 폭 — 데스크톱 셸(7c) 도입으로 더는 쓰지 않습니다(참조 호환용으로만 남깁니다). */
+  /* 앱 프레임 폭 — **현역 값입니다**. 480px↑에서 화면이 이 폭의 세로 기둥으로 섭니다.
+     (데스크톱 셸 시절의 `--chim-desk-w`960·`--chim-read-w`560·`--chim-desk-pad-x`40은
+      2026-08-25 전 뷰포트 앱 프레임 확정과 함께 지웠습니다 — 참조 0건이었습니다.) */
   --chim-frame-w: 430px;
   --chim-safe-b: env(safe-area-inset-bottom, 0px);
   --chim-safe-t: env(safe-area-inset-top, 0px);
@@ -325,11 +326,9 @@
 }
 
 @layer components {
-  /* ── 앱 프레임 (v4 §0 · 데스크톱 셸 = 시안 7c·7d) ─────────────
-     .chim-frame   : 컬럼 밖 지면
-     .chim-screen  : 화면 그 자체(흰 면). 모바일 전폭 · md↑ 960px 중앙 프레임.
-     .chim-topnav  : md↑ 상단 가로 네비(모바일에서는 숨김 — 하단 탭바가 그 역할).
-     .chim-narrow  : md↑ 본문을 560px 읽기 폭으로 좁혀 프레임 가운데에.
+  /* ── 앱 프레임 (v4 §0 · 전 뷰포트 공통) ──────────────────────
+     .chim-frame   : 프레임 밖 지면
+     .chim-screen  : 화면 그 자체(흰 면). <480px 전폭 · 480px↑ 430px 중앙 기둥 + 좌우 hairline.
      .chim-screen--fill : 뷰포트에 고정하고 본문만 스크롤(세션처럼 하단 도크가 있는 화면). */
   .chim-frame {
     min-height: 100dvh;
@@ -352,12 +351,13 @@
     overflow: hidden;
   }
 
-  /* 화면 좌우 여백 — 시안 20px. md↑에서 960 전폭을 쓰는 화면만 40px로 넓힙니다(아래 미디어쿼리). */
+  /* 화면 좌우 여백 — 시안 20px. 전 뷰포트 한 값입니다(프레임이 이미 430px이라 읽기 폭이 따로 없습니다). */
   .chim-pad {
     padding-inline: var(--chim-pad-x);
   }
 
-  /* 하단 탭바 — 문서 흐름 안 sticky. 짧은 화면에서는 바닥에, 긴 화면에서는 뷰포트 하단에 붙습니다. */
+  /* 하단 탭바 — 문서 흐름 안 sticky. 짧은 화면에서는 바닥에, 긴 화면에서는 뷰포트 하단에 붙습니다.
+     **어느 뷰포트에서도 접지 않습니다** — 이 앱의 유일한 이동 수단입니다. */
   .chim-tabbar {
     position: sticky;
     bottom: 0;
@@ -367,58 +367,26 @@
     padding-bottom: var(--chim-safe-b);
   }
 
-  /* 상단 가로 네비 — 데스크톱 전용입니다. 모바일에서는 아예 그려지지 않습니다(a11y 트리에서도 빠집니다).
-     스크롤에 붙이지 않습니다 — 화면 안쪽의 sticky 요소(응급 119 버튼 등)와 상단에서 겹치지 않게. */
-  .chim-topnav {
-    display: none;
-  }
-
-  @media (min-width: 768px) {
+  /* 480px↑ — 같은 앱이 지면 위 가운데 430px 세로 기둥으로 섭니다.
+     경계는 좌우 hairline 1px뿐입니다: 그림자·베젤·폰 목업 프레임은 쓰지 않습니다(가이드 v4).
+     기준을 480으로 잡는 이유는 430 + 좌우 여백이 그 언저리에서야 지면으로 읽히기 때문입니다 —
+     그 아래에서는 기둥이 화면을 꽉 채워, 선만 그어 놓은 것처럼 보입니다. */
+  @media (min-width: 480px) {
     .chim-screen {
-      max-width: var(--chim-desk-w);
+      max-width: var(--chim-frame-w);
       border-inline: 1px solid var(--color-line);
     }
-
-    .chim-topnav {
-      display: block;
-      flex: none;
-      border-bottom: 1px solid var(--color-line);
-      background: var(--color-paper);
-    }
-
-    /* 상단 네비가 있는 화면에서만 하단 탭바를 접습니다 — 이동 수단이 0이 되는 화면을 만들지 않으려고요. */
-    .chim-screen--desknav .chim-tabbar {
-      display: none;
-    }
-
-    /* 960 전폭을 쓰는 화면(홈·세션)만 좌우 여백을 40px로 넓힙니다 — 시안 7c.
-       읽기 폭으로 좁힌 화면은 20px 그대로입니다: 어차피 흰 면 가운데라 여백이 보이지 않고,
-       `-mx-[20px]`로 가장자리까지 펴는 기존 요소(응급 119 바 등)를 깨지 않기 위해서입니다. */
-    .chim-pad:not(.chim-narrow) {
-      padding-inline: var(--chim-desk-pad-x);
-    }
-
-    /* 읽기 폭 — 좌우 여백까지 합쳐 "글자 폭 560px"이 되게 잡습니다(한 줄이 40자를 넘지 않도록). */
-    .chim-narrow {
-      max-width: var(--chim-read-w);
-      margin-inline: auto;
-    }
-
-    .chim-pad.chim-narrow {
-      max-width: calc(var(--chim-read-w) + 2 * var(--chim-pad-x));
-    }
   }
 
-  /* 인쇄 — 셸 크롬은 종이에 남기지 않고, 폭 제한도 풉니다(확인서는 A4 폭을 다 씁니다). */
+  /* 인쇄 — 셸 크롬은 종이에 남기지 않고, 폭 제한과 좌우 선도 풉니다(확인서는 A4 폭을 다 씁니다). */
   @media print {
-    .chim-topnav,
     .chim-tabbar {
       display: none !important;
     }
 
-    .chim-narrow {
+    .chim-screen {
       max-width: none;
-      margin-inline: 0;
+      border-inline: 0;
     }
   }
 
@@ -567,31 +535,9 @@
     font-weight: 800;
   }
 
-  /* 데스크톱이라고 본문을 일괄로 키우지 않습니다(가이드 §2) — 확대 폭을 크게 줄여 둡니다.
-     px를 직접 쓰는 v4 화면에는 영향이 없고, 아직 이 스케일을 쓰는 화면에만 적용됩니다. */
-  @media (min-width: 768px) {
-    .chim-display {
-      font-size: 3rem; /* 48px */
-    }
-    .chim-h1 {
-      font-size: 2.25rem; /* 36px */
-    }
-    .chim-h2 {
-      font-size: 1.625rem; /* 26px */
-    }
-    .chim-h3 {
-      font-size: 1.375rem; /* 22px */
-    }
-    .chim-lead {
-      font-size: 1.1875rem; /* 19px */
-    }
-    .chim-cue {
-      font-size: 1.375rem; /* 22px */
-    }
-    .chim-subtitle {
-      font-size: 2.25rem; /* 36px */
-    }
-  }
+  /* 2026-08-25: 여기 있던 md↑ 확대 단(display 48 · h1 36 · h2 26 · h3 22 · lead 19 · cue 22 ·
+     subtitle 36)을 지웠습니다. 프레임이 어느 뷰포트에서도 430px이라, 뷰포트가 넓어졌다고 글자만
+     커지면 **같은 폭 안에서 줄이 더 잘리는** 역전이 됩니다. 크기는 한 벌뿐입니다. */
 
   .chim-title {
     letter-spacing: -0.02em;
@@ -611,21 +557,9 @@
     line-height: 1.05;
   }
 
-  @media (min-width: 768px) {
-    .chim-stat {
-      font-size: 2.75rem; /* 44px */
-    }
-  }
-
   /* 섹션 사이 간격 — v3 잔여 화면용 */
   .chim-section {
     padding-block: 48px;
-  }
-
-  @media (min-width: 768px) {
-    .chim-section {
-      padding-block: 64px;
-    }
   }
 }
 

@@ -66,7 +66,7 @@ export function Card({
         "rounded-card",
         TONE[tone],
         border && TONE_BORDER[tone],
-        padded && "p-5 md:p-6",
+        padded && "p-5",
         /* 2026-08-24: hover/active를 `brand-50`(옅은 틸) → 회색 두 단으로 바꿨습니다.
            카드에 마우스를 얹었다고 화면의 틸 지분이 하나 늘어나면 §0의 「틸은 화면당 2곳 이하」가
            포인터 위치에 따라 깨집니다. 눌림 표현은 회색 면(리스트 행·「하던 훈련」 카드)과 같은 결로

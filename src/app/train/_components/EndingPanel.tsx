@@ -637,7 +637,7 @@ export function EndingPanel({
             href="/history"
             className="flex min-h-[48px] min-w-0 flex-1 items-center justify-center rounded-field bg-paper-2 px-3 text-center text-[0.9375rem] leading-[1.3] font-semibold text-ink transition-colors duration-150 active:bg-neutral-line"
           >
-            성장 기록 보기
+            내 이력 보기
           </Link>
         </div>
 

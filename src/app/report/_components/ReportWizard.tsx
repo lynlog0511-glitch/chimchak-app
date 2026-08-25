@@ -235,7 +235,7 @@ export function ReportWizard() {
         <PrivacyPath reached={6} className="mt-6" />
 
         <BigButton href="/history" size="lg" block className="mt-5">
-          성장 기록에서 확인하기
+          내 이력에서 확인하기
         </BigButton>
         <BigButton onClick={reset} variant="secondary" block className="mt-2">
           새 보고 작성하기

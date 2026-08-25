@@ -7,7 +7,7 @@ import { HistoryBoard } from "./_components/HistoryBoard";
 import type { ScenarioTypeMap } from "./_components/nextTraining";
 
 export const metadata: Metadata = {
-  title: "성장 기록",
+  title: "내 이력",
   description:
     "점수와 등급 없이 해 본 것과 다시 볼 것만 남깁니다. 훈련 이력과 확정한 기록은 이 기기 안에만 쌓입니다.",
 };
@@ -43,7 +43,7 @@ export default function HistoryPage() {
   return (
     <PageShell sourceDocs={SOURCE_DOCS}>
       <ScreenHeader
-        title="성장 기록"
+        title="내 이력"
         subtitle="점수와 등급 없이 해 본 것과 다시 볼 것만 남깁니다"
       />
       <HistoryBoard typeByScenarioId={buildTypeMap()} activeTypes={buildActiveTypes()} />

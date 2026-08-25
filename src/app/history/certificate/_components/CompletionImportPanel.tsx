@@ -82,7 +82,7 @@ export function CompletionImportPanel({ onImported }: CompletionImportPanelProps
       if (countDemoRecords().total > 0) {
         setNotice({
           tone: "warn",
-          text: "체험용 예시가 섞여 있는 동안에는 가져오지 않습니다 — 성장 기록 위쪽 안내줄에서 예시를 지우신 뒤에 다시 골라 주십시오.",
+          text: "체험용 예시가 섞여 있는 동안에는 가져오지 않습니다 — 내 이력 위쪽 안내줄에서 예시를 지우신 뒤에 다시 골라 주십시오.",
         });
         return;
       }

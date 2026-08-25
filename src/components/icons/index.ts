@@ -23,6 +23,7 @@ export {
   IconChat,
   IconSiren,
   IconNote,
+  IconHistory,
   IconSprout,
   IconShield,
   IconShieldCheck,

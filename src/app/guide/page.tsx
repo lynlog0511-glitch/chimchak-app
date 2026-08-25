@@ -85,7 +85,7 @@ const WHEN_ROWS: readonly { when: string; title: string; desc: string; href: str
   },
   {
     when: "이따금",
-    title: "성장 기록 — 해 본 것과 다시 볼 것",
+    title: "내 이력 — 해 본 것과 다시 볼 것",
     desc: "지나온 훈련과 확정하신 기록이 모입니다. 기관에 낼 이수 확인서도 이 화면에서 만드십니다.",
     href: "/history",
   },
@@ -163,12 +163,12 @@ const FAQ: readonly { q: string; a: ReactNode; href: string; linkLabel: string }
         점수를 두면 점수를 올리는 연습이 되기 쉬워서, 처음부터 만들지 않았습니다. 대신 한 번
         답하실 때마다{" "}
         <b className="font-bold text-ink">「충족 · 코칭 · 즉시 중단」 세 낱말</b>과 코칭 한 문장,
-        그리고 무슨 문서를 근거로 그렇게 봤는지를 붙입니다. 성장 기록에도 등급·순위·백분위는
+        그리고 무슨 문서를 근거로 그렇게 봤는지를 붙입니다. 내 이력에도 등급·순위·백분위는
         만들지 않고, 해 본 것과 다시 볼 것만 남습니다.
       </>
     ),
     href: "/history",
-    linkLabel: "성장 기록 보기",
+    linkLabel: "내 이력 보기",
   },
   {
     q: "빨간 119 버튼을 눌러도 되나요?",

@@ -102,5 +102,5 @@ export const SUMMARY_FAILED_NOTE =
 export const SUMMARY_AGAIN = "다른 상황으로 한 번 더";
 export const SUMMARY_TO_TRAIN = "상황 훈련으로 가기";
 export const SUMMARY_GONE =
-  "이 대화는 여기서 사라집니다. 기기에 남는 것은 연습 횟수 하나뿐이고, 성장 기록에는 올라가지 않습니다.";
+  "이 대화는 여기서 사라집니다. 기기에 남는 것은 연습 횟수 하나뿐이고, 내 이력에는 올라가지 않습니다.";
 export const SUMMARY_COUNT = (count: number) => `이 기기에서 자유 연습 ${count}번째`;

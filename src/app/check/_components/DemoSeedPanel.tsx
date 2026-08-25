@@ -89,7 +89,7 @@ export function DemoSeedPanel() {
               ? `예시 훈련 ${state.sessions}회 · 예시 보고 ${state.reports}건이 심겨 있습니다.${
                   state.seededAt ? ` 심은 시각 ${formatDateTime(state.seededAt)}.` : ""
                 }`
-              : "지금은 심겨 있지 않습니다. 깨끗한 기기에서는 성장 기록과 이수 확인서가 빈 화면입니다."}
+              : "지금은 심겨 있지 않습니다. 깨끗한 기기에서는 내 이력과 이수 확인서가 빈 화면입니다."}
         </p>
 
         <div className="mt-[12px] flex flex-wrap gap-2">
@@ -161,7 +161,7 @@ export function DemoSeedPanel() {
                 href="/history"
                 className="inline-flex min-h-[48px] items-center rounded-field text-[0.8438rem] font-bold text-brand-700 transition-colors duration-150 active:bg-paper-2"
               >
-                <span className="chim-num">1</span>. 성장 기록 열기 ›
+                <span className="chim-num">1</span>. 내 이력 열기 ›
               </Link>
               <p className="text-[0.7813rem] leading-[1.6] text-ink-soft">
                 {seeded

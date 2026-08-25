@@ -50,6 +50,17 @@ export function IconNote({ className, strokeWidth }: IconProps) {
   );
 }
 
+/** 이력 (시계 + 되감기 화살표) — 하단 탭바 「이력」 칸. */
+export function IconHistory({ className, strokeWidth }: IconProps) {
+  return (
+    <IconBase className={className} strokeWidth={strokeWidth}>
+      <path d="M4.7 12a7.3 7.3 0 1 0 2.1-5.1" />
+      <path d="M4.5 3.9v3.3h3.3" />
+      <path d="M12 8.3v4l2.8 1.7" />
+    </IconBase>
+  );
+}
+
 /** 성장 (새싹) */
 export function IconSprout({ className, strokeWidth }: IconProps) {
   return (

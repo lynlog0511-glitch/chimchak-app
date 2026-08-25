@@ -65,7 +65,7 @@ export function DemoJumpPanel() {
       {/* 위 칸과 헷갈리기 쉬운 자리입니다 — 두 도구는 서로 아무 관계가 없습니다. */}
       <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
         위 「시연용 예시 기록」과는 무관합니다 — 심지 않으셔도 이 세 경로는 그대로 열립니다. 예시
-        시드는 성장 기록·이수 확인서를 채우는 도구이고, 여기는 훈련 장면 자체를 여는 도구입니다.
+        시드는 내 이력·이수 확인서를 채우는 도구이고, 여기는 훈련 장면 자체를 여는 도구입니다.
       </p>
 
       <ul className="chim-hairline mt-[10px] border-y border-line">
@@ -90,7 +90,7 @@ export function DemoJumpPanel() {
       </ul>
 
       <p className="mt-[10px] text-[0.7813rem] leading-[1.6] text-ink-soft">
-        이 세 경로로 연 훈련은 성장 기록에도 체크포인트에도 저장되지 않습니다 — 리허설을 몇 번
+        이 세 경로로 연 훈련은 내 이력에도 체크포인트에도 저장되지 않습니다 — 리허설을 몇 번
         하셔도 이 기기의 이수 회차와 진행 상태는 그대로입니다. 자동으로 지나간 구간은 대화 맨 위에
         그대로 밝혀 둡니다.
       </p>

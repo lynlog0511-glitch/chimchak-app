@@ -286,7 +286,7 @@ export function CertificateSheet() {
             훈련 시작하기
           </BigButton>
           <BigButton href="/history" variant="secondary" block className="mt-2">
-            성장 기록으로 돌아가기
+            내 이력으로 돌아가기
           </BigButton>
           {/* 기기를 바꾸신 직후가 바로 이 빈 화면입니다 — 되돌려 넣는 칸이 여기 없으면
               「옮겨 두시면 됩니다」가 빈말이 됩니다. */}
@@ -376,7 +376,7 @@ export function CertificateSheet() {
             {isPreview && (
               <p className="mb-[12px] rounded-[12px] bg-warn-soft px-[12px] py-[10px] text-[0.875rem] leading-[1.7] font-bold text-warn-ink">
                 예시 미리보기 — 체험용 예시 기록 {demoCount}회가 섞여 있습니다. 이 문서는 발급되지
-                않았으며 증빙으로 쓸 수 없습니다. 성장 기록 위쪽 안내줄에서 예시를 지우시면 실제
+                않았으며 증빙으로 쓸 수 없습니다. 내 이력 위쪽 안내줄에서 예시를 지우시면 실제
                 이수 사실로 다시 만들어집니다.
               </p>
             )}
@@ -558,7 +558,7 @@ export function CertificateSheet() {
                   이수 사실 파일 내려받기는 잠겨 있습니다
                 </p>
                 <p className="mt-[4px] text-[0.8125rem] leading-[1.7] text-ink-soft">
-                  예시가 섞인 파일이 증빙으로 돌아다니지 않도록 막아 두었습니다. 성장 기록 위쪽
+                  예시가 섞인 파일이 증빙으로 돌아다니지 않도록 막아 두었습니다. 내 이력 위쪽
                   안내줄에서 예시를 지우시면 다시 열립니다.
                 </p>
               </div>
@@ -594,7 +594,7 @@ export function CertificateSheet() {
               </>
             )}
             <BigButton href="/history" variant="secondary" block className="mt-2">
-              성장 기록으로 돌아가기
+              내 이력으로 돌아가기
             </BigButton>
             <p className="mt-[10px] text-center text-[0.8125rem] leading-[1.6] text-ink-soft">
               성명·소속을 채우신 뒤 위 버튼을 누르시면 인쇄 창이 열립니다. 적으신 내용은 저장되지

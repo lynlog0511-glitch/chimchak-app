@@ -268,7 +268,7 @@ export default function LegalPage() {
           <Bullets
             items={[
               <>
-                성장 기록 화면 아래 <b className="font-bold text-ink">「이 기기의 기록 지우기」</b>
+                내 이력 화면 아래 <b className="font-bold text-ink">「이 기기의 기록 지우기」</b>
                 를 누르시면 훈련 이력·확정 기록·이수 누계, 그리고 이수 파일 가져오기 기록이
                 지워집니다. 되돌릴 수 없습니다.
               </>,

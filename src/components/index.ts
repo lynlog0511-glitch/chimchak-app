@@ -97,10 +97,13 @@ export { cx } from "./utils";
  * 실제로 쓰는 쪽인 `Call119Bar.tsx`로 그대로 옮겼습니다.
  *
  * 2026-08-25에 `Badge`(64줄)·`SessionTopBar`(88줄)도 같은 이유로 **파일째 지웠습니다**.
- *   Badge — 렌더 0건. 세션 계층 칩은 `TierIndicator`, 유형 라벨은 각 목록이 직접 그리고,
- *     이력의 판정 표기는 `TrainingRow`가 텍스트로 씁니다. 배지에만 쓰이던
- *     `TIER_TONE`·`TYPE_TONE`·`VERDICT_TONE`(train/constants.ts)·`verdictTone`
- *     (history/format.ts)도 소비처가 0이라 함께 지웠습니다.
+ *   Badge — 렌더 0건. 유형 라벨은 각 목록이 직접 그리고, 이력의 판정 표기는 `TrainingRow`가
+ *     텍스트로 씁니다. 배지에만 쓰이던 `TIER_TONE`·`TYPE_TONE`·`VERDICT_TONE`
+ *     (train/constants.ts)·`verdictTone`(history/format.ts)도 소비처가 0이라 함께 지웠습니다.
+ *     (그때 「세션 계층 칩은 `TierIndicator`가 그린다」를 근거로 함께 적었는데, 그 컴포넌트도
+ *      임포트 0건이라 화면에 선 적이 없었습니다 — 렌더 0건을 지우면서 그 근거로 또 다른
+ *      렌더 0건을 든 것입니다(5차 페르소나 디자이너 med). 2026-08-26에 `TierIndicator`도
+ *      파일째 지웠고, 세션의 계층은 컴팩트 헤더의 상태 점 한 줄이 전합니다.)
  *   SessionTopBar — 세션은 `train/_components/SessionHeader`가 직접 그립니다(상태 점·「소리 끄기」·
  *     「종료」가 붙는 자리라 공용 조각으로는 담기지 않았습니다). 문서 화면은 `ScreenHeader`를 씁니다.
  * 배럴에서 export만 빼는 것으로는 부족합니다 — 파일이 남아 있으면 다음 사람이 여전히

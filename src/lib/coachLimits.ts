@@ -49,6 +49,23 @@ export const COACH_RATE_LIMITS = {
    * ※ 비밀값이 설정되지 않은 배포에서는 이 값을 쓰지 않는다 — 통은 하나이고 동작은 예전 그대로다.
    */
   anonDailyCap: 60,
+  /**
+   * **IP 바구니(인메모리 계수기)에 둘 수 있는 항목 수 상한.**
+   *
+   * 왜 있는가: 계수기는 IP 하나마다 항목을 하나 만든다. 예전에는 삽입이 예산 검사 **뒤**에만
+   * 일어나 하루 항목 수가 예산 두 통(기본 660)에 저절로 묶여 있었는데, 점검(`ping`)을 계수기
+   * 안으로 들이면서 **예산을 보지 않는 삽입 경로**가 생겼다. 30바이트짜리 `{"task":"ping"}`에
+   * 매번 다른 `x-forwarded-for`를 붙이면 항목이 무한히 쌓이는 자리였다(메모리 증식 벡터).
+   *
+   * 상한에 닿으면 **새 IP는 세지 않고 통과**시킨다(막지 않는다). ping은 요금을 만들지 않고,
+   * 일반 호출도 배포 전체 상한이라는 진짜 방어선을 그대로 지난다 — 상한에 닿았다는 이유로
+   * 무대 직전 점검이나 정상 훈련을 거절하는 편이 훨씬 나쁘다. 잃는 것은 그 IP의 **개별 계수**
+   * 뿐이고, IP당 한도는 애초에 프록시가 헤더를 덮어써 줄 때만 참인 값이다(`clientIp()`).
+   *
+   * 값의 근거: 항목 하나가 수십 바이트이므로 4,096개면 수백 KB다. 시연·파일럿 규모에서 서로
+   * 다른 IP가 하루 4,096개에 닿는 일은 없고, 닿았다면 그것은 정상 트래픽이 아니다.
+   */
+  maxIpBuckets: 4_096,
 } as const;
 
 /* ── 공유 비밀 토큰 ─────────────────────────────────────── */
@@ -62,8 +79,10 @@ export const COACH_RATE_LIMITS = {
  *
  * 어떻게 푸는가: 서버가 페이지를 그릴 때 `HMAC-SHA256(현재 창 번호, 비밀값)`의 앞 16자를
  * `<meta>`로 심고, 화면의 fetch 세 자리가 그 값을 `x-chimchak-key` 헤더로 되돌려 보낸다.
- * 서버는 **현재 창과 직전 창** 두 개만 다시 계산해 대조한다. 값이 어긋나면 계수기에 닿기
- * 전에 403이고, 값이 없으면 작은 예산 통으로 보낸다(옛 클라이언트가 그대로 동작한다).
+ * 서버가 가르는 것은 셋이다 — **현재 창과 직전 창**이면 정상 예산 통,
+ * 그보다 낡았지만 여섯 창 안이면 작은 통을 쓰되 **갱신 표식은 받고**(아래
+ * `COACH_TOKEN_STALE_WINDOWS`), 어느 창과도 맞지 않으면 계수기에 닿기 전에 403이다.
+ * 값이 아예 없는 요청은 막지 않고 작은 예산 통으로 보낸다(옛 클라이언트가 그대로 동작한다).
  *
  * 무엇을 풀지 못하는가: 페이지를 한 번 받아 토큰을 긁어 가는 스크립트는 여전히 막지 못한다.
  * 창이 지나면 그 토큰이 죽는다는 것이 이 장치가 파는 전부이고, 그래서 이름을 「비밀 헤더」로
@@ -93,18 +112,51 @@ export const COACH_TOKEN_META = "chimchak-k";
  *
  * 값의 꼴은 `<meta>`와 **똑같다**(`창번호.토큰`) — 화면이 두 자리를 같은 함수로 읽는다.
  *
+ * **누가 받는가**: 이미 **표식을 들고 온 요청**뿐이다(지금 창이든 낡은 창이든). 표식을 한 번도
+ * 가진 적 없는 요청은 이 헤더를 받지 못한다.
+ *
+ * 그렇게 좁힌 이유: 예전에는 무토큰 요청에도 붙였고, 그러면 몸통이 틀린 30바이트 POST 한 번의
+ * 400 응답에서 표식이 나왔다. 작은 예산 통이 「**1회 통행료**」가 되던 자리다 — 스크립트가
+ * 작은 통 한 칸만 쓰고 나머지 전량을 큰 통에서 태울 수 있었고, 매 응답이 표식을 다시 실어
+ * 주므로 재취득도 필요 없었다. 아래 「더 싸게 주지 않는다」가 그 경로에서만 거짓이었다.
+ *
  * 공격면이 넓어지지 않는 이유: 이 토큰은 인증이 아니라 「이 앱의 화면에서 왔다」는 **표식**이고,
  * 페이지 HTML을 한 번 받아 `<meta>`를 긁는 쪽은 예전에도 같은 값을 얻었다(위 문단에 이미 적어
- * 둔 한계다). 갱신 헤더는 그 값을 **더 싸게** 주지 않는다 — 이 라우트는 같은 출처 표시가 붙은
- * JSON POST만 받으므로, 헤더를 받으려면 페이지를 받을 때와 같은 일을 해야 한다.
- * 어긋난 표식(403)과 출처가 다른 요청에는 이 헤더를 붙이지 않는다.
+ * 둔 한계다). 갱신 헤더는 그 값을 **더 싸게** 주지 않는다 — 헤더를 받으려면 이미 유효한 표식을
+ * 들고 와야 하고, 그 표식을 처음 얻는 길은 예나 지금이나 페이지를 받는 것뿐이다.
+ * 어긋난 표식(403)·출처가 다른 요청·무토큰 요청·`ping`에는 이 헤더를 붙이지 않는다.
  *
  * 비밀값이 없는 배포에서는 **헤더 자체가 없다** — 응답 한 글자도 예전과 다르지 않다.
  */
 export const COACH_TOKEN_REFRESH_HEADER = "x-chimchak-key-next";
 
-/** 토큰 한 창의 길이(ms). 창이 바뀌면 값도 바뀌고, 직전 창까지만 받는다(유효 10~20분). */
+/** 토큰 한 창의 길이(ms). 창이 바뀌면 값도 바뀐다. */
 export const COACH_TOKEN_WINDOW_MS = 10 * 60_000;
+
+/**
+ * **정상 통을 쓰는** 표식의 창 수 — 현재 창과 직전 창(유효 10~20분).
+ *
+ * 값을 늘리면 늘린 만큼 낡은 표식이 정상 예산을 쓴다. 이 장치가 파는 것이 「창이 지나면 죽는다」
+ * 하나뿐이므로, 이 수는 늘리지 않는다.
+ */
+export const COACH_TOKEN_FRESH_WINDOWS = 2;
+
+/**
+ * **갱신만 받는** 낡은 표식의 창 수 — 최대 여섯 창(60분)까지.
+ *
+ * 왜 두 수를 가르는가: 갱신 헤더를 「표식을 들고 온 요청」에만 내주기로 하면서(위 주석), 그
+ * 규칙만으로는 3차에 닫은 결함이 절반 되살아난다 — 탭을 열어 둔 채 20분 넘게 아무 호출도 하지
+ * 않으면 화면이 든 표식이 창을 넘고, 그 뒤로는 표식이 없어 갱신도 못 받아 **영영 작은 통**에
+ * 남는다(문서를 다시 받기 전에는 회복되지 않는다). 무대에서는 「페이지를 열어 두고 20분 이야기한
+ * 뒤 자유 연습 한 판」이 정확히 그 꼴이다.
+ *
+ * 그래서 창 2~5의 낡은 표식은 **작은 통을 쓰되 갱신 표식은 받는다.** 훈련은 이어지고, 표식을
+ * 한 번도 가진 적 없는 스크립트는 여전히 아무것도 받지 못한다.
+ *
+ * 화면 쪽(`src/lib/onlineCoach.ts`)이 보내는 창 수도 이 값을 본다 — 두 자리가 갈라지면 화면이
+ * 스스로 걷어 낸 표식을 서버가 기다리는 일이 생긴다.
+ */
+export const COACH_TOKEN_STALE_WINDOWS = 6;
 
 /** 토큰 길이(16진 문자 수) — HMAC 앞부분만 쓴다. 헤더 한 칸에 담기는 크기로 족하다. */
 export const COACH_TOKEN_LENGTH = 16;
@@ -121,12 +173,34 @@ function toHex(buffer: ArrayBuffer): string {
 }
 
 /**
+ * 창 하나의 값을 다시 계산하지 않기 위한 아주 작은 기억 자리(인스턴스 메모리).
+ *
+ * 왜 두는가: 대조 창이 여섯으로 넓어지면서, 어긋난 표식 하나가 요청당 HMAC 여섯 번을 태우는
+ * 자리가 생겼다(그 경로는 예산을 쓰지 않는다 — 값이 어긋난 요청에 예산을 물리면 표식을
+ * 아무렇게나 적어 보내는 쪽이 정상 사용자의 통을 비울 수 있기 때문이다). 창 하나의 값은 그
+ * 10분 동안 상수이므로, 한 번 계산해 들고 있으면 그 증폭이 사라진다.
+ *
+ * 새로 드러나는 것은 없다 — 여기 담기는 값은 서버가 응답마다 헤더로 실어 보내는 바로 그
+ * 문자열이고, 비밀값 자체는 담지 않는다(바뀌면 통째로 버린다).
+ */
+const windowTokens = new Map<number, string>();
+let cachedSecret: string | undefined;
+const WINDOW_TOKEN_CACHE_MAX = 8;
+
+/**
  * 창 하나의 토큰 — `HMAC-SHA256(창 번호, 비밀값)`의 앞 16자.
  *
  * Web Crypto만 씁니다(node:crypto를 import하지 않습니다) — 서버 렌더와 라우트가 같은 함수를
  * 쓰고, 회귀 검사도 같은 함수를 그대로 태웁니다.
  */
 export async function coachToken(secret: string, window: number): Promise<string> {
+  if (secret !== cachedSecret) {
+    cachedSecret = secret;
+    windowTokens.clear();
+  }
+  const remembered = windowTokens.get(window);
+  if (remembered !== undefined) return remembered;
+
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
     "raw",
@@ -136,7 +210,15 @@ export async function coachToken(secret: string, window: number): Promise<string
     ["sign"],
   );
   const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(String(window)));
-  return toHex(signature).slice(0, COACH_TOKEN_LENGTH);
+  const value = toHex(signature).slice(0, COACH_TOKEN_LENGTH);
+
+  windowTokens.set(window, value);
+  if (windowTokens.size > WINDOW_TOKEN_CACHE_MAX) {
+    // 창 번호는 늘기만 하므로 먼저 담긴 것이 가장 낡은 것이다.
+    const oldest = windowTokens.keys().next().value;
+    if (oldest !== undefined) windowTokens.delete(oldest);
+  }
+  return value;
 }
 
 /**
@@ -167,7 +249,27 @@ function sameToken(a: string, b: string): boolean {
 }
 
 /**
- * 받은 토큰이 **현재 창이나 직전 창**의 값인지.
+ * 받은 토큰이 **몇 창 전**의 값인지 — 지금 창이면 0, 어느 창과도 맞지 않으면 `undefined`.
+ *
+ * `windows`만큼만 거슬러 봅니다. 두 부름이 있습니다 — 정상 예산 통을 가르는 `verifyCoachToken`은
+ * 두 창까지, 갱신 표식을 내줄지 가르는 라우트는 여섯 창까지(사유는 `COACH_TOKEN_STALE_WINDOWS`).
+ */
+async function coachTokenWindowAge(
+  secret: string,
+  value: string,
+  now: number,
+  windows: number,
+): Promise<number | undefined> {
+  if (secret.length === 0 || value.length !== COACH_TOKEN_LENGTH) return undefined;
+  const window = coachTokenWindow(now);
+  for (let age = 0; age < windows; age += 1) {
+    if (sameToken(value, await coachToken(secret, window - age))) return age;
+  }
+  return undefined;
+}
+
+/**
+ * 받은 토큰이 **현재 창이나 직전 창**의 값인지 — 정상 예산 통을 쓸 자격이다.
  *
  * @example
  * const token = await coachToken(secret, coachTokenWindow());
@@ -178,10 +280,23 @@ export async function verifyCoachToken(
   value: string,
   now: number = Date.now(),
 ): Promise<boolean> {
-  if (secret.length === 0 || value.length !== COACH_TOKEN_LENGTH) return false;
-  const window = coachTokenWindow(now);
-  for (const candidate of [window, window - 1]) {
-    if (sameToken(value, await coachToken(secret, candidate))) return true;
-  }
-  return false;
+  return (await coachTokenWindowAge(secret, value, now, COACH_TOKEN_FRESH_WINDOWS)) !== undefined;
+}
+
+/**
+ * 받은 토큰이 **갱신을 받을 자격**이 있는지 — 여섯 창(60분) 안의 값이면 참.
+ *
+ * 「정상 통을 쓸 자격」(위)과 갈라 둔 자리다. 여기서 참이지만 위에서 거짓인 표식은 **작은 통을
+ * 쓰되 갱신 표식은 받는다** — 탭을 오래 열어 둔 화면이 영영 작은 통에 남지 않게 하면서,
+ * 표식을 한 번도 가진 적 없는 호출자에게는 아무것도 주지 않는 자리입니다.
+ *
+ * @example
+ * await isRenewableCoachToken(secret, await coachToken(secret, coachTokenWindow() - 4)); // true
+ */
+export async function isRenewableCoachToken(
+  secret: string,
+  value: string,
+  now: number = Date.now(),
+): Promise<boolean> {
+  return (await coachTokenWindowAge(secret, value, now, COACH_TOKEN_STALE_WINDOWS)) !== undefined;
 }

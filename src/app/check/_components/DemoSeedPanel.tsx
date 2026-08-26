@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { BigButton } from "@/components";
+import { BigButton, EyebrowLabel } from "@/components";
 import {
   DEMO_SEED_SUMMARY,
   clearDemoRecords,
@@ -152,9 +152,9 @@ export function DemoSeedPanel() {
             예전에는 링크 두 개만 나란히 있어서, 어느 쪽을 먼저 열어야 하는지와 시연이 끝난 뒤
             무엇을 해야 하는지가 무대에서만 결정됐습니다. 순서를 화면에 적어 둡니다. */}
         <div className="mt-[12px] border-t border-line pt-[12px]">
-          <p className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-ink-muted">
+          <EyebrowLabel>
             {seeded ? "심었습니다 · 이 순서로 보여 주십시오" : "심기 전에 · 지금 열면 보이는 것"}
-          </p>
+          </EyebrowLabel>
           {/* 아래 두 링크가 brand-800인 이유 — 이 패널 전체가 paper-2 면 카드(위 <section>)
               안입니다. brand-700은 흰 지면 전용이고 이 면에서는 4.49:1로 AA 미달입니다
               (globals.css의 brand-700 주석이 정본 · 2026-08-26 게이트로 내렸습니다). */}

@@ -49,7 +49,7 @@ function OptionButton({
         "min-h-[48px] flex-1 rounded-card px-3 py-2.5 text-left",
         "transition-colors duration-150 ease-soft",
         selected
-          ? "bg-brand-700 text-white active:bg-brand-800"
+          ? "bg-brand-700 text-paper active:bg-brand-800"
           : "bg-paper-2 text-ink hover:bg-neutral-line active:bg-neutral-line",
       )}
     >
@@ -58,7 +58,7 @@ function OptionButton({
         <span
           className={cx(
             "mt-[2px] block text-[0.7813rem] leading-[1.45]",
-            selected ? "text-white/85" : "text-ink-muted",
+            selected ? "text-paper/85" : "text-ink-muted",
           )}
         >
           {note}

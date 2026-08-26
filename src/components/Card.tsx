@@ -32,7 +32,7 @@ export interface CardProps {
 
 /** 면(surface) — 지면 위에서 흰 카드가 그 자체로 구분됩니다. */
 const TONE: Record<CardTone, string> = {
-  paper: "bg-white",
+  paper: "bg-paper",
   "paper-2": "bg-paper-2",
   brand: "bg-brand-50",
   ok: "bg-ok-soft",

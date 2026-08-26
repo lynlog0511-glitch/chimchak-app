@@ -375,7 +375,7 @@ export function MaskReview({
                     "flex min-h-[48px] items-center rounded-card px-4 text-[0.8438rem] font-semibold transition-colors duration-150",
                     active
                       ? "bg-brand-tint text-brand-on-tint"
-                      : "bg-white text-ink-soft active:bg-neutral-line",
+                      : "bg-paper text-ink-soft active:bg-neutral-line",
                   )}
                 >
                   {tokenWord(kind)}
@@ -387,14 +387,18 @@ export function MaskReview({
             <button
               type="button"
               onClick={() => undoManual(editing)}
-              className="flex min-h-[48px] items-center rounded-field px-2 text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-white"
+              className="flex min-h-[48px] items-center rounded-field px-2 text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper"
             >
               가리기 되돌리기
             </button>
+            {/* 48px은 높이만이 아니라 **폭**이기도 합니다 — `min-w`가 없으면 13.5px 두 글자
+                (약 27px)에 좌우 px-2(16px)라 43px밖에 되지 않습니다. 다른 화면의 「닫기」 넷은
+                이미 `min-w-[48px] justify-center`를 받았는데 같은 클래스 문자열의 이 자리만
+                남아 있었습니다(5차 페르소나 UI/UX low — 「고치는 단위가 그 줄」). */}
             <button
               type="button"
               onClick={() => setEditing(null)}
-              className="flex min-h-[48px] items-center rounded-field px-2 text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-white"
+              className="flex min-h-[48px] min-w-[48px] items-center justify-center rounded-field px-2 text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper"
             >
               닫기
             </button>

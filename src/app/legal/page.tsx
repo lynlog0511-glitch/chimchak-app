@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
+  EyebrowLabel,
   INLINE_DISCLAIMER_TEXT,
   InlineDisclaimer,
   ListRow,
@@ -99,18 +100,28 @@ function Doc({
   children: ReactNode;
 }) {
   return (
-    /* 목적지 여백 68px은 **위 목차 바가 실제로 가리는 높이**입니다 — `SafetyToc`은
+    /* 목적지 여백은 **위 목차 바가 실제로 가리는 높이**입니다 — `SafetyToc`은
        `sticky top-[var(--chim-safe-t)]`에 `py-2`(8+8) + 링크 `min-h-[48px]`이라 64px이고,
        붙었을 때 아래 hairline 1px까지 65px입니다(나머지 3px은 절 번호가 바 경계에 닿지 않게
        두는 여유). 16px은 정적 칩 줄 시절의 값이라, 목차를 이 화면에 들이면서 그대로 두었더니
        칩을 누를 때마다 절 번호가 통째로 바 밑에 깔렸습니다 — 지도의 첫 동작이 목적지를 가린
        셈입니다(3차 페르소나 UI/UX med · 3차가 만든 회귀).
-       같은 컴포넌트를 쓰는 /safety가 같은 계산으로 같은 값을 씁니다(safety/page.tsx:121) —
+
+       바가 차지하는 구간은 0부터가 아니라 **[safe-t, safe-t+65]**입니다 — 도킹 기준선이
+       `var(--chim-safe-t)`이기 때문입니다. 그래서 상수 68px은 노치 없는 기기·데스크톱에서만
+       맞고, 이 앱이 주 배포 형태라고 적어 둔 노치 iOS PWA(세로 47~59px)에서는 절이
+       (safe-t − 3)px만큼 바 밑으로 들어갑니다 — 절 번호가 통째로 가려집니다
+       (5차 페르소나 UI/UX med). 값을 바의 기준선과 **같은 변수로 합산**해 그 자리를 닫습니다:
+       기준선(safe-t) + 바 높이(65) + 여유(3). 노치가 없으면 변수가 0px이라 예전 값 그대로입니다.
+       같은 컴포넌트를 쓰는 /safety가 같은 계산으로 같은 값을 씁니다(safety/page.tsx) —
        목차를 세 번째 화면에 붙이는 날에도 이 값을 함께 옮기십시오. */
-    <section id={id} className="scroll-mt-[68px] border-t border-line pt-7">
-      <p className="chim-num text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-ink-muted">
+    <section
+      id={id}
+      className="scroll-mt-[calc(var(--chim-safe-t)_+_68px)] border-t border-line pt-7"
+    >
+      <EyebrowLabel className="chim-num">
         {num}
-      </p>
+      </EyebrowLabel>
       <h2 className="mt-1 text-[1.1875rem] leading-[1.3] font-bold tracking-[-0.015em] text-ink">
         {title}
       </h2>
@@ -177,7 +188,7 @@ function DefRows({ rows }: { rows: readonly { t: string; d: ReactNode }[] }) {
  * 기기 안에 남는 것 — 실제 저장소 항목을 그대로 옮겨 적습니다.
  * 항목이 늘거나 줄면 이 목록도 같은 날 함께 고칩니다
  * (`src/lib/storage.ts`·`src/lib/settings.ts`·`src/lib/stageMode.ts`,
- *  그리고 세션 저장소 한 칸을 쓰는 `src/app/report/_components/ReportWizard.tsx`).
+ *  그리고 세션 저장소 두 칸을 쓰는 `src/app/report/_components/ReportWizard.tsx`).
  */
 const STORED_ITEMS: readonly { t: string; d: string }[] = [
   {
@@ -189,10 +200,12 @@ const STORED_ITEMS: readonly { t: string; d: string }[] = [
     d: "가명처리를 지난 본문과 급여제공기록지 5요소 초안이 남습니다. 가리기 전 원문은 저장하지 않습니다.",
   },
   {
-    /* 유일한 세션 저장소 항목입니다 — 확정 전 원문이라 반드시 여기 적습니다.
-       실제 자리는 `src/app/report/_components/ReportWizard.tsx`의 임시 보관입니다. */
+    /* 유일한 세션 저장소 항목입니다(칸은 둘) — 확정 전 원문이라 반드시 여기 적습니다.
+       실제 자리는 `src/app/report/_components/ReportWizard.tsx`의 임시 보관이고, 칸이 둘입니다
+       (지금 적는 글 · 맡아 둔 지난 글). 성격이 같은 한 가지 글이라 목록에서는 한 줄로 적되,
+       두 칸이라는 사실과 지워지는 때가 서로 다르다는 것은 문장 안에 적어 둡니다. */
     t: "적으시던 보고 (임시)",
-    d: "확정하기 전에 적거나 말씀하신 보고 원문을, 실수로 화면을 벗어나셨을 때 되찾아 드리려고 브라우저의 임시 보관함(세션 저장소)에 둡니다. 확정하시거나 「새로 적기」를 고르시면 즉시 지워지고, 탭을 닫으셔도 사라집니다. 침착 서버로 올라가는 경로는 없습니다.",
+    d: "확정하기 전에 적거나 말씀하신 보고 원문을, 실수로 화면을 벗어나셨을 때 되찾아 드리려고 브라우저의 임시 보관함(세션 저장소)에 둡니다. 칸은 둘입니다 — 지금 적고 계신 글 한 칸, 화면을 벗어나실 때 맡아 둔 지난 글 한 칸입니다(나눠 두어야 한쪽이 다른 쪽을 덮지 않습니다). 확정하시면 두 칸이 함께 즉시 지워지고, 「새로 적기」를 고르시면 맡아 둔 글이 지워집니다. 탭을 닫으셔도 사라집니다. 침착 서버로 올라가는 경로는 없습니다.",
   },
   {
     t: "이어서 하기",

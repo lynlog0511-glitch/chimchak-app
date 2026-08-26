@@ -99,13 +99,18 @@ export function WeeklyGoalCard({ className }: WeeklyGoalCardProps) {
           {goalStatusLine(progress)}
         </p>
 
-        {/* 접이식 — 닫혀 있을 때 이 카드가 차지하는 것은 위 세 줄뿐입니다. */}
+        {/* 접이식 — 닫혀 있을 때 이 카드가 차지하는 것은 위 세 줄뿐입니다.
+            48px은 높이만이 아니라 **폭**이기도 합니다 — 닫혔을 때 라벨이 「접기」 두 글자라,
+            13.5px 두 글자(약 27px)에 좌우 여백이 0이면 27px밖에 되지 않습니다.
+            다른 화면의 「닫기」 넷이 이미 `min-w-[48px] justify-center`를 받았는데 여기만
+            남아 있었습니다(5차 페르소나 UI/UX low). 이제 문장이 아니라
+            `tests/designScale.test.ts`의 「짧은 라벨 액션은 48px 폭을 갖는다」가 셉니다. */}
         <button
           type="button"
           onClick={() => setOpen((prev) => !prev)}
           aria-expanded={open}
           aria-controls={groupId}
-          className="mt-[2px] inline-flex min-h-[48px] items-center rounded-field text-[0.8438rem] leading-[1.45] font-semibold text-ink-muted underline decoration-1 underline-offset-[3px] transition-colors duration-150 ease-soft hover:text-brand-800"
+          className="mt-[2px] inline-flex min-h-[48px] min-w-[48px] items-center justify-center rounded-field text-[0.8438rem] leading-[1.45] font-semibold text-ink-muted underline decoration-1 underline-offset-[3px] transition-colors duration-150 ease-soft hover:text-brand-800"
         >
           {open ? "접기" : "목표 바꾸기"}
         </button>
@@ -138,8 +143,8 @@ export function WeeklyGoalCard({ className }: WeeklyGoalCardProps) {
                       "chim-num chim-label min-h-[48px] rounded-card px-1",
                       "transition-colors duration-150 ease-soft",
                       selected
-                        ? "bg-brand-700 font-bold text-white active:bg-brand-800"
-                        : "bg-white text-ink hover:bg-neutral-line active:bg-neutral-line",
+                        ? "bg-brand-700 font-bold text-paper active:bg-brand-800"
+                        : "bg-paper text-ink hover:bg-neutral-line active:bg-neutral-line",
                     )}
                   >
                     {choice}

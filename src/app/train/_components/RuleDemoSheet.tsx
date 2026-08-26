@@ -69,7 +69,7 @@ export function RuleDemoSheet({ prompt, examples, onFill, onClose }: RuleDemoShe
       />
       <div
         className={cx(
-          "relative flex max-h-[88dvh] w-full max-w-[430px] flex-col rounded-t-[22px] bg-white",
+          "relative flex max-h-[88dvh] w-full max-w-[430px] flex-col rounded-t-[22px] bg-paper",
           "shadow-[0_-10px_40px_rgba(25,31,30,0.25)]",
           "transition-transform duration-[240ms] ease-out",
           entered ? "translate-y-0" : "translate-y-full",

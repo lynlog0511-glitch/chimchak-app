@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronGlyph, StatusMark, STATUS_MARK_LABEL, type StatusMarkKind } from "@/components/icons";
 import Link from "next/link";
-import { BigButton, useSourceDoc } from "@/components";
+import { BigButton, EyebrowLabel, useSourceDoc } from "@/components";
 import { BreathMark } from "@/components/BreathMark";
 import { cx } from "@/components/utils";
 import { unexploredBranches, type TracedFeedback } from "@/engine";
@@ -16,7 +16,7 @@ import {
 } from "@/app/history/_components/HistoryBoard";
 import { stripInternalIds } from "./DialogueLog";
 import {
-  BRANCH_LABEL_IN_WORDS,
+  branchLabelInWords,
   cfVerdictSourceLine,
   durationText,
   scenarioHref,
@@ -55,7 +55,7 @@ const VERDICT_SHAPE: Record<EndingDef["verdict"], EndingShape> = {
 
 /** 54px 원 — ✓(마침) / ↺(다시 보기). 문자 기호만 씁니다(가이드 §3 · 이모지 0건). */
 const VERDICT_MARK: Record<EndingDef["verdict"], { char: string; circle: string; label: string }> = {
-  충족: { char: "✓", circle: "bg-ok text-white", label: "훈련을 마쳤습니다" },
+  충족: { char: "✓", circle: "bg-ok text-paper", label: "훈련을 마쳤습니다" },
   "부분 충족": { char: "✓", circle: "bg-ok-soft text-ok-ink", label: "훈련을 마쳤습니다" },
   재시도: { char: "↺", circle: "bg-warn-soft text-warn-ink", label: "다시 볼 지점이 있습니다" },
   재훈련: { char: "↺", circle: "bg-warn-soft text-warn-ink", label: "다시 볼 지점이 있습니다" },
@@ -193,23 +193,17 @@ interface TimelineRow {
 }
 
 /**
- * 갈래 이름을 화면 낱말로 다듬습니다 — 저작용 표기를 걷어내고, 분류 이름은 사용자 말로 바꿉니다.
+ * 갈래 이름을 화면 낱말로 다듬습니다 — 내부 id를 지운 뒤 표시부 표를 한 번 지납니다.
  *
- * 시나리오 데이터의 label에는 저작자용 주석이 괄호로 붙어 있습니다:
- * 「눕히기 (의식 있는 상태에서) (⚑CF)」·「등을 세게 두드림 (경고 — ⚑CF 아님)」.
- * ⚑CF는 설계 문서의 표기이지 화면 낱말이 아니므로(화면에서는 판정어 「즉시 중단」이 그 자리를
- * 대신합니다), 그 표기가 든 괄호만 통째로 뗍니다. 사람이 읽는 괄호는 건드리지 않습니다.
- * 괄호를 뗀 뒤에 위 표를 한 번 지납니다.
+ * 괄호·표 규칙은 `branchLabelInWords`(constants.ts)가 들고 있습니다 — 그 표를 지나는 규칙과
+ * 표 자체가 갈라지지 않게 한곳에 둔 것이고, 전 시나리오 라벨 전수 검사도 그쪽을 봅니다.
  *
  * @example cleanBranchLabel("눕히기 (의식 있는 상태에서) (⚑CF)") // "눕히기 (의식 있는 상태에서)"
  * @example cleanBranchLabel("무응답·미분류") // "말이 닿지 않은 자리"
  * @example cleanBranchLabel("대체 행동 유도 (동의를 구하고 함께 움직임)") // 그대로
  */
 function cleanBranchLabel(raw: string): string {
-  const trimmed = stripInternalIds(raw)
-    .replace(/\s*\([^)]*(?:⚑|\bCF\b)[^)]*\)/g, "")
-    .trim();
-  return BRANCH_LABEL_IN_WORDS[trimmed] ?? trimmed;
+  return branchLabelInWords(stripInternalIds(raw));
 }
 
 /** 판정 → 표준 마크. 판정은 엔진이 이미 내려 둔 것을 그대로 옮기기만 합니다. */
@@ -527,9 +521,9 @@ export function EndingPanel({
           {mark.char}
         </span>
         <span className="sr-only">{mark.label}</span>
-        <p className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-ink-muted">
+        <EyebrowLabel>
           훈련 마침 · {scenario.title}
-        </p>
+        </EyebrowLabel>
         <h2 className="mt-1.5 text-[1.375rem] leading-[1.45] font-extrabold tracking-[-0.01em] text-ink">
           {completionHeadline(verdict, session)}
         </h2>

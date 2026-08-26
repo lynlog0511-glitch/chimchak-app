@@ -598,6 +598,24 @@ export async function checkCoachServer(): Promise<CheckResult> {
       fix: "환경변수 COACH_BASE_URL·COACH_MODEL(·COACH_API_KEY)을 채우고 다시 배포한 뒤 검사해 주세요. 결정론 코칭만으로 시연하실 계획이면 이 항목은 넘기셔도 됩니다.",
     };
   }
+  /*
+   * 점검 요청이 **분당 한도**에 걸린 자리입니다.
+   *
+   * ping은 예산 통을 쓰지 않지만 IP당 분당 계수 한 칸은 씁니다(계수기 밖의 무제한 분기를 남겨
+   * 두지 않으려는 자리). 그 한도는 IP 하나를 여럿이 나눠 쓰는 자리(행사장 공용 와이파이·기관
+   * NAT)에서 **방 전체의 몫**이라, 옆에서 자유 연습 한 판이 돌면 이 점검이 그 몫에 걸릴 수
+   * 있습니다. 서버 설정과는 무관한 상태이므로 붉히지 않고 참고용으로 둡니다 — 그리고
+   * 「새로고침」을 권하지 않습니다. 새로고침으로는 풀리지 않고 다음 분까지 기다려야 합니다.
+   */
+  if (status === "rate_limited") {
+    return {
+      id,
+      title,
+      status: "unknown",
+      detail: "지금 이 회선에서 요청이 몰려 점검이 잠시 막혔습니다 — 서버 설정과는 무관합니다.",
+      fix: "1분 뒤 다시 검사해 주세요. 새로고침으로는 풀리지 않습니다(같은 인터넷을 쓰는 기기들이 분당 몫을 나눠 씁니다).",
+    };
+  }
   return {
     id,
     title,
@@ -605,6 +623,88 @@ export async function checkCoachServer(): Promise<CheckResult> {
     detail: `서버가 낯선 답을 돌려주었습니다(${String(status ?? "응답 없음")}).`,
     fix: "새로고침 후 다시 검사해 주세요.",
   };
+}
+
+/* ── 빌드 표식 ─────────────────────────────────────────── */
+
+/** 서비스워커 캐시 이름에서 빌드 해시만 뽑습니다. 못 뽑으면 `undefined`(확인 불가로 물러납니다). */
+function readBuildStamp(source: string): string | undefined {
+  const match = /const CACHE_NAME = "chimchak-([^"]*)"/.exec(source);
+  const stamp = match?.[1]?.trim();
+  // 치환되지 않은 플레이스홀더는 「빌드 표식이 없다」와 같습니다(개발 서버가 그렇습니다).
+  if (!stamp || stamp.includes("__")) return undefined;
+  return stamp;
+}
+
+/**
+ * 15. 이 화면의 빌드 표식 — **지금 눈앞의 배포본이 무엇인지** 기기에서 스스로 증명합니다.
+ *
+ * 왜 있는가: 다른 항목은 전부 「이 기기가 준비됐는가」를 봅니다. 이 항목만 「지금 열려 있는 것이
+ * **어느 빌드인가**」를 봅니다. 배포가 최신인지는 지금까지 저장소 바깥의 절차(대시보드·수동 확인)로만
+ * 말할 수 있었는데, 심사장에서는 그 절차를 보여 줄 수 없습니다. 서비스워커 캐시 이름에는 빌드마다
+ * 달라지는 **내용 해시**가 이미 박혀 있으므로(`public/sw.js`의 `CACHE_NAME`, prebuild가 치환),
+ * 그 값을 그대로 읽어 보여 주면 리허설에서 적어 둔 로컬 빌드 값과 눈으로 대조할 수 있습니다.
+ *
+ * 참고용입니다 — **어떤 경우에도 붉히지 않습니다.** 값을 못 읽는 자리가 정상적으로 있습니다:
+ * 개발 서버(플레이스홀더가 그대로), 오프라인, 파일을 못 받는 상황. 그때는 「확인 불가」로 물러납니다.
+ * 빌드가 낡았는지 여기서 판단하지 않는 이유도 같습니다 — 무엇과 대조할지는 사람이 압니다.
+ *
+ * 새 환경변수를 만들지 않습니다(`NEXT_PUBLIC_` 접두어를 하나도 늘리지 않는다는 규칙). 값은
+ * 이미 배포에 들어 있는 정적 파일에서 옵니다.
+ */
+export async function checkBuildStamp(): Promise<CheckResult> {
+  const id = "build-stamp";
+  const title = "이 화면의 빌드 표식 (참고용)";
+  const unknownResult = (detail: string): CheckResult => ({
+    id,
+    title,
+    status: "unknown",
+    detail,
+    fix: "프로덕션 빌드를 온라인에서 한 번 열면 표식이 보입니다 — 검사 실패가 아니라 참고용 항목입니다.",
+  });
+
+  if (typeof fetch !== "function") return unknownResult("이 브라우저에서는 확인할 수 없습니다.");
+
+  try {
+    // 쿼리를 붙여 저장본이 아니라 **지금 서버가 주는 파일**을 받습니다(서비스워커는 쿼리가 붙은
+    // 응답을 저장하지 않습니다 — public/sw.js의 requestHasQuery).
+    const response = await fetch(`/sw.js?stamp=${Date.now()}`, { cache: "no-store" });
+    if (response.ok) {
+      const stamp = readBuildStamp(await response.text());
+      if (stamp) {
+        return {
+          id,
+          title,
+          status: "ok",
+          detail: `이 화면의 빌드 표식: chimchak-${stamp} — 리허설에서 적어 둔 값과 같은지 대조하십시오.`,
+        };
+      }
+      return unknownResult(
+        "빌드 표식이 아직 박히지 않았습니다 — 개발 모드(npm run dev)에서는 정상입니다.",
+      );
+    }
+  } catch {
+    /* 오프라인이거나 파일을 받지 못했습니다 — 아래 저장본으로 물러납니다. */
+  }
+
+  // 회선이 없으면 이 기기에 설치된 서비스워커의 캐시 이름으로 물러납니다(같은 값이 들어 있습니다).
+  if (typeof caches !== "undefined") {
+    try {
+      const installed = (await caches.keys()).find((key) => key.startsWith("chimchak-"));
+      const stamp = installed?.slice("chimchak-".length);
+      if (stamp && !stamp.includes("__")) {
+        return {
+          id,
+          title,
+          status: "ok",
+          detail: `이 화면의 빌드 표식: chimchak-${stamp} (지금 오프라인이라 이 기기에 설치된 값입니다)`,
+        };
+      }
+    } catch {
+      /* 캐시 저장소를 못 읽는 브라우저 — 아래로 물러납니다. */
+    }
+  }
+  return unknownResult("지금은 빌드 표식을 읽을 수 없습니다 — 오프라인이거나 파일을 받지 못했습니다.");
 }
 
 /** 14. 네트워크 상태 — 참고용. 오프라인이어도 응급 화면은 정상 동작하므로 실패로 다루지 않습니다. */
@@ -678,6 +778,7 @@ export const CHECK_RUNNERS: Array<() => Promise<CheckResult>> = [
   checkScenarioReview,
   checkCoachServer,
   checkNetwork,
+  checkBuildStamp,
 ];
 
 /**
@@ -701,6 +802,7 @@ export function loadingResults(): CheckResult[] {
     loadingResult("review", "시나리오 감수 상태"),
     loadingResult("coach", "온라인 코칭 서버"),
     loadingResult("net", "네트워크 상태 (참고용)"),
+    loadingResult("build-stamp", "이 화면의 빌드 표식 (참고용)"),
   ];
 }
 

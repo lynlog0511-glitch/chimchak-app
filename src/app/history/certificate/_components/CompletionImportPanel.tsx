@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { EyebrowLabel } from "@/components/EyebrowLabel";
 import { countDemoRecords } from "@/lib/demoSeed";
 import { importCompletionCsv, loadCompletionImports, type CompletionImport } from "@/lib/storage";
 import { formatDateTime } from "../../_components/format";
@@ -177,8 +178,8 @@ export function CompletionImportPanel({ onImported }: CompletionImportPanelProps
         aria-disabled={busy}
         className={
           busy
-            ? "mt-[12px] inline-flex min-h-[48px] cursor-not-allowed items-center justify-center gap-2 rounded-card border border-line-strong bg-white px-5 py-2.5 text-[1.0625rem] font-semibold text-ink opacity-45"
-            : "mt-[12px] inline-flex min-h-[48px] cursor-pointer items-center justify-center gap-2 rounded-card border border-line-strong bg-white px-5 py-2.5 text-[1.0625rem] font-semibold text-ink focus-within:outline focus-within:outline-[3px] focus-within:outline-offset-2 focus-within:outline-brand-700"
+            ? "mt-[12px] inline-flex min-h-[48px] cursor-not-allowed items-center justify-center gap-2 rounded-card border border-line-strong bg-paper px-5 py-2.5 text-[1.0625rem] font-semibold text-ink opacity-45"
+            : "mt-[12px] inline-flex min-h-[48px] cursor-pointer items-center justify-center gap-2 rounded-card border border-line-strong bg-paper px-5 py-2.5 text-[1.0625rem] font-semibold text-ink focus-within:outline focus-within:outline-[3px] focus-within:outline-offset-2 focus-within:outline-brand-700"
         }
       >
         {busy ? "파일을 읽는 중입니다…" : "이수 사실 파일 고르기"}
@@ -216,9 +217,9 @@ export function CompletionImportPanel({ onImported }: CompletionImportPanelProps
 
       {imported.length > 0 && (
         <div className="mt-[12px] border-t border-line pt-[10px]">
-          <p className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-ink-muted">
+          <EyebrowLabel>
             가져온 이수 사실
-          </p>
+          </EyebrowLabel>
           <ul className="mt-[6px]">
             {imported.map((row) => (
               <li key={row.number} className="text-[0.7813rem] leading-[1.6] text-ink-soft">

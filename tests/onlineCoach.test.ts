@@ -22,6 +22,7 @@ import {
   COACH_TOKEN_HEADER,
   COACH_TOKEN_META,
   COACH_TOKEN_REFRESH_HEADER,
+  COACH_TOKEN_STALE_WINDOWS,
   coachTokenWindow,
 } from "@/lib/coachLimits";
 import {
@@ -734,11 +735,21 @@ describe("coachRequestHeaders", () => {
     expect(coachRequestHeaders(now)[COACH_TOKEN_HEADER]).toBe("0123456789abcdef");
   });
 
-  it("그보다 낡은 표식은 **보내지 않는다** — 403 대신 작은 통으로 넘어가 훈련이 이어진다", () => {
-    /* 앱 안 이동은 서버 렌더를 다시 타지 않으므로, 한 판을 길게 훈련하면 심어 둔 값이 창을
-       넘어선다. 그때 낡은 값을 그대로 보내면 403을 받고 코칭이 조용히 접힌다. */
+  it("창을 넘긴 값도 **보낸다** — 서버가 작은 통 + 갱신으로 받는 범위이기 때문이다", () => {
+    /*
+     * 예전에는 창 둘을 넘기면 화면이 스스로 걷어 냈다. 그런데 서버가 갱신 표식을 「표식을 들고
+     * 온 요청」에만 내주게 되면서, 걷어 내는 순간 그 탭은 **영영 작은 통**에 남게 되었다
+     * (문서를 다시 받기 전에는 회복되지 않는다). 서버는 이 범위를 403으로 끊지 않는다 —
+     * 사유 전문은 coachLimits.ts의 COACH_TOKEN_STALE_WINDOWS.
+     */
     const now = Date.now();
     stubMeta(`${coachTokenWindow(now) - 4}.0123456789abcdef`);
+    expect(coachRequestHeaders(now)[COACH_TOKEN_HEADER]).toBe("0123456789abcdef");
+  });
+
+  it("서버가 받는 범위를 넘어서면 보내지 않는다 — 403 대신 작은 통으로 넘어가 훈련이 이어진다", () => {
+    const now = Date.now();
+    stubMeta(`${coachTokenWindow(now) - COACH_TOKEN_STALE_WINDOWS}.0123456789abcdef`);
     expect(coachRequestHeaders(now)[COACH_TOKEN_HEADER]).toBeUndefined();
   });
 
@@ -790,8 +801,8 @@ describe("rememberCoachToken", () => {
   it("응답에 실려 온 표식을 다음 요청에 싣는다 — meta가 낡아도 훈련이 이어진다", async () => {
     const client = await freshClient();
     const now = Date.now();
-    // 문서에 심긴 값은 창 넷을 넘겼다 — 화면이 스스로 걷어 낸다(예전에는 여기서 끝이었다).
-    stubMeta(`${coachTokenWindow(now) - 4}.0123456789abcdef`);
+    // 문서에 심긴 값은 서버가 받는 범위 밖이다 — 화면이 스스로 걷어 낸다.
+    stubMeta(`${coachTokenWindow(now) - COACH_TOKEN_STALE_WINDOWS}.0123456789abcdef`);
     expect(client.coachRequestHeaders(now)[COACH_TOKEN_HEADER]).toBeUndefined();
 
     client.rememberCoachToken(withHeader(`${coachTokenWindow(now)}.fedcba9876543210`));
@@ -825,11 +836,13 @@ describe("rememberCoachToken", () => {
     }
   });
 
-  it("갱신 값도 창을 둘 넘기면 보내지 않는다 (서버가 받는 범위와 같다)", async () => {
+  it("갱신 값도 서버가 받는 범위를 넘기면 보내지 않는다 (두 자리가 같은 수를 본다)", async () => {
     const client = await freshClient();
     const now = Date.now();
     stubMeta(undefined);
-    client.rememberCoachToken(withHeader(`${coachTokenWindow(now) - 4}.fedcba9876543210`));
+    client.rememberCoachToken(
+      withHeader(`${coachTokenWindow(now) - COACH_TOKEN_STALE_WINDOWS}.fedcba9876543210`),
+    );
     expect(client.coachRequestHeaders(now)[COACH_TOKEN_HEADER]).toBeUndefined();
   });
 

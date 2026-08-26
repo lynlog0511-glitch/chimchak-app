@@ -50,7 +50,7 @@
  */
 
 import type { Scenario } from "@/types";
-import { RESTRAINT_EXCEPT_BRANCH } from "@/engine/rules";
+import { RESTRAINT_BRANCH_SIGNALS, RESTRAINT_EXCEPT_BRANCH } from "@/engine/rules";
 
 /**
  * 중립 미분류 분기의 코칭 문구 — 감점이 아니라 **다시 말할 기회**입니다.
@@ -118,14 +118,9 @@ const RESTRAINT_PATTERNS = [
   "잠글",
   "잠금",
   // 끌기 — 잡는 말과 한 덩어리로 적습니다(「이끌」이 낀 꼴도 여기서 함께 받습니다).
-  "잡아 끌",
-  "잡아 이끌",
-  "잡고 끌",
-  "잡고 이끌",
-  "잡아끌",
-  "손목을 끌",
-  "팔을 끌",
-  "손을 끌",
+  // 목록은 엔진이 들고 있습니다 — 자유 연습의 억제 검사도 **같은 배열**을 봅니다
+  // (rules.ts RESTRAINT_BRANCH_SIGNALS · 2026-08-26).
+  ...RESTRAINT_BRANCH_SIGNALS,
   "끌어당",
   "밀어",
   "당겨서",
@@ -307,6 +302,13 @@ export const CHK_A01: Scenario = {
               "그러지 마세요",
               "하지 마세요",
             ],
+            /* 「기다리세요」는 지시이지만, **원인을 묻는 질문**의 꼬리이기도 합니다.
+               정규화가 물음표를 지우므로 "집에서 누가 기다리세요?"·"누구 기다리세요?"가
+               이 갈래에 걸려 초조도 2칸이 오르고 「지시 대신 선택지를 두 개만」이라는
+               엉뚱한 코칭을 받았습니다(교육생 5차 실측). 원인 탐색은 바로 다음 턴(CUE-2)이
+               가르치는 행동이라, 첫 턴에 그걸 했다고 감점을 주면 다음 턴에 안 하게 됩니다.
+               경쟁 갈래가 없어 심각도 채택 규칙도 막아 주지 못하는 자리라 표지 쪽을 좁힙니다. */
+            except: ["누가 기다리", "누구 기다리", "누굴 기다리", "누구를 기다리", "어디서 기다리"],
             fallbackOption: "잠깐만요, 앉아 계세요",
             gaugeDelta: 2,
             aiReaction: "왜 나를 못 가게 해! 놔요!",
@@ -1066,14 +1068,7 @@ export const CHK_A01: Scenario = {
             patterns: [
               "밀어",
               "밀고",
-              "잡아 끌",
-              "잡아 이끌",
-              "잡고 끌",
-              "잡고 이끌",
-              "잡아끌",
-              "손목을 끌",
-              "팔을 끌",
-              "손을 끌",
+              ...RESTRAINT_BRANCH_SIGNALS,
               "끌어당",
               "당겨서",
               "억지로 끌",

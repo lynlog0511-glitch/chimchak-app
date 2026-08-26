@@ -76,8 +76,11 @@ function MarkShape({ kind, className }: { kind: StatusMarkKind; className?: stri
         <>
           <circle cx="12" cy="12" r="8.6" fill="currentColor" stroke="none" />
           {/* 흰 체크는 도형 위 그래픽 — ok(#1E9E6A) 대비 3.4:1로 3:1 기준을 넘습니다.
-              기하는 glyphs.tsx 한 곳에만 둡니다(텍스트 ✓와 이원화되지 않도록 — 심미 mi45). */}
-          <path d={CHECK_PATH_IN_CIRCLE} stroke="#ffffff" strokeWidth={2.2} />
+              기하는 glyphs.tsx 한 곳에만 둡니다(텍스트 ✓와 이원화되지 않도록 — 심미 mi45).
+              색은 생 hex가 아니라 지면 토큰 이름으로 적습니다 — `--color-paper`가 #ffffff의
+              정본이고, 클래스가 부모의 `stroke="currentColor"` 표시 속성을 이깁니다
+              (「한 값에 이름 하나」 · 가이드 §9-8). */}
+          <path d={CHECK_PATH_IN_CIRCLE} className="stroke-paper" strokeWidth={2.2} />
         </>
       )}
       {kind === "coach" && <circle cx="12" cy="12" r="8.2" />}

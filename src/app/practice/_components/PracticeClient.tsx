@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BigButton } from "@/components";
+import { BigButton, EyebrowLabel } from "@/components";
 import type { CriticalCheck } from "@/engine/rules";
 import {
   buildReplyRequest,
@@ -92,9 +92,9 @@ function Gate({
               누르실 때 읽으시는 고지와 **한 글자도 다르지 않은 문장**을 여기에도 둡니다 —
               지름길을 만들면서 고지를 건너뛰면, 편의를 얻은 만큼 동의가 얇아집니다. */}
           <div className="mt-3 rounded-card bg-paper px-[14px] py-[12px]">
-            <p className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.04em] text-ink-muted">
+            <EyebrowLabel>
               {ONLINE_MODE_LABEL}
-            </p>
+            </EyebrowLabel>
             <p className="mt-[6px] text-[0.8438rem] leading-[1.6] text-ink-soft">
               {ONLINE_COACHING_NOTICE}
             </p>

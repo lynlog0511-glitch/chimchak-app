@@ -158,6 +158,14 @@ export function FreeComposer({
             하실 말씀
           </label>
           <div className="mt-2 flex items-end gap-2">
+            {/* 입력 상자의 반지름은 `rounded-chip`(999px)입니다 — 예전에는 `rounded-[18px]`이라
+                높이는 rem(`min-h-12` = 3rem)인데 반지름만 px에 묶여, 「아주 크게」(125%)에서
+                높이가 3.75rem으로 자라도 모서리는 18px에 머물러 양 끝이 반원이 아니었습니다.
+                옆 화면의 같은 역할(세션 컴포저 `CueResponder`)이 8/26에 같은 이유로 먼저
+                고쳐졌는데 이 형제만 남아 있었습니다 — 규칙은 값이 아니라 **조합**입니다:
+                rem 높이 + px 반지름은 배율이 오르면 반드시 어긋납니다(5차 페르소나 디자이너 low).
+                이제 반지름 게이트가 허용 목록이라, 토큰 없는 px 반지름은 사유와 함께 등재하지
+                않는 한 통과하지 못합니다. */}
             <textarea
               id={inputId}
               rows={2}
@@ -173,7 +181,7 @@ export function FreeComposer({
               }}
               placeholder={COMPOSER_PLACEHOLDER}
               className={cx(
-                "min-h-12 min-w-0 flex-1 resize-none rounded-[18px] border border-line-strong bg-paper-2",
+                "min-h-12 min-w-0 flex-1 resize-none rounded-chip border border-line-strong bg-paper-2",
                 "px-4 py-3 text-[1.0625rem] leading-[1.45] text-ink placeholder:text-ink-muted",
                 "disabled:opacity-60",
               )}

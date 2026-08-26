@@ -22,10 +22,12 @@
  *  ① **출처 확인** — 같은 출처에서 온 JSON 요청만 받습니다. 아무 웹사이트가 방문자의 브라우저로
  *    이 주소에 POST를 쏘는 길(프리플라이트가 붙지 않는 단순 요청)을 입구에서 닫습니다.
  *  ② **표식 대조와 갱신** — `COACH_SHARED_SECRET`이 설정된 배포에서만. 단기 토큰을 되돌려 보낸
- *    요청과 그렇지 않은 요청을 갈라 **예산 통을 둘로 나누고**(값이 어긋난 표식은 계수기에 닿기
- *    전 403), 받아들인 요청에는 **다음 창의 표식을 응답 헤더로 실어 돌려줍니다**. 토큰을 심는
- *    자리가 서버 렌더 하나뿐이면 문서 수명이 곧 토큰 수명이 되어, 20분 뒤 정상 트래픽 전체가
- *    작은 통으로 떨어집니다. 비밀값이 없으면 이 단은 통째로 잠들고 계약도 그대로입니다.
+ *    요청과 그렇지 않은 요청을 갈라 **예산 통을 둘로 나누고**(어느 창과도 맞지 않는 표식은
+ *    계수기에 닿기 전 403), **표식을 들고 온 요청에만** 다음 창의 표식을 응답 헤더로 실어
+ *    돌려줍니다. 토큰을 심는 자리가 서버 렌더 하나뿐이면 문서 수명이 곧 토큰 수명이 되어,
+ *    20분 뒤 정상 트래픽 전체가 작은 통으로 떨어집니다. 반대로 아무 요청에나 표식을 내주면
+ *    작은 통이 30바이트 요청 한 번의 통행료가 됩니다 — 두 실패 사이를 가르는 것이 「낡았지만
+ *    이 배포가 내준 표식」(`stale`) 갈래입니다. 비밀값이 없으면 이 단은 통째로 잠듭니다.
  *  ③ **한도** — IP당 분당·일당, 그리고 배포 전체 일당 상한을 셉니다(비용 가드).
  *  ④ **검증** — 클라이언트가 보내는 산출물 모양만 받습니다. 그 밖의 값은 버리고 400으로 끊습니다
  *    (상류로 흘려보내지 않습니다). 발화는 500자가 상한입니다. 프롬프트에 실리는 칸은 **한 줄로
@@ -56,6 +58,7 @@ import {
   COACH_TOKEN_HEADER,
   COACH_TOKEN_REFRESH_HEADER,
   coachTokenMetaValue,
+  isRenewableCoachToken,
   verifyCoachToken,
 } from "@/lib/coachLimits";
 import {
@@ -405,11 +408,35 @@ let globalCount = 0;
 /** 토큰 없는 요청의 몫 — 비밀값이 설정된 배포에서만 따로 셉니다(위 `anonDailyCap` 주석). */
 let anonCount = 0;
 
-/** 지도가 무한정 자라지 않게 — 하루가 지난 자리는 버립니다. */
-function prune(day: number): void {
-  if (ipBuckets.size < 4_096) return;
+/** 항목 수 상한 — 값과 사유는 `src/lib/coachLimits.ts`에 있습니다. */
+const MAX_IP_BUCKETS = COACH_RATE_LIMITS.maxIpBuckets;
+
+/**
+ * 오래 쉰 항목을 지우는 문턱(분). 하루가 지난 항목이 없어도 지도가 상한에 닿으면,
+ * 이 시간 넘게 아무 요청도 없던 자리를 거둡니다.
+ *
+ * 치르는 값을 정직하게 적어 둡니다 — 거둔 IP의 **그날 누적 계수**가 0으로 돌아갑니다. 그래서
+ * 이 정리는 지도가 상한에 닿았을 때만 돕니다. 그 상황에서 지킬 것은 IP당 일당 계수의 정밀도가
+ * 아니라 인스턴스 메모리이고, 비용을 실제로 막는 것은 배포 전체 상한입니다.
+ */
+const IDLE_EVICT_MINUTES = 60;
+
+/** 전체 훑기를 마지막으로 돈 분 — 상한에 닿은 뒤 요청마다 O(n)을 태우지 않기 위한 자리입니다. */
+let lastPruneMinute = -1;
+
+/**
+ * 지도가 무한정 자라지 않게 — **상한에 닿았을 때만** 훑습니다.
+ *
+ * 예전에는 「하루가 지난 자리」만 버렸습니다. 그런데 하루 안에서 항목이 4,096개를 넘기면 그 조건은
+ * 한 건도 지우지 못하면서 요청마다 지도 전체를 훑기만 했습니다(요청당 O(n)). 그래서 둘을 고칩니다 —
+ * 오래 쉰 자리도 함께 거두고, 훑기는 **분당 한 번**으로 묶습니다.
+ */
+function prune(day: number, minute: number): void {
+  if (ipBuckets.size < MAX_IP_BUCKETS) return;
+  if (lastPruneMinute === minute) return;
+  lastPruneMinute = minute;
   for (const [ip, bucket] of ipBuckets) {
-    if (bucket.day !== day) ipBuckets.delete(ip);
+    if (bucket.day !== day || minute - bucket.minute >= IDLE_EVICT_MINUTES) ipBuckets.delete(ip);
   }
 }
 
@@ -460,7 +487,10 @@ function takeSlot(
 
   const bucket = ipBuckets.get(ip);
   if (!bucket || bucket.day !== day) {
-    prune(day);
+    prune(day, minute);
+    // 지도가 상한이면 **세지 않고 통과**시킵니다 — 예산 통은 이미 위에서 지났고, 상한에 닿았다는
+    // 이유로 정상 훈련을 거절할 이유가 없습니다(사유는 `COACH_RATE_LIMITS.maxIpBuckets`).
+    if (ipBuckets.size >= MAX_IP_BUCKETS) return take();
     ipBuckets.set(ip, { minute, minuteCount: 1, day, dayCount: 1 });
     return take();
   }
@@ -491,6 +521,12 @@ function takeSlot(
  * 계수기는 일반 호출과 **같은 바구니**를 씁니다 — ping으로 몫을 따로 늘리는 길을 열지 않습니다.
  * 다만 일당 계수(`dayCount`)는 건드리지 않으므로, 점검을 몇 번 해도 그날 훈련 몫은 줄지 않습니다.
  *
+ * **새 항목을 만들기 전에 지도 크기를 봅니다.** 이 분기는 예산 두 통을 지나지 않으므로, 예전에는
+ * 예산 검사가 삽입까지 함께 묶어 주던 이중 상한이 여기서만 사라져 있었습니다 — 30바이트 POST에
+ * 매번 다른 `x-forwarded-for`를 붙이면 항목이 무한히 쌓이는 자리였습니다. 상한에 닿으면 새 IP는
+ * **세지 않고 통과**입니다: ping은 요금을 만들지 않으므로, 무대 직전 점검을 거절하는 편이 더
+ * 나쁩니다(사유 전문은 `COACH_RATE_LIMITS.maxIpBuckets`).
+ *
  * `ip`가 없으면(프록시 없는 배포) 가를 열쇠가 없어 그대로 통과입니다 — `clientIp()` 주석 참조.
  */
 function takePingSlot(ip: string | undefined, now: number = Date.now()): boolean {
@@ -501,7 +537,8 @@ function takePingSlot(ip: string | undefined, now: number = Date.now()): boolean
 
   const bucket = ipBuckets.get(ip);
   if (!bucket || bucket.day !== day) {
-    prune(day);
+    prune(day, minute);
+    if (ipBuckets.size >= MAX_IP_BUCKETS) return true;
     ipBuckets.set(ip, { minute, minuteCount: 1, day, dayCount: 0 });
     return true;
   }
@@ -685,27 +722,36 @@ function readSharedSecret(): string {
   return (process.env.COACH_SHARED_SECRET ?? "").trim();
 }
 
-/** 토큰 대조 결과 — 세 갈래입니다. */
+/** 토큰 대조 결과 — 네 갈래입니다. */
 type TokenVerdict =
   /** 유효한 표식이 붙었습니다(또는 비밀값이 없어 표식을 요구하지 않습니다) → 정상 예산 통 */
   | "tokened"
+  /** 창은 지났지만 이 배포가 내준 표식이 맞습니다 → 작은 예산 통 + **갱신 표식** */
+  | "stale"
   /** 표식이 없습니다 → 작은 예산 통(옛 클라이언트가 그대로 동작합니다) */
   | "anonymous"
-  /** 표식이 붙었는데 값이 어긋납니다 → 403 (계수기에 닿기 전입니다) */
+  /** 표식이 붙었는데 어느 창과도 맞지 않습니다 → 403 (계수기에 닿기 전입니다) */
   | "invalid";
 
 /**
  * 이 요청에 붙은 표식을 봅니다. **계수기보다 앞**에서 부릅니다.
  *
- * 값이 어긋난 표식만 403입니다. 표식이 아예 없는 요청은 막지 않습니다 — 요청 계약의 하위
- * 호환을 지키기 위해서이고(옛 화면이 그대로 동작합니다), 대신 그 요청은 작은 예산 통으로
- * 갑니다. 「없으면 통과, 틀리면 거절」이 이 함수의 전부입니다.
+ * 어느 창과도 맞지 않는 표식만 403입니다. 표식이 아예 없는 요청은 막지 않습니다 — 요청 계약의
+ * 하위 호환을 지키기 위해서이고(옛 화면이 그대로 동작합니다), 대신 그 요청은 작은 예산 통으로
+ * 갑니다.
+ *
+ * `stale`이 따로 있는 이유: 갱신 표식을 「표식을 들고 온 요청」에만 내주기로 하면서(아래
+ * `refreshHeader`), 창을 넘긴 화면이 **영영 작은 통에 남는** 자리가 생겼습니다. 창 여섯(60분)
+ * 안의 낡은 표식은 정상 통을 주지 않되 갱신은 받게 해, 탭을 오래 열어 둔 훈련이 되살아납니다
+ * (사유 전문은 `COACH_TOKEN_STALE_WINDOWS`). 표식을 한 번도 가진 적 없는 호출자는 이 갈래에
+ * 들어오지 못합니다.
  */
 async function checkToken(request: Request, secret: string): Promise<TokenVerdict> {
   if (secret.length === 0) return "tokened";
   const value = request.headers.get(COACH_TOKEN_HEADER)?.trim() ?? "";
   if (value.length === 0) return "anonymous";
-  return (await verifyCoachToken(secret, value)) ? "tokened" : "invalid";
+  if (await verifyCoachToken(secret, value)) return "tokened";
+  return (await isRenewableCoachToken(secret, value)) ? "stale" : "invalid";
 }
 
 /**
@@ -717,15 +763,27 @@ async function checkToken(request: Request, secret: string): Promise<TokenVerdic
  * 끄는 문턱이 `dailyCap`에서 `anonDailyCap`으로 내려앉습니다. 심는 자리를 「매 호출」로 옮기면
  * 한 판을 두 시간 돌려도 정상 통에 남습니다(사유 전문은 `COACH_TOKEN_REFRESH_HEADER` 주석).
  *
- * 붙이는 자리를 좁혀 둡니다 — 출처·Content-Type·크기·작업 이름을 지나고 **표식 대조에서 어긋나지
- * 않은** 요청에만 붙습니다. 403(다른 출처·어긋난 표식)과 그 앞의 400에는 붙지 않습니다.
- * `ping`에도 붙이지 않습니다: 토큰을 요구하지 않는 유일한 분기에 토큰을 내주면, 계수기를 거의
- * 지나지 않는 자리가 표식 발급소가 됩니다.
+ * 붙이는 자리를 좁혀 둡니다 — 출처·Content-Type·크기·작업 이름을 지나고 **이미 유효한 표식을
+ * 들고 온** 요청에만 붙습니다(`tokened`·`stale`). 403(다른 출처·어긋난 표식)과 그 앞의 400에는
+ * 붙지 않습니다. `ping`에도 붙이지 않습니다: 토큰을 요구하지 않는 유일한 분기에 토큰을 내주면,
+ * 계수기를 거의 지나지 않는 자리가 표식 발급소가 됩니다.
+ *
+ * **무토큰 요청에도 붙이지 않습니다.** 예전에는 붙였고, 그래서 몸통이 틀린 30바이트 POST 한 번의
+ * 400 응답이 표식을 내주었습니다 — 작은 예산 통이 「1회 통행료」가 되어, 스크립트가 작은 통 한
+ * 칸만 쓰고 나머지 전량을 큰 통에서 태울 수 있었습니다. 표식을 처음 얻는 길은 다시 「페이지를
+ * 받는 것」 하나로 돌아갑니다.
+ *
+ * 창을 넘긴 화면이 되살아나는 길은 `stale` 갈래가 맡습니다(위 `checkToken`) — 그 표식도 이 배포가
+ * 내준 값이라는 증거이므로, 작은 통을 쓰되 갱신은 받습니다.
  *
  * 비밀값이 없으면 `undefined`입니다 — 응답이 예전과 한 글자도 다르지 않습니다.
  */
-async function refreshHeader(secret: string): Promise<Record<string, string> | undefined> {
+async function refreshHeader(
+  secret: string,
+  verdict: TokenVerdict,
+): Promise<Record<string, string> | undefined> {
   if (secret.length === 0) return undefined;
+  if (verdict !== "tokened" && verdict !== "stale") return undefined;
   return { [COACH_TOKEN_REFRESH_HEADER]: await coachTokenMetaValue(secret) };
 }
 
@@ -861,12 +919,13 @@ export async function POST(request: Request): Promise<Response> {
   if (verdict === "invalid") return json({ status: "forbidden" }, 403);
 
   /*
-   * 여기서부터의 응답에는 **다음 창의 표식**을 한 칸 실어 보냅니다(설정된 배포에서만).
-   * 표식을 심는 자리를 「서버 렌더 한 번」에서 「매 호출」로 옮기는 한 줄입니다 — 이것이 없으면
-   * 문서를 연 지 20분이 지난 정상 사용자가 통째로 무토큰 통으로 떨어집니다.
-   * 한도에 걸린 응답에도 붙입니다 — 표식까지 잃으면 다음 날에도 작은 통에 남습니다.
+   * 여기서부터의 응답에는 **다음 창의 표식**을 한 칸 실어 보냅니다(설정된 배포에서, 그리고
+   * **이미 표식을 들고 온 요청에만**). 표식을 심는 자리를 「서버 렌더 한 번」에서 「매 호출」로
+   * 옮기는 한 줄입니다 — 이것이 없으면 문서를 연 지 20분이 지난 정상 사용자가 통째로 무토큰
+   * 통으로 떨어집니다. 한도에 걸린 응답에도 붙입니다 — 표식까지 잃으면 다음 날에도 작은 통에
+   * 남습니다. 무토큰 요청에는 붙지 않습니다(사유는 `refreshHeader` 주석).
    */
-  const refresh = await refreshHeader(secret);
+  const refresh = await refreshHeader(secret, verdict);
 
   const config = readConfig();
   if (!config) return json({ status: "unconfigured" }, 200, refresh);
@@ -879,10 +938,17 @@ export async function POST(request: Request): Promise<Response> {
    * 지금은 몫을 먼저 집으므로 그 구간이 사라집니다 — 대가는 「형태가 틀린 요청도 몫을 쓴다」이고,
    * 정상 클라이언트는 틀린 몸통을 보내지 않으므로 치를 만한 값입니다.
    *
-   * ※ 계수기를 **지나지 않는** 자리를 정확히 적어 둡니다: 어긋난 표식(바로 위 403) 하나입니다.
-   *   그 경로는 요청당 HMAC 두 번을 태우고 예산은 쓰지 않습니다 — 값이 어긋난 요청에 예산을
-   *   물리면 표식을 아무렇게나 적어 보내는 쪽이 정상 사용자의 통을 비울 수 있기 때문입니다.
-   *   `ping`은 예산 통만 면제이고 IP당 분당 계수는 셉니다(위 분기).
+   * ※ 계수기를 **지나지 않는** 자리를 정확히 적어 둡니다. 셋입니다.
+   *   ① 어긋난 표식(위 403) — 요청당 HMAC을 태우고 예산은 쓰지 않습니다. 값이 어긋난 요청에
+   *      예산을 물리면 표식을 아무렇게나 적어 보내는 쪽이 정상 사용자의 통을 비울 수 있습니다.
+   *      (창 여섯을 다시 계산하는 비용은 창 하나의 값을 기억해 두는 것으로 없앴습니다 —
+   *       `coachLimits.ts`의 `windowTokens`.)
+   *   ② **주소·모델이 없는 배포의 `unconfigured` 반환**(바로 위) — 그 상태는 오류가 아니라
+   *      기본 빌드이고, 반환이 계수기보다 앞입니다. 그 배포에서 이 라우트가 하는 일은 몸통
+   *      읽기·JSON 파싱·HMAC이 전부이며 상류 요금은 0입니다. 계수기 뒤로 옮기지 않는 이유는
+   *      그 배포에 「한도에 걸린 점검」이라는 상태를 만들지 않기 위해서입니다.
+   *   ③ `ping`(위 분기) — 예산 두 통과 IP당 일당은 면제이고 IP당 분당 계수만 셉니다.
+   *   이 열거가 틀리면 「하지 않는 일까지 적는다」는 이 파일의 미덕이 그대로 위험이 됩니다.
    */
   if (!takeSlot(ip, config.dailyCap, verdict === "tokened")) {
     return json({ status: "rate_limited" }, 200, refresh);

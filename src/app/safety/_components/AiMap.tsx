@@ -126,9 +126,12 @@ export function AiMap({ className }: AiMapProps) {
             <dl className="mt-2">
               {[row.now, row.online, row.next].map((cell, index) => (
                 <div key={COLUMNS[index]} className={index > 0 ? "mt-3" : undefined}>
+                  {/* `<dl>` 구조라 문단(`EyebrowLabel`)을 넣을 수 없는 자리입니다 —
+                      크기·자간은 그 컴포넌트와 같은 값으로 맞춰 둡니다(12.5px / 700 / +.06em).
+                      2026-08-26에 자간을 .04에서 .06으로 올렸습니다(같은 역할에 자간 두 값 금지). */}
                   <dt
                     className={cx(
-                      "text-[0.7813rem] leading-[1.45] font-bold tracking-[0.04em]",
+                      "text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em]",
                       index === 1 && row.changes ? "text-warn-ink" : "text-ink-muted",
                     )}
                   >

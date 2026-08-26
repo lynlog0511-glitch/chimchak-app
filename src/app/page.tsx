@@ -222,7 +222,7 @@ export default function Home() {
         <Link
           href={`/guide#${GUIDE_PRIVACY_FAQ_ID}`}
           prefetch={false}
-          className="-ml-2 inline-flex min-h-[48px] items-center gap-1 rounded-field px-2 text-[0.8438rem] leading-[1.45] font-semibold text-brand-800 underline underline-offset-4 transition-colors duration-150 ease-soft hover:text-brand-900 active:bg-white"
+          className="-ml-2 inline-flex min-h-[48px] items-center gap-1 rounded-field px-2 text-[0.8438rem] leading-[1.45] font-semibold text-brand-800 underline underline-offset-4 transition-colors duration-150 ease-soft hover:text-brand-900 active:bg-paper"
         >
           안전 설계 보기
           <span aria-hidden>›</span>

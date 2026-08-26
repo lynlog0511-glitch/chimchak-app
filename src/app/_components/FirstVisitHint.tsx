@@ -137,7 +137,7 @@ export function FirstVisitHint({ className }: FirstVisitHintProps) {
         <button
           type="button"
           onClick={handleClose}
-          className="flex min-h-[48px] shrink-0 items-center justify-center rounded-chip px-3 text-[0.8438rem] leading-[1.45] font-semibold text-ink-muted transition-colors duration-150 ease-soft hover:bg-white hover:text-ink"
+          className="flex min-h-[48px] shrink-0 items-center justify-center rounded-chip px-3 text-[0.8438rem] leading-[1.45] font-semibold text-ink-muted transition-colors duration-150 ease-soft hover:bg-paper hover:text-ink"
         >
           닫기
         </button>

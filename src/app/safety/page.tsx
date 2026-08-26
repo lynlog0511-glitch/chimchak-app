@@ -117,13 +117,23 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    // 목차 칩이 위에 붙어 있으므로, 앵커로 뛰었을 때 제목이 칩 아래에 놓이도록 여백을 둡니다.
-    <section id={id} className="scroll-mt-[68px] border-t border-line pt-8">
+    /* 목차 칩이 위에 붙어 있으므로, 앵커로 뛰었을 때 제목이 칩 아래에 놓이도록 여백을 둡니다.
+       값은 바의 도킹 기준선과 **같은 변수로 합산**합니다 — `SafetyToc`이
+       `sticky top-[var(--chim-safe-t)]`이라 바가 차지하는 구간이 [safe-t, safe-t+65]인데,
+       상수 68px만 두면 노치 기기에서 절이 (safe-t − 3)px만큼 바 밑에 깔립니다
+       (5차 페르소나 UI/UX med). 계산 근거는 /legal의 같은 자리에 적어 두었습니다 —
+       두 화면이 같은 컴포넌트를 쓰므로 값도 함께 옮기십시오. */
+    <section
+      id={id}
+      className="scroll-mt-[calc(var(--chim-safe-t)_+_68px)] border-t border-line pt-8"
+    >
       <MobileFold
         id={id}
         alwaysOpen={alwaysOpen}
         handle={
           <>
+            {/* 접이식 손잡이(`<summary>`) 안이라 문단(`EyebrowLabel`)을 넣을 수 없는 자리입니다 —
+                크기·자간은 그 컴포넌트와 같은 값입니다(12.5px / 700 / +.06em). */}
             <span className="chim-num block text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-ink-muted">
               {num}
             </span>
@@ -242,7 +252,11 @@ function DataRows({
             <dl className="mt-2">
               {row.cells.map((cell, ci) => (
                 <div key={ci} className={ci > 0 ? "mt-3" : undefined}>
-                  <dt className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.04em] text-ink-muted">
+                  {/* `<dl>` 구조라 문단(`EyebrowLabel`)을 넣을 수 없는 자리입니다 —
+                      크기·자간은 그 컴포넌트와 같은 값으로 맞춰 둡니다(12.5px / 700 / +.06em).
+                      2026-08-26에 자간을 .04에서 .06으로 올렸습니다: 같은 역할에 자간이 두 값이면
+                      화면마다 다른 이름표가 됩니다(5차 페르소나 디자이너 med). */}
+                  <dt className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-ink-muted">
                     {columns[ci]}
                   </dt>
                   <dd className="mt-1 text-[0.9375rem] leading-[1.6] text-ink">{cell}</dd>

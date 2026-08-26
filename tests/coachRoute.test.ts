@@ -20,9 +20,11 @@ import {
   COACH_TOKEN_LENGTH,
   COACH_TOKEN_META,
   COACH_TOKEN_REFRESH_HEADER,
+  COACH_TOKEN_STALE_WINDOWS,
   coachToken,
   coachTokenMetaValue,
   coachTokenWindow,
+  isRenewableCoachToken,
   verifyCoachToken,
 } from "@/lib/coachLimits";
 import { citableDocRefs } from "@/lib/onlineCoach";
@@ -342,8 +344,41 @@ describe("토큰 표식 계산", () => {
     expect(await verifyCoachToken(SECRET, await coachToken(SECRET, window - 2), now)).toBe(false);
   });
 
+  it("갱신 자격은 여섯 창까지다 — 정상 통 자격(두 창)과 다른 수를 본다", async () => {
+    /*
+     * 두 수를 가른 이유: 갱신 표식을 「표식을 들고 온 요청」에만 내주기로 하면서, 그 규칙만으로는
+     * 탭을 오래 열어 둔 화면이 영영 작은 통에 남는다. 창 2~5는 정상 통을 주지 않되 갱신은 받는다.
+     */
+    const now = Date.now();
+    const window = coachTokenWindow(now);
+    for (let age = 0; age < COACH_TOKEN_STALE_WINDOWS; age += 1) {
+      expect(
+        await isRenewableCoachToken(SECRET, await coachToken(SECRET, window - age), now),
+        `창 ${age}개 전`,
+      ).toBe(true);
+    }
+    expect(
+      await isRenewableCoachToken(
+        SECRET,
+        await coachToken(SECRET, window - COACH_TOKEN_STALE_WINDOWS),
+        now,
+      ),
+    ).toBe(false);
+    // 갱신 자격이 있어도 정상 통 자격은 두 창까지다.
+    expect(await verifyCoachToken(SECRET, await coachToken(SECRET, window - 3), now)).toBe(false);
+  });
+
+  it("다른 비밀값으로 만든 값은 갱신 자격도 없다", async () => {
+    const now = Date.now();
+    const other = await coachToken(`${SECRET}x`, coachTokenWindow(now));
+    expect(await isRenewableCoachToken(SECRET, other, now)).toBe(false);
+  });
+
   it("비밀값이 비면 어떤 값도 받지 않는다 (라우트는 그 경우 애초에 대조하지 않는다)", async () => {
     expect(await verifyCoachToken("", await coachToken(SECRET, coachTokenWindow()))).toBe(false);
+    expect(await isRenewableCoachToken("", await coachToken(SECRET, coachTokenWindow()))).toBe(
+      false,
+    );
   });
 
   it("길이가 다른 값은 받지 않는다", async () => {
@@ -403,13 +438,33 @@ describe("토큰 대조", () => {
     expect(calls).toHaveLength(0);
   });
 
-  it("낡은 창의 표식도 403이다 (창 두 개까지만 산다)", async () => {
+  it("아주 낡은 창의 표식은 403이다 (여섯 창 밖은 이 배포의 표식으로 치지 않는다)", async () => {
     vi.stubEnv("COACH_SHARED_SECRET", SECRET);
-    const stale = await coachToken(SECRET, coachTokenWindow() - 5);
+    const ancient = await coachToken(SECRET, coachTokenWindow() - COACH_TOKEN_STALE_WINDOWS);
     const response = await POST(
-      coachRequest(coachBody(), { headers: { [COACH_TOKEN_HEADER]: stale } }),
+      coachRequest(coachBody(), { headers: { [COACH_TOKEN_HEADER]: ancient } }),
     );
     expect(response.status).toBe(403);
+    expect(calls).toHaveLength(0);
+  });
+
+  it("창 넷 지난 표식은 403이 아니라 **작은 통**을 쓴다 (정상 통은 두 창까지다)", async () => {
+    /*
+     * 이 갈래가 없으면 둘 중 하나를 잃는다 — 갱신을 아무에게나 내주거나(작은 통이 1회
+     * 통행료가 된다), 탭을 오래 열어 둔 화면이 영영 작은 통에 남거나. 여기서는 「낡았지만
+     * 이 배포가 내준 표식」만 갈라 작은 통을 쓰게 하고, 갱신은 아래 절이 확인한다.
+     */
+    vi.stubEnv("COACH_SHARED_SECRET", SECRET);
+    vi.stubEnv("COACH_DAILY_CAP", "600");
+    const fresh = await freshRoute();
+    const stale = await coachToken(SECRET, coachTokenWindow() - 4);
+    const headers = { [COACH_TOKEN_HEADER]: stale };
+
+    // 작은 통을 말린다(무토큰 호출로).
+    for (let i = 0; i < COACH_RATE_LIMITS.anonDailyCap; i += 1) {
+      await fresh(coachRequest(coachBody()));
+    }
+    expect(await statusOf(await fresh(coachRequest(coachBody(), { headers })))).toBe("rate_limited");
   });
 });
 
@@ -435,19 +490,50 @@ describe("표식 갱신", () => {
     vi.unstubAllEnvs();
   });
 
+  /** 표식을 들고 온 요청 한 벌 — 갱신 헤더는 이제 이 요청에만 실린다. */
+  async function tokenedHeaders(): Promise<Record<string, string>> {
+    return { [COACH_TOKEN_HEADER]: await coachToken(SECRET, coachTokenWindow()) };
+  }
+
   it("받아들인 요청의 응답에 지금 창의 표식이 실린다", async () => {
     vi.stubEnv("COACH_SHARED_SECRET", SECRET);
-    const response = await POST(coachRequest(coachBody()));
+    const response = await POST(coachRequest(coachBody(), { headers: await tokenedHeaders() }));
     const value = response.headers.get(COACH_TOKEN_REFRESH_HEADER);
     expect(value).toBe(await coachTokenMetaValue(SECRET));
   });
 
   it("값의 꼴이 meta와 같다 — 화면이 두 자리를 같은 함수로 읽는다", async () => {
     vi.stubEnv("COACH_SHARED_SECRET", SECRET);
-    const response = await POST(coachRequest(coachBody()));
+    const response = await POST(coachRequest(coachBody(), { headers: await tokenedHeaders() }));
     const [window, token] = String(response.headers.get(COACH_TOKEN_REFRESH_HEADER)).split(".");
     expect(Number(window)).toBe(coachTokenWindow());
     expect(token).toBe(await coachToken(SECRET, coachTokenWindow()));
+  });
+
+  it("**표식 없는 요청의 응답에는 갱신 헤더가 없다** — 작은 통이 1회 통행료가 되지 않는다", async () => {
+    /*
+     * 예전에는 무토큰 요청에도 붙었다. 가장 싼 길이 몸통이 틀린 30바이트 POST였다 —
+     * 400 응답 한 번에 표식이 손에 들어오고, 그 뒤로는 큰 통을 전량 태울 수 있었다.
+     * 두 응답 모두에 헤더가 없어야 그 경로가 닫힌다(400은 그 싼 길 자체다).
+     */
+    vi.stubEnv("COACH_SHARED_SECRET", SECRET);
+    const ok = await POST(coachRequest(coachBody()));
+    expect(await statusOf(ok)).toBe("ok");
+    expect(ok.headers.get(COACH_TOKEN_REFRESH_HEADER)).toBeNull();
+
+    const bad = await POST(coachRequest({ task: "coach" }));
+    expect(bad.status).toBe(400);
+    expect(bad.headers.get(COACH_TOKEN_REFRESH_HEADER)).toBeNull();
+  });
+
+  it("창 넷 지난 표식을 들고 오면 **작은 통을 쓰되 갱신은 받는다**", async () => {
+    vi.stubEnv("COACH_SHARED_SECRET", SECRET);
+    const stale = await coachToken(SECRET, coachTokenWindow() - 4);
+    const response = await POST(
+      coachRequest(coachBody(), { headers: { [COACH_TOKEN_HEADER]: stale } }),
+    );
+    expect(await statusOf(response)).toBe("ok");
+    expect(response.headers.get(COACH_TOKEN_REFRESH_HEADER)).toBe(await coachTokenMetaValue(SECRET));
   });
 
   it("비밀값이 없으면 헤더 자체가 없다 — 미설정 배포의 응답이 한 글자도 다르지 않다", async () => {
@@ -497,8 +583,12 @@ describe("표식 갱신", () => {
   it("창이 만료된 문서로도 갱신 표식을 받아 **정상 통에 남는다**", async () => {
     /*
      * 이 검사가 이 절의 전부다. 화면(`coachRequestHeaders`)과 라우트를 같은 자리에서 물려
-     * 「창을 넘긴 문서 → 무토큰 호출 → 응답의 갱신 표식 → 다음 호출은 정상 통」을 끝까지 돈다.
-     * 작은 통을 미리 말려 두었으므로, 마지막 호출이 `ok`라는 사실이 곧 정상 통을 썼다는 증거다.
+     * 「창을 넘긴 문서 → 낡은 표식으로 호출 → 응답의 갱신 표식 → 다음 호출은 정상 통」을
+     * 끝까지 돈다. 작은 통을 미리 말려 두었으므로, 마지막 호출이 `ok`라는 사실이 곧 정상 통을
+     * 썼다는 증거다.
+     *
+     * 문서에 심긴 값이 **이 배포가 실제로 내준 표식**이라는 점이 4차와 달라진 자리다. 갱신을
+     * 무토큰 요청에 내주지 않게 되었으므로, 회복의 근거는 「낡았지만 우리가 내준 표식」뿐이다.
      */
     vi.stubEnv("COACH_SHARED_SECRET", SECRET);
     vi.stubEnv("COACH_DAILY_CAP", "600");
@@ -507,10 +597,10 @@ describe("표식 갱신", () => {
     const client = await import("@/lib/onlineCoach");
 
     const now = Date.now();
+    const staleWindow = coachTokenWindow(now) - 4;
+    const staleToken = await coachToken(SECRET, staleWindow);
     vi.stubGlobal("document", {
-      querySelector: () => ({
-        getAttribute: () => `${coachTokenWindow(now) - 4}.0123456789abcdef`,
-      }),
+      querySelector: () => ({ getAttribute: () => `${staleWindow}.${staleToken}` }),
     });
 
     /** 화면이 실제로 만드는 헤더에서 표식 한 칸만 꺼낸다(Content-Type은 위 도구가 이미 붙인다). */
@@ -519,8 +609,8 @@ describe("표식 갱신", () => {
       return value === undefined ? {} : { [COACH_TOKEN_HEADER]: value };
     };
 
-    // 문서에 심긴 값이 창 넷을 넘겼다 — 화면은 표식 없이 부른다(예전에는 여기서 끝이었다).
-    expect(tokenHeader()).toEqual({});
+    // 문서에 심긴 값이 창 넷을 넘겼다 — 화면은 그 낡은 값을 그대로 보낸다(서버가 받는 범위다).
+    expect(tokenHeader()[COACH_TOKEN_HEADER]).toBe(staleToken);
 
     const first = await route(coachRequest(coachBody(), { headers: tokenHeader() }));
     expect(await statusOf(first)).toBe("ok");
@@ -531,8 +621,8 @@ describe("표식 갱신", () => {
     for (let i = 1; i < anonCap; i += 1) await route(coachRequest(coachBody()));
     expect(await statusOf(await route(coachRequest(coachBody())))).toBe("rate_limited");
 
-    // 갱신받은 표식으로 부르면 정상 통이다.
-    expect(tokenHeader()[COACH_TOKEN_HEADER]).toBeDefined();
+    // 갱신받은 표식으로 부르면 정상 통이다(들고 있던 낡은 값이 아니라 새 값이다).
+    expect(tokenHeader()[COACH_TOKEN_HEADER]).toBe(await coachToken(SECRET, coachTokenWindow(now)));
     expect(await statusOf(await route(coachRequest(coachBody(), { headers: tokenHeader() })))).toBe(
       "ok",
     );
@@ -813,6 +903,76 @@ describe("ping 계수", () => {
   });
 });
 
+/* ── IP 바구니 상한 ────────────────────────────────────── */
+
+describe("IP 바구니 상한", () => {
+  /**
+   * 이 절이 닫는 것은 **메모리 증식 벡터**다.
+   *
+   * 계수기는 IP 하나마다 항목을 하나 만든다. 예전에는 삽입이 예산 검사 뒤에만 일어나 하루 항목
+   * 수가 예산 두 통(기본 660)에 저절로 묶였는데, ping을 계수기 안으로 들이면서 **예산을 보지 않는
+   * 삽입 경로**가 생겼다. 30바이트짜리 `{"task":"ping"}`에 매번 다른 `x-forwarded-for`를 붙이면
+   * 항목이 무한히 쌓이고, 4,096개를 넘긴 뒤로는 요청마다 지도 전체를 훑는 CPU까지 붙었다.
+   *
+   * 지도 크기를 직접 읽지 않는다(모듈 안 상태다). 대신 **상한에 닿은 뒤 새 IP가 세어지지 않는다**는
+   * 사실로 확인한다 — 항목이 만들어졌다면 분당 한도에 걸렸을 횟수를 넘겨 보낸다.
+   */
+  let POST: PostHandler;
+
+  beforeEach(async () => {
+    stubUpstream();
+    vi.stubEnv("COACH_BASE_URL", "https://coach.invalid/v1");
+    vi.stubEnv("COACH_MODEL", "tiny-coach-1");
+    POST = await freshRoute();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  /** 서로 다른 IP로 ping을 보내 바구니를 상한까지 채운다. */
+  async function fillBuckets(): Promise<void> {
+    for (let i = 0; i < COACH_RATE_LIMITS.maxIpBuckets; i += 1) {
+      const headers = { "x-forwarded-for": `203.0.${Math.floor(i / 256)}.${i % 256}` };
+      await POST(coachRequest({ task: "ping" }, { headers }));
+    }
+  }
+
+  it("상한만큼 채운 뒤에도 새 IP의 ping은 200이다 — 무대 직전 점검이 붉어지지 않는다", async () => {
+    await fillBuckets();
+    const headers = { "x-forwarded-for": "198.51.100.7" };
+    expect(await statusOf(await POST(coachRequest({ task: "ping" }, { headers })))).toBe("ok");
+  });
+
+  it("상한에 닿으면 새 IP는 **세지 않고** 통과한다 — 항목이 더 만들어지지 않는다는 증거다", async () => {
+    await fillBuckets();
+    const headers = { "x-forwarded-for": "198.51.100.8" };
+    // 항목이 만들어졌다면 분당 한도(20)에서 막혔을 횟수다.
+    for (let i = 0; i < COACH_RATE_LIMITS.perIpPerMinute + 5; i += 1) {
+      expect(await statusOf(await POST(coachRequest({ task: "ping" }, { headers })))).toBe("ok");
+    }
+  });
+
+  it("상한에 닿아도 정상 훈련 호출은 그대로 돈다 — 지키는 것은 예산 통이지 항목 수가 아니다", async () => {
+    await fillBuckets();
+    const headers = { "x-forwarded-for": "198.51.100.9" };
+    expect(await statusOf(await POST(coachRequest(coachBody(), { headers })))).toBe("ok");
+  });
+
+  it("상한에 닿아도 **배포 전체 상한은 그대로 걸린다** — 진짜 방어선은 이쪽이다", async () => {
+    vi.stubEnv("COACH_DAILY_CAP", "1");
+    const fresh = await freshRoute();
+    for (let i = 0; i < COACH_RATE_LIMITS.maxIpBuckets; i += 1) {
+      const headers = { "x-forwarded-for": `203.0.${Math.floor(i / 256)}.${i % 256}` };
+      await fresh(coachRequest({ task: "ping" }, { headers }));
+    }
+    const headers = { "x-forwarded-for": "198.51.100.10" };
+    expect(await statusOf(await fresh(coachRequest(coachBody(), { headers })))).toBe("ok");
+    expect(await statusOf(await fresh(coachRequest(coachBody(), { headers })))).toBe("rate_limited");
+  });
+});
+
 /* ── 검증 순서 ─────────────────────────────────────────── */
 
 describe("검증은 계수기 뒤에 있다", () => {
@@ -829,6 +989,23 @@ describe("검증은 계수기 뒤에 있다", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
+  });
+
+  it("주소·모델이 없는 배포의 unconfigured는 **계수기를 지나지 않는다** (열거 ②를 못 박는다)", async () => {
+    /*
+     * 라우트 주석이 「계수기를 지나지 않는 자리」를 열거하는데, 그 열거가 이 경로를 빠뜨리고
+     * 있었다. 「하지 않는 일까지 적는다」가 이 파일의 미덕이라, 열거가 틀리면 그 미덕이 그대로
+     * 위험이 된다. 여기서는 사실 쪽을 검사로 고정한다 — 고치려면 이 검사부터 만나야 한다.
+     */
+    vi.stubEnv("COACH_BASE_URL", "");
+    vi.stubEnv("COACH_MODEL", "");
+    const fresh = await freshRoute();
+    const headers = { "x-forwarded-for": "10.9.9.20" };
+    for (let i = 0; i < COACH_RATE_LIMITS.perIpPerMinute + 3; i += 1) {
+      expect(await statusOf(await fresh(coachRequest(coachBody(), { headers })))).toBe(
+        "unconfigured",
+      );
+    }
   });
 
   it("형태가 틀린 몸통도 몫을 한 칸 쓴다 — 무한도 연산 구간을 없앤 대가다", async () => {

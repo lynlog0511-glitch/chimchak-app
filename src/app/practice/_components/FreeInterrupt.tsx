@@ -72,7 +72,7 @@ export function FreeInterrupt({ check, onClose }: FreeInterruptProps) {
       />
       <div
         className={cx(
-          "relative flex max-h-[88dvh] w-full max-w-[430px] flex-col rounded-t-[22px] bg-white",
+          "relative flex max-h-[88dvh] w-full max-w-[430px] flex-col rounded-t-[22px] bg-paper",
           "shadow-[0_-10px_40px_rgba(25,31,30,0.25)]",
           "transition-transform duration-[240ms] ease-out",
           entered ? "translate-y-0" : "translate-y-full",
@@ -120,7 +120,7 @@ export function FreeInterrupt({ check, onClose }: FreeInterruptProps) {
                     <button
                       type="button"
                       onClick={() => leave(alternative)}
-                      className="min-h-[48px] w-full rounded-card border border-line-strong bg-white px-[15px] py-2.5 text-left text-[1.0625rem] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
+                      className="min-h-[48px] w-full rounded-card border border-line-strong bg-paper px-[15px] py-2.5 text-left text-[1.0625rem] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
                     >
                       {alternative}
                     </button>
@@ -161,7 +161,7 @@ export function FreeInterrupt({ check, onClose }: FreeInterruptProps) {
             type="button"
             ref={retryRef}
             onClick={() => leave()}
-            className="min-h-[54px] w-full rounded-card bg-brand-700 px-5 text-[1rem] font-bold text-white transition-colors duration-150 hover:bg-brand-800 active:bg-brand-900"
+            className="min-h-[54px] w-full rounded-card bg-brand-700 px-5 text-[1rem] font-bold text-paper transition-colors duration-150 hover:bg-brand-800 active:bg-brand-900"
           >
             {CF_RETRY}
           </button>

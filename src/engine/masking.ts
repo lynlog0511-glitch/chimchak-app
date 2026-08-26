@@ -82,9 +82,12 @@ const NAME_JOSA = "은|는|이|가|을|를|과|와|도|의";
  * **NAME_MARKERS에 그냥 얹지 않는 이유**가 이 주석의 전부다. 그 규칙은 성 + 1~3자를 받으므로
  * "주간보호 간호사"가 「[대상자] 간호사」가 되고 "방문 간호사"도 같은 꼴이다(뒤쪽은 예외어가
  * 받지만 앞쪽은 받지 못한다). 그래서 이 목록은 **성 1자 + 이름 2자**로 좁힌 별도 규칙
- * (name-title)에만 걸고, 검사는 조사·맨이름 규칙과 **같은 것**(acceptBareName)을 쓴다 —
- * 두 이름 글자가 모두 이름 음절이어야 하고, 예외어면 제외다. "주간보호"는 「간·보」에서,
- * "우리 아드님"은 예외어에서 각각 걸린다.
+ * (name-title)에만 건다. "주간보호"는 성씨로 시작하지 않아 애초에 걸리지 않고, "우리 아드님"·
+ * "방문 간호사"는 예외어(`NAME_STOPWORDS`)에서 걸린다.
+ *
+ * 검사는 `acceptMarkedName`이다 — 앞 경계와 예외어 두 겹뿐이고 이름 음절 사전은 걸지 않는다.
+ * 뒤에 오는 호칭이 이미 사람 표지이고, 사전을 함께 걸었더니 이 규칙이 겨냥한 인구(직원·보호자)의
+ * 이름이 통째로 새는 것을 실측했다(`acceptMarkedName` 주석).
  */
 const NAME_TITLES =
   "아드님|따님|어머님|아버님|며느님|사위|간호사|요양보호사|사회복지사|물리치료사|영양사|팀장|과장|실장";
@@ -94,9 +97,25 @@ const NAME_TITLES =
  *
  * 뒤에 아무 표지가 없어도(맨이름 규칙의 종결·구두점 경계도 아니어도) 앞에 이 말이 서 있으면
  * 뒤따르는 세 글자는 사람 이름이다. 소비하지 않는 후방탐색(lookbehind)이라 표지 자체는 남는다.
- * 검사는 역시 acceptBareName 하나를 나눠 쓴다 — 사전이 두 벌로 갈라지지 않는다.
+ * 검사는 name-title과 같은 `acceptMarkedName`을 나눠 쓴다 — 표지가 이미 선 자리이므로 이름 음절
+ * 사전은 걸지 않는다(사유와 실측은 그 주석).
  */
-const NAME_LEAD_MARKERS = "성함|이름|환자명|대상자|수급자|보호자";
+const NAME_LEAD_MARKERS = "성함|환자명|대상자|수급자|보호자";
+
+/**
+ * 같은 자리의 **약한 표지** — 「이름」 하나다. 규칙을 갈라 둔 이유가 이 주석이다.
+ *
+ * 「성함」·「환자명」·「수급자」는 사람에게만 쓰는 말이지만, 「이름」은 사물에도 쓴다 — 이 저장소만
+ * 해도 「모델 이름」·「작업 이름」·「금지 행위의 이름이 나오는 것이 정상이고」가 있다. 그래서 이
+ * 표지 뒤에서는 이름 음절 사전(`acceptBareName`)을 그대로 걸어 둔다. 실측으로 확인한 자리다 —
+ * 표지 넷과 함께 사전을 뗐더니 「이름이 하나만 말하는 순간」·「이름 정하기 어렵습니다」·
+ * 「모델 이름을 고르는 일은」이 전부 이름으로 읽혔다.
+ *
+ * 치르는 값도 적어 둔다: 「이름은 김민호입니다」처럼 **약한 표지 + 요즘 이름**은 여기서 놓친다.
+ * 사전을 떼어 얻는 것(직원·보호자 이름)보다 잃는 것(이 앱의 화면 문장이 통째로 가려짐)이 큰
+ * 자리라 이렇게 둔다.
+ */
+const NAME_LEAD_WEAK_MARKERS = "이름";
 
 /**
  * 이름 뒤에 **아무것도 붙지 않는 자리** — 문장 끝·구두점·「입니다」류 앞.
@@ -128,12 +147,46 @@ const NAME_TAIL_BOUNDARY =
  * 전부 성씨 + 두 글자 + 조사 꼴이다). 그래서 조사 규칙은 **이름에 쓰는 음절로 된 두 글자**
  * 일 때만 발동한다. 목록은 이 앱이 마주하는 세대(1930~50년대생)의 이름 음절 쪽으로 기울여
  * 두었고, 「기·서·지」처럼 산문에서 조사·어미와 겹치는 음절은 일부러 뺐다.
- * 여기서 놓친 이름은 호칭 규칙(성 + 어르신·님·씨)이 다시 받는다.
+ *
+ * **이 사전을 거는 규칙은 둘뿐이다** — name-josa와 name-bare, 곧 문장에 사람 표지가 하나도 없어
+ * 사전이 유일한 방어선인 자리다. 여기서 놓친 이름은 표지가 선 규칙들이 받는다: 성 + 어르신·님·씨
+ * (name-character·name-heuristic), 이름 + 간호사·아드님(name-title), 성함·환자명 + 이름(name-lead).
+ * 뒤의 두 규칙은 사전을 걸지 않는다 — 걸었더니 그 규칙들이 겨냥한 세대(직원·보호자)의 이름이
+ * 정확히 사전과 어긋나 84문장이 통째로 샜다(`acceptMarkedName` 주석의 실측).
  */
 const GIVEN_NAME_SYLLABLES = new Set(
   ("영수순자옥숙희미남만말복분삼상성세소송승신애양연열용원월윤은익인일임재정제종준중진찬창철" +
     "춘충태학한향헌현형혜호환효훈흥길대덕동두란례룡리명무문병보봉범석선설섭식실심아안" +
     "완우웅유육채천초필팔칠홍황회규").split(""),
+);
+
+/**
+ * 위 사전에 **요즘 세대의 이름 음절**을 더한 것 — 표지가 선 규칙(name-title·name-lead)이
+ * 「조사로 끝나는 후보」를 만났을 때만 본다(`acceptMarkedName`).
+ *
+ * 왜 목록을 하나 더 두는가: 위 사전은 이 앱이 마주하는 **어르신 세대**로 일부러 기울여 두었고
+ * 그 기울기는 조사 규칙·맨이름 규칙에서 옳다(산문 오탐을 그것이 막는다). 그러나 「간호사」·
+ * 「성함」 같은 표지가 붙는 자리에 오는 이름은 대개 직원·보호자, 곧 다른 세대다. 그 자리에까지
+ * 어르신 사전을 걸었더니 「김민호 간호사」·「환자명 이지훈」류 84문장이 통째로 샜다.
+ *
+ * 「기·서·지」처럼 위 사전이 일부러 뺀 음절이 여기에는 들어 있다. 뺀 이유가 **표지 없는 규칙**의
+ * 산문 오탐이었으므로, 표지가 이미 선 자리에서는 그 이유가 서지 않는다.
+ */
+const WIDE_GIVEN_NAME_SYLLABLES = new Set([
+  ...GIVEN_NAME_SYLLABLES,
+  ..."민지서하예나주기경건근다라로빈솔시온율담결겸린별봄새슬여혁흔".split(""),
+]);
+
+/**
+ * 낱말 끝에 붙은 **조사·어미**로 흔한 글자 — 「조절은 간호사」를 이름으로 읽지 않기 위한 자리.
+ *
+ * 표지가 선 규칙에서 음절 사전을 떼자 「용량 조절은 간호사님께」·「사용 여부는 간호사님께」처럼
+ * **앞 문장 성분 + 직함**이 이름으로 읽혔다(실측). 이름은 조사를 달고 호칭 앞에 서지 않으므로,
+ * 후보가 이 글자로 끝날 때만 사전(`WIDE_GIVEN_NAME_SYLLABLES`)을 한 번 본다.
+ * 「최하은 간호사」처럼 이름 자체가 그 글자로 끝나는 경우는 그 사전이 받는다.
+ */
+const JOSA_TAIL_SYLLABLES = new Set(
+  ["은", "는", "이", "가", "을", "를", "과", "와", "도", "만", "의", "에", "로", "고", "서", "며", "면"],
 );
 
 /**
@@ -164,6 +217,23 @@ const NAME_STOPWORDS = new Set([
   "고객",
   "주임",
   "원장",
+  /*
+   * ── 기관 직함 호칭 — **판정 규칙과 같은 목록을 본다** ──
+   *
+   * 「소장님께 보고드렸습니다」가 「[대상자]께 보고드렸습니다」가 되고 있었다. 「소」가 성씨
+   * 사전에 있어 호칭 규칙(name-heuristic)이 "소장" + "님"으로 갈랐고, 예외어에는 「원장」·
+   * 「이장」·「차장」만 있었기 때문이다. 하필 같은 커밋이 이 호칭들을 **정답 발화**로 판정
+   * 규칙에 넣었으므로(src/data/scenarios/chk-a01.ts의 기관 보고 패턴), 훈련이 시키는 모범
+   * 발화가 가림 화면에서 「성명 1건」으로 세어지던 자리다.
+   *
+   * 활용형(소장님·소장께·소장에게·소장한테)은 따로 적지 않는다 — 호칭 규칙이 표지를 떼고
+   * 두 글자만 후보로 넘기고, `isCommonWord`가 꼬리(님)를 한 번 더 벗겨 대조하기 때문이다.
+   * 새 호칭을 판정 규칙에 넣을 때 이 목록도 함께 보라는 규칙은 tests/masking.test.ts가 지킨다
+   * (시나리오 데이터의 호칭 패턴을 읽어 성명으로 가려지지 않는지 확인한다).
+   */
+  "소장",
+  "센터장",
+  "시설장",
   "차장",
   "구청장",
   "정부",
@@ -419,6 +489,15 @@ interface MaskRule {
   priority: number;
   /** 추가 검증 — false면 후보에서 제외 */
   accept?: (matched: string, text: string, start: number, end: number) => boolean;
+  /**
+   * 이 규칙이 확정한 문자열을 **재등장 2차 패스의 씨앗**으로 쓸지 (`repeatNameCandidates`).
+   *
+   * 참으로 두는 규칙은 셋뿐이다 — 사람 표지가 **문장에 이미 적혀 있는** 자리(name-heuristic ·
+   * name-title · name-lead). 표지 없이 사전으로만 판단하는 규칙(name-josa · name-bare)의 후보는
+   * 씨앗이 되지 않는다: 그쪽 오탐(「서명란」·「권유형」)이 입력 전체로 번지기 때문이다.
+   * name-character는 씨앗이 필요 없다 — 매치에 호칭이 함께 들어 있어 재등장도 같은 규칙이 잡는다.
+   */
+  repeatSeed?: boolean;
 }
 
 const HANGUL = /[가-힣]/;
@@ -428,8 +507,11 @@ function isHangulAt(text: string, index: number): boolean {
   return HANGUL.test(text.charAt(index));
 }
 
-/** 이름 뒤가 아니라 낱말 뒤에 붙은 것으로 보이는 꼬리 — 벗겨서 예외어와 한 번 더 대조한다 */
-const TRIMMABLE_TAILS = ["님", "은", "는", "이", "가", "을", "를", "도", "의", "과", "와"];
+/**
+ * 이름 뒤가 아니라 낱말 뒤에 붙은 것으로 보이는 꼬리 — 벗겨서 예외어와 한 번 더 대조한다.
+ * (「만」은 「하나만」·「안심만」처럼 예외어에 조사가 붙은 꼴을 낱개로 적어 두던 자리를 없앤다.)
+ */
+const TRIMMABLE_TAILS = ["님", "은", "는", "이", "가", "을", "를", "도", "의", "과", "와", "만"];
 
 /**
  * 이름 후보가 사람 이름이 아니라 흔한 낱말인지.
@@ -443,12 +525,38 @@ function isCommonWord(candidate: string): boolean {
 }
 
 /**
- * 호칭 없이 이름만 나온 후보를 받아들일지 — 조사 규칙(name-josa)과 맨이름 규칙(name-bare)이
- * **같은 검사**를 쓴다. 사전이 두 벌로 갈라지면 한쪽만 넓어지는 날이 온다.
+ * **표지가 이미 선 자리**의 이름 후보를 받아들일지 — 앞 경계와 예외어 두 겹만 본다.
+ *
+ * 쓰는 규칙은 name-title(뒤에 간호사·아드님 따위가 오는 자리)과 name-lead(앞에 성함·환자명이
+ * 서는 자리)다. 두 규칙은 사람 표지가 **문장에 이미 적혀 있는** 자리만 열므로, 이름 음절
+ * 사전을 한 겹 더 걸 이유가 없다.
+ *
+ * 왜 갈랐는가(실측): 사전(`GIVEN_NAME_SYLLABLES`)은 이 앱이 마주하는 세대의 이름 쪽으로 일부러
+ * 기울여 두었는데, 이 두 규칙이 겨냥한 인구는 직원·보호자라 대개 젊은 세대다. 사전을 함께 걸었을
+ * 때 「김민호 간호사에게 알렸습니다」·「환자명 이지훈 확인했습니다」류 **84문장이 전부 그대로
+ * 나갔다**(현대식 이름 12종 × 이 두 규칙이 겨냥한 문틀 7종).
+ *
+ * 예외가 하나 있다 — **조사로 끝나는 후보**. 사전을 통째로 떼자 「용량 조절은 간호사님께」·
+ * 「억제대 사용 여부는 간호사님께」의 앞 성분이 이름으로 읽혔다(저장소 문장 전수 스윕에서 11건).
+ * 이름은 조사를 달고 호칭 앞에 서지 않으므로, 그 꼴일 때만 넓힌 사전을 한 번 본다. 그 한 겹을
+ * 얹은 뒤 84문장은 모두 가려지고 스윕의 새 오탐은 0건이 되었다.
  */
-function acceptBareName(matched: string, text: string, start: number): boolean {
+function acceptMarkedName(matched: string, text: string, start: number): boolean {
   if (isHangulAt(text, start - 1)) return false;
   if (isCommonWord(matched)) return false;
+  if (!JOSA_TAIL_SYLLABLES.has(matched.charAt(matched.length - 1))) return true;
+  return [...matched.slice(1)].every((syllable) => WIDE_GIVEN_NAME_SYLLABLES.has(syllable));
+}
+
+/**
+ * 호칭 없이 이름만 나온 후보를 받아들일지 — 조사 규칙(name-josa)과 맨이름 규칙(name-bare)이
+ * **같은 검사**를 쓴다. 사전이 두 벌로 갈라지면 한쪽만 넓어지는 날이 온다.
+ *
+ * 위 검사에 **이름 음절 사전**을 한 겹 더 얹은 것이다. 이쪽 두 규칙은 문장에 사람 표지가
+ * 하나도 없는 자리를 여는 규칙이라, 사전이 유일한 방어선이다.
+ */
+function acceptBareName(matched: string, text: string, start: number): boolean {
+  if (!acceptMarkedName(matched, text, start)) return false;
   return [...matched.slice(1)].every((syllable) => GIVEN_NAME_SYLLABLES.has(syllable));
 }
 
@@ -623,6 +731,7 @@ const MASK_RULES: MaskRule[] = [
       if (/^\s?께요/.test(text.slice(end, end + 4))) return false;
       return true;
     },
+    repeatSeed: true,
   },
   // 성씨 + 이름 두 자 + 일반 조사 ("김영수는", "박말순이") — 호칭 없이 이름만 부른 문장
   {
@@ -654,8 +763,12 @@ const MASK_RULES: MaskRule[] = [
    *
    * 호칭 규칙(name-heuristic)이 님·씨·어르신만 보던 자리다. 목록을 그쪽에 얹지 않고 규칙을
    * 따로 세운 이유는 NAME_TITLES 주석에 적어 두었다 — 그쪽은 성 + 1~3자를 받아 "주간보호
-   * 간호사"까지 이름으로 읽는다. 여기서는 폭을 두 글자로 좁히고 검사를 조사·맨이름 규칙과
-   * 공유해, 새로 여는 문이 정확히 「이름 + 호칭」 한 꼴이 되게 한다.
+   * 간호사"까지 이름으로 읽는다. 여기서는 폭을 **성 1자 + 이름 2자**로 좁혀, 새로 여는 문이
+   * 정확히 「이름 + 호칭」 한 꼴이 되게 한다.
+   *
+   * 검사는 `acceptMarkedName`이다 — 앞 경계와 예외어 두 겹뿐이고 **이름 음절 사전은 걸지
+   * 않는다.** 뒤에 오는 호칭이 이미 사람 표지이고, 이 자리에 서는 이름은 대개 직원·보호자,
+   * 곧 사전이 겨냥하지 않은 세대다(사유와 실측은 `acceptMarkedName` 주석).
    */
   {
     id: "name-title",
@@ -663,7 +776,8 @@ const MASK_RULES: MaskRule[] = [
     pattern: new RegExp(`([${SURNAMES}][가-힣]{2})\\s?(?:${NAME_TITLES})`, "g"),
     group: 1,
     priority: 9,
-    accept: acceptBareName,
+    accept: acceptMarkedName,
+    repeatSeed: true,
   },
   /*
    * **앞**에 표지가 선 맨이름 ("환자명 김영수 확인했습니다", "성함이 김영수 맞으시죠").
@@ -671,12 +785,30 @@ const MASK_RULES: MaskRule[] = [
    * 뒤에 조사도 호칭도 종결도 없는 자리를 앞쪽 표지 하나로 받는다. 공백 경계를 통째로 넓히지
    * 않겠다는 판단(NAME_TAIL_BOUNDARY 주석의 오탐 25건 실측)은 그대로 두고, 그 판단이 정확히
    * 무엇을 놓치는지 아는 자리만 좁게 연다.
+   *
+   * 검사는 name-title과 같은 `acceptMarkedName`이다 — 앞에 「환자명」·「성함」이 서 있다는 사실
+   * 자체가 증거라, 이름 음절 사전을 한 겹 더 걸면 겨냥한 이름만 빠져나간다(같은 실측 84문장).
    */
   {
     id: "name-lead",
     kind: "성명",
     pattern: new RegExp(
       `(?<=(?:${NAME_LEAD_MARKERS})(?:${NAME_JOSA})?\\s*[:：]?\\s*)[${SURNAMES}][가-힣]{2}(?![가-힣])`,
+      "g",
+    ),
+    priority: 10,
+    accept: acceptMarkedName,
+    repeatSeed: true,
+  },
+  /*
+   * 앞에 **약한 표지**(「이름」)가 선 맨이름 — 규칙이 하나 더 있는 이유는 `NAME_LEAD_WEAK_MARKERS`
+   * 주석에 있다. 정규식은 위와 같고 검사만 다르다(사전을 그대로 건다).
+   */
+  {
+    id: "name-lead-weak",
+    kind: "성명",
+    pattern: new RegExp(
+      `(?<=(?:${NAME_LEAD_WEAK_MARKERS})(?:${NAME_JOSA})?\\s*[:：]?\\s*)[${SURNAMES}][가-힣]{2}(?![가-힣])`,
       "g",
     ),
     priority: 10,
@@ -700,6 +832,8 @@ interface Candidate {
   kind: MaskKind;
   replaced: string;
   priority: number;
+  /** 재등장 2차 패스의 씨앗으로 쓸 수 있는 후보인지 (`MaskRule.repeatSeed`) */
+  seed?: boolean;
 }
 
 function collectCandidates(text: string): Candidate[] {
@@ -722,7 +856,14 @@ function collectCandidates(text: string): Candidate[] {
         const end = start + groupText.length;
         const ok = rule.accept ? rule.accept(groupText, text, start, end) : true;
         if (ok) {
-          found.push({ start, end, kind: rule.kind, replaced: MASK_TOKENS[rule.kind], priority: rule.priority });
+          found.push({
+            start,
+            end,
+            kind: rule.kind,
+            replaced: MASK_TOKENS[rule.kind],
+            priority: rule.priority,
+            seed: rule.repeatSeed,
+          });
         }
       }
       m = re.exec(text);
@@ -758,9 +899,13 @@ function resolveOverlap(candidates: Candidate[]): Candidate[] {
  * 가리고 한 번은 노출하는** 결과인데, 이는 아예 못 가린 것과 위험이 같으면서 화면은 「가렸습니다」
  * 라고 말한다. 사람 검토가 없는 경로(/practice 자유 연습)에서는 이 자동 체가 마지막이다.
  *
- * **오탐이 늘지 않는 이유**가 이 함수를 세운 근거다. 여기서 찾는 것은 새 후보가 아니라 이미
- * 세 겹 방어선(앞이 한글이면 제외 · 예외어면 제외 · 이름 음절일 것)을 지나 **확정된 문자열
- * 그 자체**이고, 그 문자열이 같은 입력 안에 다시 나온 자리뿐이다. 사전도 정규식도 넓히지 않는다.
+ * **씨앗을 어디서 받는가**가 이 함수의 오탐 폭을 정한다. 받는 것은 `repeatSeed`가 붙은 규칙,
+ * 곧 사람 표지가 **문장에 이미 적혀 있는** 자리를 잡은 후보뿐이다(name-heuristic·name-title·
+ * name-lead). 표지 없이 사전으로만 판단하는 규칙(name-josa·name-bare)의 후보는 씨앗이 되지
+ * 않는다 — 예전에는 모든 성명 후보를 씨앗으로 받아, 그쪽 오탐이 입력 전체로 번졌다
+ * (「서명란에 서명을 받았습니다. 서명란은 비어 있었습니다.」가 1건→2건이 되던 자리다).
+ * 정직하게 적어 둔다: 씨앗이 오탐이면 이 패스는 그 오탐을 **번지게 한다**. 그래서 여기서 하는
+ * 일은 오탐을 안 만드는 것이 아니라, 씨앗의 출처를 「표지가 이미 선 자리」로 좁히는 것이다.
  *
  * 우선순위는 모든 규칙보다 뒤(`REPEAT_NAME_PRIORITY`)라, 원래 규칙이 잡은 더 긴 자리와 겹치면
  * 언제나 원래 자리가 이긴다.
@@ -768,7 +913,7 @@ function resolveOverlap(candidates: Candidate[]): Candidate[] {
 function repeatNameCandidates(text: string, accepted: readonly Candidate[]): Candidate[] {
   const names = new Set<string>();
   for (const c of accepted) {
-    if (c.kind !== "성명") continue;
+    if (c.kind !== "성명" || c.seed !== true) continue;
     const value = text.slice(c.start, c.end);
     // 한 글자짜리 확정은 두지 않는다(성씨 한 자가 온 문장을 물어뜯는 일을 만들지 않는다).
     if (value.length >= 2) names.add(value);

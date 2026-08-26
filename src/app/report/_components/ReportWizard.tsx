@@ -11,6 +11,14 @@ import { DraftForm } from "./DraftForm";
 import { DraftRows } from "./DraftRows";
 import { MaskReview, applyManualMask, type ManualMaskSpan } from "./MaskReview";
 import { PrivacyPath } from "./PrivacyPath";
+import {
+  CURRENT_KEY,
+  PENDING_KEY,
+  clearDraftSlot,
+  joinDrafts,
+  promoteHeldDraft,
+  writeDraftSlot,
+} from "./reportDraft";
 import { StepBar } from "./StepBar";
 import { VoiceInput } from "./VoiceInput";
 
@@ -43,34 +51,14 @@ const EMPTY_DRAFT: RecordDraft = recomputeMissing({
 
    왜 localStorage가 아니라 sessionStorage인가. 이것은 확정 **전** 원문, 곧 아직 가리지 않은
    글입니다. 남길 이유는 「방금 실수로 나갔다」 하나뿐이라 그 탭이 살아 있는 동안으로 수명을
-   좁힙니다 — 탭을 닫으면 사라지고, 확정하거나 「새로 적기」를 고르시면 즉시 지웁니다.
-   (저장 항목이 하나 늘었으므로 `/legal`의 「기기 안에 남는 것」 목록에도 한 줄 적어 두었습니다.) */
-const DRAFT_KEY = "chimchak.report.draft.v1";
+   좁힙니다 — 탭을 닫으면 사라지고, 확정하시면 즉시 지웁니다.
+   (저장 항목이므로 `/legal`의 「기기 안에 남는 것」 목록에도 적어 두었습니다.)
 
-function readStoredDraft(): string {
-  try {
-    return window.sessionStorage.getItem(DRAFT_KEY) ?? "";
-  } catch {
-    return "";
-  }
-}
-
-function writeStoredDraft(text: string): void {
-  try {
-    if (text.trim().length === 0) window.sessionStorage.removeItem(DRAFT_KEY);
-    else window.sessionStorage.setItem(DRAFT_KEY, text);
-  } catch {
-    /* 사생활 보호 모드·저장 공간 부족 — 임시 보관만 못 할 뿐 작성은 그대로 이어집니다 */
-  }
-}
-
-function clearStoredDraft(): void {
-  try {
-    window.sessionStorage.removeItem(DRAFT_KEY);
-  } catch {
-    /* 위와 같음 */
-  }
-}
+   칸은 **둘**입니다 — 지금 적는 글(CURRENT_KEY)과 맡아 둔 지난 글(PENDING_KEY). 한 칸을 두
+   회차가 다투던 동안에는 가드 한 줄의 방향이 어느 쪽 글을 죽일지 정했고, 그 방향이 라운드마다
+   뒤집혔습니다(페르소나 FE med ×2). 나눈 이유와 승격 규칙은 `./reportDraft`에 적어 두었고,
+   재현 절차는 tests/reportDraft.test.ts가 그대로 밟습니다 — 이 화면에는 그 칸을 **언제** 쓰고
+   언제 지우는지만 남깁니다. */
 
 /* ── 히스토리 표식 ─────────────────────────────────────────
    항목에 싣는 것은 셋입니다 — 단계 번호·회차 표식·그 회차에서 쌓은 깊이.
@@ -167,15 +155,13 @@ export function ReportWizard() {
    */
   const [resumedDraft, setResumedDraft] = useState(false);
   /**
-   * 위 값의 ref 짝.
+   * 세션 저장소를 아직 한 번도 읽지 않은 동안에는 쓰지도 않습니다.
    *
-   * 마운트 첫 commit에서 「읽기」 효과와 「쓰기」 효과가 같은 차례에 돕니다. 쓰기 쪽 클로저는
-   * 아직 갱신 전 상태(`pendingDraft === ""`)를 보고 있어, 상태만 쓰면 방금 읽어 온 글을
-   * 빈 문자열로 덮어 지웁니다 — 되찾으려고 만든 장치가 그 자리에서 스스로를 지웁니다.
-   * 그래서 판단에 쓰는 값은 ref로, 화면에 그리는 값은 상태로 나눠 둡니다.
+   * 예전에는 이 짝으로 `pendingRef`도 함께 들고 있었습니다 — 쓰기 효과가 「맡아 둔 글이
+   * 있는가」를 판단해야 했는데, 마운트 첫 commit에서는 그 상태가 아직 갱신 전이라 ref가
+   * 필요했습니다. 칸을 둘로 나눈 뒤로는 쓰기 쪽이 아무것도 판단하지 않으므로(언제나 「지금
+   * 적는 글」 칸에 씁니다) 그 셀이 통째로 사라졌습니다.
    */
-  const pendingRef = useRef("");
-  /** 세션 저장소를 아직 한 번도 읽지 않은 동안에는 쓰지도 않습니다. */
   const restoredRef = useRef(false);
   /**
    * 이 회차의 표식. 확정 뒤 「새 보고 작성하기」로 다시 시작하면 새 값을 받습니다.
@@ -217,26 +203,29 @@ export function ReportWizard() {
     headingRef.current?.focus();
   }, [step, saved]);
 
-  /* 지난번에 적으시던 글이 남아 있는지 — 마운트 뒤에 한 번만 봅니다(서버에는 세션 저장소가 없습니다). */
+  /* 지난번에 적으시던 글이 남아 있는지 — 마운트 뒤에 한 번만 봅니다(서버에는 세션 저장소가 없습니다).
+     이 화면으로 돌아오셨다는 것은 지난 회차가 확정 없이 화면을 벗어난 채 끝났다는 뜻입니다.
+     그래서 「지금 적는 글」 칸에 남아 있던 것을 **맡아 둔 글** 칸으로 올리고, 지금 칸은 비웁니다.
+     두 칸에 글이 다 있으면(카드를 고르지 않은 채 또 나가신 경우) 시간 순으로 이어 한 칸에
+     담습니다 — 어느 쪽도 버리지 않는 것이 이 장치의 유일한 목적입니다.
+     StrictMode의 이중 실행에서도 결과가 같습니다: 두 번째 실행은 이미 비워진 「지금」 칸과
+     방금 올린 「맡아 둔」 칸을 다시 이을 뿐이라 같은 값이 나옵니다. */
   useEffect(() => {
-    const stored = readStoredDraft();
-    pendingRef.current = stored.trim().length > 0 ? stored : "";
+    const held = promoteHeldDraft();
     restoredRef.current = true;
-    if (pendingRef.current.length > 0) setPendingDraft(pendingRef.current);
+    if (held.length > 0) setPendingDraft(held);
   }, []);
 
-  /* 원문이 바뀔 때마다 임시 보관을 갱신합니다. 여기 담기는 것은 **가리기 전 원문**이고,
-     확정하거나 새로 적기를 고르시면 지웁니다. */
+  /* 원문이 바뀔 때마다 「지금 적는 글」 칸을 갱신합니다. 여기 담기는 것은 **가리기 전 원문**이고,
+     확정하시면 지웁니다.
+
+     가드가 없습니다 — 카드가 떠 있든 아니든, 고르셨든 아니든 지금 치신 글은 언제나 남습니다.
+     맡아 둔 글은 다른 칸에 있어 이 쓰기가 닿지 못하므로, 예전처럼 「어느 쪽을 죽일지」를
+     여기서 정할 일이 없습니다. `saved`만 봅니다(확정 뒤에는 지운 칸을 다시 채우지 않습니다). */
   useEffect(() => {
     if (!restoredRef.current || saved) return;
-    /* 「이어서 / 새로」를 고르시기 전에는 맡아 둔 글을 건드리지 않습니다.
-       예전 조건은 여기에 `&& text.length === 0`이 붙어 있었습니다. 그러면 카드가 떠 있는 동안
-       입력창에 한 글자만 쳐도 가드가 풀려 맡아 둔 원문을 그 글자가 덮었습니다 — 말로 3분
-       불러넣은 보고를 지키려고 만든 장치가 실수로 한 글자 친 경우에만 그 보고를 지웠습니다.
-       고르시고 나면 `settlePending()`이 이 값을 비우고, 그 상태 변화가 이 효과를 다시 돌립니다. */
-    if (pendingRef.current.length > 0) return;
-    writeStoredDraft(text);
-  }, [text, saved, pendingDraft]);
+    writeDraftSlot(CURRENT_KEY, text);
+  }, [text, saved]);
 
   /* 시스템 뒤로 = 한 단계 되돌리기.
      방향을 세지 않습니다 — 도착한 항목이 자기 깊이와 단계를 들고 있으므로, 뒤로든 앞으로든
@@ -318,9 +307,16 @@ export function ReportWizard() {
     }
   };
 
-  /** 「이어서 / 새로」 물음을 매듭짓습니다 — 화면에서 카드를 접고, 판단용 ref도 함께 비웁니다. */
+  /**
+   * 「이어서 / 새로」 물음을 매듭짓습니다 — 맡아 둔 칸을 비우고 화면에서 카드를 접습니다.
+   *
+   * 네 자리에서 부릅니다(새로 적기 · 이어서 적기 · 확정 · 새 회차). 「이어서」로 오는 경우
+   * 그 글은 이미 「지금 적는 글」로 옮겨 간 뒤라, 이 칸에서 지워도 사라지는 것이 없습니다.
+   * 「지금 적는 글」 칸은 건드리지 않습니다 — 카드가 떠 있는 동안 치신 글은 어느 쪽을 고르셔도
+   * 그대로 남습니다.
+   */
   const settlePending = (): void => {
-    pendingRef.current = "";
+    clearDraftSlot(PENDING_KEY);
     setPendingDraft("");
   };
 
@@ -390,8 +386,11 @@ export function ReportWizard() {
     setSecondPassCount(extraSpans.length);
     setDraft(finalDraft);
     setSaved(stored);
-    /* 확정과 동시에 임시 보관을 지웁니다 — 남길 이유가 사라진 순간입니다. */
-    clearStoredDraft();
+    /* 확정과 동시에 임시 보관을 두 칸 다 지웁니다 — 남길 이유가 사라진 순간입니다.
+       카드를 고르지 않은 채 확정까지 오신 경우 맡아 둔 지난 글도 여기서 함께 사라집니다.
+       남는 경계이지만, 이 화면에서 한 벌을 확정하고도 지난 글을 계속 들고 있으면 다음 회차
+       첫 화면에 또 카드가 서게 됩니다 — 되찾을 문을 닫는 자리는 여기 하나로 둡니다. */
+    clearDraftSlot(CURRENT_KEY);
     settlePending();
     foldWizardHistory();
   };
@@ -404,7 +403,7 @@ export function ReportWizard() {
     setSecondPassCount(0);
     inputStartRef.current = null;
     setResumedDraft(false);
-    clearStoredDraft();
+    clearDraftSlot(CURRENT_KEY);
     settlePending();
     /* 새 회차입니다 — 표식을 새로 발급해, 접히지 않고 남은 지난 회차 항목이 있더라도
        그 단계 번호가 이 회차의 뒤로에 끼어들지 못하게 합니다. */
@@ -509,7 +508,10 @@ export function ReportWizard() {
 
       {/* 적으시던 글이 남아 있을 때 — 자동으로 채우지 않고 고르시게 둡니다.
           고르실 때까지 세워 둡니다. 예전에는 `text.length === 0`이 조건에 붙어 있어, 입력창에
-          한 글자만 쳐도 카드가 사라지고 되찾을 문이 그 순간 닫혔습니다. */}
+          한 글자만 쳐도 카드가 사라지고 되찾을 문이 그 순간 닫혔습니다.
+          카드를 세워 두는 동안이 무보호 구간이 아닙니다 — 그동안 치신 글은 「지금 적는 글」
+          칸에 따로 남습니다(위 보관 주석). 고르지 않는 것이 기본 동작인 화면이라, 안 고르신
+          채 보내는 시간에 아무것도 잃지 않는 편이 맞습니다. */}
       {step === 1 && pendingDraft.length > 0 && (
         <section
           aria-labelledby="report-resume-title"
@@ -529,10 +531,12 @@ export function ReportWizard() {
             <button
               type="button"
               onClick={() => {
-                clearStoredDraft();
+                /* 맡아 둔 글만 지웁니다 — 카드가 떠 있는 동안 이미 치기 시작하신 글은
+                   그대로 둡니다(「새로」는 지난 글을 버리겠다는 뜻이지, 방금 치신 글을
+                   버리겠다는 뜻이 아닙니다). */
                 settlePending();
               }}
-              className="flex min-h-[48px] flex-1 items-center justify-center rounded-card border border-line-strong bg-paper text-[0.9375rem] font-semibold text-ink-soft transition-colors duration-150 active:bg-white"
+              className="flex min-h-[48px] flex-1 items-center justify-center rounded-card border border-line-strong bg-paper text-[0.9375rem] font-semibold text-ink-soft transition-colors duration-150 active:bg-paper-2"
             >
               새로 적기
             </button>
@@ -545,11 +549,12 @@ export function ReportWizard() {
                    그래서 이 회차는 아예 재지 않고, 그 사실을 확정 화면에 적습니다. */
                 setResumedDraft(true);
                 /* 카드가 떠 있는 동안 새로 치신 글이 있으면 뒤에 잇습니다 — 맡아 둔 글을
-                   지키려고 세운 카드가 방금 치신 문장을 대신 지우면 손실을 옮긴 것뿐입니다. */
-                updateText(text.length > 0 ? `${pendingDraft}\n${text}` : pendingDraft);
+                   지키려고 세운 카드가 방금 치신 문장을 대신 지우면 손실을 옮긴 것뿐입니다.
+                   이음은 `joinDrafts`가 맡습니다(공백뿐인 쪽은 빈 줄을 남기지 않습니다). */
+                updateText(joinDrafts(pendingDraft, text));
                 settlePending();
               }}
-              className="flex min-h-[48px] flex-[1.4] items-center justify-center rounded-card bg-brand-700 text-[0.9375rem] font-bold text-white transition-colors duration-150 active:bg-brand-800"
+              className="flex min-h-[48px] flex-[1.4] items-center justify-center rounded-card bg-brand-700 text-[0.9375rem] font-bold text-paper transition-colors duration-150 active:bg-brand-800"
             >
               이어서 적기
             </button>

@@ -47,7 +47,7 @@
 import { EVIDENCE_GUARD } from "@/data/evidenceGuard";
 import { checkEvidence, type EvidenceGuard } from "@/engine/evidence";
 import { maskText } from "@/engine/masking";
-import { checkCritical, type CriticalCheck } from "@/engine/rules";
+import { checkBranchRestraint, checkCritical, type CriticalCheck } from "@/engine/rules";
 import type { ScenarioType } from "@/types";
 import {
   BANNED_PHRASES,
@@ -459,10 +459,23 @@ export function generatedCriticalSignal(text: string, type: FreeSeedType): strin
  * 전역 사전이 이 자리의 그물입니다. 돌려주는 값은 엔진의 것 그대로이고, **판정으로 기록되지
  * 않습니다** — 멈추는 데에만 씁니다.
  *
- * @example checkLearnerUtterance("문을 잠그겠습니다", "BPSD").cf; // true
+ * ▸ 두 겹입니다 (2026-08-26 · 현직 5차 med · PM 5차 med)
+ *   ① 규칙 사전(`checkCritical`) ② 시나리오 ⚑CF 분기가 쓰는 억제 신호(`checkBranchRestraint`).
+ *   훈련 경로는 예전부터 두 겹이었는데 자유 연습에는 ①만 있었습니다. 그 바람에
+ *   "어머님 팔을 잡아 이끌고 나가겠습니다"가 훈련(CHK-A01 CUE-1)에서는 D1-b-CF로 즉시
+ *   중단되고, 같은 문장이 자유 연습에서는 아무 일 없이 지나갔습니다 — 대본이 없어 사람이
+ *   자기 말로 말하는 자리라 오히려 그물이 더 촘촘해야 할 곳입니다.
+ *   ②는 **엔진의 목록을 그대로 재사용**합니다(신호 `RESTRAINT_BRANCH_SIGNALS` · 예외
+ *   `RESTRAINT_EXCEPT_BRANCH`). 여기서 넓히지 않습니다 — 판정 엔진은 재사용만 합니다.
+ *
+ * @example checkLearnerUtterance("문을 잠그겠습니다", "BPSD").cf;                    // true
+ * @example checkLearnerUtterance("어머님 팔을 잡아 이끌고 나가겠습니다", "BPSD").cf; // true
+ * @example checkLearnerUtterance("어머님, 제 팔 붙잡으세요", "BPSD").cf;             // false
  */
 export function checkLearnerUtterance(utterance: string, type: FreeSeedType): CriticalCheck {
-  return checkCritical(utterance, { scenarioType: type });
+  const critical = checkCritical(utterance, { scenarioType: type });
+  if (critical.cf) return critical;
+  return checkBranchRestraint(utterance, { scenarioType: type });
 }
 
 export interface FreeSetupOutcome {

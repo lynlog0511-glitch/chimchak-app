@@ -16,7 +16,10 @@ import {
   nextStepPreview,
   type ReadingState,
 } from "../../_components/PlayerParts";
-import { ProtocolAddressCard } from "../../_components/ProtocolAddressCard";
+import {
+  ProtocolAddressCard,
+  useSavedVisitAddress,
+} from "../../_components/ProtocolAddressCard";
 import { useAutoplayGuard, useProtocolPlayback } from "../../_components/useProtocolPlayback";
 
 export interface ProtocolPlayerProps {
@@ -64,6 +67,9 @@ export function ProtocolPlayer({ title, steps, backHref }: ProtocolPlayerProps) 
   } = playback;
   const voiceText = step ? step.voice.trim() : "";
   const preview = nextStepPreview(steps, index);
+  /* 주소 단계의 화면 보조 문구를 세울지 가리는 값입니다 — 아래 그 자리의 사유 주석 참고.
+     카드와 **같은 한 벌**로 읽어, 화면의 두 줄이 서로 다른 사실을 말하는 길을 막습니다. */
+  const { saved: addressSaved } = useSavedVisitAddress();
 
   useEffect(() => {
     primeVoices();
@@ -129,15 +135,24 @@ export function ProtocolPlayer({ title, steps, backHref }: ProtocolPlayerProps) 
 
       {/* 본문 — 이 화면 전체에서 가장 큰 글자는 자막 하나뿐입니다. */}
       <div className="pt-4 pb-6">
+        {/* 복귀 안내를 **말로** 전하는 자리 — 리전은 늘 그려 둡니다.
+            아래 노란 상자는 나타나는 순간 내용과 함께 태어나므로, 거기에 `role="status"`를 달면
+            리전과 내용이 같은 순간에 생겨 읽지 않는 리더가 있습니다(주소 패널·/report가 같은
+            이유로 이 문법을 씁니다). 그래서 보이는 상자는 화면 전용으로 두고, 말은 처음부터
+            비어 있는 이 상자 하나가 맡습니다. 하필 이 안내는 119 통화를 마치고 돌아오신
+            분에게 「몇 단계에 멈춰 있는지」를 알리는 줄이라, 안 들리면 만든 이유가 사라집니다. */}
+        <p role="status" className="sr-only">
+          {resumedFromHidden
+            ? `119 통화 중이셨나요? ${index + 1}단계에서 멈춰 있습니다. 아래에서 고르시면 그 자리부터 이어 갑니다.`
+            : ""}
+        </p>
+
         {/* 화면이 가려졌다가 돌아온 자리 — 이 화면의 1단계는 사용자를 전화 앱으로 내보냅니다.
             돌아왔을 때 앱이 스스로 이어 가면, 통화하는 동안 몇 단계가 지나갔는지 아무도
             보장하지 못한 채 화면만 앞서 갑니다. 그래서 **자동으로 재개하지 않고** 지금 어디에
             멈춰 있는지 적은 뒤 두 버튼을 세웁니다(페르소나 UI/UX high). */}
         {resumedFromHidden && (
-          <div
-            role="status"
-            className="mb-3 rounded-card bg-warn-soft px-4 py-[14px]"
-          >
+          <div className="mb-3 rounded-card bg-warn-soft px-4 py-[14px]">
             <p className="text-[1.0625rem] leading-[1.45] font-bold text-warn-ink">
               119 통화 중이셨나요?
             </p>
@@ -182,14 +197,43 @@ export function ProtocolPlayer({ title, steps, backHref }: ProtocolPlayerProps) 
         )}
 
         <p
-          aria-live="polite"
+          /* 소리를 켜 두신 동안에는 이 리전을 읽지 않습니다 — 앱이 **같은 문장을 소리로 읽는**
+             자리이기 때문입니다(`voiceActive`가 곧 `useProtocolPlayback`에 넘어가는 값입니다).
+             단계가 넘어갈 때마다 앱 목소리와 리더 목소리가 같은 문장을 겹쳐 말하면, iOS에서는
+             두 발화가 같은 오디오 채널을 다투어 어느 쪽도 온전히 안 들리는 구간이 생깁니다 —
+             119 안내 화면에서 가장 비싼 실패입니다(5차 페르소나 UI/UX med).
+             소리를 끄셨거나 기기가 자동재생을 막았으면 자막이 **유일한 경로**가 되므로 그때만
+             `polite`로 말합니다. 훈련 대화 로그가 `voiceOn`으로 같은 판단을 하는 자리와
+             한 문장도 다르지 않습니다(`DialogueLog`의 「리전을 줄인다」 절).
+
+             ## 이 화면에서 동시에 발화할 수 있는 리전 (2026-08-26 다시 셈)
+             세는 단위는 `aria-live` 속성의 개수가 아니라 **같은 순간에 말할 수 있는 리전의
+             수**입니다(정의 원문은 `DialogueLog`에 있습니다). 이 화면에는 둘뿐입니다 —
+               · 이 자막: 소리가 나면 `off`, 안 나면 `polite`.
+               · 위의 복귀 안내 상자(sr-only `role="status"`): 화면이 가려졌다 돌아온 순간에만
+                 한 번 채워집니다. 그때 자막은 단계가 고정돼 있어 바뀌지 않으므로 겹치지 않습니다.
+             주소 카드는 표시 전용이라 리전이 아닙니다(적어 두는 자리는 `/emergency` 목록의
+             `ProtocolAddressPanel`이고, 그 리전은 그 화면의 것입니다).
+             새 리전을 들일 때는 속성 수가 아니라 이 목록을 보고 판단하십시오. */
+          aria-live={voiceActive ? "off" : "polite"}
           className="mt-3 text-[1.8125rem] leading-[1.45] font-extrabold tracking-[-0.015em] text-ink"
         >
           {silent ? "안내 음성을 여기서 멈춥니다." : voiceText}
         </p>
 
-        {/* 화면 보조 문구 — 데이터의 `screen`은 사용자가 그대로 읽는 문장입니다(레이아웃 지시문 아님). */}
-        {step?.screen && (
+        {/* 화면 보조 문구 — 데이터의 `screen`은 사용자가 그대로 읽는 문장입니다(레이아웃 지시문 아님).
+
+            주소 단계에서만 조건이 하나 붙습니다. 그 단계의 `screen`은 「적어 두신 방문지 주소가
+            **있으면** 소리 내어 그대로 읽어 주세요」인데, 적어 두지 않으신 기기에서는 바로 아래
+            카드가 「적어 두신 주소가 **없으면**, 지금 계신 곳 주소를 그대로 말씀하세요」를
+            세웁니다 — 29px 자막 아래에 죽은 조건절과 산 조건절이 나란히 서고, 그 순간에 조건절
+            둘을 읽어 가려내는 것은 하실 수 있는 일이 아닙니다(5차 페르소나 현직 low).
+            그래서 역할을 가릅니다: **적어 두셨을 때만** 이 줄이 「그대로 읽어 주세요」라는
+            안내가 되고, 아니면 카드의 한 줄이 화면의 유일한 지시가 됩니다.
+            데이터(`protocols.ts`)는 건드리지 않습니다 — 감수를 지난 문구 파일이라, 조건은
+            화면이 답니다. 저장소를 읽기 전(`ready`)에도 이 줄은 서지 않습니다: 카드 자체가
+            그때는 그려지지 않으므로 화면에 조건절이 하나도 남지 않습니다. */}
+        {step?.screen && (!step.address || addressSaved.length > 0) && (
           <p className="mt-3 text-[0.9375rem] leading-[1.6] text-ink-soft">{step.screen}</p>
         )}
 

@@ -225,7 +225,10 @@ export function VoiceInput({
         급여제공기록지 5요소로 나눠 드립니다.
       </p>
 
-      {/* 말하기 도크 — 면 카드 한 장 위에 마이크만 세웁니다. */}
+      {/* 말하기 도크 — 면 카드 한 장 위에 마이크만 세웁니다.
+          반지름은 `rounded-panel`입니다. 예전에는 같은 값을 `rounded-[16px]` 리터럴로 적고
+          있었는데, 리터럴이 섞여 있으면 토큰(`--radius-panel`)을 고쳐도 이 한 장만 안 따라옵니다
+          (2026-08-26 · 반지름 게이트가 거부 목록에서 허용 목록으로 뒤집히며 드러난 자리). */}
       <div
         onBlur={() => {
           /* 꾹 누르기에서만 초점이 빠지면 멈춥니다 — 손을 뗀 것과 같은 뜻이기 때문입니다.
@@ -233,10 +236,10 @@ export function VoiceInput({
              임의로 끊으면 화면이 한 말과 다르게 행동하게 됩니다. */
           if (listening && micMode === "hold") stopListening();
         }}
-        className="mt-4 rounded-[16px] bg-paper-2 px-4 py-[18px]"
+        className="mt-4 rounded-panel bg-paper-2 px-4 py-[18px]"
       >
         {listening && (
-          <div className="mb-[14px] rounded-field bg-white px-[14px] py-[12px]">
+          <div className="mb-[14px] rounded-field bg-paper px-[14px] py-[12px]">
             <p className="flex items-center gap-[6px] text-[0.7813rem] leading-[1.45] font-bold text-danger-ink">
               <StatusDot tone="danger" size={8} />
               듣고 있어요
@@ -306,7 +309,7 @@ export function VoiceInput({
             <button
               type="button"
               onClick={() => setMicMode(holdMode ? "toggle" : "hold")}
-              className="flex min-h-[48px] items-center rounded-field px-2 text-[0.8438rem] font-semibold text-ink-muted underline underline-offset-4 transition-colors duration-150 active:bg-white"
+              className="flex min-h-[48px] items-center rounded-field px-2 text-[0.8438rem] font-semibold text-ink-muted underline underline-offset-4 transition-colors duration-150 active:bg-paper"
             >
               {holdMode
                 ? "누르고 있기가 힘드시면 눌러서 시작·종료로 바꾸기"
@@ -418,7 +421,7 @@ export function VoiceInput({
         <button
           type="button"
           onClick={focusTextarea}
-          className="mt-[8px] flex min-h-[48px] w-full items-center justify-center rounded-card border border-line-strong bg-paper text-[0.9375rem] font-bold text-ink transition-colors duration-150 active:bg-white"
+          className="mt-[8px] flex min-h-[48px] w-full items-center justify-center rounded-card border border-line-strong bg-paper text-[0.9375rem] font-bold text-ink transition-colors duration-150 active:bg-paper"
         >
           글자로 적기
         </button>

@@ -31,13 +31,13 @@ const SHELL = "rounded-card bg-paper-2 px-4 py-[14px]";
 /* 입력 글자는 17px(코어 단)입니다 — 16px 미만이면 iOS가 포커스 순간 화면을 강제로 확대하고,
    그 확대는 손가락으로 되돌려야 합니다(/report 초안 폼이 같은 이유로 17px입니다). */
 const INPUT =
-  "mt-[10px] min-h-[48px] w-full rounded-card border border-line-strong bg-white px-[13px] " +
+  "mt-[10px] min-h-[48px] w-full rounded-card border border-line-strong bg-paper px-[13px] " +
   /* 자리 문구는 지문 색(ink-faint) — 이 앱의 다른 입력 칸과 같은 단입니다. */
   "text-[1.0625rem] leading-[1.6] text-ink placeholder:text-ink-faint";
 
 const SAVE_BUTTON =
   "flex min-h-[48px] flex-1 items-center justify-center rounded-card bg-brand-700 px-3 " +
-  "text-[0.9375rem] font-bold text-white transition-colors duration-150 active:bg-brand-800 " +
+  "text-[0.9375rem] font-bold text-paper transition-colors duration-150 active:bg-brand-800 " +
   "disabled:cursor-not-allowed disabled:opacity-45";
 
 const OUTLINE_BUTTON =
@@ -51,6 +51,32 @@ const QUIET_BUTTON =
 /** 저장·지우기 결과를 낭독으로 전하는 한 줄 — 화면에는 늘지 않습니다. */
 const SAVED_NOTICE = "방문지 주소를 이 기기에 저장했습니다.";
 const CLEARED_NOTICE = "적어 둔 방문지 주소를 지웠습니다.";
+
+/**
+ * 이 기기에 적어 둔 방문지 주소를 읽어 오는 한 벌.
+ *
+ * 카드(`ProtocolAddressCard`)와 **재생 화면**(`ProtocolPlayer`)이 같은 값을 봅니다. 재생
+ * 화면이 이 값을 알아야 하는 이유는 하나입니다 — 주소 단계의 화면 보조 문구가
+ * 「적어 두신 …**있으면**」으로 시작하는 조건절이라, 적어 두지 않으신 기기에서는 바로 아래
+ * 카드의 「적어 두신 주소가 **없으면**」과 조건절 둘이 나란히 서기 때문입니다.
+ * 29px 자막 아래에서 조건절 두 개를 읽는 것은 그 순간에 하실 수 있는 일이 아닙니다
+ * (5차 페르소나 현직 low).
+ *
+ * 수화 안전: 서버 렌더와 첫 페인트는 저장소를 읽을 수 없으므로 `ready` 전에는 「없음」과
+ * 구별되지 않습니다. 두 소비처 모두 그동안 아무것도 그리지 않는 쪽을 고릅니다 —
+ * 한 프레임 다른 문장을 보였다가 바꾸면 급할 때 눈이 두 번 갑니다.
+ */
+export function useSavedVisitAddress(): { ready: boolean; saved: string } {
+  const [ready, setReady] = useState(false);
+  const [saved, setSaved] = useState("");
+
+  useEffect(() => {
+    setSaved(loadVisitAddress());
+    setReady(true);
+  }, []);
+
+  return { ready, saved };
+}
 
 /**
  * 주소 단계에서 화면에 띄우는 방문지 주소 카드 (시안 6d · 가이드 §4.8) — **표시 전용**입니다.
@@ -79,13 +105,7 @@ const CLEARED_NOTICE = "적어 둔 방문지 주소를 지웠습니다.";
  * 보였다가 주소로 바뀌면 급할 때 눈이 두 번 가기 때문입니다.
  */
 export function ProtocolAddressCard({ session = false, className }: ProtocolAddressCardProps) {
-  const [ready, setReady] = useState(false);
-  const [saved, setSaved] = useState("");
-
-  useEffect(() => {
-    setSaved(loadVisitAddress());
-    setReady(true);
-  }, []);
+  const { ready, saved } = useSavedVisitAddress();
 
   if (!ready) return null;
 
@@ -208,110 +228,118 @@ export function ProtocolAddressPanel({ className }: { className?: string }) {
     focusInput();
   };
 
-  if (!ready) return null;
-
   /** 적어 두신 것이 없으면 고르고 말고 할 것이 없습니다 — 그대로 적는 칸을 엽니다. */
   const showForm = editing || saved.length === 0;
   const hasSaved = saved.length > 0;
 
   return (
-    <section aria-labelledby={labelId} className={cx(SHELL, className)}>
+    <>
       {/* 리전은 늘 그려 둡니다 — 알림과 함께 리전이 생기면 읽지 않는 리더가 있습니다.
-          저장했는지·지웠는지·저장이 막혔는지가 여기 한 줄로만 낭독됩니다(WCAG 2.2 AA 4.1.3). */}
+          저장했는지·지웠는지·저장이 막혔는지가 여기 한 줄로만 낭독됩니다(WCAG 2.2 AA 4.1.3).
+
+          「늘」은 **저장소를 읽기 전에도**라는 뜻입니다. 그래서 이 한 줄만 아래 `ready` 게이트
+          바깥에 있습니다 — 본체는 마운트 뒤에야 서지만(첫 페인트가 「적어 두세요」였다가 주소로
+          바뀌면 급할 때 눈이 두 번 갑니다), 리전까지 본체와 함께 태어나면 규칙을 적어 놓고
+          그 옆에서 어기는 셈이 됩니다(5차 페르소나 UI/UX low). 서버 렌더부터 빈 상자로 서
+          있으므로, 첫 알림이 들어오는 순간 리더에게는 **내용만 바뀐 리전**으로 읽힙니다. */}
       <p role="status" className="sr-only">
         {notice}
       </p>
 
-      {/* 이 블록의 이름 — 지면의 아이브로가 그대로 리전 이름이 됩니다(이름을 두 번 적지 않게). */}
-      <EyebrowLabel id={labelId}>방문지 주소</EyebrowLabel>
+      {ready && (
+        <section aria-labelledby={labelId} className={cx(SHELL, className)}>
+          {/* 이 블록의 이름 — 지면의 아이브로가 그대로 리전 이름이 됩니다(이름을 두 번 적지 않게). */}
+          <EyebrowLabel id={labelId}>방문지 주소</EyebrowLabel>
 
-      {showForm ? (
-        <>
-          <label
-            htmlFor={fieldId}
-            className="mt-[6px] block text-[0.9375rem] leading-[1.6] font-bold text-ink"
-          >
-            {hasSaved ? "적어 둔 주소 고치기" : "지금 가시는 곳 주소를 적어 두세요"}
-          </label>
-          <p id={hintId} className="mt-[4px] text-[0.8438rem] leading-[1.6] text-ink-soft">
-            적어 두시면 응급 안내의 주소 단계에 큰 글씨로 떠서, 119에 그대로 읽어 드릴 수
-            있습니다. 이 기기에만 남고 어디로도 전송되지 않습니다.
-          </p>
-          <input
-            id={fieldId}
-            ref={inputRef}
-            type="text"
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            /* 이 화면에 폼은 이 칸 하나뿐이라, 키보드의 「완료」로도 저장됩니다. */
-            onKeyDown={(event) => {
-              if (event.key !== "Enter") return;
-              event.preventDefault();
-              handleSave();
-            }}
-            maxLength={MAX_VISIT_ADDRESS_LEN}
-            autoComplete="off"
-            placeholder="도로명 주소와 동·호수"
-            aria-describedby={failed ? `${hintId} ${errorId}` : hintId}
-            className={INPUT}
-          />
-          <div className="mt-[10px] flex gap-2">
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={normalizeVisitAddress(draft).length === 0}
-              className={SAVE_BUTTON}
-            >
-              저장
-            </button>
-            {hasSaved && (
-              <button type="button" onClick={handleCancel} className={OUTLINE_BUTTON}>
-                취소
-              </button>
-            )}
-          </div>
-          {hasSaved && (
-            <button type="button" onClick={handleClear} className={QUIET_BUTTON}>
-              적어 둔 주소 지우기
-            </button>
+          {showForm ? (
+            <>
+              <label
+                htmlFor={fieldId}
+                className="mt-[6px] block text-[0.9375rem] leading-[1.6] font-bold text-ink"
+              >
+                {hasSaved ? "적어 둔 주소 고치기" : "지금 가시는 곳 주소를 적어 두세요"}
+              </label>
+              <p id={hintId} className="mt-[4px] text-[0.8438rem] leading-[1.6] text-ink-soft">
+                적어 두시면 응급 안내의 주소 단계에 큰 글씨로 떠서, 119에 그대로 읽어 드릴 수
+                있습니다. 이 기기에만 남고 어디로도 전송되지 않습니다.
+              </p>
+              <input
+                id={fieldId}
+                ref={inputRef}
+                type="text"
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                /* 이 화면에 폼은 이 칸 하나뿐이라, 키보드의 「완료」로도 저장됩니다. */
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter") return;
+                  event.preventDefault();
+                  handleSave();
+                }}
+                maxLength={MAX_VISIT_ADDRESS_LEN}
+                autoComplete="off"
+                placeholder="도로명 주소와 동·호수"
+                aria-describedby={failed ? `${hintId} ${errorId}` : hintId}
+                className={INPUT}
+              />
+              <div className="mt-[10px] flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={normalizeVisitAddress(draft).length === 0}
+                  className={SAVE_BUTTON}
+                >
+                  저장
+                </button>
+                {hasSaved && (
+                  <button type="button" onClick={handleCancel} className={OUTLINE_BUTTON}>
+                    취소
+                  </button>
+                )}
+              </div>
+              {hasSaved && (
+                <button type="button" onClick={handleClear} className={QUIET_BUTTON}>
+                  적어 둔 주소 지우기
+                </button>
+              )}
+              {/* 낭독은 위의 상시 리전이 맡으므로 이 문단에는 `role`을 달지 않습니다 — 나타나는
+                  순간 함께 생기는 리전은 읽지 않는 리더가 있고, 둘 다 달면 두 번 읽힙니다.
+                  대신 입력 칸이 `aria-describedby`로 이 문단을 물고 있어, 칸으로 돌아오면
+                  무엇이 잘못되었는지 다시 들으실 수 있습니다. */}
+              {failed && (
+                <p
+                  id={errorId}
+                  className="mt-[6px] text-[0.7813rem] leading-[1.6] font-bold text-danger-ink"
+                >
+                  {SAVE_FAILED_TITLE}
+                </p>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="mt-[6px] flex items-center gap-3">
+                {/* 목록의 굵은 제목(17px)보다 앞서지 않게 같은 단에서 멈춥니다 — 크게 읽을 자리는
+                    재생 화면의 주소 카드(22px)이고, 여기는 확인하는 자리입니다. */}
+                <p className="min-w-0 flex-1 text-[1.0625rem] leading-[1.45] font-bold text-ink">
+                  {saved}
+                </p>
+                <button
+                  type="button"
+                  ref={editButtonRef}
+                  onClick={startEditing}
+                  className={OUTLINE_BUTTON}
+                >
+                  고치기
+                </button>
+              </div>
+              <p className="mt-[6px] text-[0.8438rem] leading-[1.6] text-ink-muted">
+                응급 안내의 주소 단계에서 이 주소가 큰 글씨로 뜹니다. 오늘 가시는 곳이 다르면
+                여기서 고쳐 주세요.
+              </p>
+            </>
           )}
-          {/* 낭독은 위의 상시 리전이 맡으므로 이 문단에는 `role`을 달지 않습니다 — 나타나는
-              순간 함께 생기는 리전은 읽지 않는 리더가 있고, 둘 다 달면 두 번 읽힙니다.
-              대신 입력 칸이 `aria-describedby`로 이 문단을 물고 있어, 칸으로 돌아오면
-              무엇이 잘못되었는지 다시 들으실 수 있습니다. */}
-          {failed && (
-            <p
-              id={errorId}
-              className="mt-[6px] text-[0.7813rem] leading-[1.6] font-bold text-danger-ink"
-            >
-              {SAVE_FAILED_TITLE}
-            </p>
-          )}
-        </>
-      ) : (
-        <>
-          <div className="mt-[6px] flex items-center gap-3">
-            {/* 목록의 굵은 제목(17px)보다 앞서지 않게 같은 단에서 멈춥니다 — 크게 읽을 자리는
-                재생 화면의 주소 카드(22px)이고, 여기는 확인하는 자리입니다. */}
-            <p className="min-w-0 flex-1 text-[1.0625rem] leading-[1.45] font-bold text-ink">
-              {saved}
-            </p>
-            <button
-              type="button"
-              ref={editButtonRef}
-              onClick={startEditing}
-              className={OUTLINE_BUTTON}
-            >
-              고치기
-            </button>
-          </div>
-          <p className="mt-[6px] text-[0.8438rem] leading-[1.6] text-ink-muted">
-            응급 안내의 주소 단계에서 이 주소가 큰 글씨로 뜹니다. 오늘 가시는 곳이 다르면 여기서
-            고쳐 주세요.
-          </p>
-        </>
+        </section>
       )}
-    </section>
+    </>
   );
 }
 

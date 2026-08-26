@@ -1,6 +1,7 @@
 import type { RubricArea, RubricItem } from "@/types";
 import { AREA_LABELS, getRubricByArea } from "@/data/rubric";
 import { cx } from "@/components/utils";
+import { EyebrowLabel } from "@/components/EyebrowLabel";
 import { JUDGE_LABEL } from "./judgeLabel";
 
 /**
@@ -74,9 +75,9 @@ export function RubricAllList({ className }: RubricAllListProps) {
         <div className="mt-4 space-y-5">
           {groups.map((group) => (
             <section key={group.area} aria-label={group.label}>
-              <p className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-ink-muted">
+              <EyebrowLabel>
                 {group.label} · {group.items.length}항목
-              </p>
+              </EyebrowLabel>
               <ul className="chim-hairline mt-1 border-y border-line">
                 {group.items.map((item) => (
                   <li key={item.id} className="py-3 text-[0.9375rem] leading-[1.6] text-ink">

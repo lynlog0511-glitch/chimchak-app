@@ -125,7 +125,7 @@ export function SourceChip({
           id={panelId}
           role="dialog"
           aria-label="근거 문서 설명"
-          className="animate-pop-in absolute bottom-full left-0 z-50 mb-2 block w-[min(22rem,80vw)] rounded-panel bg-white p-4 text-left shadow-panel"
+          className="animate-pop-in absolute bottom-full left-0 z-50 mb-2 block w-[min(22rem,80vw)] rounded-panel bg-paper p-4 text-left shadow-panel"
         >
           <span className="chim-body block font-bold text-ink">{resolvedTitle}</span>
           {resolvedKind && (

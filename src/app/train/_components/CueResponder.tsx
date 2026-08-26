@@ -626,7 +626,14 @@ export function CueResponder({
               </span>
               <WaveBars count={5} className="ml-auto" />
             </div>
-            <p aria-live="polite" className="text-[1.0625rem] leading-[1.6] text-ink">
+            {/* 실시간 자막입니다 — **낭독은 하지 않습니다**: 인식 중간 결과라 글자가 들어올 때마다
+                바뀌고(`onResult`가 비확정 조각마다 `setText`), 리전으로 두면 낭독기가 자라나는
+                부분 문장을 처음부터 끝없이 다시 읽습니다. 하필 마이크를 꾹 누르고 계신 동안이라
+                겹치는 목소리의 체감이 가장 큰 구간입니다. 눈으로 보는 확인용 자막이고, 말로 전할
+                것은 이 도크의 유일한 리전인 아래 `role="status"` 상자 하나가 맡습니다
+                (/report 실시간 자막과 같은 문법 — VoiceInput.tsx의 같은 자리에서 같은 사유로
+                걷어낸 속성입니다). */}
+            <p className="text-[1.0625rem] leading-[1.6] text-ink">
               {text.trim().length > 0 ? (
                 <>
                   <span aria-hidden>“</span>
@@ -757,7 +764,7 @@ export function CueResponder({
               <button
                 type="button"
                 onClick={closeMicIntro}
-                className="mt-2 min-h-[48px] w-full rounded-card bg-white text-[0.9375rem] font-semibold text-ink transition-colors duration-150 active:bg-paper-2"
+                className="mt-2 min-h-[48px] w-full rounded-card bg-paper text-[0.9375rem] font-semibold text-ink transition-colors duration-150 active:bg-paper-2"
               >
                 알겠습니다
               </button>
@@ -796,7 +803,7 @@ export function CueResponder({
                   <button
                     type="button"
                     onClick={() => sendAlternative(chosenAlternative)}
-                    className="min-h-[48px] w-full rounded-card border border-line-strong bg-white px-[15px] py-2 text-left text-[1.0625rem] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
+                    className="min-h-[48px] w-full rounded-card border border-line-strong bg-paper px-[15px] py-2 text-left text-[1.0625rem] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
                   >
                     {chosenAlternative}
                   </button>
@@ -807,7 +814,7 @@ export function CueResponder({
                   <button
                     type="button"
                     onClick={() => pick(branch.id)}
-                    className="min-h-[48px] w-full rounded-card border border-line-strong bg-white px-[15px] py-2 text-left text-[1.0625rem] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
+                    className="min-h-[48px] w-full rounded-card border border-line-strong bg-paper px-[15px] py-2 text-left text-[1.0625rem] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
                   >
                     {branch.fallbackOption}
                   </button>
@@ -906,7 +913,14 @@ export function CueResponder({
               지금은 화면에 보이는 세 조각이 각자 그려지고, **읽어 주는 일은 이 상자 하나**가
               맡습니다. 빈 문자열일 때도 상자는 남겨 둬야 다음 문장이 바뀐 줄로 읽힙니다.
               먼저 알려야 하는 것부터 고릅니다 — 방금 일어난 일(예시 채움) → 막아선 일(경고) →
-              열린 안내(마이크 첫 사용). */}
+              열린 안내(마이크 첫 사용).
+
+              말하는 중 화면(`if (listening)` 갈래)의 실시간 자막은 **리전이 아닙니다** — 인식
+              중간 결과라 글자가 들어올 때마다 바뀌어, 리전으로 두면 부분 문장이 끝없이
+              되풀이됩니다(2026-08-26에
+              걷어냈습니다 · /report VoiceInput의 같은 자리와 같은 사유). 그래서 「유일한」이라는
+              위 문장이 지금은 글자 그대로 맞습니다. 도크에 새 안내를 들이실 때는 속성을 새로 달지
+              마시고 이 상자의 우선순위 목록에 한 자리 더하십시오. */}
           <p role="status" className="sr-only">
             {filledExample
               ? `${filledExample.ruleLabel} 예시 문장을 입력창에 채웠습니다. 보내시려면 이 내용으로 답하기 버튼을 눌러 주세요.`

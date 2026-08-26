@@ -100,10 +100,13 @@ export function TrainingRow({ record, typeLabel }: TrainingRowProps) {
           </span>
         </button>
 
+        {/* 「다시 ›」의 글자는 brand-800입니다 — 행 자체는 흰 지면이지만 눌리면 paper-2가 되고,
+            그 면에서 brand-700은 4.49:1로 AA 하한(4.5)을 넘지 못합니다.
+            규칙은 「지면이 흰색이 아닌 순간이 있으면 brand-800」 한 줄입니다(가이드 §9-8). */}
         <Link
           href={trainHref(record.scenarioId)}
           aria-label={`${record.scenarioTitle} 다시 연습하기`}
-          className="flex min-h-[48px] flex-none items-center rounded-field px-2 text-[0.9375rem] font-bold whitespace-nowrap text-brand-700 transition-colors duration-150 active:bg-paper-2"
+          className="flex min-h-[48px] flex-none items-center rounded-field px-2 text-[0.9375rem] font-bold whitespace-nowrap text-brand-800 transition-colors duration-150 active:bg-paper-2"
         >
           다시 ›
         </Link>

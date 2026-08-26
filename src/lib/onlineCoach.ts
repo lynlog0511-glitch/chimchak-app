@@ -45,6 +45,7 @@ import {
   COACH_TOKEN_LENGTH,
   COACH_TOKEN_META,
   COACH_TOKEN_REFRESH_HEADER,
+  COACH_TOKEN_STALE_WINDOWS,
   coachTokenWindow,
 } from "./coachLimits";
 import { getSettings, type OnlineCoachingSettings } from "./settings";
@@ -540,12 +541,21 @@ export function rememberCoachToken(response: { headers?: { get(name: string): st
  *
  * 갱신 값은 언제나 meta보다 뒤에 받은 것이므로 창 번호가 같거나 큽니다. 그래도 창 검사는
  * 두 자리에 똑같이 겁니다 — 탭을 오래 열어 둔 채 아무 호출도 하지 않으면 갱신 값도 낡습니다.
+ *
+ * **창을 넘긴 값도 보냅니다**(최대 `COACH_TOKEN_STALE_WINDOWS`개 창). 예전에는 창 둘을 넘기면
+ * 스스로 걷어 냈는데, 서버가 갱신 표식을 「표식을 들고 온 요청」에만 내주게 되면서 그 걷어 냄이
+ * 곧 **영영 작은 예산 통**을 뜻하게 되었습니다(문서를 다시 받기 전에는 회복되지 않습니다).
+ * 서버는 이 범위의 낡은 표식을 403으로 끊지 않고 작은 통 + 갱신으로 받으므로, 낡은 값을 보내는
+ * 편이 훈련을 살립니다(사유 전문은 `coachLimits.ts`의 `COACH_TOKEN_STALE_WINDOWS`).
+ * 그보다 낡은 값은 403이 되므로 여전히 보내지 않습니다.
  */
 function readCoachToken(now: number): string | undefined {
   const stamp = refreshed ?? readMetaToken();
   if (!stamp) return undefined;
-  // 서버는 현재 창과 직전 창만 받습니다. 그보다 낡았으면 보내지 않습니다.
-  return coachTokenWindow(now) - stamp.window > 1 ? undefined : stamp.token;
+  // 서버가 받는 범위와 같은 수를 봅니다 — 두 자리가 갈라지면 화면이 걷어 낸 값을 서버가 기다립니다.
+  return coachTokenWindow(now) - stamp.window >= COACH_TOKEN_STALE_WINDOWS
+    ? undefined
+    : stamp.token;
 }
 
 /**

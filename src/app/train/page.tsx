@@ -363,10 +363,13 @@ export default function TrainIndexPage() {
         <p className="min-w-0 flex-1 text-[0.7188rem] leading-[1.6] text-ink-faint">
           {FICTION_NOTICE}
         </p>
+        {/* 「처음 오신 분께 ›」의 글자는 brand-800입니다 — 고지 줄은 흰 지면이지만 눌리면
+            paper-2가 되고, 그 면에서 brand-700은 4.49:1로 AA 하한(4.5)에 0.01 모자랍니다.
+            규칙은 「지면이 흰색이 아닌 순간이 있으면 brand-800」 한 줄입니다(가이드 §9-8). */}
         <Link
           href="/guide"
           prefetch={false}
-          className="inline-flex min-h-[48px] flex-none items-center rounded-field text-[0.8438rem] leading-[1.45] font-bold text-brand-700 transition-colors duration-150 active:bg-paper-2"
+          className="inline-flex min-h-[48px] flex-none items-center rounded-field text-[0.8438rem] leading-[1.45] font-bold text-brand-800 transition-colors duration-150 active:bg-paper-2"
         >
           처음 오신 분께 ›
         </Link>

@@ -437,7 +437,7 @@ export function CertificateSheet() {
                   onChange={(event) => setLearnerName(event.target.value)}
                   autoComplete="off"
                   placeholder="이수하신 분 성함"
-                  className="mt-[6px] min-h-[48px] w-full rounded-card border border-line-strong bg-white px-[13px] text-[0.9375rem] leading-[1.6] text-ink placeholder:text-ink-faint"
+                  className="mt-[6px] min-h-[48px] w-full rounded-card border border-line-strong bg-paper px-[13px] text-[0.9375rem] leading-[1.6] text-ink placeholder:text-ink-faint"
                 />
               </div>
               <div className="min-w-0 flex-1">
@@ -454,7 +454,7 @@ export function CertificateSheet() {
                   onChange={(event) => setLearnerOrg(event.target.value)}
                   autoComplete="off"
                   placeholder="예) ○○주야간보호센터"
-                  className="mt-[6px] min-h-[48px] w-full rounded-card border border-line-strong bg-white px-[13px] text-[0.9375rem] leading-[1.6] text-ink placeholder:text-ink-faint"
+                  className="mt-[6px] min-h-[48px] w-full rounded-card border border-line-strong bg-paper px-[13px] text-[0.9375rem] leading-[1.6] text-ink placeholder:text-ink-faint"
                 />
               </div>
             </div>

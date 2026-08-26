@@ -164,7 +164,7 @@ function ExitConfirm({ onClose }: { onClose: () => void }) {
       <div
         ref={panelRef}
         className={cx(
-          "relative w-full max-w-[380px] rounded-panel bg-white p-5 shadow-panel",
+          "relative w-full max-w-[380px] rounded-panel bg-paper p-5 shadow-panel",
           "transition-[opacity,transform] duration-[240ms] ease-out",
           entered ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
         )}
@@ -387,11 +387,20 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
    * 문장을 넣으면 「처음부터 그 내용이던 상자」라 아무 일도 일어나지 않습니다.
    * 한 번만 내보내는 이유는, 이 문장이 상태 보고가 아니라 **길 안내**이기 때문입니다 —
    * 같은 안내가 턴마다 되풀이되면 정작 들어야 하는 어르신 대사를 밀어냅니다.
+   *
+   * 「한 번만」 표식은 **프레임 안에서** 세웁니다. 예약 전에 세우면 취소된 프레임이 표식만 남기고
+   * 가는데, 하필 개발 서버의 StrictMode 이중 마운트가 정확히 그 순서를 밟습니다 —
+   * ① 첫 실행이 표식을 세우고 예약 ② cleanup이 그 프레임을 취소 ③ 둘째 실행이 표식을 보고 조기
+   * 반환. 결과는 세션 내내 빈 상자이고, 프로덕션에서만 도는 코드는 다음 사람이 죽은 줄로 읽고
+   * 지우기 좋습니다(페르소나 FE low). 안으로 옮기면 dev·prod가 같은 결과를 냅니다 —
+   * 실제로 발화한 프레임만 표식을 남기고, 취소된 프레임은 아무것도 남기지 않습니다.
    */
   useEffect(() => {
     if (!inSessionView || !ttsOn || voiceNoticeSentRef.current) return undefined;
-    voiceNoticeSentRef.current = true;
-    const frame = window.requestAnimationFrame(() => setVoiceNotice(VOICE_ON_NOTICE));
+    const frame = window.requestAnimationFrame(() => {
+      voiceNoticeSentRef.current = true;
+      setVoiceNotice(VOICE_ON_NOTICE);
+    });
     return () => window.cancelAnimationFrame(frame);
   }, [inSessionView, ttsOn]);
 
@@ -899,7 +908,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
                   <button
                     type="button"
                     onClick={() => setExitOpen(true)}
-                    className="flex min-h-[48px] items-center rounded-field px-2 text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper-2"
+                    className="flex min-h-[48px] min-w-[48px] items-center justify-center rounded-field px-2 text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper-2"
                   >
                     종료
                   </button>
@@ -915,7 +924,13 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
             **소리가 켜져 있을 때만** 말하는 리전이라, 소리를 끄셨을 때만 말하는 대화 로그
             리전(`DialogueLog`의 `aria-live`)과 같은 순간에 겹치지 않습니다 — 이 화면의
             「동시에 발화 가능한 리전 수」는 이 줄이 생겨도 늘지 않습니다.
-            상자는 늘 서 있고 내용만 바뀝니다(빈 상자에 문장이 들어와야 변경으로 읽힙니다). */}
+
+            상자와 내용이 함께 생기지 않게 합니다 — 알림과 함께 리전이 생기면 읽지 않는 리더가
+            있어서, 빈 상자가 먼저 서 있어야 다음 문장이 「바뀐 줄」로 읽힙니다. 그래서 여기에는
+            조건부 마운트(`{cond && …}`)를 두지 않고, 세션 화면이 그려지는 동안에는 조건 없이
+            섭니다. 다만 **브리핑 화면에는 없습니다** — 위쪽 `state.phase === "briefing"` 갈래가
+            따로 반환하므로, 이 상자는 세션 화면과 함께 마운트되고 그 한 프레임 뒤에 내용이
+            채워집니다(그 한 프레임이 위 `useEffect`의 rAF입니다). */}
         <p role="status" className="sr-only">
           {voiceNotice}
         </p>

@@ -35,10 +35,10 @@ export interface BigButtonProps {
      brand-600은 마이크·진행바·상태 점·파형처럼 '누르는 것이 아닌 표시'에만 남깁니다
      (심미 m38이 실측 끝에 낸 결론과 같습니다 — 통일 방향은 600이 아니라 700입니다). */
 const VARIANT: Record<BigButtonVariant, string> = {
-  primary: "bg-brand-700 text-white hover:bg-brand-800 active:bg-brand-900",
+  primary: "bg-brand-700 text-paper hover:bg-brand-800 active:bg-brand-900",
   // secondary = 회색 면. 틸 보더를 두르면 화면마다 선이 늘어나 서식처럼 보입니다.
   secondary: "bg-paper-2 text-ink hover:bg-neutral-line active:bg-neutral-line",
-  danger: "bg-danger-ink text-white hover:brightness-110 active:brightness-95",
+  danger: "bg-danger-ink text-paper hover:brightness-110 active:brightness-95",
   ghost: "bg-transparent text-ink-soft hover:bg-paper-2 hover:text-ink active:bg-neutral-line",
 };
 

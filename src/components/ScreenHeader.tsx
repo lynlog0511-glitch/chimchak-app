@@ -14,8 +14,13 @@ export interface ScreenHeaderProps {
    * 우측 액션 — 「닫기」처럼 조용한 텍스트 버튼만 둡니다.
    *
    * 설정 버튼은 이 자리를 **다투지 않습니다** — 액션을 넘겨도 설정은 그 왼쪽에 그대로 섭니다
-   * (아래 컴포넌트 주석 참고). 오른쪽 자리를 통째로 비우려면 `action={null}`을 명시하세요 —
-   * 인쇄되는 확인서처럼 조작이 나가면 안 되는 자리입니다.
+   * (아래 컴포넌트 주석 참고). 오른쪽 자리를 통째로 비우려면 `action={null}`을 명시하세요.
+   *
+   * **지금 이 앱에 `action={null}`을 쓰는 화면은 없습니다**(전수 0건). 한때 인쇄되는 이수
+   * 확인서를 그 예로 들었지만, 그 화면은 설정 슬롯을 살리려고 「닫기」를 넘기도록 바뀌었고
+   * 상단 바 전체가 `data-noprint` 안이라 종이에는 애초에 남지 않습니다
+   * (history/certificate/page.tsx). 이 길은 「오른쪽에 아무것도 내면 안 되는 화면」이 새로
+   * 생길 때를 위해 열어 둔 문이지, 지금 밟는 길이 아닙니다.
    */
   action?: ReactNode;
   /**
@@ -23,6 +28,8 @@ export interface ScreenHeaderProps {
    *
    * `false`로 끄기 전에 한 번 더 생각하세요 — 이 값이 꺼진 화면에서는 글자를 키우려면
    * 화면을 나갔다 와야 합니다. `action={null}`을 준 화면에서는 이 값과 무관하게 서지 않습니다.
+   * `action={null}`과 마찬가지로 **지금 쓰는 화면이 없습니다**(전수 0건) — 옵트아웃 둘이
+   * 다음 라운드에도 사용처 0건이면, 문을 열어 두는 값이 맞는지 그때 다시 보십시오.
    */
   settings?: boolean;
   /** h1이 이미 있는 화면에서 위계를 낮출 때 */
@@ -50,13 +57,19 @@ export interface ScreenHeaderProps {
  *
  * 지금은 **자리를 다투지 않습니다**: 설정은 `settings`라는 제 슬롯을 갖고 기본으로 서며,
  * `action`은 그 오른쪽에 나란히 붙습니다. 액션을 넘겼다는 이유로 설정이 없어지는 길은
- * 이제 없습니다. 오른쪽을 통째로 비워야 하는 자리(인쇄되는 확인서 등)만 `action={null}`입니다.
+ * 이제 없습니다.
  * 낱말은 전 화면 「설정」 하나입니다(`SettingsMenu` 주석 — 팝오버 안에 음성 빠르기·온라인 모드·
  * 「처음 오신 분께」가 함께 있어 「글자 크기」는 담긴 것보다 좁은 이름이었습니다).
  *
+ * 옵트아웃 둘(`action={null}`·`settings={false}`)은 **지금 밟는 화면이 없습니다** — 전수 0건.
+ * 한때 이 자리의 유일한 예시가 「인쇄되는 이수 확인서」였는데, 그 화면은 설정 슬롯이 생기면서
+ * 「닫기」를 넘기도록 바뀌었습니다(history/certificate/page.tsx). 주석을 다음 사람의 근거로
+ * 삼는 저장소라(HistoryBoard.tsx의 선언), 유일한 예시가 정반대로 동작하는 상태를 그대로
+ * 두지 않고 사실을 적어 둡니다(5차 페르소나 UI/UX low).
+ *
  * @example <ScreenHeader title="성장 기록" subtitle="점수와 등급은 없습니다 — 해 본 것과 다시 볼 것만 남깁니다" />
  * @example 닫기와 나란히 <ScreenHeader title="약관·개인정보" action={<DocCloseButton ... />} />
- * @example 오른쪽을 비울 때 <ScreenHeader title="이수 확인서" action={null} />
+ * @example 인쇄 전용 화면이 생기면 (지금은 쓰는 화면이 없습니다) <ScreenHeader title="..." action={null} />
  */
 export function ScreenHeader({
   title,

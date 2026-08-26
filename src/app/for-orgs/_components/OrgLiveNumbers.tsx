@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { formatTotalDuration } from "@/lib/duration";
-import { BigButton } from "@/components";
+import { BigButton, EyebrowLabel } from "@/components";
 import { clearDemoRecords, hasDemoRecords, isDemoRecord, seedDemoRecords } from "@/lib/demoSeed";
 import {
   buildCompletionSummary,
@@ -100,9 +100,9 @@ function readNumbers(): LiveNumbers {
 function Row({ label, value, note }: { label: string; value: string; note: string }) {
   return (
     <li className="py-[12px]">
-      <p className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-ink-muted">
+      <EyebrowLabel>
         {label}
-      </p>
+      </EyebrowLabel>
       <p className="mt-[4px] text-[1.0625rem] leading-[1.45] font-bold text-ink">{value}</p>
       <p className="mt-[3px] text-[0.8438rem] leading-[1.6] text-ink-soft">{note}</p>
     </li>

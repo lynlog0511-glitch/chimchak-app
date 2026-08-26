@@ -152,6 +152,8 @@ function Th({
     <th
       scope="col"
       data-noprint={noPrint ? "" : undefined}
+      /* 표 머리(`<th>`)라 문단(`EyebrowLabel`)을 넣을 수 없는 자리입니다 —
+         크기·자간은 그 컴포넌트와 같은 값입니다(12.5px / 700 / +.06em). */
       className={cx(
         "py-[8px] text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-ink-muted",
         numeric ? "pl-3 text-right" : "pr-3 text-left",
@@ -361,8 +363,8 @@ export function ConsoleClient() {
           aria-disabled={busy}
           className={
             busy
-              ? "mt-[12px] inline-flex min-h-[48px] cursor-not-allowed items-center justify-center gap-2 rounded-card border border-line-strong bg-white px-5 py-2.5 text-[1.0625rem] font-semibold text-ink opacity-45"
-              : "mt-[12px] inline-flex min-h-[48px] cursor-pointer items-center justify-center gap-2 rounded-card border border-line-strong bg-white px-5 py-2.5 text-[1.0625rem] font-semibold text-ink focus-within:outline focus-within:outline-[3px] focus-within:outline-offset-2 focus-within:outline-brand-700"
+              ? "mt-[12px] inline-flex min-h-[48px] cursor-not-allowed items-center justify-center gap-2 rounded-card border border-line-strong bg-paper px-5 py-2.5 text-[1.0625rem] font-semibold text-ink opacity-45"
+              : "mt-[12px] inline-flex min-h-[48px] cursor-pointer items-center justify-center gap-2 rounded-card border border-line-strong bg-paper px-5 py-2.5 text-[1.0625rem] font-semibold text-ink focus-within:outline focus-within:outline-[3px] focus-within:outline-offset-2 focus-within:outline-brand-700"
           }
         >
           {busy ? "파일을 읽는 중입니다…" : "이수 사실 파일 고르기"}
@@ -469,7 +471,7 @@ export function ConsoleClient() {
                 onChange={(event) => setOrgName(event.target.value)}
                 autoComplete="off"
                 placeholder="예) ○○주야간보호센터"
-                className="mt-[6px] min-h-[48px] w-full rounded-card border border-line-strong bg-white px-[13px] text-[0.9375rem] leading-[1.6] text-ink placeholder:text-ink-faint"
+                className="mt-[6px] min-h-[48px] w-full rounded-card border border-line-strong bg-paper px-[13px] text-[0.9375rem] leading-[1.6] text-ink placeholder:text-ink-faint"
               />
             </div>
           </div>
@@ -582,11 +584,16 @@ export function ConsoleClient() {
                       </Td>
                       <Td>{formatDate(entryLastEndedAt(entry))}</Td>
                       <Td noPrint>
+                        {/* 48px은 높이만이 아니라 **폭**이기도 합니다 — `min-w`가 없으면
+                            13px 두 글자에 좌우 px-2를 더해도 42px이고, 행마다 반복되는
+                            제거 조작이라 빗나가면 다른 행을 지웁니다. 같은 화면의 다른 자리는
+                            이미 고쳐졌는데 표 안의 이 버튼만 남아 있었습니다
+                            (5차 페르소나 UI/UX low — 규칙 근거는 `TabBar`의 48px). */}
                         <button
                           type="button"
                           onClick={() => removeEntry(entry.number)}
                           aria-label={`발급번호 ${entry.number} 표에서 빼기`}
-                          className="chim-press flex min-h-[48px] items-center rounded-field px-2 text-[0.8125rem] font-semibold text-ink-muted"
+                          className="chim-press flex min-h-[48px] min-w-[48px] items-center justify-center rounded-field px-2 text-[0.8125rem] font-semibold text-ink-muted"
                         >
                           빼기
                         </button>

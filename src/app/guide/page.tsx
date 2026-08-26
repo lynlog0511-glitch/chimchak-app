@@ -241,6 +241,8 @@ export default function GuidePage() {
                 href={row.href}
                 title={
                   <span className="flex flex-wrap items-baseline gap-x-2">
+                    {/* 링크 제목 안이라 문단(`EyebrowLabel`)을 넣을 수 없는 자리입니다 —
+                        크기·자간은 그 컴포넌트와 같은 값입니다(12.5px / 700 / +.06em). */}
                     <span className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-ink-muted">
                       {row.when}
                     </span>

@@ -197,7 +197,7 @@ export function SafetyToc({ items, label = "목차", className }: SafetyTocProps
                     "rounded-chip px-3 py-2 text-[0.7813rem] leading-[1.45] whitespace-nowrap",
                     "transition-colors duration-150 ease-soft",
                     isActive
-                      ? "bg-ink font-bold text-white"
+                      ? "bg-ink font-bold text-paper"
                       : "bg-paper-2 font-semibold text-ink-soft",
                   )}
                 >

@@ -86,7 +86,7 @@ interface DemoSessionSpec {
  * 구성이라, 무대에서 성장 기록의 설계를 한 화면으로 설명할 수 있습니다.
  * 문구는 `src/data/scenarios/*`의 praise·coaching 원문 그대로입니다(창작하지 않습니다).
  */
-const DEMO_SESSIONS: DemoSessionSpec[] = [
+export const DEMO_SESSIONS: DemoSessionSpec[] = [
   {
     idSuffix: "session-chk-a01",
     scenarioId: "CHK-A01",
@@ -104,7 +104,10 @@ const DEMO_SESSIONS: DemoSessionSpec[] = [
       "지시 대신 두 개의 선택지를 드렸습니다.",
       "동의를 먼저 구하고 함께 움직이셨습니다. 억제 없이 안전을 확보한 대응입니다.",
       "어르신 안전을 먼저 두고, 다시 연락할 시점까지 정하셨습니다.",
-      "누가·언제·무엇을·어떻게·현재 상태가 모두 들어간 사실 중심 보고입니다.",
+      // 2026-08-26 — 앞 문구(「누가·언제·무엇을·어떻게·현재 상태가 모두 들어간…」)는 사실과
+      // 달라 시나리오에서 걷어냈는데 이 예시 회차에만 남아 있었습니다(교육생 5차 med).
+      // 지금 값은 CHK-A01 R1-a의 praise 원문입니다.
+      "보고 들은 것만 사실대로 옮기셨습니다. 이 말씀은 그대로 급여제공기록지에 적을 수 있습니다.",
     ],
     coachingPoints: ["설명으로 이기려 하기보다, 무엇이 필요하신지 먼저 여쭤 주세요."],
     cfCount: 0,

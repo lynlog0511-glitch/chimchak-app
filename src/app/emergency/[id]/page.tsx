@@ -126,13 +126,13 @@ export default async function ProtocolPage({ params }: PageParams) {
                 </p>
                 <dl className="mt-2 space-y-1.5">
                   <div>
-                    <dt className="text-[0.7813rem] font-bold tracking-[0.04em] text-ink-muted">
+                    <dt className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-ink-muted">
                       하지 않는 이유
                     </dt>
                     <dd className="mt-[1px] text-[0.8438rem] leading-[1.6] text-ink">{item.why}</dd>
                   </div>
                   <div>
-                    <dt className="text-[0.7813rem] font-bold tracking-[0.04em] text-ink-muted">
+                    <dt className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-ink-muted">
                       대신 하는 것
                     </dt>
                     <dd className="mt-[1px] text-[0.8438rem] leading-[1.6] text-ink">

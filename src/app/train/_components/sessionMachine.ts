@@ -22,7 +22,12 @@ import {
 import type { SubmitOptions, TracedFeedback } from "@/engine";
 import { EVIDENCE_GUARD } from "@/data/evidenceGuard";
 import type { SessionProgress } from "@/lib/storage";
-import { PROTOCOL_HANDOFF_BODY, PROTOCOL_HANDOFF_TITLE, UNCLEAR_REPEAT_COACHING } from "./constants";
+import {
+  partialReportCoaching,
+  PROTOCOL_HANDOFF_BODY,
+  PROTOCOL_HANDOFF_TITLE,
+  UNCLEAR_REPEAT_COACHING,
+} from "./constants";
 
 /**
  * 판정에 붙는 근거는 화이트리스트 안에서만 나옵니다.
@@ -393,11 +398,28 @@ export function makeTrainReducer(scenario: Scenario) {
            판정도 게이지도 기록도 그대로 엔진이 낸 것이고, 바뀌는 것은 이 회차 화면에 서는
            한 줄뿐입니다(성장 기록에는 시나리오 데이터의 문구가 그대로 남습니다).
            되묻지 않는다는 원칙 안에서 할 수 있는 것은 보기 쪽을 한 단 세우는 것뿐입니다. */
-        const feedback: TracedFeedback =
+        const repeatedUnclear =
           !result.feedback.criticalFail &&
           result.feedback.branchId === cue.defaultBranchId &&
-          consecutiveUnclear(result.state.events, cue.id, cue.defaultBranchId) >= 2
-            ? { ...result.feedback, message: UNCLEAR_REPEAT_COACHING }
+          consecutiveUnclear(result.state.events, cue.id, cue.defaultBranchId) >= 2;
+
+        /* 부분 보고 코칭은 **빠진 요소 이름으로 조립**해 세웁니다(2026-08-26 · 교육생 5차).
+           고정 문장이 방금 말한 요소를 「덧붙이라」고 돌려주던 자리입니다. 분류기가 이미 센
+           요소를 그대로 쓰므로 새로 재는 것은 없고, 기록에 남는 문구는 데이터의 것입니다.
+           근거 가드가 판정을 멈춘 턴(evidenceBlocked)은 건드리지 않습니다 — 그 자리에 서는
+           것은 코칭이 아니라 고정 고지문입니다. */
+        const composedCoaching =
+          !repeatedUnclear &&
+          !result.feedback.criticalFail &&
+          !result.feedback.ok &&
+          !result.feedback.trace?.evidenceBlocked
+            ? partialReportCoaching(cue, result.feedback.trace?.matchedElements)
+            : undefined;
+
+        const feedback: TracedFeedback = repeatedUnclear
+          ? { ...result.feedback, message: UNCLEAR_REPEAT_COACHING }
+          : composedCoaching
+            ? { ...result.feedback, message: composedCoaching }
             : result.feedback;
 
         let seq = state.seq;

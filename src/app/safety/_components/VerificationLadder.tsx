@@ -7,6 +7,7 @@ import {
   VERIFICATION_LADDER,
 } from "@/data/pilotResults";
 import { cx } from "@/components/utils";
+import { EyebrowLabel } from "@/components/EyebrowLabel";
 import { PlanTag } from "./PlanTag";
 
 /**
@@ -40,9 +41,9 @@ const STATE_LABEL = {
 function GuardTable() {
   return (
     <div className="mt-3 rounded-card bg-paper-2 p-4">
-      <p className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.04em] text-ink-muted">
+      <EyebrowLabel>
         같은 모델 · 같은 {GUARD_BENCHMARK.questionCount}문항 · 다른 것은 근거 가드 하나
-      </p>
+      </EyebrowLabel>
       <ul className="chim-hairline mt-2 border-y border-line">
         {GUARD_BENCHMARK.rows.map((row) => (
           <li key={row.condition} className="py-3">
@@ -108,10 +109,10 @@ export function VerificationLadder({ proof, className }: VerificationLadderProps
     <ol className={cx("chim-hairline border-y border-line", className)}>
       {VERIFICATION_LADDER.map((step) => (
         <li key={step.id} className="py-5">
-          <p className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.04em] text-ink-muted">
+          <EyebrowLabel>
             <span className="chim-num">{step.no}</span> · {STATE_LABEL[step.state]}
             {step.measuredAt && ` · 실측 ${step.measuredAt}`}
-          </p>
+          </EyebrowLabel>
           <p className="mt-1 text-[1.0625rem] leading-[1.45] font-extrabold text-ink">
             {step.title}
             {step.origin === "not-yet" && <PlanTag className="ml-2" />}

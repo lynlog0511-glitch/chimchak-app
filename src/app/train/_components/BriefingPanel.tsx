@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { ChevronGlyph } from "@/components/icons";
 import { unlockAudio } from "@/lib/speech";
 import Link from "next/link";
-import { BackGlyph, BigButton, InlineDisclaimer, SourceChip } from "@/components";
+import { BackGlyph, BigButton, EyebrowLabel, InlineDisclaimer, SourceChip } from "@/components";
 import { progressStepCount, type SessionProgress } from "@/lib/storage";
 import type { PersonaDef, Scenario, ScenarioType } from "@/types";
 import {
@@ -313,9 +313,9 @@ export function BriefingPanel({
         </div>
       )}
 
-      <p className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-ink-muted">
+      <EyebrowLabel>
         {eyebrow}
-      </p>
+      </EyebrowLabel>
       <h1 className="mt-[6px] text-[1.375rem] leading-[1.3] font-extrabold tracking-[-0.02em] text-ink">
         {scenario.title}
       </h1>
@@ -469,9 +469,9 @@ export function BriefingPanel({
           {/* 「루브릭」은 이 앱 어디에서도 사용자에게 설명한 적이 없는 낱말입니다.
               가리키는 것은 같습니다 — 이 훈련에서 사람이 확인하는 항목들. 그러면 그 말로 적습니다.
               (인라인 코칭의 접힘도 같은 낱말 「확인한 항목」을 씁니다.) */}
-          <p className="text-[0.7813rem] leading-[1.6] font-bold tracking-[0.06em] text-ink-muted">
+          <EyebrowLabel>
             학습목표와 확인 항목
-          </p>
+          </EyebrowLabel>
           {/* 학습목표도 겉 접힘과 같은 규칙으로 적습니다 — 「LO-1 …(RE-01, RE-02)」의 코드는
               이 앱 어디에서도 설명한 적이 없는 저작용 표기입니다. 데이터는 그대로 두고
               표시부에서만 지웁니다(objectiveText). */}
@@ -490,9 +490,9 @@ export function BriefingPanel({
             항목은 이력에 남지 않고, 점수와 등급은 어디에도 내지 않습니다.
           </p>
 
-          <p className="mt-4 text-[0.7813rem] leading-[1.6] font-bold tracking-[0.06em] text-ink-muted">
+          <EyebrowLabel className="mt-4">
             이 상황의 제약 조건
-          </p>
+          </EyebrowLabel>
           <ul className="mt-2 space-y-1.5">
             {scenario.constraints.map((constraint) => (
               <li
@@ -507,9 +507,9 @@ export function BriefingPanel({
             ))}
           </ul>
 
-          <p className="mt-4 text-[0.7813rem] leading-[1.6] font-bold tracking-[0.06em] text-ink-muted">
+          <EyebrowLabel className="mt-4">
             판정 근거 문서
-          </p>
+          </EyebrowLabel>
           <p className="mt-2 text-[0.8438rem] leading-[1.6] text-ink-soft">
             피드백에는 아래 문서에서 확인한 내용만 붙습니다. 근거를 찾지 못하면 “공식 지침에서
             근거를 찾지 못했습니다. 담당 간호사 또는 기관에 확인해 주세요.”라고 그대로 말씀드립니다.

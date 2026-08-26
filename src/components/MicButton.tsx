@@ -156,13 +156,13 @@ export function MicButton({
       {/* 마이크 헤드 */}
       <span
         aria-hidden
-        className="block bg-white"
+        className="block bg-paper"
         style={{ width: spec.capW, height: spec.capH, borderRadius: spec.capR }}
       />
       {/* 받침 — U자 크래들(좌·우·아래 테두리만) */}
       <span
         aria-hidden
-        className="block border-white"
+        className="block border-paper"
         style={{
           width: spec.cradleW,
           height: spec.cradleH,
@@ -177,7 +177,7 @@ export function MicButton({
       {/* 스템 — 크래들 아래 짧은 기둥 */}
       <span
         aria-hidden
-        className="block bg-white"
+        className="block bg-paper"
         style={{ width: spec.stroke, height: spec.stemH }}
       />
     </button>

@@ -168,6 +168,9 @@ const ASSET_INDEX_PREV_URL = "/__chimchak-assets-prev.json";
  * 한 번의 청소에서 지우는 항목 수 상한.
  *
  * 상한에 걸려 다 못 지우면 남은 몫을 지난 쪽지에 다시 적어 두고, 다음 활성화가 이어서 지웁니다.
+ * 그 이월이 실제로 살아남도록, install은 **지난 쪽지가 이미 있으면 덮지 않습니다**(아래 install).
+ * 예전에는 덮었기 때문에 이 약속이 한 번도 지켜지지 않았습니다 — 한 워커의 activate는 반드시
+ * 그 워커의 install 뒤에 오므로, 이월분은 매번 그다음 install에 지워졌습니다(페르소나 FE low).
  *
  * 정상 흐름에서는 빌드마다 캐시 이름이 통째로 바뀌어(prebuild 해시) 낡은 캐시가 한 번에
  * 사라지므로 여기까지 올 일이 거의 없습니다. 여기가 필요해지는 것은 **캐시 이름이 어긋난**
@@ -236,11 +239,20 @@ self.addEventListener("install", (event) => {
       // addAll은 하나라도 실패하면 설치 전체가 실패합니다.
       // 응급 화면 저장이 부분 실패해도 나머지는 남겨야 하므로 개별로 담습니다.
       const assets = new Set();
+      /* 화면(HTML) 몇 장을 놓쳤는지 셉니다 — 아래 「쪽지를 남길지」가 이 값에 달려 있습니다.
+         자산은 세지 않습니다: 자산 실패는 그 자산이 캐시에 없는 것으로 끝나지만, 화면 실패는
+         그 화면이 참조하던 청크가 쪽지에서 통째로 빠지는 일이라 성질이 다릅니다. */
+      let documentFailures = 0;
       await Promise.all(
         PRECACHE_URLS.map(async (url) => {
+          // 주소가 곧 버전인 자산(해시 파일명·폰트·아이콘)이 아니면 화면(HTML)으로 봅니다.
+          const isDocument = !URL_VERSIONED.test(url);
           try {
             const response = await fetch(installRequest(url));
-            if (!response || !response.ok) return;
+            if (!response || !response.ok) {
+              if (isDocument) documentFailures += 1;
+              return;
+            }
             const type = response.headers.get("content-type") || "";
             if (type.includes("text/html")) {
               // 본문을 읽어야 하므로 복제한 뒤 저장합니다.
@@ -249,7 +261,8 @@ self.addEventListener("install", (event) => {
             }
             await cache.put(url, response);
           } catch {
-            /* 개별 실패는 무시합니다 — 설치는 계속 진행합니다. */
+            /* 개별 실패는 무시합니다 — 설치는 계속 진행합니다(놓친 화면 수만 세어 둡니다). */
+            if (isDocument) documentFailures += 1;
           }
         }),
       );
@@ -272,13 +285,31 @@ self.addEventListener("install", (event) => {
          지난 쪽지, 두 장만 봅니다.
          **한 건도 못 모았으면 적지 않습니다**: 회선이 끊긴 채 설치되면 목록이 비는데, 그 빈
          목록을 적어 두면 다음 청소가 지난 쪽지의 항목을 전부 죽은 것으로 읽습니다.
-         못 적으면 청소만 건너뛸 뿐 설치는 그대로 성공합니다(지난 쪽지도 그 자리에 남습니다). */
-      if (assets.size > 0) {
+         못 적으면 청소만 건너뛸 뿐 설치는 그대로 성공합니다(지난 쪽지도 그 자리에 남습니다).
+
+         **화면 한 장이라도 놓쳤으면 역시 적지 않습니다**(`documentFailures === 0`).
+         개별 실패를 무시하는 설치라, 회선이 흔들려 20장 중 3장만 받은 설치도 「한 건은 모았다」를
+         통과합니다. 그러면 그 3장이 참조하는 것만 「이번 빌드가 쓰는 것」으로 적히고, 나머지
+         17장이 쓰던 청크는 activate의 차집합에서 죽은 것으로 몰려 지워집니다 — 같은 설치에서
+         그 17장의 HTML은 저장도 못 했으니, 캐시에는 옛 HTML과 지워진 옛 청크만 남습니다.
+         화면은 뜨는데 하이드레이션만 죽는, 이 파일이 위에서 「가장 알아채기 어려운 형태」라고
+         적은 그 상태입니다(페르소나 FE low). 안 적으면 다음 정상 설치가 그대로 이어받습니다. */
+      if (assets.size > 0 && documentFailures === 0) {
         try {
           /* 지난 쪽지를 덮어쓰기 전에 옆으로 옮겨 둡니다 — activate의 청소가 두 장을 대조해
-             「지난 빌드가 쓰던 것 가운데 이번 빌드가 안 쓰는 것」만 지웁니다. */
-          const previous = await cache.match(ASSET_INDEX_URL);
-          if (previous) await cache.put(ASSET_INDEX_PREV_URL, previous);
+             「지난 빌드가 쓰던 것 가운데 이번 빌드가 안 쓰는 것」만 지웁니다.
+
+             **이미 지난 쪽지가 있으면 덮지 않습니다.** 그 쪽지는 상한(PRUNE_LIMIT)에 걸려 다
+             못 지운 이월분이거나, 아직 청소가 한 번도 못 돈 목록입니다. 덮어쓰면 매번 버려져
+             「다음 활성화가 이어서 지웁니다」라는 위 약속이 한 번도 지켜지지 않습니다 — 한
+             워커의 activate는 반드시 그 워커의 install 뒤에 오기 때문입니다(페르소나 FE low).
+             그 사이 빌드의 목록 한 장을 잊는 값은 치릅니다. 잊힌 청크는 삭제 후보에 오르지
+             못해 남을 뿐이고, 이 파일의 규칙대로 안 지워서 치르는 값은 용량뿐입니다. */
+          const pending = await cache.match(ASSET_INDEX_PREV_URL);
+          if (!pending) {
+            const previous = await cache.match(ASSET_INDEX_URL);
+            if (previous) await cache.put(ASSET_INDEX_PREV_URL, previous);
+          }
           await cache.put(
             ASSET_INDEX_URL,
             new Response(JSON.stringify([...assets]), {

@@ -73,7 +73,7 @@ export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalI
       <div
         className={cx(
           // 딤이 absolute라 시트도 자리를 잡아 둡니다(그래야 DOM 순서대로 딤 위에 섭니다).
-          "relative flex max-h-[88dvh] w-full max-w-[430px] flex-col rounded-t-[22px] bg-white",
+          "relative flex max-h-[88dvh] w-full max-w-[430px] flex-col rounded-t-[22px] bg-paper",
           "shadow-[0_-10px_40px_rgba(25,31,30,0.25)]",
           "transition-transform duration-[240ms] ease-out",
           entered ? "translate-y-0" : "translate-y-full",
@@ -128,7 +128,7 @@ export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalI
                     <button
                       type="button"
                       onClick={() => leave(alternative)}
-                      className="min-h-[48px] w-full rounded-card border border-line-strong bg-white px-[15px] py-2.5 text-left text-[1.0625rem] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
+                      className="min-h-[48px] w-full rounded-card border border-line-strong bg-paper px-[15px] py-2.5 text-left text-[1.0625rem] leading-[1.45] font-medium text-ink transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
                     >
                       {alternative}
                     </button>

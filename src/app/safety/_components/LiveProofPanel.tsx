@@ -1,6 +1,7 @@
 "use client";
 
 import { BigButton } from "@/components/BigButton";
+import { EyebrowLabel } from "@/components/EyebrowLabel";
 import { cx } from "@/components/utils";
 import { ROUTE_LABEL, formatElapsed, useLiveProof } from "./useLiveProof";
 
@@ -76,9 +77,9 @@ export function LiveProofPanel({ className }: LiveProofPanelProps) {
 
   return (
     <div className={className}>
-      <p className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-ink-muted">
+      <EyebrowLabel>
         라이브 계측 상세
-      </p>
+      </EyebrowLabel>
       <h3 className="mt-1 text-[1.0625rem] leading-[1.45] font-extrabold text-ink">
         말이 아니라 계측치로 — 이 페이지가 열려 있는 동안
       </h3>
@@ -160,9 +161,9 @@ export function LiveProofPanel({ className }: LiveProofPanelProps) {
             <div className="mt-3 space-y-4">
               {cache.groups.map((group) => (
                 <div key={group.name}>
-                  <p className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.04em] text-ink-muted">
+                  <EyebrowLabel>
                     {group.name}
-                  </p>
+                  </EyebrowLabel>
                   {group.entries.length > 0 && (
                     <ul className="mt-2 space-y-1">
                       {group.entries.map((path) => (

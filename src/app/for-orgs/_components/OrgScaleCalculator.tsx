@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
+import { EyebrowLabel } from "@/components/EyebrowLabel";
 import {
   DEFAULT_MONTHLY_REPORTS,
   DEFAULT_STAFF_COUNT,
@@ -75,7 +76,7 @@ function Field({
           autoComplete="off"
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="chim-num min-h-[48px] w-full min-w-0 rounded-card border border-line-strong bg-white px-[13px] text-[0.9375rem] leading-[1.6] font-bold text-ink"
+          className="chim-num min-h-[48px] w-full min-w-0 rounded-card border border-line-strong bg-paper px-[13px] text-[0.9375rem] leading-[1.6] font-bold text-ink"
         />
         <span className="flex-none text-[0.8438rem] leading-[1.45] text-ink-soft">{unit}</span>
       </div>
@@ -161,9 +162,9 @@ export function OrgScaleCalculator({ measuredSec }: OrgScaleCalculatorProps) {
           </p>
         ) : (
           <>
-            <p className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-ink-muted">
+            <EyebrowLabel>
               연간 절감 시수 추정치
-            </p>
+            </EyebrowLabel>
             <p className="chim-num mt-[4px] text-[1.375rem] leading-[1.3] font-extrabold text-ink">
               {result.lowText} ~ {result.highText}
             </p>

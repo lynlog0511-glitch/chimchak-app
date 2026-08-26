@@ -98,9 +98,25 @@ export function PageShell({
     <SourceDocsProvider docs={sourceDocs ?? DEFAULT_SOURCE_DOCS}>
       <div className="chim-frame">
         <div className={cx("chim-screen", fill && "chim-screen--fill")}>
+          {/* 이 링크는 **모든 화면의 첫 Tab 스톱**입니다 — 그래서 앱 안에 서야 합니다.
+              한동안 `focus:absolute focus:top-2 focus:left-2`였는데, 조상 어디에도 위치 지정
+              요소가 없어(`.chim-frame`·`.chim-screen`에 `position` 선언이 없습니다) 컨테이닝
+              블록이 초기 컨테이닝 블록(뷰포트)이 됐습니다. 480px↑에서 화면은 가운데 430px
+              기둥이므로, 링크만 창 왼쪽 위 — 앱에서 수백 px 떨어진 회색 지면 위에 떴습니다
+              (5차 페르소나 UI/UX med). 설정 팝오버를 「창이 아니라 화면(`.chim-screen`)에
+              맞춘다」로 되돌린 것과 **같은 종류**의 탈주였습니다.
+
+              고치는 방법은 `absolute`를 걷는 것입니다 — `not-sr-only`가 만드는 정상 흐름
+              배치를 그대로 쓰면 링크는 화면의 첫 자식으로 서고, 프레임을 벗어날 길이 아예
+              없어집니다(조상에 `position`을 새로 주는 쪽은 이 앱의 sticky·fixed 요소 전부의
+              기준선을 함께 옮기므로 고르지 않았습니다).
+              `.chim-screen`이 세로 flex라 `self-start`가 없으면 알약이 전폭으로 늘어나고,
+              여백 `m-2`는 예전 `top-2 left-2`와 같은 8px입니다 — margin·padding 유틸리티는
+              둘 다 `not-sr-only`보다 뒤에 등록되므로 그쪽의 `margin: 0`을 덮습니다.
+              초점을 받았을 때만 한 줄 자리를 차지하고, 벗어나면 다시 `sr-only`로 접힙니다. */}
           <a
             href="#chim-content"
-            className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-field focus:bg-brand-700 focus:px-4 focus:py-2 focus:font-bold focus:text-white"
+            className="sr-only focus:not-sr-only focus:z-50 focus:m-2 focus:self-start focus:rounded-field focus:bg-brand-700 focus:px-4 focus:py-2 focus:font-bold focus:text-paper"
           >
             본문으로 건너뛰기
           </a>

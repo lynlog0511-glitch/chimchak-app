@@ -5,6 +5,7 @@ import { RUBRIC } from "@/data/rubric";
 import { SCENARIOS } from "@/data/scenarios";
 import { JUDGE_LABEL } from "./judgeLabel";
 import { cx } from "@/components/utils";
+import { EyebrowLabel } from "@/components/EyebrowLabel";
 
 /**
  * 설계 문서에 적은 숫자를 **이 화면이 직접 세어** 보여 주는 칸입니다.
@@ -76,18 +77,18 @@ export function CountedFacts({ className }: CountedFactsProps) {
         데이터를 그대로 세어 표시합니다.
       </p>
 
-      <p className="mt-4 text-[0.7813rem] leading-[1.45] font-bold tracking-[0.04em] text-ink-muted">
+      <EyebrowLabel className="mt-4">
         설계 문서 시점 — 옮겨 적은 값
-      </p>
+      </EyebrowLabel>
       <dl className="chim-hairline mt-1 border-y border-line">
         {QUOTED_ROWS.map((row) => (
           <Row key={row.k} k={row.k} v={row.v} />
         ))}
       </dl>
 
-      <p className="mt-4 text-[0.7813rem] leading-[1.45] font-bold tracking-[0.04em] text-brand-800">
+      <EyebrowLabel className="mt-4 text-brand-800">
         지금 이 화면이 세는 값
-      </p>
+      </EyebrowLabel>
       <dl className="chim-hairline mt-1 border-y border-line">
         <Row k="열린 시나리오" v={`${counted.scenarios}종`} />
         <Row k="응답해야 하는 상황(CUE)" v={`${counted.cues}개`} />
@@ -100,9 +101,9 @@ export function CountedFacts({ className }: CountedFactsProps) {
         문서에 적은 그날의 값이고, 아래 칸은 이 화면이 지금 세는 값입니다.
       </p>
 
-      <p className="mt-4 text-[0.7813rem] leading-[1.45] font-bold tracking-[0.04em] text-ink-muted">
+      <EyebrowLabel className="mt-4">
         루브릭 {counted.rubric}항목의 판정 주체 배정
-      </p>
+      </EyebrowLabel>
       <dl className="chim-hairline mt-1 border-y border-line">
         <Row k={JUDGE_LABEL.llm.long} v={`${counted.judge.llm}항목`} />
         <Row k={JUDGE_LABEL.rule.long} v={`${counted.judge.rule}항목`} />

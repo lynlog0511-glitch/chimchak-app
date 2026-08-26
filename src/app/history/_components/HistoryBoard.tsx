@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { ScenarioType, SessionRecord } from "@/types";
 import { EyebrowLabel, InlineDisclaimer, cx } from "@/components";
-import { IconClock, IconSprout, StatusMark } from "@/components/icons";
 import { DEMO_SEED_SUMMARY, clearDemoRecords, isDemoRecord } from "@/lib/demoSeed";
 import {
   clearReports,
@@ -18,7 +17,7 @@ import { TYPE_SHORT_LABELS } from "./format";
 import { countRubricCoverage, rubricCoverageSentence } from "./rubricCoverage";
 import type { ScenarioRubricMap } from "./rubricCoverage";
 import { nextTrainingSentence, pickNextTraining, trainHref } from "./nextTraining";
-import type { NextTrainingReason, ScenarioTypeMap } from "./nextTraining";
+import type { ScenarioTypeMap } from "./nextTraining";
 import { ReportList } from "./ReportList";
 import { TrainingRow } from "./TrainingRow";
 import { WeeklySummaryCard } from "./WeeklySummaryCard";
@@ -45,17 +44,12 @@ export type {
   WeaknessThemeDef,
 } from "./nextTraining";
 
-/**
- * 추천 이유 옆 마크 — 훈련 엔딩 화면이 계속 쓰는 조각이라 그대로 둡니다.
- * (성장 기록 화면은 시안 5c에 따라 아이콘 없이 문장형 추천 카드만 씁니다.)
- */
-export function NextTrainingReasonMark({ reason }: { reason: NextTrainingReason }) {
-  if (reason === "coaching" || reason === "weakness") return <StatusMark kind="coach" size="sm" />;
-  if (reason === "stale") {
-    return <IconClock className="h-[18px] w-[18px] shrink-0 text-ink-muted" />;
-  }
-  return <IconSprout className="h-[18px] w-[18px] shrink-0 text-brand-700" />;
-}
+/* ※ 2026-08-26에 `NextTrainingReasonMark`(추천 이유 옆 마크)를 지웠습니다 — **참조 0건**이었고,
+     그런데도 주석은 「훈련 엔딩 화면이 계속 쓰는 조각이라 그대로 둡니다」라고 적고 있었습니다.
+     엔딩 화면은 이유를 문장으로만 적고(`nextTrainingSentence`), 이 화면도 시안 5c에 따라
+     아이콘 없이 문장형 추천 카드만 씁니다 — 가리키는 자리가 이미 없는 근거였습니다.
+     함께 소비처가 사라진 `IconSprout`·`IconClock`도 아이콘 배럴에서 지웠습니다(가이드 §9-9).
+     이유별 마크가 다시 필요해지면 **쓰는 자리와 함께** 되살립니다. */
 
 export interface HistoryBoardProps {
   /** 시나리오 id(대문자) → 유형. 서버에서 만들어 넘겨받습니다. */
@@ -160,10 +154,14 @@ export function HistoryBoard({
        「아무것도 없다」로 읽혔습니다(페르소나 UI/UX P1).
        움직이지 않는 회색 면입니다 — `animate-pulse`를 쓰지 않는 것은 이 앱의 모션 최소 규율이고,
        기다리는 화면이 깜빡이면 중고령 사용자에게는 「고장」으로 읽히기 때문입니다.
-       (2026-08-26: 이 문장을 적은 날 `TierIndicator`의 L2 칩이 실제로 `animate-pulse`로
-        무한 점멸하고 있었습니다 — 주석이 다음 사람의 근거로 읽히는 코드베이스에서 정반대를
-        말하는 두 문장은 값이 틀린 코드보다 오래 해롭습니다. 그쪽 점멸을 뺐고, 이 선언은
-        「기다리는 화면에는」으로 좁히지 않고 앱 전체 규율로 그대로 둡니다.)
+       (2026-08-26: 이 문장을 적은 날 저장소에 `animate-pulse`가 한 자리 남아 있었습니다 —
+        `TierIndicator`의 L2 칩입니다. **화면에 나간 적은 없습니다**: 그 컴포넌트는 임포트가
+        0건이라 렌더되지 않았고, 지금은 파일째 지웠습니다. 즉 「출고되던 점멸을 껐다」가 아니라
+        「출고되기 전에 규칙으로 막았다」가 맞습니다 — 주석이 다음 사람의 근거로 읽히는
+        코드베이스에서는 근거 문장이 사실과 어긋나는 편이 값이 틀린 코드보다 오래 해롭습니다
+        (5차 페르소나 디자이너 med). 규칙 자체는 그대로 유효하고, 이제 문장이 아니라
+        `tests/designScale.test.ts`가 0건으로 셉니다. 이 선언은 「기다리는 화면에는」으로
+        좁히지 않고 앱 전체 규율로 그대로 둡니다.)
        낭독에는 위 한 줄만 갑니다(골격은 `aria-hidden`).
 
        치수는 **rem**입니다 — 골격 막대 둘은 각각 13.5px 캡션 줄과 17px 제목 줄을 대신하는데,
@@ -322,9 +320,14 @@ export function HistoryBoard({
             한 번 마치시면 이 자리에 잘한 것과 다시 볼 것이 문장으로 남습니다. 점수·등급은
             남지 않습니다.
           </p>
+          {/* 링크 셋(여기·「기관 담당자용 안내」·「음성 보고하러 가기」)의 글자는 brand-800입니다.
+              정본 지면은 흰색이지만 **눌리는 순간 paper-2**가 되고, 그 면에서 brand-700은
+              4.49:1(AA 하한 4.5)입니다 — 「지면이 흰색이 아닌 순간이 있으면 brand-800」이
+              globals.css와 가이드 §9-8이 적은 한 줄이고, 이제 게이트도 변형 접두가 붙은 면을
+              함께 셉니다(5차 페르소나 디자이너 low — 문서·게이트·실코드 3단 어긋남). */}
           <Link
             href="/train"
-            className="mt-[6px] inline-flex min-h-[48px] items-center rounded-field text-[0.9375rem] font-bold text-brand-700 transition-colors duration-150 active:bg-paper-2"
+            className="mt-[6px] inline-flex min-h-[48px] items-center rounded-field text-[0.9375rem] font-bold text-brand-800 transition-colors duration-150 active:bg-paper-2"
           >
             첫 훈련 시작하기 ›
           </Link>
@@ -346,7 +349,7 @@ export function HistoryBoard({
       <p className="mt-[6px] text-center">
         <Link
           href="/for-orgs"
-          className="inline-flex min-h-[48px] items-center rounded-field text-[0.8438rem] font-bold text-brand-700 transition-colors duration-150 active:bg-paper-2"
+          className="inline-flex min-h-[48px] items-center rounded-field text-[0.8438rem] font-bold text-brand-800 transition-colors duration-150 active:bg-paper-2"
         >
           기관 담당자용 안내 보기 ›
         </Link>
@@ -367,7 +370,7 @@ export function HistoryBoard({
           </p>
           <Link
             href="/report"
-            className="mt-[6px] inline-flex min-h-[48px] items-center rounded-field text-[0.9375rem] font-bold text-brand-700 transition-colors duration-150 active:bg-paper-2"
+            className="mt-[6px] inline-flex min-h-[48px] items-center rounded-field text-[0.9375rem] font-bold text-brand-800 transition-colors duration-150 active:bg-paper-2"
           >
             음성 보고하러 가기 ›
           </Link>
@@ -407,7 +410,7 @@ export function HistoryBoard({
                 <button
                   type="button"
                   onClick={handleClear}
-                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-card bg-danger-ink text-[0.9375rem] font-bold text-white transition-colors duration-150 active:brightness-95"
+                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-card bg-danger-ink text-[0.9375rem] font-bold text-paper transition-colors duration-150 active:brightness-95"
                 >
                   네, 지웁니다
                 </button>

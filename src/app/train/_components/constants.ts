@@ -7,11 +7,27 @@
 
 /* 2026-08-25: `TIER_TONE`·`TYPE_TONE`·`VERDICT_TONE` 세 표를 지웠습니다.
    공용 `Badge`에 넘기려고 만든 표인데 Badge는 렌더 0건이라 파일째 폐기됐고, 세 표 자체도
-   소비처가 0건이었습니다(계층 칩은 `TierIndicator`, 유형 라벨은 각 목록, 판정 표기는
-   `TrainingRow`가 직접 그립니다). 아래 `*_LABEL` 표들은 실제로 쓰이므로 그대로입니다. */
+   소비처가 0건이었습니다(유형 라벨은 각 목록, 판정 표기는 `TrainingRow`가 직접 그립니다).
+   (그때 「계층 칩은 `TierIndicator`가 그린다」고 적었는데, 그 컴포넌트도 임포트 0건이라
+    화면에 선 적이 없었습니다 — 지운 이유를 살아 있지 않은 자리로 댄 것입니다. 2026-08-26에
+    `TierIndicator`를 파일째 지우면서 이 문장도 사실에 맞게 고쳤습니다. 세션의 계층은
+    컴팩트 헤더의 상태 점 한 줄과 L3 전환 안내가 전합니다 — 칩을 그리는 자리는 없습니다.)
+   같은 날 그 컴포넌트만 읽던 `TIER_LABEL`·`TIER_SHORT`·`TIER_NOW_NOTE`·`TIER_UNUSED_NOTE`·
+   `TIER_ENDED_NOTE` 다섯도 함께 지웠습니다(참조 0건 — 가이드 §9-9).
+   계층 라벨이 다시 필요하면 /safety §02가 같은 문장을 들고 있습니다.
+   아래 `*_LABEL` 표들은 실제로 쓰이므로 그대로입니다. */
 import type { StatusMarkKind } from "@/components/icons";
 import { getRule, type TracedFeedback } from "@/engine";
-import type { EndingDef, GaugeDef, PersonaDef, Scenario, ScenarioType, Tier, TurnDef } from "@/types";
+import type {
+  CueDef,
+  EndingDef,
+  GaugeDef,
+  PersonaDef,
+  Scenario,
+  ScenarioType,
+  Tier,
+  TurnDef,
+} from "@/types";
 
 /**
  * 첫 화면·훈련 시작 전 고정 문구 (안전 규칙에 걸린 문장 — 한 글자도 바꾸지 마십시오).
@@ -53,9 +69,18 @@ export const MIC_CHECKING_LINE = "마이크를 확인하고 있어요";
  * 되묻지는 않습니다 — 확정 원칙입니다. 원칙 안에서 할 수 있는 것은 **보기 쪽을 한 단 크게
  * 세우는 것**뿐이라 그렇게만 합니다. 시나리오 데이터는 손대지 않고 표시부에서만 갈아 끼웁니다
  * (기록에 남는 문구는 그대로 데이터의 것입니다).
+ *
+ * 2026-08-26 — 마지막 마디였던 「고르신 것도 말씀하신 것과 똑같이 판정합니다」를 걷어냈습니다.
+ * 사실이 아니었습니다: 버튼으로 분기를 고른 턴에는 규칙 사전이 돌지 않고 시나리오 데이터의
+ * 판정을 그대로 따릅니다(engine/session.ts 「규칙 판정 우선 — 자유 발화에만 적용한다」).
+ * 같은 화면의 다른 두 문장도 그렇게 적혀 있어(「한 번만 직접 말해 보시면 규칙 사전이 그
+ * 말씀을 보고 다르게 짚어 드려요」 · 「보기로 고르신 턴은 이 상황의 표가 판정하고, 규칙
+ * 사전은 직접 말씀하신 문장만 봅니다」) 한 화면이 세 갈래로 갈렸습니다. 하필 이 줄을 읽는
+ * 분은 말이 두 번 닿지 않아 버튼으로 옮겨 가려는 분이라, 안심시키려던 한 마디가 「버튼으로만
+ * 해도 된다」를 정확히 반대로 가르쳤습니다(교육생 5차). 안심은 앞 두 마디가 이미 합니다.
  */
 export const UNCLEAR_REPEAT_COACHING =
-  "이번에도 잘 닿지 않았어요. 아래 보기에서 하나 골라 주시면 그대로 이어집니다. 고르신 것도 말씀하신 것과 똑같이 판정합니다.";
+  "이번에도 잘 닿지 않았어요. 아래 보기에서 하나 골라 주시면 그대로 이어집니다.";
 
 /**
  * 설계표 분류 이름 → 사용자 말 (**표시부 한 겹** · 시나리오 데이터는 그대로입니다).
@@ -72,6 +97,14 @@ export const UNCLEAR_REPEAT_COACHING =
  *
  * 표에 없는 이름은 그대로 나갑니다 — 「대체 행동 유도 (동의를 구하고 함께 움직임)」처럼
  * 이미 사람 말인 이름이 대부분이고, 없는 이름을 규칙으로 지어내면 뜻이 어긋납니다.
+ *
+ * 2026-08-26 — 갈등 시나리오(CHK-C01·C02)까지 넓혔습니다. 「무응답」을 고쳐 달라고 하신
+ * 이유가 이쪽에 더 세게 적용됩니다: 보호자에게 몰리다 물러선 회차 끝에 「위축 후 수용
+ * (경계 붕괴)」, 사과를 반복한 회차에 「무한 사과」가 **자기 회차의 줄**로 적혔습니다.
+ * 판정 이름이 아니라 사람 성향에 대한 평가로 읽히고, 「경계 붕괴」는 현장에서 직무 부적합을
+ * 뜻하는 말입니다(현직 5차). 같은 화면 다른 자리에는 배려된 말이 서 있어 한 화면 안에서
+ * 어휘 기준이 두 벌로 갈리던 자리이기도 합니다.
+ * 바꾼 말은 **그 회차에 실제로 한 행동**을 적습니다 — 성향이 아니라 행동입니다.
  */
 export const BRANCH_LABEL_IN_WORDS: Record<string, string> = {
   "무응답·미분류": "말이 닿지 않은 자리",
@@ -92,8 +125,65 @@ export const BRANCH_LABEL_IN_WORDS: Record<string, string> = {
   해석만: "본 것 대신 짐작을 말함",
   대립: "맞서서 되받음",
   맞대응: "맞서서 되받음",
+  "감정 맞대응": "맞서서 되받음",
   "방어·부인": "그런 적 없다고 답함",
+  // 갈등 시나리오 — 성향이 아니라 그 회차에 한 행동으로 적습니다.
+  "무한 사과": "사과를 거듭함",
+  "위축 후 수용 (경계 붕괴)": "물러서서 요구를 받아들임",
+  "사과·애원": "사과하며 한 번만 봐 달라고 함",
+  "즉시 사과·자책": "곧바로 사과하며 제 탓으로 돌림",
+  "애원·위축": "한 번만 봐 달라고 부탁함",
 };
+
+/**
+ * 부분 보고 코칭을 **빠진 요소 이름으로 조립**합니다 (표시부 한 겹 · 데이터는 그대로).
+ *
+ * 시나리오의 coaching은 고정 문장입니다. 채택선이 1요소로 내려오면서, 그 문장이 요구하는
+ * 것을 **이미 말한 발화**가 이 갈래에 닿게 됐습니다 — "지금은 소파에 앉아 계십니다"에
+ * 「"지금은 소파에 앉아 계십니다" 두 마디만 덧붙이면」이 붙어, 방금 한 말을 그대로 인용해
+ * 돌려주었습니다(교육생 5차). 같은 화면의 접힘은 실제로 센 요소를 이름으로 적으므로
+ * 위에서는 「덧붙이세요」, 아래에서는 「담겨 있어 갈렸습니다」가 되어 앞뒤도 어긋났습니다.
+ *
+ * 분류기가 이미 센 요소(`trace.matchedElements`)와 그 CUE의 요소 그룹을 맞대어,
+ * **담긴 것과 빠진 것**을 그대로 적습니다. 되묻지 않고, 새 문장을 지어내지도 않습니다 —
+ * 쓰는 낱말은 전부 시나리오 데이터의 요소 이름입니다.
+ * 요소 이름을 다 채웠거나 셀 것이 없으면 `undefined`를 돌려주고, 화면은 데이터의 coaching을
+ * 그대로 씁니다(폴백).
+ *
+ * @example
+ * // groups = 시각·대상·행위·조치·현재 상태, matched = ["현재 상태"]
+ * // → "말씀에 담긴 것은 현재 상태입니다. 시각·대상·행위·조치까지 함께 적으시면 …"
+ */
+export function partialReportCoaching(
+  cue: CueDef,
+  matchedElements: readonly string[] | undefined,
+): string | undefined {
+  const groups = cue.elementJudge?.groups;
+  if (!groups || groups.length === 0) return undefined;
+  if (!matchedElements || matchedElements.length === 0) return undefined;
+  const missing = groups.map((g) => g.label).filter((label) => !matchedElements.includes(label));
+  if (missing.length === 0) return undefined;
+  return `말씀에 담긴 것은 ${matchedElements.join("·")}입니다. ${missing.join("·")}까지 함께 적으시면 그대로 기록에 옮겨집니다.`;
+}
+
+/**
+ * 갈래 이름을 **화면 낱말**로 다듬습니다 — 저작용 괄호를 떼고 위 표를 한 번 지납니다.
+ *
+ * 시나리오 데이터의 label에는 저작자용 주석이 괄호로 붙어 있습니다:
+ * 「눕히기 (의식 있는 상태에서) (⚑CF)」·「등을 세게 두드림 (경고 — ⚑CF 아님)」.
+ * ⚑CF는 설계 문서의 표기이지 화면 낱말이 아니므로(화면에서는 판정어 「즉시 중단」이 그
+ * 자리를 대신합니다) 그 표기가 든 괄호만 통째로 뗍니다. 사람이 읽는 괄호는 건드리지 않습니다.
+ *
+ * 표시부 한 겹이므로 판정·기록·감수 문서가 쓰는 이름은 그대로입니다. 화면 쪽에서는
+ * 내부 id를 지운 뒤 이 함수를 지납니다(EndingPanel).
+ *
+ * @example branchLabelInWords("눕히기 (의식 있는 상태에서) (⚑CF)") // "눕히기 (의식 있는 상태에서)"
+ * @example branchLabelInWords("무응답·미분류")                      // "말이 닿지 않은 자리"
+ */
+export function branchLabelInWords(raw: string): string {
+  const trimmed = raw.replace(/\s*\([^)]*(?:⚑|\bCF\b)[^)]*\)/g, "").trim();
+  return BRANCH_LABEL_IN_WORDS[trimmed] ?? trimmed;
+}
 
 /* 생성 자리 고지(GENERATION_ADAPTER_NOTE·VARY_ADAPTER_NOTE 노출)는 2026-08-24에 세션 상단에서
    걷어냈습니다. 「어댑터 자리」·「근거 가드 검증을 통과한 구간」은 심사·개발 상태를 말하는 문장이라,
@@ -106,32 +196,10 @@ export const PROTOCOL_HANDOFF_TITLE = "여기서부터 AI가 화면에서 빠집
 export const PROTOCOL_HANDOFF_BODY =
   "지금부터는 사전 검수된 고정 안내입니다 · AI 생성 아님";
 
-/** 생성 통제 3계층 표기 — 안전 설계 페이지와 같은 라벨을 씁니다. */
-export const TIER_LABEL: Record<Tier, string> = {
-  L1: "L1 · 훈련",
-  L2: "L2 · 채점",
-  L3: "L3 · 실전 응급",
-};
-
-/** 계층 표시기 — 좁은 화면에서 두 줄로 나눠 적기 위한 짧은 이름입니다. */
-export const TIER_SHORT: Record<Tier, string> = {
-  L1: "훈련",
-  L2: "채점",
-  L3: "실전 응급",
-};
-
-/** 계층 표시기 — 지금 어느 계층이 작동 중인지 한 줄로 설명하는 문구입니다. */
-export const TIER_NOW_NOTE: Record<Tier, string> = {
-  L1: "지금은 훈련 대화 구간입니다 — 대사는 시나리오 데이터의 고정 문구를 재생합니다.",
-  L2: "방금 응답을 채점했습니다 — 규칙 사전과 루브릭이 근거 문서 안에서만 판정합니다.",
-  L3: "지금부터는 AI가 아무것도 만들지 않습니다 — 검수된 고정 안내만 재생합니다.",
-};
-
-/** 계층 표시기 — 이 시나리오에서 쓰지 않는 계층에 붙는 문구입니다. */
-export const TIER_UNUSED_NOTE = "이 시나리오에서는 쓰지 않습니다";
-
-/** 계층 표시기 — 세션이 끝난 뒤 문구입니다. */
-export const TIER_ENDED_NOTE = "이번 훈련이 끝났습니다 — 계층 표시를 멈춥니다.";
+/* ※ 계층 표시기 문구 다섯(`TIER_LABEL`·`TIER_SHORT`·`TIER_NOW_NOTE`·`TIER_UNUSED_NOTE`·
+     `TIER_ENDED_NOTE`)은 2026-08-26에 지웠습니다 — 읽는 자리가 `TierIndicator` 하나뿐이었고
+     그 컴포넌트가 렌더 0건이었습니다(위 머리말 참조). 같은 라벨이 필요하면 /safety §02가
+     들고 있고, L3 전환 문구는 바로 위 `PROTOCOL_HANDOFF_*`가 맡습니다. */
 
 export const ROLE_LABEL: Record<PersonaDef["role"], string> = {
   care_recipient: "돌봄 대상",

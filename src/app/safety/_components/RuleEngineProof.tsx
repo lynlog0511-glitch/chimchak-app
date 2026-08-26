@@ -13,7 +13,7 @@ import {
   RULE_BOUNDARY_CASES,
 } from "@/data/ruleBoundaryCases";
 import { EVIDENCE_GUARD } from "@/data/evidenceGuard";
-import { BigButton } from "@/components";
+import { BigButton, EyebrowLabel } from "@/components";
 import { cx } from "@/components/utils";
 
 /**
@@ -156,9 +156,9 @@ export function RuleEngineProof({ className }: RuleEngineProofProps) {
         늘었습니다. 그날 30건도 전부 그대로 들어 있습니다.
       </p>
 
-      <p className="mt-4 text-[0.7813rem] leading-[1.45] font-bold tracking-[0.04em] text-ink-muted">
+      <EyebrowLabel className="mt-4">
         설계 문서 검증 계단 ① 실행 로그 — 옮겨 적은 값
-      </p>
+      </EyebrowLabel>
       <dl className="chim-hairline mt-1 border-y border-line">
         {QUOTED_ROWS.map((row) => (
           <Row key={row.k} k={row.k} v={row.v} />
@@ -173,9 +173,9 @@ export function RuleEngineProof({ className }: RuleEngineProofProps) {
 
       {result && latency && (
         <>
-          <p className="mt-5 text-[0.7813rem] leading-[1.45] font-bold tracking-[0.04em] text-brand-800">
+          <EyebrowLabel className="mt-5 text-brand-800">
             방금 이 기기에서 잰 값
-          </p>
+          </EyebrowLabel>
           <div className="mt-2 grid gap-2">
             <MeasuredStat
               value={`${result.passed} / ${result.total}`}

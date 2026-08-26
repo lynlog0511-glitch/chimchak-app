@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { ChevronGlyph } from "@/components/icons";
-import { BigButton } from "@/components";
+import { BigButton, EyebrowLabel } from "@/components";
 import { cx } from "@/components/utils";
 import {
   CALL_119_CAPTION,
@@ -74,7 +74,7 @@ function SessionCall119({ className }: { className?: string }) {
                예전에는 같은 문장이 자기 `role="status"`를 들고 있어, 초점 이동과 리전 발화가
                같은 사실을 두 번 말했습니다(라이브 리전은 화면당 하나 — 페르소나 FE low). */
             aria-describedby={hintId}
-            className={cx(CALL_BAR_BASE, "min-w-0 flex-1 bg-danger text-white active:bg-danger-ink")}
+            className={cx(CALL_BAR_BASE, "min-w-0 flex-1 bg-danger text-paper active:bg-danger-ink")}
           >
             네, 지금 걸기
           </a>
@@ -93,7 +93,7 @@ function SessionCall119({ className }: { className?: string }) {
         <button
           type="button"
           onClick={() => setArmed(true)}
-          className={cx(CALL_BAR_BASE, "w-full bg-danger text-white active:bg-danger-ink")}
+          className={cx(CALL_BAR_BASE, "w-full bg-danger text-paper active:bg-danger-ink")}
         >
           119 눌러 신고
         </button>
@@ -151,9 +151,9 @@ export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolI
   if (!started) {
     return (
       <div className={cx("animate-fade-up rounded-card bg-danger-soft p-4", className)}>
-        <p className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-danger-ink">
+        <EyebrowLabel className="text-danger-ink">
           전환
-        </p>
+        </EyebrowLabel>
         <h2 className="mt-1 text-[1.1875rem] leading-[1.3] font-extrabold text-danger-ink">
           {PROTOCOL_HANDOFF_TITLE}
         </h2>
@@ -205,9 +205,9 @@ export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolI
         style={{ top: "var(--session-head-h, 0px)" }}
       >
         <div className="flex items-center gap-3">
-          <p className="flex-none text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-danger-ink">
+          <EyebrowLabel className="flex-none text-danger-ink">
             실전 응급 · 생성 0건
-          </p>
+          </EyebrowLabel>
           {/* 제목이 길어도 「N / M」은 잘리지 않습니다 — 잘리는 쪽은 언제나 제목입니다. */}
           <p className="ml-auto flex min-w-0 items-baseline gap-[4px] text-[0.8438rem] leading-[1.45] font-bold text-ink-soft">
             <span className="min-w-0 truncate">{protocol.title}</span>
@@ -248,7 +248,14 @@ export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolI
         {/* 이 구간의 **유일한** 라이브 리전입니다 — 단계가 넘어갈 때마다 바뀌는 자막이라
             여기 하나만 남기고, 119 확인 안내는 초점 이동과 `aria-describedby`가 맡습니다. */}
         <p
-          aria-live="polite"
+          /* 소리를 켜 두신 동안에는 이 리전을 읽지 않습니다 — 앱이 **같은 문장을 소리로 읽는**
+             자리이기 때문입니다(`voiceActive`가 곧 `useProtocolPlayback`에 넘어가는 값입니다).
+             앱 목소리와 리더 목소리가 같은 문장을 겹쳐 말하면 iOS에서는 둘이 같은 오디오 채널을
+             다투어 어느 쪽도 온전히 안 들립니다. 소리를 끄셨거나 기기가 자동재생을 막았을
+             때에만 자막이 유일한 경로가 되므로, 그때만 `polite`로 말합니다.
+             단독 화면(`ProtocolPlayer`)과 대화 로그(`DialogueLog`)가 같은 판단을 합니다 —
+             세 자리가 같은 규칙을 쓰도록 5차에 함께 맞췄습니다(페르소나 UI/UX med). */
+          aria-live={voiceActive ? "off" : "polite"}
           className="mt-3 text-[1.8125rem] leading-[1.45] font-extrabold tracking-[-0.015em] text-ink"
         >
           {silent ? "안내를 마쳤습니다. 지금은 말을 걸지 않겠습니다." : step?.voice}

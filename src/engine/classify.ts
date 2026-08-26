@@ -10,6 +10,7 @@
  * 2) ⚑CF 플래그가 붙은 분기의 패턴을 먼저 검사한다 (안전 판정 우선).
  * 2.5) CUE에 elementJudge가 선언돼 있으면(보고 CUE) **요소 개수**로 먼저 가른다.
  *      한 조각이 걸렸는지가 아니라 몇 가지가 들어 있는지로 판정한다. 0개면 채택하지 않고 3)으로 넘긴다.
+ *      다만 채택 **직전에** 사다리 밖 갈래를 한 번 대조한다(아래 「사다리 밖 선행 대조」).
  * 3) 나머지 분기를 부분 문자열로 대조하고(공백 제거·소문자화), **걸린 분기를 모두 모아**
  *    심각도가 높은 쪽을 채택한다(아래 「심각도 순위」). 같은 순위면 배열 순서를 따른다.
  * 4) 그래도 못 찾으면 defaultBranchId.
@@ -220,7 +221,7 @@ function matchPattern(
 function judgeElements(
   cue: CueDef,
   normalized: string,
-): { branch: BranchDef; labels: string[] } | undefined {
+): { branch: BranchDef; labels: string[]; topTier: boolean } | undefined {
   const judge = cue.elementJudge;
   if (!judge) return undefined;
   const labels: string[] = [];
@@ -228,12 +229,75 @@ function judgeElements(
     if (matchPatternList(normalized, group.patterns, "direct")) labels.push(group.label);
   }
   if (labels.length === 0) return undefined;
-  for (const tier of judge.tiers) {
+  for (const [index, tier] of judge.tiers.entries()) {
     if (labels.length < tier.minCount) continue;
     const branch = findBranch(cue, tier.branchId);
-    if (branch) return { branch, labels };
+    if (branch) return { branch, labels, topTier: index === 0 };
   }
   return undefined;
+}
+
+/* ── 사다리 밖 선행 대조 ──────────────────────────────────────
+   요소 개수 판정(2.5단)은 채택하면 그 자리에서 끝나므로, 3단의 심각도 채택 규칙이
+   보고 구간에서만 통째로 무효가 되어 있었습니다. 그래서 이런 일이 났습니다(교육생 5차 실측).
+
+    · CHK-A01 CUE-4 "어르신이 치매라서 자꾸 나가시려고 하셔서 힘들었습니다. 지금은 소파에
+      앉아 계십니다" → 대상·행위·현재 상태 3요소로 세어져 최고 갈래(R1-a)와 「보고 들은 것만
+      사실대로 옮기셨습니다」 칭찬. 「치매라서」·「힘들었」을 잡으라고 만든 R1-c는 대조조차
+      되지 않았습니다. 화면의 칭찬 문장이 사실과 다른 말을 하는 자리입니다.
+    · CHK-A02 CUE-5 "…보호자께는 아침에 시설장님을 통해 알리겠습니다" → 2요소로 세어져
+      부분 보고(R1-b)로 내려가고, R1-e(보호자 통보 경로 판단)의 SA-07·CO-05는 열리지 않았습니다.
+      **덜 말하면 4점, 더 말하면 2점**이 되던 자리입니다(현직·교육생 5차).
+
+   그래서 요소 판정을 채택하기 **직전에** 한 겹을 둡니다 — 「사다리에 이름이 오른 갈래」
+   (elementJudge.tiers의 branchId)를 뺀 나머지 갈래를 대조하고, 걸리면 그쪽을 채택합니다.
+
+   ▸ 왜 「사다리 밖」인가 — 사다리 위 갈래는 **개수가 정하는** 자리입니다. 그 갈래까지 다시
+     표지로 대조하면 3차에 닫은 사고가 그대로 돌아옵니다: CHK-A01 R1-a의 보기 문구(요소를
+     다 담은 보고)가 R1-b의 넓은 조각 「귀가」 하나에 걸려 부분 보고로 내려갑니다.
+     「갖춘 것을 못 갖췄다고 하지는 않는다」(위 심각도 순위 주석 ②)가 여기서도 그대로 섭니다.
+     사다리 밖 갈래가 말하는 것은 개수가 볼 수 없는 것들입니다 — 감정·추정(R1-c·V-b),
+     미보고(R1-d), 통보 경로 판단(R1-e).
+
+   ▸ 사다리 **최상단**에 닿은 발화는 「덧붙인 잘못」만 이깁니다 — 이 한 겹이 **또 하나의
+     강등 통로가 되지 않게** 하는 선입니다. 요소를 다 갖춰 말하면서 통보 경로까지 정한 답이
+     R1-e로 옮겨 가면 CL-01·02·03이 통째로 빠지고, 그러면 「더 말할수록 손해」가 자리만
+     바꿔 되살아납니다. 그래서 최상단에서는 **루브릭이 충족선 아래로 적립되는 갈래**
+     (감정·추정 R1-c·V-b, 미보고 R1-d)만 받고, 다른 축의 옳은 판단(R1-e)은 최상단을
+     이기지 않습니다. 아래 단(부분 보고)에 떨어진 발화에는 그 제한이 없습니다 — 거기서
+     R1-e가 서는 것이 이번에 되찾으려는 판정입니다.
+
+   ▸ 여럿이 걸리면 — ① 게이지를 올리는 갈래(gaugeDelta > 0)가 가장 앞입니다. 3차의
+     「심각도 우선은 감점 한정」과 같은 결입니다. ② 그다음은 루브릭이 **더 낮게** 적립되는
+     쪽입니다. 보고 구간의 갈래는 전부 gaugeDelta 0이라(어르신이 앞에 계시지 않는 자리입니다)
+     실제로 가르는 것은 ②이고, ①은 게이지를 움직이는 보고 CUE가 생기는 날을 위해 둡니다. */
+function matchOutsideLadder(
+  cue: CueDef,
+  normalized: string,
+  topTier: boolean,
+): ClassifyResult | undefined {
+  const judge = cue.elementJudge;
+  if (!judge) return undefined;
+  const ladder = new Set(judge.tiers.map((tier) => tier.branchId));
+  let best: ClassifyResult | undefined;
+  let bestWeight = Number.POSITIVE_INFINITY;
+  for (const branch of cue.branches) {
+    if (branch.criticalFail) continue; // 2단에서 이미 걸렀습니다
+    if (ladder.has(branch.id)) continue;
+    if (branch.id === cue.defaultBranchId) continue; // 미분류는 표지가 없는 자리입니다
+    const low = lowestScore(branch.rubricHits);
+    // 최상단에 닿은 발화는 「덧붙인 잘못」만 이깁니다 (위 주석)
+    if (topTier && branch.gaugeDelta <= 0 && (low === undefined || isMet(low))) continue;
+    const mode = (branch as NegationAwareBranch).skipNegated ? "full" : "direct";
+    const matched = matchPattern(normalized, branch, mode);
+    if (!matched) continue;
+    const weight = branch.gaugeDelta > 0 ? -1 : (low ?? Number.MAX_SAFE_INTEGER);
+    if (best === undefined || weight < bestWeight) {
+      best = { branch, source: "pattern", matchedPattern: matched };
+      bestWeight = weight;
+    }
+  }
+  return best;
 }
 
 /**
@@ -281,6 +345,9 @@ export function classifyInput(cue: CueDef, input: { utterance?: string; branchId
   // 2.5) 보고 CUE — 요소 개수로 먼저 가른다 (0개면 아래 심각도 매칭으로 넘어간다)
   const elements = judgeElements(cue, normalized);
   if (elements) {
+    // 채택 직전 한 겹 — 사다리 밖 갈래가 걸리면 그쪽이 이긴다 (위 주석)
+    const outside = matchOutsideLadder(cue, normalized, elements.topTier);
+    if (outside) return outside;
     return {
       branch: elements.branch,
       source: "pattern",

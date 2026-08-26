@@ -55,7 +55,7 @@ function OptionButton({ label, selected, onSelect }: OptionButtonProps) {
         "chim-label min-h-[48px] flex-1 rounded-card px-2",
         "transition-colors duration-150 ease-soft",
         selected
-          ? "bg-brand-700 font-bold text-white active:bg-brand-800"
+          ? "bg-brand-700 font-bold text-paper active:bg-brand-800"
           : "bg-paper-2 text-ink hover:bg-neutral-line active:bg-neutral-line",
       )}
     >
@@ -100,6 +100,9 @@ interface SettingsPanelProps {
   /**
    * `screen`일 때 **창 오른쪽 끝과 화면 오른쪽 끝 사이**(px) — 여는 순간 실측합니다.
    * 480px↑에서 화면이 430px 기둥으로 설 때 이 값이 지면 폭의 절반이고, 그 아래에서는 0입니다.
+   *
+   * 기준은 이 패널이 뜬 **뒤**의 좌표계입니다 — 배경 스크롤 잠금이 세로 스크롤바를 없애며
+   * 뷰포트가 넓어지므로, 재는 쪽에서 그 폭(gutter)을 함께 얹어 넘깁니다(트리거의 `onClick` 주석).
    */
   screenGap: number;
   onFontScale: (value: FontScale) => void;
@@ -168,7 +171,7 @@ function SettingsPanel({
       className={cx(
         "z-50 w-[min(20rem,calc(100vw-2rem))] whitespace-normal",
         toScreen ? "fixed" : "absolute top-full right-0 mt-2",
-        "rounded-panel bg-white p-4 shadow-panel",
+        "rounded-panel bg-paper p-4 shadow-panel",
         /* 글자 크기 「아주 크게」에서는 세 절과 고지 문장만으로도 팝오버가 화면을 넘칩니다.
            밖으로 밀려나는 대신 여기서만 세로로 스크롤합니다(실측 기준). */
         "max-h-[calc(100dvh-5rem)] overflow-y-auto overscroll-contain",
@@ -419,8 +422,20 @@ export function SettingsMenu({ className, align = "trigger" }: SettingsMenuProps
                세는데 `fixed`와 `getBoundingClientRect`는 둘 다 스크롤바를 뺀 좌표계라,
                섞어 쓰면 데스크톱에서만 스크롤바 폭(약 15px)만큼 왼쪽으로 밀립니다. */
             const viewport = document.documentElement.clientWidth || window.innerWidth;
+            /* 재는 시점이 **잠그기 전**이라 한 겹을 더 얹습니다.
+               패널이 마운트되면 `useModalDismiss`가 배경 스크롤을 잠그면서
+               `html{overflow:hidden}`으로 세로 스크롤바를 없애고, 그만큼 넓어진 폭은
+               `body`의 `padding-right`로 메웁니다(useModalDismiss.ts:70-79) — 그래서 화면
+               기둥은 제자리에 있는데 **뷰포트만** gutter만큼 넓어집니다. 팝오버는 `fixed`라
+               넓어진 뷰포트의 오른쪽 끝을 기준으로 서므로, 잠그기 전 값을 그대로 쓰면 기둥
+               경계를 그 폭만큼 넘어 걸칩니다(5차 페르소나 UI/UX low).
+               잠긴 **뒤에** 다시 재는 길도 있지만, 그 값은 첫 페인트 다음에야 나오므로 패널이
+               한 프레임 어긋난 자리에 떴다가 튑니다. gutter는 잠그는 쪽이 쓰는 식과 같은
+               식으로 지금 알 수 있으니, 여기서 잠금 이후의 좌표계로 환산해 둡니다.
+               macOS·iOS의 오버레이 스크롤바에서는 이 값이 0이라 아무 일도 하지 않습니다. */
+            const gutter = Math.max(0, Math.round(window.innerWidth - viewport));
             const gap = screen
-              ? Math.max(0, Math.round(viewport - screen.getBoundingClientRect().right))
+              ? Math.max(0, Math.round(viewport - screen.getBoundingClientRect().right)) + gutter
               : 0;
             setScreenPos({ top: Math.round(rect.bottom + 8), gap });
           }

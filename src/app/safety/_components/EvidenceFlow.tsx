@@ -3,7 +3,8 @@
  *
  * 구성 (v4 — 화면은 430px 앱 프레임입니다)
  *  - 본체: 세로 스텝 목록. 실제 텍스트라 확대·낭독에 그대로 대응하고 가로 스크롤이 없습니다.
- *  - 접이식: 같은 내용을 담은 SVG 라인 다이어그램(720×600 좌표계, 700px로 그립니다).
+ *  - 접이식: 같은 내용을 담은 SVG 라인 다이어그램(720×600 좌표계를 **45rem** 폭으로 그립니다 —
+ *    기본 루트에서 720px이라 좌표 1이 곧 1px이고, 「글자 크기」를 올리면 그림도 함께 커집니다).
  *    프레임 폭에 맞춰 줄이면 안의 글자가 10px 아래로 내려가므로 원래 크기로 두고
  *    그 상자 안에서만 가로로 스크롤합니다.
  *
@@ -131,7 +132,7 @@ function FlowBox({ x, y, node, tone = "ink" }: { x: number; y: number; node: Flo
         height={BOX_H}
         rx={12}
         strokeWidth={1.5}
-        className={tone === "warn" ? "fill-white stroke-warn-ink" : "fill-white stroke-line-strong"}
+        className={tone === "warn" ? "fill-paper stroke-warn-ink" : "fill-paper stroke-line-strong"}
       />
       <text
         x={cx}
@@ -154,16 +155,31 @@ function FlowBox({ x, y, node, tone = "ink" }: { x: number; y: number; node: Flo
 }
 
 /**
- * 접이식 흐름도. **여기 글자만 px 고정입니다**(앱의 나머지는 rem — 설정 글자 크기에 연동).
- * 720×600 좌표계 위에 선과 상자를 손으로 놓은 그림이라, 글자만 커지면 상자 밖으로 넘칩니다.
- * 대신 같은 내용이 바로 위 `FlowSteps`에 **실제 텍스트**로 먼저 나오고 그쪽은 설정을 그대로 따릅니다 —
+ * 접이식 흐름도.
+ *
+ * ── 폭은 rem입니다 (2026-08-26) ──────────────────────────────
+ * 예전에는 `w-[700px]`이라 이 그림만 앱의 「글자 크기」 3단(루트 100/112.5/125%)에서 빠져
+ * 있었습니다 — 「아주 크게」를 쓰시는 분에게 **이 다이어그램만 작게** 남는, 앱에서 유일한
+ * 타이포 섬이었습니다(5차 페르소나 디자이너 low). 하필 판정 근거를 보여 주는 화면이라
+ * 심사에서 열릴 가능성이 큰 자리입니다.
+ *
+ * 고친 방법은 폭을 **viewBox와 1:1로 맞춘 rem 한 값**입니다 — `45rem`은 기본 16px 루트에서
+ * 720px이고, viewBox도 720이라 **안의 숫자가 곧 렌더 px**이 됩니다(예전 700px에서는 0.972배가
+ * 곱해져 17이 16.53px로 그려졌습니다). 루트가 커지면 그림이 통째로 같은 비율로 커지므로,
+ * 좌표계 위에 손으로 놓은 선과 상자의 관계는 한 픽셀도 어긋나지 않습니다.
+ * 가로 스크롤은 이미 바깥 `overflow-x-auto`가 맡고 있습니다.
+ *
+ * 같은 내용이 바로 위 `FlowSteps`에 **실제 텍스트**로 먼저 나오고 그쪽도 설정을 그대로 따릅니다 —
  * 확대해서 읽으실 분이 못 읽는 문장은 없습니다.
  *
- * 크기는 px이지만 **눈금은 화면과 같습니다** — 15(본문) · 17(상자 제목) · 20(판단·L3 밴드) 셋뿐입니다.
- * 예전에는 16·19가 섞여 있어 그림 안에서만 다섯 단이 됐습니다.
+ * 안의 글자는 SVG `fontSize` 속성이고 **눈금은 화면과 같습니다** —
+ * 15(본문) · 17(상자 제목) · 19(판단·L3 밴드) 셋뿐입니다. 셋 다 §9-7 사다리 열두 값 안입니다
+ * (20은 사다리에 없는 값이라 8/26에 섹션 제목 눈금 19로 내렸습니다).
+ * `tests/designScale.test.ts`의 「SVG 글자 크기도 같은 사다리 안이다」가 이 값들을 셉니다 —
+ * 예전에는 게이트가 `text-[Xrem]`과 CSS `font-size:`만 봐서 이 속성이 사각지대였습니다.
  *
- * 선 굵기 1.5도 같은 이유로 **그대로 둡니다**(2026-08-25 아이콘 굵기 정리에서 제외).
- * 이 그림의 선은 IconBase 아이콘이 아니라 720×600 좌표계에 1:1로 놓인 도형이라, 1.5는 화면에서
+ * 선 굵기 1.5는 **그대로 둡니다**(2026-08-25 아이콘 굵기 정리에서 제외).
+ * 이 그림의 선은 IconBase 아이콘이 아니라 720 좌표계에 1:1로 놓인 도형이라, 1.5는 화면에서
  * 그대로 1.5px입니다. 탭바 아이콘의 「24 viewBox · 1.75」는 22px로 그려질 때 실제 1.60px이므로,
  * 여기서 1.75로 올리면 **아이콘 시스템보다 굵어집니다**. 지금이 같은 무게입니다.
  */
@@ -173,7 +189,7 @@ function FlowDiagram() {
       viewBox="0 0 720 600"
       role="img"
       aria-labelledby="sfy-flow-title sfy-flow-desc"
-      className="h-auto w-[700px] max-w-none"
+      className="h-auto w-[45rem] max-w-none"
     >
       <title id="sfy-flow-title">근거 확인 흐름도</title>
       <desc id="sfy-flow-desc">{FLOW_DESC}</desc>
@@ -271,13 +287,13 @@ function FlowDiagram() {
         points={`${DIA_CX},${DIA_CY - DIA_HH} ${DIA_CX + DIA_HW},${DIA_CY} ${DIA_CX},${DIA_CY + DIA_HH} ${DIA_CX - DIA_HW},${DIA_CY}`}
         strokeWidth={1.5}
         strokeLinejoin="round"
-        className="fill-white stroke-brand-600"
+        className="fill-paper stroke-brand-600"
       />
       <text
         x={DIA_CX}
         y={DIA_CY + 7}
         textAnchor="middle"
-        fontSize={20}
+        fontSize={19}
         fontWeight={800}
         className="fill-brand-800"
       >
@@ -350,7 +366,7 @@ function FlowDiagram() {
         x={DIA_CX}
         y={556}
         textAnchor="middle"
-        fontSize={20}
+        fontSize={19}
         fontWeight={800}
         className="fill-brand-900"
       >

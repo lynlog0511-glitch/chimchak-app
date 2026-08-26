@@ -3,7 +3,8 @@
  *
  * 왜 이 파일이 필요한가: 성명 판정이 성씨 문자열(SURNAMES)과 예외어 집합(NAME_STOPWORDS)이라는
  * **사전 두 벌**에 걸려 있다. 예외어를 하나 지워도 화면은 조용히 잘 돌고, 사고는 발표장에서 난다.
- * 규칙 11종을 하나씩 못 박고, 예외어가 막고 있는 오탐을 같은 수로 붙여 둔다.
+ * 종류마다 대표 케이스를 하나씩 못 박고(아래 표 12줄 — 규칙 자체는 20개다), 예외어가
+ * 막고 있는 오탐을 같은 수로 붙여 둔다.
  */
 
 import { describe, expect, it } from "vitest";
@@ -18,8 +19,9 @@ import {
   maskText,
   splitMasked,
 } from "@/engine/masking";
+import { SCENARIOS } from "@/data/scenarios";
 
-/** 규칙 11종 — [설명, 원문, 기대 결과, 기대 종류] */
+/** 종류별 대표 케이스 12줄 — [설명, 원문, 기대 결과, 기대 종류] */
 const RULE_CASES: [string, string, string, string][] = [
   ["주민등록번호", "480101-1234567 입니다", "[번호] 입니다", "번호"],
   ["생년", "1948년생이십니다", "[생년]이십니다", "생년"],
@@ -35,7 +37,7 @@ const RULE_CASES: [string, string, string, string][] = [
   ["성 + 이름 + 표지", "김영수 님이 오셨습니다", "[대상자] 님이 오셨습니다", "성명"],
 ];
 
-describe("가명처리 규칙 11종", () => {
+describe("가명처리 규칙 — 종류별 대표 케이스", () => {
   for (const [label, input, expected, kind] of RULE_CASES) {
     it(label, () => {
       const result = maskText(input);
@@ -398,6 +400,37 @@ describe("이름 + 친족·직함 호칭", () => {
       expect(maskText(line).masked).toBe(line);
     });
   }
+
+  /*
+   * ── 표지가 선 규칙에서 **음절 사전을 떼었다**는 사실을 여기서 못 박는다 ──
+   *
+   * 사전(GIVEN_NAME_SYLLABLES)은 이 앱이 마주하는 어르신 세대로 일부러 기울여 두었는데, 이 규칙이
+   * 겨냥한 인구는 직원·보호자라 대개 다른 세대다. 두 규칙에 그 사전을 함께 걸었을 때 현대식 이름
+   * 12종 × 문틀 7종 = **84문장이 전부 원문 그대로** 나갔다(페르소나 BE 실측 재현).
+   * 아래 표본이 「김영수·이순자·박말순·정미숙」뿐이라 그 구멍이 검사에 잡히지 않던 자리다.
+   */
+  const 현대식_이름 = ["김민호", "이지훈", "박서연", "최하은", "정예진", "한지우", "배시우"];
+
+  for (const name of 현대식_이름) {
+    it(`요즘 이름도 가린다: ${name} 간호사`, () => {
+      const line = `${name} 간호사에게 알렸습니다`;
+      expect(maskText(line).masked).toBe("[대상자] 간호사에게 알렸습니다");
+    });
+  }
+
+  it("조사로 끝나는 앞 성분은 호칭 앞에 서도 이름이 아니다", () => {
+    /*
+     * 사전을 뗀 값으로 치른 자리다 — 「용량 조절은 간호사님께」의 「조절은」이 이름으로 읽혔다.
+     * 이름은 조사를 달고 호칭 앞에 서지 않으므로, 그 꼴일 때만 넓힌 사전을 한 번 본다.
+     */
+    for (const line of [
+      "용량 조절은 간호사님께 여쭤보겠습니다",
+      "억제대 사용 여부는 간호사님께 여쭤보겠습니다",
+      "보고 구간의 회고 진술은 요양보호사의 행위가 아닙니다",
+    ]) {
+      expect(maskText(line).masked, line).toBe(line);
+    }
+  });
 });
 
 /* ── 앞에 표지가 선 맨이름 (name-lead) ─────────────────── */
@@ -408,6 +441,31 @@ describe("표지 + 맨이름", () => {
     expect(maskText("보호자분 성함이 김영수 맞으시죠").masked).toContain("[대상자] 맞으시죠");
     expect(maskText("대상자: 김영수 확인 완료").masked).toBe("대상자: [대상자] 확인 완료");
     expect(maskText("이름은 이순자 라고 하십니다").masked).toContain("[대상자]");
+  });
+
+  it("강한 표지 뒤에서는 요즘 이름도 가린다 (음절 사전을 걸지 않는다)", () => {
+    expect(maskText("환자명 이지훈 확인했습니다").masked).toBe("환자명 [대상자] 확인했습니다");
+    expect(maskText("보호자분 성함이 최하은 맞으시죠").masked).toContain("[대상자] 맞으시죠");
+    expect(maskText("수급자 박서연 상태를 살폈습니다").masked).toBe(
+      "수급자 [대상자] 상태를 살폈습니다",
+    );
+  });
+
+  it("약한 표지(「이름」) 뒤에서는 사전을 그대로 건다 — 「모델 이름을 고르는 일」을 지킨다", () => {
+    /*
+     * 「성함」·「환자명」·「수급자」는 사람에게만 쓰지만 「이름」은 사물에도 쓴다. 이 저장소의 화면
+     * 문장만 해도 「모델 이름」·「작업 이름」·「금지 행위의 이름이 나오는 것」이 있어, 이 표지에서
+     * 사전을 떼면 그 문장들이 통째로 가려진다(실측 5건). 치르는 값은 아래 마지막 줄이다.
+     */
+    for (const line of [
+      "이름 정하기 어렵습니다",
+      "이름이 하나만 말하는 순간 나머지는 허락한 적 없는 일이 됩니다",
+      "상류 주소와 모델 이름을 고르는 일은 서버가 합니다",
+    ]) {
+      expect(maskText(line).masked, line).toBe(line);
+    }
+    // 어르신 세대 이름은 이 표지에서도 그대로 가려진다.
+    expect(maskText("이름은 이순자입니다").masked).toContain("[대상자]");
   });
 
   it("표지 뒤에 이름이 아니면 발동하지 않는다 (검사는 맨이름 규칙과 같다)", () => {
@@ -439,6 +497,27 @@ describe("확정된 성명의 재등장", () => {
     );
     expect(maskText("이순자 어머님이 오늘 이순자 식사를 거부하셨습니다").masked).toBe(
       "[대상자] 어머님이 오늘 [대상자] 식사를 거부하셨습니다",
+    );
+  });
+
+  it("**씨앗은 표지가 선 규칙이 확정한 것뿐**이다 — 사전만 보는 규칙의 오탐이 번지지 않는다", () => {
+    /*
+     * 예전에는 모든 성명 후보를 씨앗으로 받았다. 그래서 표지 없이 사전으로만 판단하는 규칙
+     * (name-josa·name-bare)의 오탐이 입력 안 모든 자리로 번졌다 — 아래 두 문장은 가려지는 자리가
+     * 1건에서 2건으로 늘던 실측 사례다(페르소나 BE, old/new 동시 실행).
+     * 씨앗을 좁힌 지금은 조사가 붙은 자리 하나만 남는다(그 자리는 원래 규칙이 잡는다).
+     */
+    expect(maskText("서명란에 서명을 받았습니다. 서명란은 비어 있었습니다.").masked).toBe(
+      "서명란에 서명을 받았습니다. [대상자]은 비어 있었습니다.",
+    );
+    expect(maskText("권유형 대응을 했습니다. 권유형이 맞습니다.").masked).toBe(
+      "권유형 대응을 했습니다. [대상자]이 맞습니다.",
+    );
+  });
+
+  it("표지가 선 규칙이 씨앗이면 요즘 이름도 함께 번진다", () => {
+    expect(maskText("김민호 간호사에게 알렸고 김민호 선생과 다시 확인했습니다").masked).toBe(
+      "[대상자] 간호사에게 알렸고 [대상자] 선생과 다시 확인했습니다",
     );
   });
 
@@ -492,5 +571,61 @@ describe("hasPartialMask", () => {
   it("가릴 것이 없으면 거짓이다", () => {
     expect(hasPartialMask(maskText("오늘 기분이 좋으셨습니다"))).toBe(false);
     expect(hasPartialMask(maskText(""))).toBe(false);
+  });
+});
+
+/* ── 직함 호칭과 판정 규칙 ─────────────────────────────── */
+
+describe("직함 호칭은 성명이 아니다", () => {
+  /*
+   * 「소장님께 보고드렸습니다」가 「[대상자]께 보고드렸습니다」가 되고 있었다 — 「소」가 성씨
+   * 사전에 있어 호칭 규칙이 "소장" + "님"으로 갈랐는데, 예외어에는 「원장」·「이장」·「차장」만
+   * 있었기 때문이다. 하필 같은 커밋이 이 호칭들을 **정답 발화**로 판정 규칙에 넣었다.
+   * 훈련이 시키는 모범 발화가 가림 화면에서 「성명 1건」으로 세어지던 자리다.
+   */
+  const 호칭_발화 = [
+    "소장님께 보고드렸습니다",
+    "소장께 먼저 알렸습니다",
+    "소장에게 보고했습니다",
+    "소장한테 말씀드렸습니다",
+    "센터장님께 먼저 알렸습니다",
+    "시설장님을 통해 알리겠습니다",
+    "원장님께 보고드렸습니다",
+    "팀장님께 보고드렸습니다",
+  ];
+
+  for (const line of 호칭_발화) {
+    it(`남긴다: ${line}`, () => {
+      expect(maskText(line).masked).toBe(line);
+    });
+  }
+
+  it("판정 규칙의 직함 호칭 패턴은 하나도 성명으로 가려지지 않는다", () => {
+    /*
+     * 두 사전(마스킹의 NAME_STOPWORDS와 시나리오의 판정 패턴)이 갈라지는 자리를 사람 기억 대신
+     * 여기서 지킨다. 새 호칭을 판정 규칙에 넣고 예외어에 안 넣으면 이 줄이 먼저 말해 준다.
+     */
+    const patterns: string[] = [];
+    const walk = (node: unknown): void => {
+      if (Array.isArray(node)) {
+        for (const item of node) walk(item);
+        return;
+      }
+      if (typeof node !== "object" || node === null) return;
+      for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+        if (key === "patterns" && Array.isArray(value)) {
+          for (const p of value) if (typeof p === "string") patterns.push(p);
+        } else walk(value);
+      }
+    };
+    walk(SCENARIOS);
+
+    const 직함 = /소장|센터장|시설장|원장|팀장|과장|실장|주임|관리책임자|간호사|사회복지사/;
+    const 대상 = [...new Set(patterns)].filter((p) => 직함.test(p));
+    expect(대상.length).toBeGreaterThan(10);
+    for (const pattern of 대상) {
+      const spans = maskSpansOnOriginal(pattern).filter((s) => s.kind === "성명");
+      expect(spans, pattern).toHaveLength(0);
+    }
   });
 });

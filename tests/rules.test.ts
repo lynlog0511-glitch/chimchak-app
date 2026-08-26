@@ -157,14 +157,36 @@ describe("checkCritical — ⚑CF 사전", () => {
 describe("예외어 창(EXCEPT_WINDOW)", () => {
   it("예외어가 매치 주변에 있으면 건너뛴다", () => {
     expect(checkCritical("휠체어를 밀어서 방으로 모시겠습니다").cf).toBe(false);
-    expect(checkCritical("휠체어를타고밀어서").cf).toBe(false);
+    // 조사가 빠진 현장 말씨도 같은 예외어가 받는다 — 「휠체어 밀」.
+    expect(checkCritical("휠체어 밀어서 방으로 모시겠습니다").cf).toBe(false);
   });
 
   it("예외어가 창 밖으로 밀려나면 그대로 잡는다 (예외어 끼워 넣기 우회 차단)", () => {
-    expect(checkCritical("휠체어를타고서밀어서").cf).toBe(true);
+    expect(checkCritical("휠체어를밀고서한참뒤에밀어서").cf).toBe(true);
     const hit = checkCritical("휠체어에 태우고 팔을 잡아 못 나가게 하겠습니다");
     expect(hit.cf).toBe(true);
     expect(hit.ruleId).toBe("CF-RESTRAINT");
+  });
+
+  /**
+   * 2026-08-26 — 홑 명사 기구 예외어를 목적어+동사 꼴로 좁힌 자리(PM 5차 high).
+   * 「휠체어」 세 글자가 창 안에 있기만 하면 어떤 억제 선언이든 통째로 면제되던 자리이고,
+   * 규칙 사전과 시나리오 ⚑CF 분기가 **같은 배열의 파생**이라 두 판정선이 함께 뚫려 있었다.
+   * 가르는 것은 조사다 — 기구를 다루는 말은 목적격, 억제는 처격으로 온다.
+   */
+  it("기구 예외어는 목적어+동사 꼴에서만 면제한다", () => {
+    expect(checkCritical("휠체어에 묶어 두겠습니다").ruleId).toBe("CF-RESTRAINT");
+    expect(checkCritical("휠체어 벨트를 채우겠습니다.").ruleId).toBe("CF-RESTRAINT");
+    expect(checkCritical("보행기에 묶어 두겠습니다").ruleId).toBe("CF-RESTRAINT");
+    expect(checkCritical("구급차에 묶어 두겠습니다").ruleId).toBe("CF-RESTRAINT");
+    // 반대쪽 — 좁힌 뒤에도 옳은 발화는 그대로 지나간다.
+    expect(checkCritical("휠체어를 밀어서 방으로 모시겠습니다").cf).toBe(false);
+    expect(checkCritical("보행기를 밀어서 화장실까지 함께 가겠습니다.").cf).toBe(false);
+    expect(checkCritical("휠체어 안전벨트를 매 드리고 이동하겠습니다.").cf).toBe(false);
+    expect(checkCritical("휠체어 안전벨트는 이동 중에만 쓰고 도착하면 바로 풀어 드리겠습니다.").cf).toBe(false);
+    expect(checkCritical("휠체어 브레이크를 잠그겠습니다.").cf).toBe(false);
+    expect(checkCritical("구급차에서 안전벨트로 고정합니다.").cf).toBe(false);
+    expect(checkCritical("차량 이송 중에는 안전벨트를 매 드립니다.").cf).toBe(false);
   });
 });
 
@@ -624,13 +646,16 @@ describe("이름이 다른 억제 기구", () => {
   }
 
   /**
-   * 남은 한계 ⑤ (rules.ts 머리주석) — 예외어는 언제나 신호를 이긴다.
-   * 「휠체어」가 예외어 창(앞뒤 6) 안에 들어오는 **짧은 문장**에서만 열리는 틈이고,
-   * 예외어가 창 밖으로 밀려나면 같은 말이 그대로 잡힌다. 고쳤다고 적으면 다음 사람이
+   * 남은 한계 ⑥ (rules.ts 머리주석) — 예외어는 언제나 신호를 이긴다.
+   *
+   * 2026-08-26에 「휠체어」 계열은 닫혔다(위 「기구 예외어는 목적어+동사 꼴에서만 면제한다」).
+   * 남은 것은 **사물을 목적어로 적은 뒤 사람을 이어 붙이는 꼴**이다 — 목적어와 동사를 함께
+   * 적은 예외어(「짐 묶」)의 창 안으로 다음 절의 억제가 들어온다. 고쳤다고 적으면 다음 사람이
    * 그 오해 위에 단언을 쌓으므로, 못 하는 일을 못 한다고 적어 둔다.
    */
-  it("예외어 창 안의 억제 기구는 여전히 통과한다 (한계 ⑤)", () => {
-    expect(checkCritical("휠체어 벨트를 채우겠습니다.").cf).toBe(false);
+  it("예외어 창 안의 억제는 여전히 통과한다 (한계 ⑥)", () => {
+    expect(checkCritical("짐 묶고 어르신도 묶습니다.").cf).toBe(false);
+    // 창 밖으로 밀려나면 같은 말이 그대로 잡힌다 — 한계가 끝나는 선이다.
     expect(checkCritical("휠체어에 앉으신 뒤 벨트를 채우겠습니다.").ruleId).toBe("CF-RESTRAINT");
   });
 });
@@ -1474,10 +1499,36 @@ describe("분류기 — 보고는 담긴 요소 개수로 갈린다", () => {
     expect(result.matchedPattern).toContain("요소");
   });
 
-  it("한 가지만 담기면 부분 보고다 — 요소 판정이 심각도보다 앞이다", () => {
-    const result = classifyInput(reportCue(), { utterance: "16시였는데 정말 힘들었습니다" });
+  it("한 가지만 담기면 부분 보고다", () => {
+    const result = classifyInput(reportCue(), { utterance: "16시 40분쯤이었습니다" });
     expect(result.branch.id).toBe("R1-b");
     expect(result.matchedElements).toEqual(["시각"]);
+  });
+
+  /**
+   * 2026-08-26 — 요소 판정은 **사다리 안에서만** 앞선다(교육생 5차 high).
+   *
+   * 예전에는 요소가 하나라도 서면 그 자리에서 판정이 끝나, 같은 발화에 걸리는 감정·추정
+   * 갈래(R1-c)가 아예 대조되지 않았다. "16시였는데 정말 힘들었습니다"는 부분 보고가 되고,
+   * 요소 셋을 채운 감정 보고는 최고 갈래와 「보고 들은 것만 사실대로 옮기셨습니다」 칭찬까지
+   * 받았다 — 화면의 칭찬 문장이 사실과 다른 말을 하던 자리다.
+   * 이제 사다리(tiers)에 이름이 없는 갈래는 요소 판정 **앞에서** 한 번 대조된다.
+   */
+  it("사다리 밖 갈래는 요소 개수를 이긴다 — 감정·추정이 섞이면 최고 갈래로 가지 않는다", () => {
+    const cue = reportCue();
+    expect(classifyInput(cue, { utterance: "16시였는데 정말 힘들었습니다" }).branch.id).toBe("R1-c");
+    expect(
+      classifyInput(cue, {
+        utterance: "어르신이 치매라서 자꾸 나가시려고 하셔서 힘들었습니다. 지금은 소파에 앉아 계십니다.",
+      }).branch.id,
+    ).toBe("R1-c");
+    // 사다리 위 갈래는 그대로 개수가 정한다 — 「갖춘 것을 못 갖췄다고 하지 않는다」.
+    expect(
+      classifyInput(cue, {
+        utterance:
+          "16시 40분 어르신이 현관에서 귀가를 요구하셨고, 화장실 안내 후 젖은 옷을 갈아입으시도록 도왔습니다. 현재는 거실 소파에 앉아 계십니다.",
+      }).branch.id,
+    ).toBe("R1-a");
   });
 
   it("한 가지도 담기지 않으면 심각도 매칭으로 넘어간다", () => {

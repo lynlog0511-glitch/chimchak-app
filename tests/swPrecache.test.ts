@@ -184,9 +184,12 @@ describe("postbuild 스탬프 검증(scripts/verify-sw-stamp.mjs)", () => {
     expect(stampProblem(source)).toBeNull();
   });
 
-  it("지금 커밋된 public/sw.js도 같은 검사에 걸리지 않는다", () => {
-    /* 커밋된 파일은 이미 해시가 박힌 상태다(2026-08-25 이후). 되돌려지면 여기서 먼저 붉어진다. */
-    expect(stampProblem(SW_SOURCE)).toBeNull();
+  it("지금 커밋된 public/sw.js는 플레이스홀더 상태라 이 검사에 걸린다", () => {
+    /* 저장소의 정본은 **플레이스홀더**다 — 스탬프된 캐시 이름이 커밋되면 이후 빌드에서
+       캐시 무효화가 죽는다(8/25 실사고). 그러니 커밋본은 이 검사에 걸리는 것이 정상이고,
+       빌드 산출물만 통과해야 한다(그 판정은 postbuild가 한다). 여기서 안 걸리면
+       스탬프된 파일이 커밋됐다는 뜻이라, 단언의 방향이 이쪽이다. */
+    expect(stampProblem(SW_SOURCE)).toContain("플레이스홀더");
   });
 });
 

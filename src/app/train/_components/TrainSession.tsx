@@ -75,6 +75,18 @@ const SPEAKING_HOLD_MS = 800;
 const VARY_LINE_HOLD_MS = 1200;
 
 /**
+ * 소리가 켜진 채로 세션에 들어오신 낭독 사용자께 **한 번만** 드리는 안내.
+ *
+ * 소리 기본값이 켜짐이라 대화 로그 리전은 `aria-live="off"`로 내려가 있고, 어르신 대사는
+ * 앱의 TTS가 읽습니다. 그 상태에서는 스크린리더 사용자에게 앱 목소리와 리더 목소리가 겹치는데,
+ * 벗어나는 길(헤더의 「소리 끄기」)이 있다는 사실을 알려 드리는 곳이 화면 어디에도 없었습니다 —
+ * Tab으로 우연히 닿기 전까지는 막힌 길입니다(3차 페르소나 UI/UX med · 이 제품의 중심 장면).
+ * 화면에는 아무것도 늘리지 않고 `sr-only` 한 줄로만 전합니다.
+ */
+const VOICE_ON_NOTICE =
+  "어르신 대사를 소리로 읽어 드리고 있습니다. 화면 위 「소리 끄기」를 누르시면 글로 전해 드립니다.";
+
+/**
  * 「말하는 중」을 붙일 대사인지.
  * 상황 안내(system)와 검수된 고정 안내(protocol)는 사람이 말을 고르는 자리가 아니므로 그대로 폅니다.
  */
@@ -206,6 +218,21 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   const [state, dispatch] = useReducer(reducer, scenario, initialTrainState);
 
   const [ttsOn, setTtsOn] = useState(true);
+  /**
+   * 이 세션 화면이 **사용자가 버튼을 눌러** 열렸는지 (「시작하기」·「이어서 하기」).
+   *
+   * 브리핑에서 그 버튼을 누르면 `BriefingPanel`이 통째로 언마운트되므로 눌린 버튼이 사라지고
+   * 초점이 `document.body`로 떨어집니다 — 라우트 전환과 성격이 같은 화면 교체인데, 앱 안에서
+   * 초점이 사라지는 자리가 하필 제품의 중심 장면이었습니다(3차 페르소나 UI/UX med).
+   * 이 값이 참일 때 입력 도크가 **첫 CUE 지시문**으로 초점을 옮깁니다(`CueResponder`의
+   * `focusFirstCue`). 문서가 막 열린 첫 마운트(주소로 곧장 들어와 이미 진행 중인 판을 복원하는
+   * 경우 등)는 거짓이라 초점을 건드리지 않습니다 — `RouteFocus`가 첫 로드를 제외하는 것과
+   * 같은 판단 기준입니다.
+   */
+  const [startedByUser, setStartedByUser] = useState(false);
+  /** 소리 켜짐 안내(`VOICE_ON_NOTICE`)를 이미 내보냈는지 — 세션당 한 번입니다. */
+  const [voiceNotice, setVoiceNotice] = useState("");
+  const voiceNoticeSentRef = useRef(false);
   /* 마이크 판정은 마운트 뒤에 납니다 — 그전까지는 「모른다」로 둡니다(constants.ts `MicCheck`). */
   const [micCheck, setMicCheck] = useState<MicCheck>("unknown");
   /** 이 기기에 남아 있는 진행 체크포인트 — 브리핑에서 「이어서 하기」로 안내합니다 */
@@ -352,6 +379,21 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
      말로 답하는 구간에서는 몇 십 초씩 화면에 손이 닿지 않아, 어르신 대사 도중에 화면이 꺼집니다.
      브리핑·엔딩·이탈 시에는 풀립니다. 미지원·거부 기기에서는 아무 일도 일어나지 않습니다. */
   useWakeLock(inSessionView && state.phase !== "ended");
+
+  /**
+   * 소리 켜짐 안내 — 세션 화면에 들어온 뒤 **한 프레임 늦게** 리전을 채웁니다.
+   *
+   * 리전은 값이 바뀌어야 발화하므로, 상자가 먼저 DOM에 있어야 합니다. 마운트와 같은 커밋에
+   * 문장을 넣으면 「처음부터 그 내용이던 상자」라 아무 일도 일어나지 않습니다.
+   * 한 번만 내보내는 이유는, 이 문장이 상태 보고가 아니라 **길 안내**이기 때문입니다 —
+   * 같은 안내가 턴마다 되풀이되면 정작 들어야 하는 어르신 대사를 밀어냅니다.
+   */
+  useEffect(() => {
+    if (!inSessionView || !ttsOn || voiceNoticeSentRef.current) return undefined;
+    voiceNoticeSentRef.current = true;
+    const frame = window.requestAnimationFrame(() => setVoiceNotice(VOICE_ON_NOTICE));
+    return () => window.cancelAnimationFrame(frame);
+  }, [inSessionView, ttsOn]);
 
   useEffect(() => {
     if (!inSessionView) return undefined;
@@ -643,6 +685,8 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     setAtBriefing(false);
     setCriticalScene(null);
     setChosenAlternative("");
+    /* 눌린 버튼이 이 커밋에서 사라집니다 — 초점을 받아 줄 자리를 도크에 알립니다. */
+    setStartedByUser(true);
     dispatch({ type: "start" });
     scrollToTop();
   }, [resetVariations, scenario.id, scrollToTop]);
@@ -710,6 +754,8 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     setCheckpoint(null);
     setAtBriefing(false);
     setChosenAlternative("");
+    /* 「이어서 하기」도 같은 화면 교체입니다 — 「시작하기」와 초점 처리를 가르지 않습니다. */
+    setStartedByUser(true);
     scrollToTop();
   }, [checkpoint, resetVariations, scrollToTop]);
 
@@ -831,10 +877,13 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
             backLabel={ended ? "훈련 목록으로" : "브리핑으로 돌아가기"}
             action={
               <div className="-mr-2 flex items-center">
-                {/* 글자 크기 — 세션 안에는 진입점이 0건이라, 대사가 작다고 느낀 분이 훈련을 나갔다가
+                {/* 설정 — 세션 안에는 진입점이 0건이라, 대사가 작다고 느낀 분이 훈련을 나갔다가
                     홈까지 가서 설정하고 돌아와야 했습니다(평가 UI/UX mi5 · 초보 m2).
-                    「소리 끄기」와 같은 문법의 텍스트 버튼 하나로 같은 팝오버를 엽니다. */}
-                <SettingsMenu label="글자 크기" align="screen" />
+                    「소리 끄기」와 같은 문법의 텍스트 버튼 하나로 같은 팝오버를 엽니다.
+                    이름은 전 화면 「설정」 하나입니다 — 이 자리가 「글자 크기」이던 동안, 세션 안에서
+                    「이거 마이크 꼭 써야 하나」가 궁금해진 분은 그 답(팝오버 안 「처음 오신 분께」)이
+                    든 문을 이름 때문에 지나쳤습니다(3차 페르소나 교육생 · 리더 판정 2026-08-26). */}
+                <SettingsMenu align="screen" />
                 {/* 헤더의 텍스트 버튼도 눌리면 면이 한 단 어두워집니다 —
                     Tailwind v4는 hover를 `@media (hover:hover)`에 가두므로, 터치 기기에서
                     피드백이 남는 곳은 `active:`뿐입니다(모션 감사 1). */}
@@ -861,6 +910,15 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
           {/* 진행바 — 헤더 아래 전폭 한 줄입니다(시안 4a). */}
           <SessionProgressBar index={progress.index} total={progress.total} />
         </div>
+
+        {/* 낭독 사용자를 위한 한 줄 — 화면에는 나오지 않습니다(`VOICE_ON_NOTICE` 주석 참고).
+            **소리가 켜져 있을 때만** 말하는 리전이라, 소리를 끄셨을 때만 말하는 대화 로그
+            리전(`DialogueLog`의 `aria-live`)과 같은 순간에 겹치지 않습니다 — 이 화면의
+            「동시에 발화 가능한 리전 수」는 이 줄이 생겨도 늘지 않습니다.
+            상자는 늘 서 있고 내용만 바뀝니다(빈 상자에 문장이 들어와야 변경으로 읽힙니다). */}
+        <p role="status" className="sr-only">
+          {voiceNotice}
+        </p>
 
         {/* 본문 — 지문과 대화. 말하는 중에는 옅어집니다(시안 4b). */}
         <div
@@ -977,6 +1035,9 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
               cue={cue}
               attempt={state.attempt}
               micCheck={micCheck}
+              /* 「시작하기」·「이어서 하기」로 열린 화면이면 첫 CUE 지시문도 초점을 받습니다
+                 (`startedByUser` 주석 참고). 도크가 마운트되는 순간의 값만 씁니다. */
+              focusFirstCue={startedByUser}
               chosenAlternative={chosenAlternative || undefined}
               anchor={
                 tailOffscreen ? (

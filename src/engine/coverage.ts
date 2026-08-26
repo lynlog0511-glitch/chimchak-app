@@ -10,7 +10,8 @@
  * 순수 함수(unexploredBranches)도 여기에 둔다 — 엔딩 화면의 안내 한 줄이 근거로 쓴다.
  */
 
-import type { BranchDef, CueDef, Scenario, SessionState } from "@/types";
+import type { Scenario, SessionState } from "@/types";
+import { isSuggestableBranch } from "./branchScope";
 import { RULE_DICTIONARY_ITEM_IDS } from "./rules";
 import { CALL_DELAY_ITEM_ID } from "./timing";
 
@@ -31,22 +32,6 @@ export const RULE_ENGINE_CF_ITEM_IDS: string[] = ["CO-01", "CO-02", "CO-03"].fil
 /* ── 안 가 본 갈래 ───────────────────────────────────────── */
 
 /**
- * 「가 볼 길」로 권할 수 있는 갈래인가 — 두 가지는 세지 않는다.
- *
- *  - **중립 분기**(`…-n` · 그 CUE의 `defaultBranchId`): 무응답·미분류가 떨어지는 자리라
- *    학습자가 골라 볼 대답이 아니다.
- *  - **⚑CF 분기**: 안전 직결 위반이므로 「가 보시라」고 권할 수 없다.
- *
- * 두 조건을 함께 보는 까닭은, 현행 데이터에서는 둘이 겹치지만(모든 CUE의 defaultBranchId가
- * `…-n`) 그 규약이 나중에 흔들려도 ⚑CF·미분류가 권유 목록으로 새지 않게 하기 위함이다.
- */
-function isSuggestableBranch(cue: CueDef, branch: BranchDef): boolean {
-  if (branch.criticalFail === true) return false;
-  if (branch.id === cue.defaultBranchId) return false;
-  return !branch.id.endsWith("-n");
-}
-
-/**
  * 이번 세션이 **지나간 CUE들**에서 학습자가 고르지 않은 갈래의 수.
  *
  * 판정도 점수도 아니고, 이미 남아 있는 시나리오 데이터와 세션 이벤트를 세기만 한다
@@ -54,7 +39,9 @@ function isSuggestableBranch(cue: CueDef, branch: BranchDef): boolean {
  * 그때 고른 갈래는 **모두** 가 본 것으로 친다.
  *
  * 지나지 않은 CUE는 애초에 세지 않는다 — 이번 회차가 닿지도 않은 자리를 「남았다」고
- * 세면, 안내가 아니라 미달 통지가 된다.
+ * 세면, 안내가 아니라 미달 통지가 된다. (그래서 이 값은 훈련 목록 카드의 「안 가 본 갈래」와
+ * 다르다. 무엇을 한 갈래로 치는지는 `branchScope.ts`가 한 벌로 정하고, **어느 범위를 세는지**만
+ * 두 자리가 다르다 — 두 화면의 문구가 그 차이를 그대로 적는다.)
  *
  * @example
  * unexploredBranches(scenario, session); // 4 — 지나온 자리에 아직 4갈래가 남음

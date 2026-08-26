@@ -107,6 +107,16 @@ export function PageShell({
 
           <main
             id="chim-content"
+            /* 프래그먼트 이동(`#chim-content`)의 목적지가 **초점을 받을 수 있어야** 합니다.
+               `href="#..."`는 스크롤과 「순차 초점 시작점」만 옮기고 초점 자체는 옮기지 않으며,
+               Safari는 이 자리에서 시작점도 옮기지 않는 것으로 오래 알려져 있습니다 — 이 앱의
+               주 배포 형태가 iOS PWA입니다. tabIndex가 없던 동안 「본문으로 건너뛰기」를 눌러도
+               다음 Tab이 다시 헤더로 돌아갔고, /legal 절 끝의 「맨 위로」 열둘도 화면만 올리고
+               초점은 그 자리에 두었습니다(3차 페르소나 UI/UX low).
+               `-1`이라 Tab 순서에는 끼지 않습니다 — 프로그램으로만 닿는 자리입니다.
+               `RouteFocus`가 h1에 같은 값을 붙이는 것과 같은 문법이고, 그쪽 main 폴백 경로에서는
+               이제 `setAttribute` 한 번이 줄어듭니다. */
+            tabIndex={-1}
             className={cx(
               "flex-1",
               fill && "flex min-h-0 flex-col overflow-y-auto overscroll-contain",

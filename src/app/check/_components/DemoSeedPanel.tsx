@@ -155,11 +155,14 @@ export function DemoSeedPanel() {
           <p className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-ink-muted">
             {seeded ? "심었습니다 · 이 순서로 보여 주십시오" : "심기 전에 · 지금 열면 보이는 것"}
           </p>
+          {/* 아래 두 링크가 brand-800인 이유 — 이 패널 전체가 paper-2 면 카드(위 <section>)
+              안입니다. brand-700은 흰 지면 전용이고 이 면에서는 4.49:1로 AA 미달입니다
+              (globals.css의 brand-700 주석이 정본 · 2026-08-26 게이트로 내렸습니다). */}
           <ol className="chim-hairline mt-[6px]">
             <li className="py-[4px]">
               <Link
                 href="/history"
-                className="inline-flex min-h-[48px] items-center rounded-field text-[0.8438rem] font-bold text-brand-700 transition-colors duration-150 active:bg-paper-2"
+                className="inline-flex min-h-[48px] items-center rounded-field text-[0.8438rem] font-bold text-brand-800 transition-colors duration-150 active:bg-paper-2"
               >
                 <span className="chim-num">1</span>. 내 이력 열기 ›
               </Link>
@@ -172,7 +175,7 @@ export function DemoSeedPanel() {
             <li className="py-[4px]">
               <Link
                 href="/history/certificate"
-                className="inline-flex min-h-[48px] items-center rounded-field text-[0.8438rem] font-bold text-brand-700 transition-colors duration-150 active:bg-paper-2"
+                className="inline-flex min-h-[48px] items-center rounded-field text-[0.8438rem] font-bold text-brand-800 transition-colors duration-150 active:bg-paper-2"
               >
                 <span className="chim-num">2</span>. 이수 확인서 열기 ›
               </Link>

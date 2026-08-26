@@ -29,6 +29,10 @@ export interface UnexploredCountProps {
  *
  * 세는 것은 갈래 수뿐이고 점수·등급·달성률은 만들지 않습니다. 전부 가 보셨으면 줄이 사라집니다 —
  * 「0곳 남음」은 알려 줄 것이 없는 줄입니다.
+ *
+ * 이 숫자는 **이 상황 전체**를 세므로, 완주 직후 종료 화면에서 읽으신 숫자(그 회차가 지나온
+ * 자리만)보다 큽니다. 두 값이 세는 집합은 같고(engine/branchScope) 범위만 다르므로,
+ * 문장에 「이 상황에서」를 붙여 무엇을 세고 있는지 그대로 적습니다(교육생 3차 P2).
  */
 export function UnexploredCount({ scenarioId, prints, className }: UnexploredCountProps) {
   const [left, setLeft] = useState<number | null>(null);
@@ -57,8 +61,8 @@ export function UnexploredCount({ scenarioId, prints, className }: UnexploredCou
     <span
       className={cx("block text-[0.7813rem] leading-[1.45] text-ink-muted", className)}
     >
-      안 가 본 갈래 <span className="chim-num font-bold">{left}</span>곳 — 다른 대답이면 다르게
-      흘러가요
+      이 상황에서 아직 안 가 본 갈래 <span className="chim-num font-bold">{left}</span>곳 — 다른
+      대답이면 다르게 흘러가요
     </span>
   );
 }

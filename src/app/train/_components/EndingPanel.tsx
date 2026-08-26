@@ -15,8 +15,14 @@ import {
   type NextTrainingPick,
 } from "@/app/history/_components/HistoryBoard";
 import { stripInternalIds } from "./DialogueLog";
-import { splitLawSentences } from "./constants";
-import { cfVerdictSourceLine, durationText, scenarioHref, situationOrdinal } from "./constants";
+import {
+  BRANCH_LABEL_IN_WORDS,
+  cfVerdictSourceLine,
+  durationText,
+  scenarioHref,
+  situationOrdinal,
+  splitLawSentences,
+} from "./constants";
 
 export interface EndingPanelProps {
   scenario: Scenario;
@@ -90,7 +96,7 @@ function leadText(verdict: EndingDef["verdict"], session: SessionState): string 
     case "부분 충족":
       return "안전은 지켰습니다. 한 가지만 더 챙기면 다음이 달라집니다";
     case "재시도":
-      return "여기서 한 번 더 해보시면 좋겠어요. 벌점은 없어요";
+      return "여기서 한 번 더 해보시면 좋겠어요. 점수는 매기지 않아요";
     case "재훈련":
       return session.retriesUsed > 0
         ? "멈춘 뒤 재시도로 회복하셨어요"
@@ -101,8 +107,14 @@ function leadText(verdict: EndingDef["verdict"], session: SessionState): string 
   }
 }
 
-/** 다시 보기 문법에서만 붙는 두 번째 줄 — 표시의 뜻을 먼저 풀어 드립니다. */
-const RETRY_NOTE = "이 표시는 벌점이 아니라 다시 볼 지점 안내입니다.";
+/**
+ * 다시 보기 문법에서만 붙는 두 번째 줄 — 표시의 뜻을 먼저 풀어 드립니다.
+ *
+ * ⚑CF 시트(CriticalInterrupt)와 **같은 문장**을 씁니다. ⚑CF가 한 번이라도 있으면 판정이
+ * 재훈련으로 고정되고 이 화면이 그 회차가 도착하는 곳이라, 같은 회차의 두 화면이
+ * 「점수는 매기지 않습니다」와 「벌점」으로 다른 말을 하고 있었습니다(교육생·현직 3차).
+ */
+const RETRY_NOTE = "점수는 매기지 않습니다. 이 회차는 기록에 다시 볼 지점으로 남습니다.";
 
 /**
  * 헤어라인 목록 — 3개까지 펴 두고 나머지는 「외 N개 ⌄」로 접습니다 (시안 6a).
@@ -181,20 +193,23 @@ interface TimelineRow {
 }
 
 /**
- * 갈래 이름을 화면 낱말로 다듬습니다 — 저작용 표기만 걷어내고 문구는 그대로 둡니다.
+ * 갈래 이름을 화면 낱말로 다듬습니다 — 저작용 표기를 걷어내고, 분류 이름은 사용자 말로 바꿉니다.
  *
  * 시나리오 데이터의 label에는 저작자용 주석이 괄호로 붙어 있습니다:
  * 「눕히기 (의식 있는 상태에서) (⚑CF)」·「등을 세게 두드림 (경고 — ⚑CF 아님)」.
  * ⚑CF는 설계 문서의 표기이지 화면 낱말이 아니므로(화면에서는 판정어 「즉시 중단」이 그 자리를
  * 대신합니다), 그 표기가 든 괄호만 통째로 뗍니다. 사람이 읽는 괄호는 건드리지 않습니다.
+ * 괄호를 뗀 뒤에 위 표를 한 번 지납니다.
  *
  * @example cleanBranchLabel("눕히기 (의식 있는 상태에서) (⚑CF)") // "눕히기 (의식 있는 상태에서)"
+ * @example cleanBranchLabel("무응답·미분류") // "말이 닿지 않은 자리"
  * @example cleanBranchLabel("대체 행동 유도 (동의를 구하고 함께 움직임)") // 그대로
  */
 function cleanBranchLabel(raw: string): string {
-  return stripInternalIds(raw)
+  const trimmed = stripInternalIds(raw)
     .replace(/\s*\([^)]*(?:⚑|\bCF\b)[^)]*\)/g, "")
     .trim();
+  return BRANCH_LABEL_IN_WORDS[trimmed] ?? trimmed;
 }
 
 /** 판정 → 표준 마크. 판정은 엔진이 이미 내려 둔 것을 그대로 옮기기만 합니다. */
@@ -602,12 +617,16 @@ export function EndingPanel({
 
       {/* 안 가 본 길 — 한 줄. 아래 버튼(같은 장면 다시 · 다음 상황으로)으로 그대로 이어지는
           자리라 새 버튼을 달지 않고 문구만 둡니다. 남은 갈래 수는 「몇 곳이 남았는가」이지
-          점수가 아니고(위 「잘한 것 N」과 같은 셈법), 전부 가 보셨으면 달성으로만 적습니다. */}
+          점수가 아니고(위 「잘한 것 N」과 같은 셈법), 전부 가 보셨으면 달성으로만 적습니다.
+
+          이 값이 세는 것은 **이번에 지나온 자리**뿐입니다(engine/coverage). 훈련 목록 카드는
+          그 상황의 CUE를 전부 세므로 숫자가 더 큽니다 — 셈법이 아니라 범위가 다른 것이라,
+          두 문장이 각자 무엇을 세는지 그대로 적습니다(교육생 3차 P2). */}
       {timeline.length > 0 && (
         <p className="mt-4 rounded-card bg-paper-2 px-[15px] py-3.5 text-[0.9375rem] leading-[1.6] text-ink-soft">
           {unexplored > 0
-            ? `이번에 고르지 않은 갈래가 ${unexplored}곳 남아 있습니다. 같은 상황도 다른 대답이면 다르게 흘러갑니다.`
-            : "이 상황의 갈래를 전부 가 보셨습니다."}
+            ? `이번에 지나온 자리에서 고르지 않은 갈래가 ${unexplored}곳 있습니다. 같은 상황도 다른 대답이면 다르게 흘러갑니다.`
+            : "이번에 지나온 자리의 갈래를 전부 가 보셨습니다."}
         </p>
       )}
 
@@ -674,8 +693,11 @@ export function EndingPanel({
             {suggestion ? `다음 상황으로 — ${suggestion.candidate.title}` : "다음 상황 고르기"}
           </BigButton>
         ) : (
+          /* 라벨에 감점 이야기를 붙여 두면 이 화면에서 그 낱말이 가장 크게 읽힙니다 —
+             ⚑CF 시트에서 이미 뗀 표기이고, 뜻은 위 RETRY_NOTE와 아래 안내 줄이 맡습니다.
+             라벨 문구는 CriticalInterrupt의 주 CTA와 **같은 말**입니다. */
           <BigButton onClick={onRestart} size="lg" block>
-            같은 장면 다시 해 보기 — 벌점 없음
+            같은 장면 다시 해 보기
           </BigButton>
         )}
 

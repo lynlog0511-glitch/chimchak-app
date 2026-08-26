@@ -24,6 +24,8 @@ import { SCENARIO_MATRIX } from "@/data/matrix";
  * 여기서 필요한 것은 id 문자열뿐이므로 그것만 담은 모듈을 봅니다(`@/data/scenarioIds`).
  */
 import { SCENARIO_IDS } from "@/data/scenarioIds";
+/* 가져온 문자열의 「보이지 않는 글자」 목록 — 프롬프트로 나가는 칸(`/api/coach`)과 같은 자리를 본다. */
+import { hasInvisibleChars } from "@/lib/textGuard";
 
 export const SESSIONS_KEY = "chimchak.sessions.v1";
 export const REPORTS_KEY = "chimchak.reports.v1";
@@ -995,13 +997,19 @@ function parseWhole(text: string): number | undefined {
  */
 export const MAX_IMPORT_TEXT_LEN = 80;
 
-/** 보이지 않는 제어문자 — 탭·수직탭·NUL 계열은 표를 밀거나 값을 감춘다. */
-const CONTROL_CHARS = /[\u0000-\u001F\u007F\u200B-\u200F\u2028\u2029\uFEFF]/;
-
-/** 제목·유형 한 칸 — 상한을 넘거나 제어문자가 섞이면 `undefined`(= 파일 전체를 거부한다). */
+/**
+ * 제목·유형 한 칸 — 상한을 넘거나 **보이지 않는 글자**가 섞이면 `undefined`(= 파일 전체를 거부한다).
+ *
+ * 목록은 `src/lib/textGuard.ts` 한 자리에 있다. 예전에는 이 파일이 문자 클래스를 직접 들고
+ * 있었고, 그 목록에서 빠져 있던 것이 **양방향 재정의·격리 문자**(U+202A~202E·U+2066~2069)였다.
+ * 이 계열은 화면 표기를 통째로 뒤집는데, 통제를 세운 이유가 바로 「가져온 값이 확인서와 다음
+ * CSV로 되돌아 나가는 길」이라 그 빈자리가 곧 표시 위조였다(React가 HTML을 이스케이프하므로
+ * XSS는 아니지만, 사람이 읽는 확인서에서 값이 뒤집혀 보이는 것으로 족하다).
+ * 이제는 프롬프트로 나가는 칸(`/api/coach`)과 **같은 목록**을 본다.
+ */
 function readImportText(value: string): string | undefined {
   if (value.length > MAX_IMPORT_TEXT_LEN) return undefined;
-  return CONTROL_CHARS.test(value) ? undefined : value;
+  return hasInvisibleChars(value) ? undefined : value;
 }
 
 /**
@@ -1649,10 +1657,13 @@ export function progressStepCount(progress: SessionProgress): number {
  *
  * - 기기 안(localStorage)에만 남는다. 이 값을 실어 보내는 경로는 앱 어디에도 없다 —
  *   보고 기록·이수 사실 파일(CSV)·온라인 모드 요청 어느 쪽에도 이 칸은 들어가지 않는다.
- * - 화면에 그리는 곳도 응급 안내의 주소 단계 한 곳뿐이다(`ProtocolAddressCard`).
+ * - **적는 자리와 보는 자리가 나뉜다**(2026-08-26). 적고·고치고·지우는 곳은 응급 안내 목록
+ *   화면의 블록 하나뿐이고(`ProtocolAddressPanel`), 재생 화면의 주소 단계는 적어 두신 값을
+ *   보여 주기만 한다(`ProtocolAddressCard` — 표시 전용). 어르신 앞에서 재생 중인 화면이
+ *   타자를 시키지 않게 하려고 나눈 것이다.
  * - 「이 기기의 기록 지우기」로는 지워지지 않는다. 기록이 아니라 설정 성격이라 회차를 지우려다
- *   방문지 주소까지 잃으면 다음 응급 때 화면이 다시 비어 있게 된다. 지우는 자리는 응급 화면의
- *   「지우기」 하나이고, /legal의 저장 목록이 그 사실을 그대로 적는다.
+ *   방문지 주소까지 잃으면 다음 응급 때 화면이 다시 비어 있게 된다. 지우는 자리는 응급 안내
+ *   목록 화면의 「적어 둔 주소 지우기」 하나이고, /legal의 저장 목록이 그 사실을 그대로 적는다.
  */
 export const ADDRESS_KEY = "chimchak.address.v1";
 
@@ -1708,7 +1719,7 @@ export function saveVisitAddress(text: string): boolean {
   return writeValue(ADDRESS_KEY, { text: value });
 }
 
-/** 방문지 주소를 지운다 — 지우는 자리는 응급 안내의 주소 단계 하나뿐이다. */
+/** 방문지 주소를 지운다 — 지우는 자리는 응급 안내 목록 화면의 주소 블록 하나뿐이다. */
 export function clearVisitAddress(): void {
   const storage = getStorage();
   if (!storage) return;

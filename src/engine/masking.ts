@@ -74,6 +74,31 @@ const NAME_MARKERS = "님|씨|어르신|할머님|할아버님|할머니|할아�
 const NAME_JOSA = "은|는|이|가|을|를|과|와|도|의";
 
 /**
+ * 이름 뒤에 붙는 **친족·직함 호칭** — NAME_MARKERS와 규칙을 따로 세운다.
+ *
+ * 현장 발화에는 "김영수 아드님이 오셨어요"·"정미숙 간호사에게 알렸습니다"처럼 이름 뒤에 님·씨가
+ * 아니라 관계나 직함이 오는 꼴이 흔한데, 이것이 통째로 새고 있었다.
+ *
+ * **NAME_MARKERS에 그냥 얹지 않는 이유**가 이 주석의 전부다. 그 규칙은 성 + 1~3자를 받으므로
+ * "주간보호 간호사"가 「[대상자] 간호사」가 되고 "방문 간호사"도 같은 꼴이다(뒤쪽은 예외어가
+ * 받지만 앞쪽은 받지 못한다). 그래서 이 목록은 **성 1자 + 이름 2자**로 좁힌 별도 규칙
+ * (name-title)에만 걸고, 검사는 조사·맨이름 규칙과 **같은 것**(acceptBareName)을 쓴다 —
+ * 두 이름 글자가 모두 이름 음절이어야 하고, 예외어면 제외다. "주간보호"는 「간·보」에서,
+ * "우리 아드님"은 예외어에서 각각 걸린다.
+ */
+const NAME_TITLES =
+  "아드님|따님|어머님|아버님|며느님|사위|간호사|요양보호사|사회복지사|물리치료사|영양사|팀장|과장|실장";
+
+/**
+ * 이름 **앞**에 서는 표지 — "환자명 김영수 확인했습니다"·"보호자분 성함이 김영수 맞으시죠".
+ *
+ * 뒤에 아무 표지가 없어도(맨이름 규칙의 종결·구두점 경계도 아니어도) 앞에 이 말이 서 있으면
+ * 뒤따르는 세 글자는 사람 이름이다. 소비하지 않는 후방탐색(lookbehind)이라 표지 자체는 남는다.
+ * 검사는 역시 acceptBareName 하나를 나눠 쓴다 — 사전이 두 벌로 갈라지지 않는다.
+ */
+const NAME_LEAD_MARKERS = "성함|이름|환자명|대상자|수급자|보호자";
+
+/**
  * 이름 뒤에 **아무것도 붙지 않는 자리** — 문장 끝·구두점·「입니다」류 앞.
  *
  * 조사 규칙(name-josa)은 조사를, 호칭 규칙(name-heuristic)은 호칭을 요구한다. 그런데 실무
@@ -624,7 +649,48 @@ const MASK_RULES: MaskRule[] = [
     priority: 10,
     accept: acceptBareName,
   },
+  /*
+   * 성씨 + 이름 두 자 + **친족·직함 호칭** ("김영수 아드님", "정미숙 간호사", "박말순 따님").
+   *
+   * 호칭 규칙(name-heuristic)이 님·씨·어르신만 보던 자리다. 목록을 그쪽에 얹지 않고 규칙을
+   * 따로 세운 이유는 NAME_TITLES 주석에 적어 두었다 — 그쪽은 성 + 1~3자를 받아 "주간보호
+   * 간호사"까지 이름으로 읽는다. 여기서는 폭을 두 글자로 좁히고 검사를 조사·맨이름 규칙과
+   * 공유해, 새로 여는 문이 정확히 「이름 + 호칭」 한 꼴이 되게 한다.
+   */
+  {
+    id: "name-title",
+    kind: "성명",
+    pattern: new RegExp(`([${SURNAMES}][가-힣]{2})\\s?(?:${NAME_TITLES})`, "g"),
+    group: 1,
+    priority: 9,
+    accept: acceptBareName,
+  },
+  /*
+   * **앞**에 표지가 선 맨이름 ("환자명 김영수 확인했습니다", "성함이 김영수 맞으시죠").
+   *
+   * 뒤에 조사도 호칭도 종결도 없는 자리를 앞쪽 표지 하나로 받는다. 공백 경계를 통째로 넓히지
+   * 않겠다는 판단(NAME_TAIL_BOUNDARY 주석의 오탐 25건 실측)은 그대로 두고, 그 판단이 정확히
+   * 무엇을 놓치는지 아는 자리만 좁게 연다.
+   */
+  {
+    id: "name-lead",
+    kind: "성명",
+    pattern: new RegExp(
+      `(?<=(?:${NAME_LEAD_MARKERS})(?:${NAME_JOSA})?\\s*[:：]?\\s*)[${SURNAMES}][가-힣]{2}(?![가-힣])`,
+      "g",
+    ),
+    priority: 10,
+    accept: acceptBareName,
+  },
 ];
+
+/**
+ * 재등장 규칙의 우선순위 — **모든 규칙보다 뒤**다.
+ *
+ * 2차 패스가 만드는 후보는 이미 확정된 문자열의 사본이라, 원래 규칙이 잡은 자리와 겹치면
+ * 언제나 원래 자리가 이겨야 한다("김영 님과 김영수 씨"에서 뒤쪽은 「김영수」로 남는다).
+ */
+const REPEAT_NAME_PRIORITY = 11;
 
 /* ── 후보 수집 ─────────────────────────────────────────── */
 
@@ -682,6 +748,66 @@ function resolveOverlap(candidates: Candidate[]): Candidate[] {
   return accepted.sort((a, b) => a.start - b.start);
 }
 
+/* ── 재등장 2차 패스 ───────────────────────────────────── */
+
+/**
+ * 한 번 성명으로 확정된 문자열의 **같은 입력 안 재등장**을 함께 가린다.
+ *
+ * 왜 필요한가: 규칙은 저마다 자기 표지를 요구한다. 그래서 "김영수 님께 말씀드렸고 김영수 상태는
+ * 안정적입니다"에서 앞쪽은 호칭 규칙이 잡고 뒤쪽은 그대로 남는다 — 같은 문장 안에서 **한 번은
+ * 가리고 한 번은 노출하는** 결과인데, 이는 아예 못 가린 것과 위험이 같으면서 화면은 「가렸습니다」
+ * 라고 말한다. 사람 검토가 없는 경로(/practice 자유 연습)에서는 이 자동 체가 마지막이다.
+ *
+ * **오탐이 늘지 않는 이유**가 이 함수를 세운 근거다. 여기서 찾는 것은 새 후보가 아니라 이미
+ * 세 겹 방어선(앞이 한글이면 제외 · 예외어면 제외 · 이름 음절일 것)을 지나 **확정된 문자열
+ * 그 자체**이고, 그 문자열이 같은 입력 안에 다시 나온 자리뿐이다. 사전도 정규식도 넓히지 않는다.
+ *
+ * 우선순위는 모든 규칙보다 뒤(`REPEAT_NAME_PRIORITY`)라, 원래 규칙이 잡은 더 긴 자리와 겹치면
+ * 언제나 원래 자리가 이긴다.
+ */
+function repeatNameCandidates(text: string, accepted: readonly Candidate[]): Candidate[] {
+  const names = new Set<string>();
+  for (const c of accepted) {
+    if (c.kind !== "성명") continue;
+    const value = text.slice(c.start, c.end);
+    // 한 글자짜리 확정은 두지 않는다(성씨 한 자가 온 문장을 물어뜯는 일을 만들지 않는다).
+    if (value.length >= 2) names.add(value);
+  }
+
+  const extra: Candidate[] = [];
+  for (const name of names) {
+    let from = 0;
+    for (;;) {
+      const at = text.indexOf(name, from);
+      if (at < 0) break;
+      from = at + name.length;
+      // 다른 낱말 한가운데를 물지 않는다 — 원래 규칙들과 같은 앞 경계 검사다.
+      if (isHangulAt(text, at - 1)) continue;
+      extra.push({
+        start: at,
+        end: at + name.length,
+        kind: "성명",
+        replaced: MASK_TOKENS.성명,
+        priority: REPEAT_NAME_PRIORITY,
+      });
+    }
+  }
+  return extra;
+}
+
+/**
+ * 후보 수집 → 겹침 정리 → **재등장 2차 패스** → 다시 겹침 정리.
+ *
+ * `maskText`와 `maskSpansOnOriginal`이 이 함수 하나를 나눠 쓴다. 두 곳에 따로 적으면 어느 날
+ * 한쪽만 넓어지고, 그때 화면의 하이라이트와 실제 치환 결과가 갈라진다.
+ */
+function maskCandidates(text: string): Candidate[] {
+  const raw = collectCandidates(text);
+  const first = resolveOverlap(raw);
+  const extra = repeatNameCandidates(text, first);
+  return extra.length === 0 ? first : resolveOverlap([...raw, ...extra]);
+}
+
 /* ── 공개 API ──────────────────────────────────────────── */
 
 /**
@@ -697,7 +823,7 @@ function resolveOverlap(candidates: Candidate[]): Candidate[] {
  */
 export function maskText(text: string): MaskResult {
   if (!text) return { masked: "", spans: [] };
-  const accepted = resolveOverlap(collectCandidates(text));
+  const accepted = maskCandidates(text);
   let masked = "";
   let cursor = 0;
   const spans: MaskSpan[] = [];
@@ -720,7 +846,7 @@ export function maskText(text: string): MaskResult {
  */
 export function maskSpansOnOriginal(text: string): MaskSpan[] {
   if (!text) return [];
-  return resolveOverlap(collectCandidates(text)).map((c) => ({
+  return maskCandidates(text).map((c) => ({
     start: c.start,
     end: c.end,
     kind: c.kind,
@@ -753,6 +879,14 @@ export function countByKind(spans: MaskSpan[]): Partial<Record<MaskKind, number>
 }
 
 /* ── 부분 가림 감지 ────────────────────────────────────── */
+
+/**
+ * 부분 가림을 알리는 **한 문장** — 이 판정을 쓰는 화면이 전부 같은 말을 한다.
+ *
+ * 지금 쓰는 곳은 둘이다: 사람이 검토하는 /report 2단계와, 사람 검토가 없는 /practice의 전송
+ * 직전. 뒤쪽이 더 중요한 자리다 — 거기서 문자열이 기기 밖으로 나간다.
+ */
+export const MASK_PARTIAL_NOTICE = "일부만 가려졌을 수 있어요. 한 번 확인해 주세요.";
 
 /** 치환 토큰 **바로 앞**에 붙은 조각 — 숫자·붙임표·로마자 한 글자("110-123-[번호]", "L[번호]") */
 const LEFTOVER_BEFORE = /[0-9A-Za-z\-–—]$/;

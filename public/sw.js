@@ -144,13 +144,30 @@ function collectStaticAssets(html) {
  * 이번 설치가 실제로 참조한 `/_next/static/...` 목록을 캐시 안에 적어 두는 자리입니다.
  *
  * 화면이 요청하는 주소가 아니라 **서비스워커가 자기에게 남기는 쪽지**입니다(그래서 이름 앞에
- * `__`를 붙여 앱 라우트와 겹치지 않게 했습니다). activate 단계의 청소가 이 목록을 기준으로
- * 「지금 빌드가 참조하지 않는 청크」를 가려냅니다.
+ * `__`를 붙여 앱 라우트와 겹치지 않게 했습니다). activate 단계의 청소가 이 쪽지와 아래
+ * 지난 쪽지를 **대조**해 지울 것을 정합니다.
  */
 const ASSET_INDEX_URL = "/__chimchak-assets.json";
 
 /**
+ * 지난 설치가 남겼던 쪽지 — 새 쪽지를 쓰기 직전에 이 자리로 옮겨 둡니다.
+ *
+ * 청소의 기준이 「이번 쪽지에 없는 것」이던 때에는, 쪽지에 애초에 실리지 않는 자산까지
+ * 죽은 청크로 몰려 지워졌습니다. 쪽지는 저장한 **HTML이 참조하는 것**만 모으므로
+ * `import()`로 뒤늦게 오는 청크(예: 훈련 음성 매니페스트)와 목록 밖 라우트의 청크는
+ * 어느 쪽지에도 적히지 않습니다. 그것들이 지워지는 상황은 하필 캐시 이름이 어긋난 때,
+ * 곧 오프라인 시연과 겹칠 수 있는 때입니다(페르소나 FE low).
+ *
+ * 그래서 기준을 뒤집었습니다 — **지난 쪽지에 적혀 있는데 이번 쪽지에는 없는 것**만 지웁니다.
+ * 우리가 스스로 「지난 빌드가 쓰던 것」이라고 적어 둔 것만 지우므로, 모르는 자산은 남습니다.
+ * 안 지워서 생기는 손해는 용량뿐이고, 잘못 지워서 생기는 손해는 오프라인에서 죽은 화면입니다.
+ */
+const ASSET_INDEX_PREV_URL = "/__chimchak-assets-prev.json";
+
+/**
  * 한 번의 청소에서 지우는 항목 수 상한.
+ *
+ * 상한에 걸려 다 못 지우면 남은 몫을 지난 쪽지에 다시 적어 두고, 다음 활성화가 이어서 지웁니다.
  *
  * 정상 흐름에서는 빌드마다 캐시 이름이 통째로 바뀌어(prebuild 해시) 낡은 캐시가 한 번에
  * 사라지므로 여기까지 올 일이 거의 없습니다. 여기가 필요해지는 것은 **캐시 이름이 어긋난**
@@ -251,12 +268,17 @@ self.addEventListener("install", (event) => {
         }),
       );
 
-      /* 이번 빌드가 참조하는 자산 목록을 캐시에 적어 둡니다 — activate의 청소가 이것만 봅니다.
+      /* 이번 빌드가 참조하는 자산 목록을 캐시에 적어 둡니다 — activate의 청소는 이 쪽지와
+         지난 쪽지, 두 장만 봅니다.
          **한 건도 못 모았으면 적지 않습니다**: 회선이 끊긴 채 설치되면 목록이 비는데, 그 빈
-         목록을 적어 두면 다음 청소가 「아무것도 참조하지 않는다」고 읽고 멀쩡한 청크를 전부
-         지웁니다. 못 적으면 청소만 건너뛸 뿐 설치는 그대로 성공합니다. */
+         목록을 적어 두면 다음 청소가 지난 쪽지의 항목을 전부 죽은 것으로 읽습니다.
+         못 적으면 청소만 건너뛸 뿐 설치는 그대로 성공합니다(지난 쪽지도 그 자리에 남습니다). */
       if (assets.size > 0) {
         try {
+          /* 지난 쪽지를 덮어쓰기 전에 옆으로 옮겨 둡니다 — activate의 청소가 두 장을 대조해
+             「지난 빌드가 쓰던 것 가운데 이번 빌드가 안 쓰는 것」만 지웁니다. */
+          const previous = await cache.match(ASSET_INDEX_URL);
+          if (previous) await cache.put(ASSET_INDEX_PREV_URL, previous);
           await cache.put(
             ASSET_INDEX_URL,
             new Response(JSON.stringify([...assets]), {
@@ -279,35 +301,60 @@ self.addEventListener("install", (event) => {
 /* ── 활성화 ───────────────────────────────────────────────── */
 
 /**
- * 지금 캐시 **안에서** 이번 빌드가 참조하지 않는 `/_next/static/...`을 지웁니다.
+ * 지난 빌드가 쓰다가 이번 빌드가 더는 쓰지 않는 `/_next/static/...`을 지웁니다.
  *
  * 이름이 다른 캐시는 아래 activate가 통째로 지우므로 보통은 이 함수가 할 일이 없습니다.
  * 할 일이 생기는 것은 **캐시 이름이 어긋난 채 새 워커가 올라온 경우**입니다 — 그때는 한 캐시
  * 안에 지난 빌드의 죽은 청크와 이번 빌드의 청크가 함께 쌓이고, 상한이 없으면 배포마다 자랍니다
  * (페르소나 FE P2 — 1차 지적 13의 후반부).
  *
- * 기준은 설치 단계가 남긴 쪽지(`ASSET_INDEX_URL`) 하나뿐입니다. 쪽지가 없거나 비어 있으면
- * **아무것도 지우지 않습니다** — 판단할 근거가 없을 때는 남겨 두는 쪽이 안전합니다.
- * 실수로 지워도 온라인이면 fetch 핸들러가 다시 채우지만, 오프라인 시연 중이면 되돌릴 길이 없습니다.
+ * 지우는 대상은 **두 쪽지의 차집합**입니다 — 지난 쪽지에 적혀 있고 이번 쪽지에는 없는 항목.
+ * 예전 기준(「이번 쪽지에 없는 것은 다 지운다」)은 쪽지에 애초에 실리지 않는 자산까지 죽은
+ * 청크로 몰았습니다. 쪽지는 저장한 HTML이 참조하는 것만 모으므로, `import()`로 뒤늦게 오는
+ * 청크와 목록 밖 라우트의 청크는 멀쩡한데도 지워졌습니다(페르소나 FE low).
+ *
+ * 두 쪽지 가운데 하나라도 없거나 비어 있으면 **아무것도 지우지 않습니다** — 판단할 근거가
+ * 없을 때는 남겨 두는 쪽이 안전합니다. 실수로 지워도 온라인이면 fetch 핸들러가 다시 채우지만,
+ * 오프라인 시연 중이면 되돌릴 길이 없습니다. 안 지워서 치르는 값은 용량뿐입니다.
  */
 async function pruneStaleAssets() {
   try {
     const cache = await caches.open(CACHE_NAME);
-    const indexed = await cache.match(ASSET_INDEX_URL);
-    if (!indexed) return;
-    const list = await indexed.json();
-    if (!Array.isArray(list) || list.length === 0) return;
+    const [current, previous] = await Promise.all([
+      cache.match(ASSET_INDEX_URL),
+      cache.match(ASSET_INDEX_PREV_URL),
+    ]);
+    if (!current || !previous) return;
 
-    const keep = new Set(list);
-    const requests = await cache.keys();
+    const live = await current.json();
+    const candidates = await previous.json();
+    if (!Array.isArray(live) || live.length === 0) return;
+    if (!Array.isArray(candidates) || candidates.length === 0) return;
+
+    const keep = new Set(live);
+    let index = 0;
     let removed = 0;
-    for (const request of requests) {
-      if (removed >= PRUNE_LIMIT) break;
-      const path = new URL(request.url).pathname;
-      if (!path.startsWith("/_next/static/")) continue;
-      if (keep.has(path)) continue;
-      await cache.delete(request);
+    for (; index < candidates.length && removed < PRUNE_LIMIT; index += 1) {
+      const href = candidates[index];
+      if (typeof href !== "string") continue;
+      // 쪽지에 적히는 것은 이 접두사뿐이지만, 지우는 쪽이라 한 번 더 확인합니다.
+      if (!href.startsWith("/_next/static/")) continue;
+      if (keep.has(href)) continue;
+      await cache.delete(href);
       removed += 1;
+    }
+
+    if (index >= candidates.length) {
+      // 지난 쪽지는 역할이 끝났습니다 — 남겨 두면 다음 활성화가 같은 목록을 또 훑습니다.
+      await cache.delete(ASSET_INDEX_PREV_URL);
+    } else {
+      // 상한에 걸렸습니다 — 남은 몫만 다시 적어 두고 다음 활성화에 넘깁니다.
+      await cache.put(
+        ASSET_INDEX_PREV_URL,
+        new Response(JSON.stringify(candidates.slice(index)), {
+          headers: { "content-type": "application/json" },
+        }),
+      );
     }
   } catch {
     /* 청소는 부가 작업입니다 — 실패해도 화면은 그대로 열립니다. */
@@ -319,7 +366,8 @@ self.addEventListener("activate", (event) => {
     (async () => {
       const keys = await caches.keys();
       await Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)));
-      // 같은 이름의 캐시 안에 남은 지난 빌드 청크까지 거둡니다(위 함수 주석).
+      // 같은 이름의 캐시 안에 남은 지난 빌드 청크까지 거둡니다 — 지난 쪽지가 이름을 대는
+      // 것만 지웁니다(위 함수 주석).
       await pruneStaleAssets();
       await self.clients.claim();
     })(),

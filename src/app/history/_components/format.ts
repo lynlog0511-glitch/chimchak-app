@@ -87,7 +87,13 @@ export function verdictMark(verdict: EndingDef["verdict"]): StatusMarkKind {
   }
 }
 
-/** 판정 옆에 붙는 한 줄 안내 */
+/**
+ * 판정 옆에 붙는 한 줄 안내.
+ *
+ * 「벌점」이라는 낱말은 쓰지 않습니다 — 점수를 매기지 않는다고 여러 화면에서 약속한 앱에서
+ * 그 낱말이 판정 옆에 붙어 있으면 어딘가에 벌점 장부가 있는 것처럼 읽힙니다(현직 3차 low).
+ * ⚑CF 시트(CriticalInterrupt)·종료 화면(EndingPanel)과 **같은 말**로 맞춰 둡니다.
+ */
 export function verdictNote(verdict: EndingDef["verdict"]): string {
   switch (verdict) {
     case "충족":
@@ -97,9 +103,9 @@ export function verdictNote(verdict: EndingDef["verdict"]): string {
     case "재시도":
       return "같은 상황을 한 번 더 연습해 보시면 말이 훨씬 빨리 나옵니다.";
     case "재훈련 권고":
-      return "안전 위험이 아니라 존엄·관계에 대한 부분입니다. 벌점 없이 같은 장면을 다시 연습해 보세요.";
+      return "안전 위험이 아니라 존엄·관계에 대한 부분입니다. 점수는 매기지 않으니 같은 장면을 다시 연습해 보세요.";
     default:
-      return "안전과 직결된 구간이라 같은 유형을 다시 훈련하시길 권합니다. 이 표시는 벌점이 아니라 다시 볼 지점 안내입니다.";
+      return "안전과 직결된 구간이라 같은 유형을 다시 훈련하시길 권합니다. 점수는 매기지 않습니다. 이 표시는 다시 볼 지점 안내입니다.";
   }
 }
 

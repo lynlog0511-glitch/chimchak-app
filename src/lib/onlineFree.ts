@@ -56,6 +56,7 @@ import {
   coachRequestHeaders,
   extractJson,
   findBannedExpression,
+  rememberCoachToken,
   type CoachDocRef,
   type OnlineCoachFallback,
 } from "./onlineCoach";
@@ -211,10 +212,17 @@ export const FREE_FICTION_NOTICE =
  * 첫 줄이 이 절의 전부입니다: 이 모드에서는 학습자의 말이 기기 밖으로 나갑니다.
  * 상황 훈련의 약속(「나가는 것은 미분류 턴의 가명처리된 한 문장뿐」)과 다른 자리이므로,
  * 다르다는 사실부터 적습니다.
+ *
+ * **못 잡는 범주를 이름으로 적는 자리라, 목록이 실제 커버리지보다 넓게 읽히면 안 됩니다.**
+ * 로마자 이름·띄어 쓴 이름·아이디·차량번호까지 적어 두고 「이름 + 공백 + 일반 낱말」만 빼놓으면,
+ * 읽는 사람은 한글 세 글자 이름은 다 가려지는 것으로 읽습니다 — 그 꼴이 현장 발화에서 가장
+ * 흔합니다. 그래서 규칙이 닿는 데까지 넓힌 뒤(`engine/masking.ts`의 name-title·name-lead·재등장
+ * 2차 패스), **남은 한 꼴을 따로 한 줄로 적습니다.** 고지는 코드보다 앞서 가지 않습니다.
  */
 export const FREE_CONSENT_LINES: readonly string[] = [
   "자유 연습에서는 대화가 외부 AI로 전송됩니다. 상황 훈련과 달리 기기 밖으로 나갑니다.",
   "하신 말씀과 「상황 만들기」에 적어 주신 한 줄은 모두 기기 안 가림 처리를 지나서 나갑니다 — 성명·번호·이메일·주소 링크·기관명·주소·생년으로 보이는 표현을 규칙으로 찾아 가립니다. 다만 모든 표현을 빠짐없이 찾는다고 보증하지는 못합니다. 특히 로마자로 적은 이름(Mary Kim)·글자를 띄어 쓴 이름(김 민 수)·메신저 아이디·차량번호처럼 생긴 말은 규칙이 닿지 않으니, 실제 인물의 정보는 적지도 말씀하지도 말아 주십시오.",
+  "규칙이 닿지 않는 꼴이 하나 더 있습니다 — 이름 뒤에 호칭 없이 곧바로 다른 말이 이어지는 꼴(「김영수 상태를 확인했습니다」)입니다. 「어르신」·「○○ 님」처럼 호칭으로 부르시면 가려집니다.",
   "대화는 저장되지 않습니다. 화면을 벗어나면 사라지고, 기기에 남는 것은 연습 횟수 하나뿐입니다.",
   "채점하지 않습니다 — 판정도 게이지도 기록도 남기지 않고, 내 이력에도 올라가지 않습니다.",
   "마이크를 쓰시면 음성 인식은 브라우저 기능이라 제조사 서버를 경유할 수 있습니다. 타이핑만 쓰시면 이 구간이 없습니다.",
@@ -669,6 +677,8 @@ async function relayFree(
       signal: controller.signal,
       body: JSON.stringify({ task: "free", ...request }),
     });
+    // 다음 요청이 쓸 표식을 갈무리합니다 — 코칭·변주와 **같은 함수**입니다.
+    rememberCoachToken(response);
     if (!response.ok) return { fallback: "http" };
     payload = await response.json();
   } catch (error) {

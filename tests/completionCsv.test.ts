@@ -622,6 +622,38 @@ describe("가져온 파일의 제목·유형 칸", () => {
     expect(parseCompletionCsv(csvWithCell(3, "제목\u200b가리기")).ok).toBe(false);
   });
 
+  /*
+   * 보이지 않는 글자는 **코드포인트 번호로** 적는다. 소스에 그대로 넣으면 다음 사람이 무엇이
+   * 검사되는지 읽을 수 없고, 편집기·포매터가 조용히 지워도 검사가 통과해 버린다.
+   */
+  const codePoint = (value: number): string => String.fromCharCode(value);
+
+  it("양방향 재정의·격리 문자를 거부한다 — 표기를 뒤집는 계열이다", () => {
+    /*
+     * U+202A~202E(LRE·RLE·PDF·LRO·RLO)와 U+2066~2069(방향 격리), U+061C(아랍 문자 표시)는
+     * 화면 표기 순서를 통째로 뒤집는다. 이 칸을 지키는 이유가 「가져온 값이 확인서와 다음
+     * CSV로 되돌아 나가는 길」이라, 목록에서 이 계열만 비어 있으면 통제를 세운 목적이 그
+     * 자리에서 무너진다. React가 HTML을 이스케이프하므로 XSS는 아니고, 사람이 읽는 확인서의
+     * 표시 위조다 — 그것으로 족하다.
+     */
+    const bidi = [0x202a, 0x202b, 0x202c, 0x202d, 0x202e, 0x2066, 0x2067, 0x2068, 0x2069, 0x061c];
+    for (const value of bidi) {
+      const cell = `제목${codePoint(value)}가리기`;
+      expect(parseCompletionCsv(csvWithCell(3, cell)).ok, value.toString(16)).toBe(false);
+    }
+  });
+
+  it("C1 제어문자와 결합 없는 이음도 같은 목록에서 걸린다", () => {
+    for (const value of [0x0085, 0x009f, 0x2060, 0x2064]) {
+      const cell = `치매${codePoint(value)}행동`;
+      expect(parseCompletionCsv(csvWithCell(4, cell)).ok, value.toString(16)).toBe(false);
+    }
+  });
+
+  it("정상 한글·기호는 그대로 통과한다 (넓힌 목록이 정직한 파일을 물지 않는다)", () => {
+    expect(parseCompletionCsv(csvWithCell(3, "저녁 식사 거부 (치매·인지) — 3개월차")).ok).toBe(true);
+  });
+
   it("거부 사유에는 화면에 그대로 쓸 문장이 붙는다", () => {
     const merged = importCompletionCsv(csvWithCell(3, "가".repeat(200)));
     expect(merged.ok).toBe(false);

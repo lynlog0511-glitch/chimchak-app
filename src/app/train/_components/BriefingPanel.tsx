@@ -342,7 +342,7 @@ export function BriefingPanel({
         ) : (
           PRACTICE_LINE
         )}{" "}
-        틀려도 벌점은 없습니다.
+        틀려도 점수는 매기지 않습니다.
       </p>
 
       {/* 누르기 전에 알아 두실 것 두 줄 — 한 덩어리로 묶어 둡니다.

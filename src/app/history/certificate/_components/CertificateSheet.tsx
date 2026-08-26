@@ -66,7 +66,8 @@ const PRINT_CSS = `
     opacity: 0.28 !important;
     font-size: 2.5rem !important;
   }
-  /* 색을 아예 버리는 인쇄 설정까지 대비한 둘째 보증 — 매 쪽 머리에 한 줄로 박습니다.
+  /* 색을 아예 버리는 인쇄 설정까지 대비한 둘째 보증 — 첫 쪽 머리에 한 줄로 박습니다
+     (크롬은 fixed 상자를 첫 쪽에만 그립니다. 둘째 장부터는 아래 인라인 줄이 맡습니다).
      흰 바탕과 아래 실선을 함께 두어, 뒤 문장과 겹쳐 읽히지 않고 머리띠로 보이게 합니다. */
   [data-demo-band] {
     display: block !important;
@@ -84,6 +85,12 @@ const PRINT_CSS = `
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+  /* 머리띠는 fixed라 흐름에서 빠져 있어 **자기 자리를 스스로 만들지 못합니다** — 첫 쪽에서
+     본문 첫 요소(예시 미리보기 경고 문단) 위에 그대로 겹쳐 찍히던 자리입니다(페르소나 FE low).
+     @page 위 여백을 키우면 머리띠가 없는 둘째 장 이후까지 함께 내려가므로, 머리띠가 실제로
+     붙는 첫 쪽에만 그 높이(9pt 글자 + 상하 여백 ≈ 6mm)를 비웁니다. 시트 자신의 padding이라
+     여백 상쇄가 일어나지 않고, 쪽이 넘어가도 이 여백은 첫 쪽에만 붙습니다. */
+  [data-print-sheet]:has([data-demo-band]) { padding-top: 8mm !important; }
   /* 표식 셋째 겹 — 흐름 안에 복제한 한 줄(위 ③). break-after: avoid 로 뒤따르는 덩어리와
      붙여 두어, 표식만 앞 쪽 끝에 홀로 남는 일이 없게 합니다. */
   [data-demo-band-inline] {

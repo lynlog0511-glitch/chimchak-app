@@ -72,13 +72,63 @@ function clearStoredDraft(): void {
   }
 }
 
-/** 히스토리 항목에 실어 두는 단계 번호 열쇠 — Next가 쓰는 내부 상태는 그대로 두고 옆에 얹습니다. */
-const HISTORY_STEP_KEY = "chimchakReportStep";
+/* ── 히스토리 표식 ─────────────────────────────────────────
+   항목에 싣는 것은 셋입니다 — 단계 번호·회차 표식·그 회차에서 쌓은 깊이.
+   Next가 쓰는 내부 상태는 그대로 펼쳐 이어 받고 옆에 얹기만 합니다(우리 열쇠만 남기면
+   라우터가 그 항목을 자기 것으로 알아보지 못합니다).
 
-function stepFromHistoryState(state: unknown): 1 | 2 | 3 {
-  if (typeof state !== "object" || state === null) return 1;
-  const value = (state as Record<string, unknown>)[HISTORY_STEP_KEY];
-  return value === 2 || value === 3 ? value : 1;
+   회차 표식을 싣는 이유. 확정한 뒤 「새 보고 작성하기」로 다시 시작하면 화면은 1단계인데
+   히스토리에는 지난 회차의 항목이 그대로 남아 있습니다. 그 항목의 단계 번호를 믿으면
+   뒤로가 3단계(확인)로 전진합니다 — 뒤로를 눌렀는데 가 본 적 없는 화면이 뜨던 자리입니다.
+   회차가 다르면 단계 번호를 믿지 않습니다.
+
+   깊이를 싣는 이유. 예전에는 popstate가 방향을 보지 않고 카운터를 1씩 깎았습니다. 브라우저
+   앞으로에서도 같은 줄이 돌아, 2단계에 서 있는데 카운터가 0이 되고 화면 안 「다시 말하기」와
+   시스템 뒤로가 서로 다른 곳으로 갔습니다. 깊이를 항목이 들고 있으면 어느 방향으로 오든
+   지금 자리의 값이 곧 정답이라, 셀 상태가 하나 줄어듭니다.
+
+   ── 손으로 밟아 확인하는 자리(2026-08-26 지적의 재현 절차 그대로) ──────────
+   ① 확정 → 「새 보고 작성하기」 → 시스템 뒤로.
+      전: E2{step:2}를 읽어 2단계(가리기)가 원문 없이 떴습니다.
+      후: 확정이 겹을 접어 히스토리에 E1만 남고, 첫 뒤로가 /report를 벗어납니다.
+   ② 확정 → 「새 보고 작성하기」 → 1단계에서 「다음」 → 시스템 뒤로.
+      전: E3{step:3}을 읽어 뒤로가 3단계(확인)로 **전진**했습니다.
+      후: 새 회차 표식이라 E3을 무시하고 1단계로 돌아옵니다(전진 없음).
+   ③ 2단계 → 브라우저 뒤로 → 브라우저 앞으로 → 화면 안 「다시 말하기」.
+      전: 카운터가 0으로 깎여 setStep(1)만 돌고, 이후 시스템 뒤로가 /report를 통째로 벗어났습니다.
+      후: E2가 자기 깊이 1을 들고 있어 history.back()으로 갑니다(두 조작이 같은 길).
+   ④ 확정 화면에서 시스템 뒤로 한 번.
+      전: 쌓아 둔 2겹만큼 두 번 무반응이었습니다.
+      후: 접었으므로 한 번에 화면을 벗어납니다.
+   ⑤ 위저드 중간에서 새로고침한 뒤 뒤로.
+      회차 표식이 새로 발급돼 지난 항목이 전부 남의 것이 되므로, 뒤로가 1단계로만 갑니다
+      (전진하지 않습니다). 접기는 이 경우 지난 항목까지 닿지 못합니다 — 남는 경계입니다. */
+const HISTORY_STEP_KEY = "chimchakReportStep";
+const HISTORY_RUN_KEY = "chimchakReportRun";
+const HISTORY_DEPTH_KEY = "chimchakReportDepth";
+
+interface HistoryMark {
+  step: 2 | 3;
+  run: string;
+  depth: number;
+}
+
+/** 우리가 심은 항목이면 표식을, 아니면 null을 돌려줍니다(세 값이 다 맞을 때만 인정합니다). */
+function markFromHistoryState(state: unknown): HistoryMark | null {
+  if (typeof state !== "object" || state === null) return null;
+  const record = state as Record<string, unknown>;
+  const step = record[HISTORY_STEP_KEY];
+  const run = record[HISTORY_RUN_KEY];
+  const depth = record[HISTORY_DEPTH_KEY];
+  if (step !== 2 && step !== 3) return null;
+  if (typeof run !== "string" || run.length === 0) return null;
+  if (typeof depth !== "number" || !Number.isInteger(depth) || depth < 1) return null;
+  return { step, run, depth };
+}
+
+/** 회차 표식 — 같은 문서에 남아 있는 지난 회차 항목과 구분되기만 하면 됩니다. */
+function newRunId(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 /**
@@ -127,8 +177,17 @@ export function ReportWizard() {
   const pendingRef = useRef("");
   /** 세션 저장소를 아직 한 번도 읽지 않은 동안에는 쓰지도 않습니다. */
   const restoredRef = useRef(false);
-  /** 우리가 쌓아 둔 히스토리 항목 수 — 화면 안 「이전」이 시스템 뒤로와 같은 길을 쓰게 합니다. */
-  const pushedRef = useRef(0);
+  /**
+   * 이 회차의 표식. 확정 뒤 「새 보고 작성하기」로 다시 시작하면 새 값을 받습니다.
+   * 렌더 중에 한 번만 발급합니다 — 화면에 그리는 값이 아니라 수화 어긋남이 생기지 않습니다.
+   */
+  const runIdRef = useRef("");
+  if (runIdRef.current.length === 0) runIdRef.current = newRunId();
+  /**
+   * 지금 서 있는 히스토리 항목의 깊이 — 이 회차에서 우리가 쌓은 겹 수입니다(0이면 /report 첫 항목).
+   * 화면 안 「이전」이 시스템 뒤로와 같은 길을 쓰게 하고, 확정 때 접을 겹 수도 이 값입니다.
+   */
+  const depthRef = useRef(0);
   /** 확정 뒤에는 뒤로가 단계를 되돌리지 않습니다(이미 저장을 마친 화면입니다). */
   const savedRef = useRef(false);
   savedRef.current = saved !== null;
@@ -170,20 +229,33 @@ export function ReportWizard() {
      확정하거나 새로 적기를 고르시면 지웁니다. */
   useEffect(() => {
     if (!restoredRef.current || saved) return;
-    // 「이어서 / 새로」를 아직 고르지 않으셨으면 맡아 둔 글을 건드리지 않습니다.
-    if (pendingRef.current.length > 0 && text.length === 0) return;
+    /* 「이어서 / 새로」를 고르시기 전에는 맡아 둔 글을 건드리지 않습니다.
+       예전 조건은 여기에 `&& text.length === 0`이 붙어 있었습니다. 그러면 카드가 떠 있는 동안
+       입력창에 한 글자만 쳐도 가드가 풀려 맡아 둔 원문을 그 글자가 덮었습니다 — 말로 3분
+       불러넣은 보고를 지키려고 만든 장치가 실수로 한 글자 친 경우에만 그 보고를 지웠습니다.
+       고르시고 나면 `settlePending()`이 이 값을 비우고, 그 상태 변화가 이 효과를 다시 돌립니다. */
+    if (pendingRef.current.length > 0) return;
     writeStoredDraft(text);
   }, [text, saved, pendingDraft]);
 
   /* 시스템 뒤로 = 한 단계 되돌리기.
-     Next가 히스토리 항목에 심어 둔 내부 상태를 그대로 이어 받고(펼침) 단계 번호만 얹습니다 —
-     우리 열쇠만 남기면 라우터가 이 항목을 자기 것으로 알아보지 못합니다. */
+     방향을 세지 않습니다 — 도착한 항목이 자기 깊이와 단계를 들고 있으므로, 뒤로든 앞으로든
+     그 값을 그대로 씁니다. 회차가 다르거나 우리 표식이 없는 항목이면 단계 번호를 믿지 않고
+     첫 단계로만 둡니다(전진은 절대 하지 않습니다). */
   useEffect(() => {
     const onPop = (event: PopStateEvent): void => {
-      pushedRef.current = Math.max(0, pushedRef.current - 1);
+      const mark = markFromHistoryState(event.state);
+      if (!mark || mark.run !== runIdRef.current) {
+        /* 우리가 심지 않았거나 지난 회차의 항목입니다. 지난 회차 항목은 확정 때 접으므로
+           보통 남지 않습니다 — 접기가 막힌 환경에서도 뒤로가 전진하지 않게 하는 보루입니다. */
+        depthRef.current = 0;
+        if (!savedRef.current) setStep(1);
+        return;
+      }
+      depthRef.current = mark.depth;
       // 확정을 마친 화면에서는 뒤로가 단계를 되돌리지 않습니다 — 저장은 이미 끝났습니다.
       if (savedRef.current) return;
-      setStep(stepFromHistoryState(event.state));
+      setStep(mark.step);
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
@@ -192,8 +264,17 @@ export function ReportWizard() {
   /** 다음 단계로 — 히스토리에 한 겹 쌓아 시스템 뒤로가 여기로 돌아오게 합니다. */
   const goStepForward = (next: 2 | 3): void => {
     try {
-      window.history.pushState({ ...window.history.state, [HISTORY_STEP_KEY]: next }, "");
-      pushedRef.current += 1;
+      const depth = depthRef.current + 1;
+      window.history.pushState(
+        {
+          ...window.history.state,
+          [HISTORY_STEP_KEY]: next,
+          [HISTORY_RUN_KEY]: runIdRef.current,
+          [HISTORY_DEPTH_KEY]: depth,
+        },
+        "",
+      );
+      depthRef.current = depth;
     } catch {
       /* 히스토리를 쓸 수 없는 환경 — 단계 전환만 하고 조용히 넘어갑니다 */
     }
@@ -202,11 +283,39 @@ export function ReportWizard() {
 
   /** 화면 안 「이전」 — 시스템 뒤로와 같은 길을 씁니다(두 조작이 다른 결과를 내지 않게). */
   const goStepBack = (fallback: 1 | 2): void => {
-    if (pushedRef.current > 0) {
+    if (depthRef.current > 0) {
       window.history.back();
       return;
     }
     setStep(fallback);
+  };
+
+  /**
+   * 확정 직후, 이 회차가 쌓아 둔 히스토리 겹을 접습니다.
+   *
+   * 접지 않으면 확정 화면에서 시스템 뒤로가 쌓아 둔 겹 수만큼 아무 일도 하지 않습니다.
+   * 저장이 끝난 화면에서 단계를 되돌리지 않는 판단은 옳지만, 안드로이드 스탠드얼론에서
+   * 뒤로 제스처가 두 번 먹통인 것은 사용자에게 고장으로 읽힙니다. 접고 나면 첫 뒤로가
+   * 곧바로 /report를 벗어납니다.
+   *
+   * 순서가 중요합니다. 먼저 지금 항목의 표식을 지우고(되감기가 막힌 환경에서도 이 항목만은
+   * 위저드로 되돌아가지 않게), 그다음 쌓은 깊이만큼 되감습니다. 되감기는 우리가 쌓은 겹까지만
+   * 하므로 /report를 벗어나지 않습니다.
+   */
+  const foldWizardHistory = (): void => {
+    try {
+      const current = window.history.state as Record<string, unknown> | null;
+      const cleaned: Record<string, unknown> = { ...current };
+      delete cleaned[HISTORY_STEP_KEY];
+      delete cleaned[HISTORY_RUN_KEY];
+      delete cleaned[HISTORY_DEPTH_KEY];
+      window.history.replaceState(cleaned, "");
+      const depth = depthRef.current;
+      depthRef.current = 0;
+      if (depth > 0) window.history.go(-depth);
+    } catch {
+      /* 히스토리를 쓸 수 없는 환경 — 접지 못할 뿐, 저장은 이미 끝났습니다 */
+    }
   };
 
   /** 「이어서 / 새로」 물음을 매듭짓습니다 — 화면에서 카드를 접고, 판단용 ref도 함께 비웁니다. */
@@ -284,6 +393,7 @@ export function ReportWizard() {
     /* 확정과 동시에 임시 보관을 지웁니다 — 남길 이유가 사라진 순간입니다. */
     clearStoredDraft();
     settlePending();
+    foldWizardHistory();
   };
 
   const reset = (): void => {
@@ -296,6 +406,10 @@ export function ReportWizard() {
     setResumedDraft(false);
     clearStoredDraft();
     settlePending();
+    /* 새 회차입니다 — 표식을 새로 발급해, 접히지 않고 남은 지난 회차 항목이 있더라도
+       그 단계 번호가 이 회차의 뒤로에 끼어들지 못하게 합니다. */
+    runIdRef.current = newRunId();
+    depthRef.current = 0;
     setStep(1);
   };
 
@@ -393,8 +507,10 @@ export function ReportWizard() {
     <div>
       <StepBar current={step} />
 
-      {/* 적으시던 글이 남아 있을 때 — 자동으로 채우지 않고 고르시게 둡니다. */}
-      {step === 1 && pendingDraft.length > 0 && text.length === 0 && (
+      {/* 적으시던 글이 남아 있을 때 — 자동으로 채우지 않고 고르시게 둡니다.
+          고르실 때까지 세워 둡니다. 예전에는 `text.length === 0`이 조건에 붙어 있어, 입력창에
+          한 글자만 쳐도 카드가 사라지고 되찾을 문이 그 순간 닫혔습니다. */}
+      {step === 1 && pendingDraft.length > 0 && (
         <section
           aria-labelledby="report-resume-title"
           className="mt-[14px] rounded-card bg-paper-2 px-4 py-[14px]"
@@ -428,7 +544,9 @@ export function ReportWizard() {
                    앱에서 유일한 절감 근거라 짧게 나오는 쪽이 더 위험합니다.
                    그래서 이 회차는 아예 재지 않고, 그 사실을 확정 화면에 적습니다. */
                 setResumedDraft(true);
-                updateText(pendingDraft);
+                /* 카드가 떠 있는 동안 새로 치신 글이 있으면 뒤에 잇습니다 — 맡아 둔 글을
+                   지키려고 세운 카드가 방금 치신 문장을 대신 지우면 손실을 옮긴 것뿐입니다. */
+                updateText(text.length > 0 ? `${pendingDraft}\n${text}` : pendingDraft);
                 settlePending();
               }}
               className="flex min-h-[48px] flex-[1.4] items-center justify-center rounded-card bg-brand-700 text-[0.9375rem] font-bold text-white transition-colors duration-150 active:bg-brand-800"

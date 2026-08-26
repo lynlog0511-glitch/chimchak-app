@@ -34,6 +34,17 @@ import type { Scenario } from "@/types";
 const UNCLEAR_COACHING =
   "말씀이 닿지 않았습니다. 지금 하신 말씀은 판정에 넣지 않았으니, 한 문장으로 짧게 다시 말씀하시거나 아래 버튼에서 골라 주세요.";
 
+/* 미분류(-n) 분기의 next는 **같은 CUE**입니다(2026-08-26 · 체류 원칙).
+   말이 닿지 않았다는 이유로 다음 장면으로 떠밀면 하시려던 말을 할 자리가 사라집니다.
+   되묻지는 않습니다(확정 원칙) — 그 자리에 머물고 보기 버튼을 그대로 열어 둘 뿐입니다.
+   예외 자리에는 아래 문구를 쓰고, 각 분기 주석에 사유를 적었습니다. */
+/** 진행 예외 자리(응급 전환)의 코칭 문구 — **다시 청하지 않습니다.** */
+const UNCLEAR_COACHING_MOVES_ON =
+  "지금 하신 말씀은 판정에 넣지 않았습니다. 소리가 사라진 뒤라 화면이 응급 안내로 넘어갑니다.";
+/** 회차를 닫는 자리의 코칭 문구 — 그 자리의 대사가 이미 마무리를 알립니다(체류 예외②). */
+const UNCLEAR_COACHING_CLOSING =
+  "지금 하신 말씀은 판정에 넣지 않았습니다. 응급 대응 회차는 여기서 마칩니다.";
+
 /** CO-01 ⚑CF 인터럽트 화면 문구 (고정, L3 — 변형 불가). */
 const CF_OUT_OF_SCOPE_MESSAGE =
   "잠시 멈추겠습니다. 기도가 막힌 어르신에게 물이나 음식을 드리면 상황이 악화됩니다. 지금 할 수 있는 것은 ①식사 중단 ②기침 격려 ③말을 걸어 소리가 나오는지 확인입니다. 다시 해보시겠어요?";
@@ -307,7 +318,7 @@ export const CHK_B02: Scenario = {
             rubricHits: [],
             coaching: UNCLEAR_COACHING,
             docId: "DOC-GUIDE-004",
-            next: "T2",
+            next: "T1",
           },
         ],
       },
@@ -399,7 +410,7 @@ export const CHK_B02: Scenario = {
             rubricHits: [],
             coaching: UNCLEAR_COACHING,
             docId: "DOC-GUIDE-004",
-            next: "T3",
+            next: "T2",
           },
         ],
       },
@@ -545,7 +556,9 @@ export const CHK_B02: Scenario = {
             aiReactionNote:
               "4초가 지나 화면이 응급 음성 가이드로 전환됩니다. 생성 호출이 없는 고정 스크립트 구간입니다.",
             rubricHits: [],
-            coaching: UNCLEAR_COACHING,
+            /* 체류 원칙의 **예외①** — 무행동이 곧 사건이 되는 자리입니다.
+               화면만 멈춰 세우면 시간 압박이 거짓이 되므로 넘어가되, 다시 청하는 말은 하지 않습니다. */
+            coaching: UNCLEAR_COACHING_MOVES_ON,
             docId: "DOC-GUIDE-004",
             next: "protocol:P-02",
           },
@@ -649,7 +662,7 @@ export const CHK_B02: Scenario = {
             rubricHits: [],
             coaching: UNCLEAR_COACHING,
             docId: "DOC-GUIDE-004",
-            next: "T5",
+            next: "T4",
           },
         ],
       },
@@ -769,7 +782,7 @@ export const CHK_B02: Scenario = {
             rubricHits: [],
             coaching: UNCLEAR_COACHING,
             docId: "DOC-NOTI-002",
-            next: "T-2",
+            next: "T5",
           },
         ],
       },
@@ -885,7 +898,7 @@ export const CHK_B02: Scenario = {
             rubricHits: [],
             coaching: UNCLEAR_COACHING,
             docId: "DOC-LAW-007",
-            next: "T6",
+            next: "T-2",
           },
         ],
       },
@@ -973,7 +986,7 @@ export const CHK_B02: Scenario = {
             rubricHits: [],
             coaching: UNCLEAR_COACHING,
             docId: "DOC-NOTI-002",
-            next: "T7",
+            next: "T6",
           },
         ],
       },
@@ -1058,7 +1071,9 @@ export const CHK_B02: Scenario = {
             gaugeDelta: 0,
             aiReaction: "훈련을 마쳤습니다.",
             rubricHits: [],
-            coaching: UNCLEAR_COACHING,
+            /* 체류 원칙의 **예외②** — 회차를 닫는 자리입니다. 이 분기의 대사가 이미
+               마무리를 알리고, 새 대사를 더하는 것은 금지라(오디오 재합성) 여기서는 진행이 맞습니다. */
+            coaching: UNCLEAR_COACHING_CLOSING,
             docId: "DOC-GUIDE-001",
             next: "end:E-부분",
           },

@@ -99,7 +99,15 @@ function Doc({
   children: ReactNode;
 }) {
   return (
-    <section id={id} className="scroll-mt-[16px] border-t border-line pt-7">
+    /* 목적지 여백 68px은 **위 목차 바가 실제로 가리는 높이**입니다 — `SafetyToc`은
+       `sticky top-[var(--chim-safe-t)]`에 `py-2`(8+8) + 링크 `min-h-[48px]`이라 64px이고,
+       붙었을 때 아래 hairline 1px까지 65px입니다(나머지 3px은 절 번호가 바 경계에 닿지 않게
+       두는 여유). 16px은 정적 칩 줄 시절의 값이라, 목차를 이 화면에 들이면서 그대로 두었더니
+       칩을 누를 때마다 절 번호가 통째로 바 밑에 깔렸습니다 — 지도의 첫 동작이 목적지를 가린
+       셈입니다(3차 페르소나 UI/UX med · 3차가 만든 회귀).
+       같은 컴포넌트를 쓰는 /safety가 같은 계산으로 같은 값을 씁니다(safety/page.tsx:121) —
+       목차를 세 번째 화면에 붙이는 날에도 이 값을 함께 옮기십시오. */
+    <section id={id} className="scroll-mt-[68px] border-t border-line pt-7">
       <p className="chim-num text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-ink-muted">
         {num}
       </p>
@@ -245,9 +253,13 @@ export default function LegalPage() {
         title="약관·개인정보"
         subtitle="개인정보 처리방침 · 이용약관 · 파일럿 참여 동의"
         action={
+          /* 48px은 높이만이 아니라 **폭**이기도 합니다 — `min-w`가 없던 동안 이 링크는
+             39×48px이었습니다(/console에서 실측된 값과 같은 클래스 문자열입니다).
+             화면 우상단 모서리라 엄지가 닿기 가장 어려운 자리이고, 이 화면은 탭바가 없어
+             이 버튼이 유일한 출구입니다(3차 페르소나 UI/UX low — 한 곳만 고쳐 형제 넷이 남았던 자리). */
           <DocCloseButton
             fallbackHref="/guide"
-            className="flex min-h-[48px] items-center rounded-field px-1 text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper-2"
+            className="flex min-h-[48px] min-w-[48px] items-center justify-center rounded-field px-1 text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper-2"
           />
         }
       />

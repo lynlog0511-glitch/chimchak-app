@@ -12,7 +12,7 @@ import { AudioUnlock } from "./_components/AudioUnlock";
 import { Call119Bar } from "./_components/Call119Bar";
 import { InstallHint } from "./_components/InstallHint";
 import { OfflineStatus } from "./_components/OfflineStatus";
-import { ProtocolAddressHint } from "./_components/ProtocolAddressCard";
+import { ProtocolAddressPanel } from "./_components/ProtocolAddressCard";
 
 export const metadata: Metadata = {
   title: "응급 안내",
@@ -107,10 +107,6 @@ export default function EmergencyPage() {
           있었습니다(페르소나 디자이너 med). 위에 남는 것은 119 버튼 캡션 한 줄뿐이라,
           가장 중요한 경고가 오히려 더 잘 읽힙니다. 문장은 한 글자도 지우지 않고 자리만 옮겼습니다. */}
 
-      {/* 방문지 주소를 아직 적어 두지 않으셨을 때만 뜨는 한 줄입니다. 적어 두신 분께는 아예
-          그려지지 않아, 위에서 정리한 4겹 구조가 그대로 남습니다. */}
-      <ProtocolAddressHint className="mt-[14px]" />
-
       {/* 5종 — 카드가 아니라 선으로 나눈 목록입니다. 마커 한 글자로 눈이 먼저 찾습니다. */}
       <ListRows className="mt-[14px]">
         {PROTOCOLS.map((protocol) => {
@@ -134,6 +130,18 @@ export default function EmergencyPage() {
           );
         })}
       </ListRows>
+
+      {/* 방문지 주소를 적어 두는 자리 — 앱 전체에서 여기 한 곳입니다(2026-08-26).
+          예전에는 이 자리에 「아래 안내를 열어 주소 단계에서 적으실 수 있습니다」라는 한 줄만
+          있었고, 그 말대로 따라가면 재생 중인 4단계에서 4초 만에 사라지는 칸을 만났습니다
+          (페르소나 현직 P0, 3차). 이제 적는 일은 재생 밖 이 블록에서 끝나고, 재생 화면은 적어
+          두신 것을 보여 주기만 합니다.
+
+          목록 **아래**에 두는 데는 이유가 둘입니다. ① 이 화면의 주인은 다섯 줄이고, 주소는
+          근무 전에 한 번 하는 일이라 위계가 뒤입니다. ② 이 블록은 저장소를 읽은 뒤(마운트 후)
+          나타납니다 — 목록 위에 있으면 손가락이 다섯 줄에 닿는 순간 목록을 아래로 밀 수 있고,
+          그때 눌리는 것은 고르려던 상황이 아닙니다. */}
+      <ProtocolAddressPanel className="mt-5" />
 
       {/* 홈 화면 추가 — 이 기기에서 실제로 되는 길이 있을 때만 그려집니다(없으면 조용히 사라집니다). */}
       <InstallHint className="mt-5" />

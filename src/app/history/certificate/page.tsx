@@ -25,9 +25,12 @@ export default function CertificatePage() {
           title="이수 확인서"
           subtitle="이수 사실만 담고, 판정과 대화 내용은 담지 않습니다"
           action={
+            /* 48px은 높이만이 아니라 **폭**이기도 합니다 — `min-w`가 없던 동안 이 링크는
+               39×48px이었고, 다른 화면의 「닫기」와 달리 눌림 피드백(`active:`)도 없었습니다
+               (3차 페르소나 UI/UX low). 상단 바는 `data-noprint` 안이라 종이에는 남지 않습니다. */
             <Link
               href="/history"
-              className="flex min-h-[48px] items-center px-1 text-[0.8438rem] font-semibold text-ink-muted"
+              className="flex min-h-[48px] min-w-[48px] items-center justify-center rounded-field px-1 text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper-2"
             >
               닫기
             </Link>

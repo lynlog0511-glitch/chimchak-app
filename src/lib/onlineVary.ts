@@ -47,6 +47,7 @@ import {
   coachRequestHeaders,
   extractJson,
   findBannedExpression,
+  rememberCoachToken,
   squash,
   type OnlineCoachFallback,
 } from "./onlineCoach";
@@ -507,6 +508,8 @@ export async function requestLineVariation(
       // 나가는 것은 이 네 칸과 작업 이름뿐입니다 — 학습자 발화는 여기 없습니다.
       body: JSON.stringify({ task: "vary", ...request }),
     });
+    // 다음 요청이 쓸 표식을 갈무리합니다 — 코칭·자유 연습과 **같은 함수**입니다.
+    rememberCoachToken(response);
     if (!response.ok) return varyFallback(request.anchor, "http");
     payload = await response.json();
   } catch (error) {

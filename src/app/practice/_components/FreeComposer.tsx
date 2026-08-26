@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { BigButton, InlineDisclaimer, MicButton } from "@/components";
 import { cx } from "@/components/utils";
+import { MASK_PARTIAL_NOTICE, hasPartialMask, maskText } from "@/engine/masking";
 import { createRecognizer, stopSpeaking, type Recognizer } from "@/lib/speech";
 import { FREE_UTTERANCE_MAX } from "@/lib/onlineFree";
 import {
@@ -118,6 +119,22 @@ export function FreeComposer({
   const closed = turnsLeft <= 0;
   const canSend = !busy && !closed && value.trim().length > 0;
 
+  /**
+   * 가림 규칙이 값의 **일부만** 물고 지나갔는지 — 보내기 전에 한 줄로 밝힙니다.
+   *
+   * 이 판정은 여태 /report 2단계에만 서 있었습니다. 그런데 거기에는 사람이 한 글자씩 보는 검토
+   * 단계가 있고(「직접 가리기」), 여기에는 없습니다. **정작 문자열이 기기 밖으로 나가는 경로에서
+   * 그 신호가 빠져 있던 자리**입니다.
+   *
+   * 보내는 순간이 아니라 **적는 동안** 세웁니다 — 보낸 뒤에 알려 주면 할 수 있는 일이 없고,
+   * 지금은 고쳐서 보내는 길이 손에 닿습니다. 판정은 순수 함수라 원문을 어디에도 남기지 않고,
+   * 화면의 입력창은 그대로입니다(자기 기기 안에서 자기가 한 말을 가릴 이유가 없습니다).
+   */
+  const partialMask = useMemo(() => {
+    const text = value.trim();
+    return text.length > 0 && hasPartialMask(maskText(text));
+  }, [value]);
+
   return (
     <section className="mt-5 border-t border-line pt-3">
       <div className="flex items-baseline justify-between gap-3">
@@ -188,6 +205,13 @@ export function FreeComposer({
           {listening && (
             <p className="mt-2 text-[0.8438rem] leading-[1.6] font-semibold text-brand-800">
               듣고 있어요. 손을 떼면 멈춰요. 보내기 전에 고치실 수 있어요.
+            </p>
+          )}
+
+          {/* 부분 가림 경고 — /report 2단계와 **같은 문장**입니다(engine/masking.ts). */}
+          {partialMask && (
+            <p role="status" className="mt-2 text-[0.8438rem] leading-[1.6] font-semibold text-warn-ink">
+              {MASK_PARTIAL_NOTICE}
             </p>
           )}
 

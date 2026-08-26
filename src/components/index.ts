@@ -17,7 +17,7 @@ export type { NavItem, TabKey } from "./navItems";
 
 export { SettingsBoot } from "./SettingsBoot";
 
-export { SettingsMenu } from "./SettingsMenu";
+export { SettingsMenu, SETTINGS_TRIGGER_ATTR } from "./SettingsMenu";
 export type { SettingsMenuProps } from "./SettingsMenu";
 
 /* 전면 오버레이 문법 한 벌 — 초점·Esc·Tab 가두기·배경 스크롤 잠금 + 240ms 등장/퇴장.

@@ -34,21 +34,10 @@ const ACTIVE_STYLE: Record<Tier, string> = {
   L3: "bg-danger-soft text-danger-ink",
 };
 
-/** 화면 움직임을 줄여 달라고 설정하신 분께는 깜빡임 없이 색만 바꿔 드립니다. */
-function usePrefersReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
-    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(query.matches);
-    const onChange = (event: MediaQueryListEvent) => setReduced(event.matches);
-    query.addEventListener("change", onChange);
-    return () => query.removeEventListener("change", onChange);
-  }, []);
-
-  return reduced;
-}
+/* 2026-08-26: `usePrefersReducedMotion` 훅을 지웠습니다 — 이 파일에서 그 값을 보던 것은
+   활성 L2 칩의 `animate-pulse` 하나뿐이었고, 그 점멸을 뺐으므로 이 표시기에는 이제 움직이는
+   것이 없습니다(면 색 전환 200ms 하나뿐이고 그것은 전역 reduced-motion 규칙이 이미 끊습니다).
+   「감지해 두고 아무 데도 안 쓰는 훅」은 다음 사람에게 여기 모션이 있다는 거짓 신호가 됩니다. */
 
 /**
  * 생성 통제 3계층 라이브 표시기.
@@ -68,7 +57,6 @@ function usePrefersReducedMotion(): boolean {
  */
 export function TierIndicator({ tiers, status, judgeTick, className }: TierIndicatorProps) {
   const [judging, setJudging] = useState(false);
-  const reduced = usePrefersReducedMotion();
 
   useEffect(() => {
     if (judgeTick <= 0) return undefined;
@@ -115,15 +103,26 @@ export function TierIndicator({ tiers, status, judgeTick, className }: TierIndic
                     : // 쓰지 않는 계층은 면만 한 단계 흐리게 둡니다.
                       // 글자까지 흐리게 하면 13px에서 대비 4.5:1이 깨집니다.
                       "bg-white/60 text-ink-muted",
-                isActive && tier === "L2" && !reduced && "animate-pulse",
+                /* 2026-08-26: 활성 L2 칩의 `animate-pulse`를 뺐습니다.
+                   가이드 §6은 「금지: 장식 루프」이고 globals.css의 등장 모션은 240ms·180ms
+                   **두 단뿐**인데, animate-pulse는 Tailwind 기본값 2s 무한 반복이라 그 목록에
+                   없는 셋째 어휘였습니다. 같은 날 /history 스켈레톤 주석이 「animate-pulse를
+                   쓰지 않는 것이 이 앱의 모션 최소 규율」이라고 선언하고 있었으므로, 두 문장 중
+                   하나는 틀린 상태였습니다(3차 페르소나 디자이너 low). 점멸을 빼는 쪽을 골랐습니다 —
+                   활성 L2는 이미 **채움 아이콘·면 색·아래 문장** 셋으로 말하고 있어,
+                   깜빡임이 더하는 정보가 없습니다. `reduced` 가드도 함께 필요 없어졌습니다. */
               )}
             >
-              {/* 좁은 화면에서도 접히지 않게 계층 기호와 이름을 두 줄로 나눠 적습니다. */}
-              <span className="chim-caption flex items-center justify-center gap-1.5 leading-tight font-extrabold">
+              {/* 좁은 화면에서도 접히지 않게 계층 기호와 이름을 두 줄로 나눠 적습니다.
+                  행간은 `.chim-caption`이 선언한 1.45(밀집 단)를 그대로 씁니다 — 예전에는
+                  `leading-tight`(1.25)로 덮여 있었는데, 유틸리티 레이어가 뒤라 실제 출고값이
+                  3단 사다리 밖이었습니다. 임의값만 세던 게이트가 프리셋 클래스를 못 보던
+                  자리입니다(2026-08-26에 게이트를 넓혔습니다). */}
+              <span className="chim-caption flex items-center justify-center gap-1.5 font-extrabold">
                 <IconDot className="h-3 w-3" filled={isActive} />
                 {tier}
               </span>
-              <span className="chim-caption mt-0.5 leading-tight font-semibold">
+              <span className="chim-caption mt-0.5 font-semibold">
                 {used ? TIER_SHORT[tier] : "쓰지 않음"}
               </span>
             </li>
@@ -131,10 +130,13 @@ export function TierIndicator({ tiers, status, judgeTick, className }: TierIndic
         })}
       </ol>
 
-      {/* 대화 로그(aria-live)가 같은 내용을 이미 읽어 드리므로 여기서는 다시 읽지 않습니다. */}
+      {/* 대화 로그(aria-live)가 같은 내용을 이미 읽어 드리므로 여기서는 다시 읽지 않습니다.
+          행간은 아래 문단 둘 다 `.chim-caption`의 1.45입니다 — `leading-relaxed`(1.625)는
+          3단 사다리(1.3·1.45·1.6) 밖이라 걷었습니다(1.6에서 0.025 떨어진, 위계를 만들지 못하고
+          편차만 만드는 구간입니다). */}
       <p
         className={cx(
-          "chim-caption mt-2 leading-relaxed font-semibold",
+          "chim-caption mt-2 font-semibold",
           inProtocol ? "text-danger-ink" : "text-ink-muted",
         )}
       >
@@ -142,7 +144,7 @@ export function TierIndicator({ tiers, status, judgeTick, className }: TierIndic
       </p>
 
       {unused.length > 0 && (
-        <p className="chim-caption mt-1 leading-relaxed text-ink-muted">
+        <p className="chim-caption mt-1 text-ink-muted">
           {unused.map((tier) => TIER_LABEL[tier]).join(" · ")} — {TIER_UNUSED_NOTE}
         </p>
       )}

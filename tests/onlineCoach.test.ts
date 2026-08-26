@@ -21,6 +21,7 @@ import {
   COACH_RATE_LIMITS,
   COACH_TOKEN_HEADER,
   COACH_TOKEN_META,
+  COACH_TOKEN_REFRESH_HEADER,
   coachTokenWindow,
 } from "@/lib/coachLimits";
 import {
@@ -746,6 +747,112 @@ describe("coachRequestHeaders", () => {
     for (const bad of ["", "토큰만있음", ".0123456789abcdef", `${coachTokenWindow(now)}.짧다`]) {
       stubMeta(bad);
       expect(coachRequestHeaders(now)[COACH_TOKEN_HEADER], bad).toBeUndefined();
+    }
+  });
+});
+
+/* ── 표식 갱신 (응답 헤더) ─────────────────────────────── */
+
+describe("rememberCoachToken", () => {
+  /**
+   * 이 절이 닫는 것은 「**문서 수명이 곧 토큰 수명**」이라는 결함이다.
+   *
+   * 표식을 심는 자리가 서버 렌더 하나뿐이면, 앱 안 이동으로만 도는 이 화면에서는 문서가 창
+   * 둘(최대 20분)을 넘어서는 순간 화면이 스스로 헤더를 빼고 **무토큰 통**으로 넘어간다.
+   * 예산을 둘로 나눈 목적이 정확히 뒤집히는 자리다. 라우트가 응답마다 지금 창의 값을 돌려주고
+   * 화면이 그것을 meta보다 먼저 쓰면, 한 판을 두 시간 돌려도 정상 통에 남는다.
+   *
+   * 모듈 캐시를 검사끼리 나눠 쓰지 않으려고 **매번 새 모듈**을 받는다(라우트 검사와 같은 규율).
+   */
+  async function freshClient(): Promise<typeof import("@/lib/onlineCoach")> {
+    vi.resetModules();
+    return import("@/lib/onlineCoach");
+  }
+
+  /** 응답 헤더 한 벌만 흉내 낸다 — 갈무리에 필요한 것은 `headers.get` 하나뿐이다. */
+  function withHeader(value: string | null): { headers: { get(name: string): string | null } } {
+    return { headers: { get: (name: string) => (name === COACH_TOKEN_REFRESH_HEADER ? value : null) } };
+  }
+
+  function stubMeta(content: string | undefined): void {
+    vi.stubGlobal("document", {
+      querySelector: (selector: string) =>
+        selector === `meta[name="${COACH_TOKEN_META}"]` && content !== undefined
+          ? { getAttribute: (name: string) => (name === "content" ? content : null) }
+          : null,
+    });
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("응답에 실려 온 표식을 다음 요청에 싣는다 — meta가 낡아도 훈련이 이어진다", async () => {
+    const client = await freshClient();
+    const now = Date.now();
+    // 문서에 심긴 값은 창 넷을 넘겼다 — 화면이 스스로 걷어 낸다(예전에는 여기서 끝이었다).
+    stubMeta(`${coachTokenWindow(now) - 4}.0123456789abcdef`);
+    expect(client.coachRequestHeaders(now)[COACH_TOKEN_HEADER]).toBeUndefined();
+
+    client.rememberCoachToken(withHeader(`${coachTokenWindow(now)}.fedcba9876543210`));
+    expect(client.coachRequestHeaders(now)[COACH_TOKEN_HEADER]).toBe("fedcba9876543210");
+  });
+
+  it("갱신 값이 meta보다 먼저다", async () => {
+    const client = await freshClient();
+    const now = Date.now();
+    stubMeta(`${coachTokenWindow(now)}.0123456789abcdef`);
+    client.rememberCoachToken(withHeader(`${coachTokenWindow(now)}.fedcba9876543210`));
+    expect(client.coachRequestHeaders(now)[COACH_TOKEN_HEADER]).toBe("fedcba9876543210");
+  });
+
+  it("헤더가 없으면 들고 있던 값을 지우지 않는다 (비밀값 없는 배포는 헤더 자체가 없다)", async () => {
+    const client = await freshClient();
+    const now = Date.now();
+    stubMeta(undefined);
+    client.rememberCoachToken(withHeader(`${coachTokenWindow(now)}.fedcba9876543210`));
+    client.rememberCoachToken(withHeader(null));
+    expect(client.coachRequestHeaders(now)[COACH_TOKEN_HEADER]).toBe("fedcba9876543210");
+  });
+
+  it("모양이 깨진 갱신 값은 버린다 (믿고 쓰지 않는다)", async () => {
+    const client = await freshClient();
+    const now = Date.now();
+    stubMeta(undefined);
+    for (const bad of ["", "토큰만있음", ".0123456789abcdef", `${coachTokenWindow(now)}.짧다`]) {
+      client.rememberCoachToken(withHeader(bad));
+      expect(client.coachRequestHeaders(now)[COACH_TOKEN_HEADER], bad).toBeUndefined();
+    }
+  });
+
+  it("갱신 값도 창을 둘 넘기면 보내지 않는다 (서버가 받는 범위와 같다)", async () => {
+    const client = await freshClient();
+    const now = Date.now();
+    stubMeta(undefined);
+    client.rememberCoachToken(withHeader(`${coachTokenWindow(now) - 4}.fedcba9876543210`));
+    expect(client.coachRequestHeaders(now)[COACH_TOKEN_HEADER]).toBeUndefined();
+  });
+
+  it("headers 칸이 없는 응답에도 죽지 않는다", async () => {
+    const client = await freshClient();
+    stubMeta(undefined);
+    expect(() => client.rememberCoachToken({})).not.toThrow();
+    expect(client.coachRequestHeaders()[COACH_TOKEN_HEADER]).toBeUndefined();
+  });
+
+  it("세 호출자가 모두 갈무리한다 — 헤더를 한 곳에서만 갱신하면 나머지가 조용히 뒤처진다", async () => {
+    /*
+     * 코칭·변주·자유 연습이 같은 `coachRequestHeaders`를 쓰므로, 갱신도 세 자리에서 함께
+     * 일어나야 한다. 한 곳만 부르면 그 화면만 정상 통에 남고 나머지는 작은 통으로 떨어진다.
+     */
+    const sources = [
+      "src/lib/onlineCoach.ts",
+      "src/lib/onlineVary.ts",
+      "src/lib/onlineFree.ts",
+    ];
+    const { readFileSync } = await import("node:fs");
+    for (const path of sources) {
+      expect(readFileSync(path, "utf8"), path).toContain("rememberCoachToken(response)");
     }
   });
 });

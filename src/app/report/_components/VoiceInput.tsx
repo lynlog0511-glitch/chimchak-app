@@ -80,6 +80,11 @@ export function VoiceInput({
   const [listening, setListening] = useState(false);
   const [interim, setInterim] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
+  /**
+   * 받아쓰기 시작·정지를 낭독으로 전하는 문장 — 아래 **유일한 라이브 리전**이 읽습니다.
+   * 처음에는 빈 문자열입니다: 화면이 열렸다는 이유로 말을 걸지 않습니다.
+   */
+  const [dictationNotice, setDictationNotice] = useState("");
   /** 「글자로 적기」로 옮겨 갈 자리 — 개인정보 안내 옆 버튼이 이 칸으로 초점을 보냅니다. */
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -109,6 +114,13 @@ export function VoiceInput({
       onEnd: () => {
         setListening(false);
         setInterim("");
+        /* 끝났다는 사실은 **여기서 한 번만** 만듭니다 — `stopListening`은 듣고 있지 않을 때도
+           불리는 자리가 있어(초점 이탈·키 떼기), 거기서 적으면 시작한 적 없는 정지가 발화됩니다.
+           이 콜백은 사용자가 멈췄을 때만 옵니다(lib/speech — 침묵으로 브라우저가 끊은 것은
+           조용히 다시 잇습니다). */
+        setDictationNotice(
+          "받아쓰기를 멈췄습니다. 적힌 내용은 아래 「보고 내용」 칸에서 고치실 수 있습니다.",
+        );
       },
       onStart: () => setNotice(null),
     });
@@ -128,6 +140,7 @@ export function VoiceInput({
     }
     onInputStart();
     setListening(true);
+    setDictationNotice("받아쓰기를 시작했습니다. 말씀하시면 화면에 글로 적힙니다.");
     recognizer.start();
   };
 
@@ -230,8 +243,11 @@ export function VoiceInput({
               <WaveBars count={5} className="ml-[2px]" />
             </p>
             {/* 실시간 자막은 읽어야 하는 문장입니다 — 가이드 §7.8의 15px 하한을 지킵니다
-                (시안 4b의 16.5px 쪽으로 한 단 올린 값). */}
-            <p aria-live="polite" className="mt-[6px] text-[0.9375rem] leading-[1.6] text-ink">
+                (시안 4b의 16.5px 쪽으로 한 단 올린 값).
+                **낭독은 하지 않습니다**: 인식 중간 결과라 글자가 들어올 때마다 바뀌고, 리전으로
+                두면 낭독기가 부분 문장을 끝없이 다시 읽습니다. 눈으로 보는 확인용 자막이고,
+                말로 전할 것은 아래 상자 하나가 맡습니다. */}
+            <p className="mt-[6px] text-[0.9375rem] leading-[1.6] text-ink">
               {interim.length > 0 ? (
                 <>
                   {interim}
@@ -279,10 +295,10 @@ export function VoiceInput({
               onClick={handleToggleClick}
             />
           )}
-          <p
-            aria-live="polite"
-            className="text-center text-[0.7813rem] leading-[1.45] font-semibold text-ink-soft"
-          >
+          {/* 마이크 아래 한 줄 — 눈으로 읽는 설명입니다. 리전이 아닙니다:
+              `listening`이 켜지는 바로 그 순간 문구가 바뀌어, 시작 알림과 겹쳐 발화했습니다.
+              같은 내용은 마이크 버튼의 이름(`MicButton`의 `label`)이 이미 들고 있습니다. */}
+          <p className="text-center text-[0.7813rem] leading-[1.45] font-semibold text-ink-soft">
             {micCaption}
           </p>
           {/* 모드 바꾸기 — 듣는 중에는 숨깁니다(조작 방식이 도중에 바뀌면 손이 갈 곳을 잃습니다). */}
@@ -299,14 +315,25 @@ export function VoiceInput({
           )}
         </div>
 
+        {/* 경고는 화면에만 그립니다 — 읽어 주는 일은 아래 상자가 맡습니다. */}
         {notice && (
-          <p
-            role="status"
-            className="mt-[12px] rounded-field bg-warn-soft px-[14px] py-[10px] text-[0.7813rem] leading-[1.6] font-semibold text-warn-ink"
-          >
+          <p className="mt-[12px] rounded-field bg-warn-soft px-[14px] py-[10px] text-[0.7813rem] leading-[1.6] font-semibold text-warn-ink">
             {notice}
           </p>
         )}
+
+        {/* ── 이 화면의 **유일한** 라이브 리전 ──────────────────────────
+            예전에는 실시간 자막·마이크 아래 한 줄·경고 셋이 각자 리전이라, 받아쓰기를 시작하는
+            순간 둘이 겹쳐 발화하고 이후에는 자막이 부분 문장으로 흘러넘쳤습니다
+            (3차 페르소나 UI/UX low). 훈련 도크가 같은 문제를 「상자 하나가 우선순위로 삼킨다」로
+            푼 처방을 그대로 옮겨 옵니다(`CueResponder`의 sr-only 상자).
+            세는 단위는 `aria-live` 속성의 개수가 아니라 **동시에 발화할 수 있는 리전의 수**입니다
+            (`DialogueLog` 주석에 정의를 적어 두었습니다).
+            순서는 막아선 일(경고) → 방금 일어난 일(시작·정지)입니다. 빈 문자열일 때도 상자를
+            남겨 둬야 다음 문장이 바뀐 줄로 읽힙니다. */}
+        <p role="status" className="sr-only">
+          {notice ?? dictationNotice}
+        </p>
       </div>
 
       {/* 직접 적기 — 마이크가 없어도 여기까지만으로 끝까지 갑니다. */}

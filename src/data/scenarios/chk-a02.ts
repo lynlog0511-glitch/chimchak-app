@@ -24,9 +24,18 @@
  *          → S4 안전확보·대체행동(T4/CUE-4) → S5 보고·기록(CUE-5~7)
  *          (초조도 5 도달 시 위기 엔딩 → 재시도 1회 무벌점)
  *
+ * 2026-08-26 수정 — 현직·교육생 3차 검증 반영 (감수 재확인 대기)
+ *  (4) ⚑CF 억제 분기 2곳의 예외어를 `RESTRAINT_EXCEPT_BRANCH`로 바꾸고(= 규칙 사전 예외어 − 「이끌」),
+ *      억제 신호에서 홑 어간 「끌고」·「끌어」를 빼 잡는 말과 함께 적었습니다(chk-a01과 같은 교정).
+ *  (5) CUE-5(보고)를 **요소 개수 판정**(elementJudge)으로 바꿨습니다. 「보고드리겠습니다」 여섯 글자가
+ *      야간 일지 5요소 만점을 받던 자리입니다(교육생 3차 실측). 표지 목록 자체가 감수 대상입니다.
+ *  (6) 빈 조각 표지 제거 — D2-c의 「아니면」, P3-a의 「얼마나」.
+ *  (7) 미분류(-n) 분기의 next를 **같은 CUE**로 돌렸습니다(체류 원칙). 예외 두 자리(CUE-N1·CUE-7)는
+ *      각 분기 주석에 사유를 적었고, 그 자리에는 재요청 없는 코칭 문구를 씁니다.
+ *
  * 2026-08-25 수정 — 현직 감수 재확인 대기
- *  (1) ⚑CF 억제 분기 2곳(D1-b-CF·NA-b)에 규칙 사전의 예외어(RESTRAINT_EXCEPT_TERMS)를
- *      연결했습니다. "제 팔 붙잡으세요"처럼 어르신께 청하는 꼴이 홑 어간 「붙잡」에 걸리던 자리입니다.
+ *  (1) ⚑CF 억제 분기 2곳(D1-b-CF·NA-b)에 규칙 사전의 예외어를 연결했습니다.
+ *      "제 팔 붙잡으세요"처럼 어르신께 청하는 꼴이 홑 어간 「붙잡」에 걸리던 자리입니다.
  *  (2) 빈 조각 표지 제거 — D1-c의 「마음이」. 한 조각만으로 충족 판정이 되던 자리입니다.
  *      폴백 문구는 「급하시」·「차 나가야」로 그대로 이 분기에 걸립니다.
  *  (3) 미분류 분기 D1-n의 next를 같은 CUE(T1)로 돌렸습니다.
@@ -44,7 +53,7 @@
  */
 
 import type { Scenario } from "@/types";
-import { RESTRAINT_EXCEPT_TERMS } from "@/engine/rules";
+import { RESTRAINT_EXCEPT_BRANCH } from "@/engine/rules";
 
 /**
  * 중립 미분류 분기의 코칭 문구 — 감점이 아니라 **다시 말할 기회**입니다.
@@ -52,6 +61,14 @@ import { RESTRAINT_EXCEPT_TERMS } from "@/engine/rules";
  */
 const UNCLEAR_COACHING =
   "말씀이 닿지 않았습니다. 야간에는 낮은 목소리가 더 잘 묻힙니다 — 지금 하신 말씀은 판정에 넣지 않았으니, 한 문장으로 짧게 다시 말씀하시거나 아래 버튼에서 골라 주세요.";
+
+/** 진행 예외 자리(자동문 국면)의 코칭 문구 — **다시 청하지 않습니다.** */
+const UNCLEAR_COACHING_MOVES_ON =
+  "지금 하신 말씀은 판정에 넣지 않았습니다. 자동문 앞의 시간은 그대로 흘러 상황이 이어집니다.";
+
+/** 회차를 닫는 자리의 코칭 문구 — 그 자리의 대사가 이미 마무리를 알립니다. */
+const UNCLEAR_COACHING_CLOSING =
+  "지금 하신 말씀은 판정에 넣지 않았습니다. 야간 근무 회차는 여기서 마칩니다.";
 
 /** CO-02 ⚑CF 인터럽트 고정 문구 — 노인복지법 제39조의9 금지행위 고지 + 대안 3개. */
 const CF_RESTRAINT_MESSAGE =
@@ -101,9 +118,17 @@ const RESTRAINT_PATTERNS = [
   "잠급",
   "잠글",
   "잠금",
-  "끌고",
-  "끌어",
+  // 끌기 — 홑 어간 「끌고」·「끌어」는 규칙 사전이 먼저 잡습니다. 이 목록이 맡는 자리는
+  // 사전이 예외어 「이끌」로 놓치는 **붙잡고 이끄는 선언**이라, 잡는 말과 함께 적습니다.
+  "잡아 끌",
+  "잡아 이끌",
+  "잡고 끌",
+  "잡고 이끌",
   "잡아끌",
+  "손목을 끌",
+  "팔을 끌",
+  "손을 끌",
+  "끌어당",
   "밀어",
   "당겨서",
   "억제대",
@@ -295,7 +320,7 @@ export const CHK_A02: Scenario = {
             id: "D1-b-CF",
             label: "지시·제지형 — 신체 접촉·문 잠금 (⚑CF)",
             patterns: RESTRAINT_PATTERNS,
-            except: RESTRAINT_EXCEPT_TERMS,
+            except: RESTRAINT_EXCEPT_BRANCH,
             gaugeDelta: 0,
             aiReaction: "이거 놔! 놓으라니까!",
             aiReactionNote: "지팡이를 짚은 채 몸을 뒤로 빼십니다.",
@@ -414,7 +439,7 @@ export const CHK_A02: Scenario = {
             id: "NA-b",
             label: "신체 억제·문 잠금 (⚑CF)",
             patterns: RESTRAINT_PATTERNS,
-            except: RESTRAINT_EXCEPT_TERMS,
+            except: RESTRAINT_EXCEPT_BRANCH,
             fallbackOption: "몸으로 문을 막고 자동문을 잠급니다",
             gaugeDelta: 0,
             aiReaction: "놓으세요! 이거 왜 이래요!",
@@ -453,7 +478,9 @@ export const CHK_A02: Scenario = {
             aiReaction: "…뭐? 안 들려요.",
             aiReactionNote: "버튼 위에 손을 얹은 채 이쪽을 보십니다.",
             rubricHits: [],
-            coaching: UNCLEAR_COACHING,
+            /* 체류 원칙의 **예외①** — 무행동이 곧 사건이 되는 자리입니다.
+               화면만 멈춰 세우면 시간 압박이 거짓이 되므로 넘어가되, 다시 청하는 말은 하지 않습니다. */
+            coaching: UNCLEAR_COACHING_MOVES_ON,
             docId: "DOC-GUIDE-001",
             next: "T2",
           },
@@ -537,8 +564,9 @@ export const CHK_A02: Scenario = {
           {
             id: "D2-c",
             label: "선택권 제공",
+            // 홑 「아니면」은 뺐습니다 — 선택지를 드리지 않은 문장("아니면 그냥 계세요")까지
+            // 삼켜서, 접속어 하나로 충족 판정이 났습니다(chk-a01 D2-c와 같은 교정).
             patterns: [
-              "아니면",
               "둘 중에",
               "어떤 게 좋으",
               "고르시",
@@ -587,7 +615,7 @@ export const CHK_A02: Scenario = {
             rubricHits: [],
             coaching: UNCLEAR_COACHING,
             docId: "DOC-GUIDE-001",
-            next: "T3",
+            next: "T2",
           },
         ],
       },
@@ -622,10 +650,13 @@ export const CHK_A02: Scenario = {
           {
             id: "P3-a",
             label: "통증 확인 + 당직 간호사 보고 (허용 범위 안)",
+            // 홑 「얼마나」는 뺐습니다 — "얼마나 걸릴까요?"처럼 통증과 무관한 문장이
+            // SA-07·CO-01·SA-02 각 4점을 받던 자리입니다(교육생 3차 실측).
             patterns: [
               "언제부터",
               "어디가 아프",
-              "얼마나",
+              "얼마나 아프",
+              "얼마나 되셨",
               "붓기",
               "부었",
               "간호",
@@ -726,7 +757,7 @@ export const CHK_A02: Scenario = {
             rubricHits: [],
             coaching: UNCLEAR_COACHING,
             docId: "DOC-GUIDE-001",
-            next: "T-N2",
+            next: "T3",
           },
         ],
       },
@@ -836,7 +867,7 @@ export const CHK_A02: Scenario = {
             rubricHits: [],
             coaching: UNCLEAR_COACHING,
             docId: "DOC-LAW-003",
-            next: "T4",
+            next: "T-N2",
           },
         ],
       },
@@ -956,7 +987,7 @@ export const CHK_A02: Scenario = {
             rubricHits: [],
             coaching: UNCLEAR_COACHING,
             docId: "DOC-GUIDE-001",
-            next: "T5",
+            next: "T4",
           },
         ],
       },
@@ -974,22 +1005,57 @@ export const CHK_A02: Scenario = {
         waitSec: 8,
         // 상식적인 보고 문장이 신호에 걸리지 않았다고 「미보고」(R1-d)로 찍지 않습니다.
         defaultBranchId: "R1-n",
+        /* 보고는 **몇 가지가 들어 있는가**로 가릅니다 (2026-08-26 · chk-a01 CUE-4 전례).
+           표지 하나로 가르던 동안에는 「보고드리겠습니다」 여섯 글자가 야간 일지 5요소 만점과
+           「아침 근무자가 이 일지만 보고 그대로 이어받을 수 있습니다」 칭찬을 받았습니다
+           (교육생 3차 실측). 표지 목록 자체가 현직 감수 재확인 대상입니다.
+
+           감수 안건 — ① 요소 판정은 패턴 대조보다 앞이라, 시각·대상까지 함께 말한 보호자 통보
+           경로 답변(R1-e)이 2요소로 세어져 부분 보고(R1-b)로 내려갈 수 있습니다. R1-e를
+           개수 사다리 어디에 놓을지는 데이터만으로 정해지지 않아 감수에 올립니다.
+           ② 「10분」은 "10분쯤 함께 걸었습니다"도 시각으로 셉니다(chk-a01의 「40분」과 같은 느슨함). */
+        elementJudge: {
+          groups: [
+            { id: "time", label: "시각", patterns: ["02시", "2시 10", "새벽 2시", "10분"] },
+            { id: "who", label: "대상", patterns: ["어르신", "대상자"] },
+            {
+              id: "what",
+              label: "행위·조치",
+              patterns: [
+                "무릎 통증",
+                "통증을 말씀",
+                "무릎이 아프",
+                "당직 간호사",
+                "당직에 알",
+                "함께 걸",
+                "곁에서 걸",
+                "현관 앞",
+                "외투",
+                "확인했",
+                "안내드렸",
+                "알렸습니다",
+              ],
+            },
+            {
+              id: "status",
+              label: "현재 상태",
+              patterns: ["현재", "지금은", "방에서", "주무", "누우"],
+            },
+          ],
+          tiers: [
+            { minCount: 3, branchId: "R1-a" },
+            { minCount: 1, branchId: "R1-b" },
+          ],
+        },
         branches: [
           {
             id: "R1-a",
-            label: "5요소 사실 보고",
-            patterns: [
-              "02시",
-              "2시 10분",
-              "새벽 2시",
-              "무릎 통증",
-              "통증을 말씀",
-              "확인했습니다",
-              "안내드렸습니다",
-              "보고드립니다",
-              "보고드리겠습니다",
-              "당직 간호사",
-            ],
+            /* 이름과 칭찬은 **실제로 세는 개수**와 같은 말을 합니다 — 채택 기준은 위 tiers의
+               3요소이므로 「5요소」·「모두 들어갔습니다」를 단정하지 않습니다(chk-a01 R1-a와 같은 교정).
+               실제로 담긴 요소는 판정 접힘(InlineCoaching)이 세어 말합니다. */
+            label: "사실 중심 보고",
+            // 표지는 비웠습니다 — 이 분기는 위 elementJudge(요소 3개 이상)와 버튼으로만 열립니다.
+            patterns: [],
             fallbackOption:
               "새벽 2시 10분 최 어르신이 외투를 입고 현관 앞에 서 계셨고, 무릎 통증을 말씀하셔서 당직 간호사께 알리고 곁에서 함께 걸었습니다. 현재는 방에서 주무십니다.",
             gaugeDelta: 0,
@@ -1002,7 +1068,7 @@ export const CHK_A02: Scenario = {
               { itemId: "CO-05", score: 3 },
             ],
             praise:
-              "누가·언제·무엇을·어떻게·현재 상태가 모두 들어갔습니다. 아침 근무자가 이 일지만 보고 그대로 이어받을 수 있습니다.",
+              "밤에 보고 들은 것만 사실대로 남기셨습니다. 아침 근무자가 이 일지에서 그대로 이어받을 수 있습니다.",
             docId: "DOC-NOTI-002",
             next: "T6",
           },
@@ -1061,7 +1127,9 @@ export const CHK_A02: Scenario = {
             id: "R1-c",
             label: "감정·추정 위주 보고",
             patterns: ["힘들었", "당황", "무서웠", "짜증", "치매라서", "고집을 부리", "일부러", "밤새"],
-            fallbackOption: "어르신이 고집을 부리셔서 새벽 내내 힘들었습니다",
+            // 호칭("어르신이")을 뺐습니다 — 요소 판정이 그것 하나를 「대상」 요소로 세어
+            // 감정 위주 보고가 부분 보고로 올라갑니다(chk-a01 R1-c와 같은 교정).
+            fallbackOption: "고집을 부리셔서 새벽 내내 힘들었습니다",
             gaugeDelta: 0,
             aiReaction: "보고가 접수되었습니다.",
             rubricHits: [
@@ -1101,7 +1169,7 @@ export const CHK_A02: Scenario = {
             rubricHits: [],
             coaching: UNCLEAR_COACHING,
             docId: "DOC-NOTI-002",
-            next: "T6",
+            next: "T5",
           },
         ],
       },
@@ -1178,7 +1246,7 @@ export const CHK_A02: Scenario = {
             rubricHits: [],
             coaching: UNCLEAR_COACHING,
             docId: "DOC-GUIDE-001",
-            next: "T7",
+            next: "T6",
           },
         ],
       },
@@ -1254,7 +1322,9 @@ export const CHK_A02: Scenario = {
             gaugeDelta: 0,
             aiReaction: "오늘 훈련을 마쳤습니다.",
             rubricHits: [],
-            coaching: UNCLEAR_COACHING,
+            /* 체류 원칙의 **예외②** — 회차를 닫는 자리입니다. 이 분기의 대사가 이미
+               마무리를 알리고, 새 대사를 더하는 것은 금지라(오디오 재합성) 여기서는 진행이 맞습니다. */
+            coaching: UNCLEAR_COACHING_CLOSING,
             next: "end:E-부분",
           },
         ],
@@ -1313,7 +1383,7 @@ export const CHK_A02: Scenario = {
       condition: "초조도 5 도달 또는 자동문 개방·외출 시도 성공",
       verdict: "재시도",
       message:
-        "실제 현장이라면 이 시점에 당직 간호사와 시설장에게 먼저 알립니다. 어르신이 현관 밖으로 나가신 경우라면 여기에 기관 보고와 실종 신고 판단이 더해집니다. 재시도 1회를 벌점 없이 제공합니다.",
+        "실제 현장이라면 이 시점에 당직 간호사와 시설장에게 먼저 알립니다. 어르신이 현관 밖으로 나가신 경우라면 여기에 기관 보고와 실종 신고 판단이 더해집니다. 다시 한 번 해 보실 수 있습니다. 점수는 매기지 않습니다.",
     },
     {
       id: "E-재훈련",

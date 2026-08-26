@@ -22,7 +22,7 @@ import {
 import type { SubmitOptions, TracedFeedback } from "@/engine";
 import { EVIDENCE_GUARD } from "@/data/evidenceGuard";
 import type { SessionProgress } from "@/lib/storage";
-import { PROTOCOL_HANDOFF_BODY, PROTOCOL_HANDOFF_TITLE } from "./constants";
+import { PROTOCOL_HANDOFF_BODY, PROTOCOL_HANDOFF_TITLE, UNCLEAR_REPEAT_COACHING } from "./constants";
 
 /**
  * 판정에 붙는 근거는 화이트리스트 안에서만 나옵니다.
@@ -305,6 +305,32 @@ function maskRestoredTurn(log: LogItem[], from: number): LogItem[] {
   return out;
 }
 
+/**
+ * 같은 CUE에서 미분류가 **연달아 몇 번째**인지 셉니다 (세션 이벤트만 보고, 새 상태 필드 없음).
+ *
+ * 미분류가 같은 자리에 머물게 되면서 생긴 자리입니다 — 같은 문구가 매번 똑같이 돌아오면
+ * 「연속을 세고 있지 않다」로 읽힙니다(교육생 3차). 다른 갈래를 한 번이라도 지나면 0으로
+ * 돌아갑니다: 연속이 아니면 반복이 아니기 때문입니다.
+ *
+ * @example consecutiveUnclear(events, "CUE-1", "D1-n") // 2 — 이번이 두 번째 연속 미분류
+ */
+function consecutiveUnclear(
+  events: readonly SessionState["events"][number][],
+  cueId: string,
+  defaultBranchId: string,
+): number {
+  let count = 0;
+  for (let i = events.length - 1; i >= 0; i -= 1) {
+    const event = events[i];
+    if (!event || event.cueId !== cueId) break;
+    // ⚑CF 인터럽트는 대화 턴이 아닙니다(buildRecord와 같은 규약) — 연속을 끊지 않고 건너뜁니다.
+    if (event.feedback?.criticalFail === true) continue;
+    if (event.feedback?.branchId !== defaultBranchId) break;
+    count += 1;
+  }
+  return count;
+}
+
 /** 저장값이 훼손돼 있어도 말이 되는 범위 안으로만 받습니다 (0 이상 정수, 상한 있음). */
 function clampCount(value: number, max: number): number {
   if (!Number.isFinite(value)) return 0;
@@ -363,6 +389,17 @@ export function makeTrainReducer(scenario: Scenario) {
         const result = submitResponse(scenario, state.session, action.input, SUBMIT_OPTIONS);
         const branch = findBranch(cue, result.feedback.branchId);
 
+        /* 같은 자리에서 **두 번째** 미분류부터는 화면 문구만 갈아 끼웁니다.
+           판정도 게이지도 기록도 그대로 엔진이 낸 것이고, 바뀌는 것은 이 회차 화면에 서는
+           한 줄뿐입니다(성장 기록에는 시나리오 데이터의 문구가 그대로 남습니다).
+           되묻지 않는다는 원칙 안에서 할 수 있는 것은 보기 쪽을 한 단 세우는 것뿐입니다. */
+        const feedback: TracedFeedback =
+          !result.feedback.criticalFail &&
+          result.feedback.branchId === cue.defaultBranchId &&
+          consecutiveUnclear(result.state.events, cue.id, cue.defaultBranchId) >= 2
+            ? { ...result.feedback, message: UNCLEAR_REPEAT_COACHING }
+            : result.feedback;
+
         let seq = state.seq;
         let log = state.log;
 
@@ -401,8 +438,8 @@ export function makeTrainReducer(scenario: Scenario) {
         if (result.interrupted) {
           // 전면 모달은 잠시 뒤 닫히지만, 어떤 규칙이 왜 멈춰 세웠는지는 로그에 남겨 둡니다
           // (피드백 카드의 「이 판정이 나온 이유」로 나중에 다시 확인하실 수 있게).
-          if (result.feedback.message.trim().length > 0) {
-            log = [...log, { key: `fb-${seq}`, kind: "feedback", feedback: result.feedback }];
+          if (feedback.message.trim().length > 0) {
+            log = [...log, { key: `fb-${seq}`, kind: "feedback", feedback }];
             seq += 1;
           }
           return {
@@ -411,16 +448,16 @@ export function makeTrainReducer(scenario: Scenario) {
             log,
             seq,
             critical: {
-              feedback: result.feedback,
-              alternatives: criticalAlternatives(scenario, result.state, result.feedback),
+              feedback,
+              alternatives: criticalAlternatives(scenario, result.state, feedback),
             },
-            lastFeedback: result.feedback,
+            lastFeedback: feedback,
             judgeTick: state.judgeTick + 1,
           };
         }
 
-        if (result.feedback.message.trim().length > 0) {
-          log = [...log, { key: `fb-${seq}`, kind: "feedback", feedback: result.feedback }];
+        if (feedback.message.trim().length > 0) {
+          log = [...log, { key: `fb-${seq}`, kind: "feedback", feedback }];
           seq += 1;
         }
 
@@ -442,7 +479,7 @@ export function makeTrainReducer(scenario: Scenario) {
             log,
             seq,
             critical: null,
-            lastFeedback: result.feedback,
+            lastFeedback: feedback,
             gaugeTick: state.gaugeTick + 1,
             judgeTick: state.judgeTick + 1,
             attempt: state.attempt + 1,
@@ -468,7 +505,7 @@ export function makeTrainReducer(scenario: Scenario) {
           log: entered.log,
           seq: entered.seq,
           critical: null,
-          lastFeedback: result.feedback,
+          lastFeedback: feedback,
           gaugeTick: state.gaugeTick + 1,
           judgeTick: state.judgeTick + 1,
           attempt: state.attempt + 1,

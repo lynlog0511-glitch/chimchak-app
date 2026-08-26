@@ -12,20 +12,25 @@
  *  · `free`        — 자유 대화 연습의 상황·대사·마무리 요약(`src/lib/onlineFree.ts`).
  *                    **이 작업에만 학습자 발화가 실립니다**(가명처리를 지난 문자열입니다).
  *                    나머지 둘의 계약은 한 글자도 바뀌지 않았습니다.
- *  · `ping`        — 설정 여부만 되돌려 주는 점검용 분기. **상류를 부르지 않고** 한도도 쓰지
- *                    않습니다(/check 화면이 무대 전에 켜 보는 자리입니다).
+ *  · `ping`        — 설정 여부만 되돌려 주는 점검용 분기. **상류를 부르지 않고** 예산 통도 쓰지
+ *                    않습니다(/check 화면이 무대 전에 켜 보는 자리입니다). 계수기 밖에 두지는
+ *                    않아, IP당 분당 한 칸만 셉니다.
  * 앞의 세 일은 검증도 프롬프트도 생성 상한도 따로지만, **한도 계수기는 하나를 나눠 씁니다** —
  * 비용은 요청 수로 나가지 작업 이름으로 나가지 않습니다.
  *
  * 이 파일이 하는 일은 다섯뿐입니다.
  *  ① **출처 확인** — 같은 출처에서 온 JSON 요청만 받습니다. 아무 웹사이트가 방문자의 브라우저로
  *    이 주소에 POST를 쏘는 길(프리플라이트가 붙지 않는 단순 요청)을 입구에서 닫습니다.
- *  ② **표식 대조** — `COACH_SHARED_SECRET`이 설정된 배포에서만. 서버 렌더가 심어 준 단기 토큰을
- *    되돌려 보낸 요청과 그렇지 않은 요청을 갈라 **예산 통을 둘로 나눕니다**(값이 어긋난 표식은
- *    계수기에 닿기 전 403). 비밀값이 없으면 이 단은 통째로 잠들고 계약도 그대로입니다.
+ *  ② **표식 대조와 갱신** — `COACH_SHARED_SECRET`이 설정된 배포에서만. 단기 토큰을 되돌려 보낸
+ *    요청과 그렇지 않은 요청을 갈라 **예산 통을 둘로 나누고**(값이 어긋난 표식은 계수기에 닿기
+ *    전 403), 받아들인 요청에는 **다음 창의 표식을 응답 헤더로 실어 돌려줍니다**. 토큰을 심는
+ *    자리가 서버 렌더 하나뿐이면 문서 수명이 곧 토큰 수명이 되어, 20분 뒤 정상 트래픽 전체가
+ *    작은 통으로 떨어집니다. 비밀값이 없으면 이 단은 통째로 잠들고 계약도 그대로입니다.
  *  ③ **한도** — IP당 분당·일당, 그리고 배포 전체 일당 상한을 셉니다(비용 가드).
  *  ④ **검증** — 클라이언트가 보내는 산출물 모양만 받습니다. 그 밖의 값은 버리고 400으로 끊습니다
- *    (상류로 흘려보내지 않습니다). 발화는 500자가 상한입니다.
+ *    (상류로 흘려보내지 않습니다). 발화는 500자가 상한입니다. 프롬프트에 실리는 칸은 **한 줄로
+ *    펴서** 받습니다 — 보이지 않는 글자를 지우고 줄바꿈을 공백으로 낮춰, 절 머리를 위조해
+ *    사용자 프롬프트의 구조를 갈아 끼우는 길을 닫습니다(`src/lib/textGuard.ts`).
  *  ⑤ **중계** — 키를 붙여 상류를 한 번 부르고, **원문 텍스트만** 그대로 돌려줍니다.
  *
  * 하지 않는 일이 더 중요합니다.
@@ -49,6 +54,8 @@
 import {
   COACH_RATE_LIMITS,
   COACH_TOKEN_HEADER,
+  COACH_TOKEN_REFRESH_HEADER,
+  coachTokenMetaValue,
   verifyCoachToken,
 } from "@/lib/coachLimits";
 import {
@@ -79,6 +86,7 @@ import {
   buildVaryUserPrompt,
   type LineVaryRequest,
 } from "@/lib/onlineVary";
+import { flattenPromptField } from "@/lib/textGuard";
 
 /* ── 상한 ──────────────────────────────────────────────── */
 
@@ -208,11 +216,27 @@ function readConfig(): CoachServerConfig | undefined {
 
 /* ── 요청 검증 ─────────────────────────────────────────── */
 
-/** 문자열 칸 하나 — 비었거나 상한을 넘으면 `undefined`(= 요청 전체를 400으로 끊습니다). */
+/**
+ * 문자열 칸 하나 — 비었거나 상한을 넘으면 `undefined`(= 요청 전체를 400으로 끊습니다).
+ *
+ * **한 줄로 펴서 받습니다**(`flattenPromptField`). 예전에는 `trim()`과 길이만 봤는데, 이 칸들의
+ * 값은 서버가 조립하는 **사용자 프롬프트에 원문 그대로** 실립니다 — 상황·지시문·발화·시드·
+ * 인물 소개·대화 이력이 전부 그렇습니다. 그러면 칸 안에 줄바꿈 하나만 넣어도
+ * `[상황]`·`[할 일]` 같은 절 머리를 위조해 프롬프트의 구조를 갈아 끼울 수 있고, 제로폭·양방향
+ * 재정의 문자는 눈에 보이지 않은 채 그 자리에 끼어듭니다.
+ *
+ * 같은 저장소가 가져온 CSV에는 이미 이 규율을 걸어 두었는데(`readImportText`) 정작 **프롬프트로
+ * 나가는 쪽**에는 없던 자리입니다. 이제 두 경로가 `src/lib/textGuard.ts`의 **같은 목록**을 봅니다.
+ * 다만 하는 일은 다릅니다 — CSV는 파일 전체를 거부하고, 여기서는 지워서 받습니다. 정상 요청이
+ * 조용히 400이 되면 화면에는 아무 표시도 나지 않기 때문입니다(마이크 인식이 흘린 글자 하나로
+ * 훈련이 멈추면 안 됩니다).
+ *
+ * 길이는 편 **뒤에** 셉니다. 펴면 길이는 줄기만 하므로 정직한 요청이 이 때문에 걸리지 않습니다.
+ */
 function readField(value: unknown, max: number): string | undefined {
   if (typeof value !== "string") return undefined;
-  const trimmed = value.trim();
-  return trimmed.length === 0 || trimmed.length > max ? undefined : trimmed;
+  const flat = flattenPromptField(value);
+  return flat.length === 0 || flat.length > max ? undefined : flat;
 }
 
 /** 행동지표 목록 — 빈 배열은 허용합니다(이 장면에 연결된 지표가 없을 수 있습니다). */
@@ -403,6 +427,11 @@ function prune(day: number): void {
  *
  * IP당 한도는 두 통이 **함께** 씁니다 — IP 하나가 토큰을 붙였다 뺐다 하며 몫을 두 배로 쓰는
  * 길을 열지 않기 위해서입니다.
+ *
+ * **작은 통은 큰 통을 넘지 않습니다** — `min(anonDailyCap, dailyCap)`. 상수 60을 그대로 쓰면
+ * `COACH_DAILY_CAP`을 60 밑으로 내린 배포에서 대소가 뒤집혀, 비용을 조이려던 운영자가 화면에서
+ * 온 요청은 30회에 막고 표식 없는 스크립트 호출에는 60회를 주게 됩니다. 「작은 통이 말라도
+ * 정상 사용자의 통은 그대로 돈다」가 그 배포에서만 거짓이 되던 자리입니다.
  */
 function takeSlot(
   ip: string | undefined,
@@ -418,7 +447,8 @@ function takeSlot(
     globalCount = 0;
     anonCount = 0;
   }
-  if (tokened ? globalCount >= dailyCap : anonCount >= ANON_DAILY_CAP) return false;
+  const anonCap = Math.min(ANON_DAILY_CAP, dailyCap);
+  if (tokened ? globalCount >= dailyCap : anonCount >= anonCap) return false;
 
   const take = (): true => {
     if (tokened) globalCount += 1;
@@ -444,6 +474,45 @@ function takeSlot(
   bucket.minuteCount += 1;
   bucket.dayCount += 1;
   return take();
+}
+
+/**
+ * 점검(`ping`)의 몫 — **IP당 분당 계수만** 겁니다.
+ *
+ * 예산 두 통과 IP당 **일당** 한도는 그대로 면제입니다. 이 분기는 상류를 부르지 않고 토큰도
+ * 요구하지 않으므로 요금이 나가지 않고, 무대 직전 점검(`/check`)이 배포 설정이나 그날의 사용량
+ * 때문에 붉어지는 편이 훨씬 나쁩니다.
+ *
+ * 그래도 계수기 **밖에 두지는 않습니다.** 예전에는 출처와 Content-Type만 통과하면 이 분기가
+ * 완전 무제한이었고, 그 사실이 「지금은 몫을 먼저 집으므로 무한도 연산 구간이 사라집니다」라는
+ * 아래 주석을 절반만 참으로 만들었습니다. 몸통을 16KB까지 읽고 JSON을 파싱하는 일이 한도 없이
+ * 반복될 수 있는 자리이므로, 분당 한 칸만이라도 세어 둡니다.
+ *
+ * 계수기는 일반 호출과 **같은 바구니**를 씁니다 — ping으로 몫을 따로 늘리는 길을 열지 않습니다.
+ * 다만 일당 계수(`dayCount`)는 건드리지 않으므로, 점검을 몇 번 해도 그날 훈련 몫은 줄지 않습니다.
+ *
+ * `ip`가 없으면(프록시 없는 배포) 가를 열쇠가 없어 그대로 통과입니다 — `clientIp()` 주석 참조.
+ */
+function takePingSlot(ip: string | undefined, now: number = Date.now()): boolean {
+  if (ip === undefined) return true;
+
+  const minute = Math.floor(now / 60_000);
+  const day = Math.floor(now / 86_400_000);
+
+  const bucket = ipBuckets.get(ip);
+  if (!bucket || bucket.day !== day) {
+    prune(day);
+    ipBuckets.set(ip, { minute, minuteCount: 1, day, dayCount: 0 });
+    return true;
+  }
+  if (bucket.minute !== minute) {
+    bucket.minute = minute;
+    bucket.minuteCount = 0;
+  }
+  if (bucket.minuteCount >= PER_IP_PER_MINUTE) return false;
+
+  bucket.minuteCount += 1;
+  return true;
 }
 
 /**
@@ -535,11 +604,20 @@ async function relay(
 
 /* ── 핸들러 ────────────────────────────────────────────── */
 
-/** 응답 한 벌 — 어떤 경우에도 캐시하지 않습니다. */
-function json(body: Record<string, unknown>, status = 200): Response {
+/**
+ * 응답 한 벌 — 어떤 경우에도 캐시하지 않습니다.
+ *
+ * `extra`는 **단기 토큰 갱신 헤더** 한 칸을 위한 자리입니다(설정된 배포에서만, 아래 `refreshHeader`).
+ * 비밀값이 없으면 `undefined`가 들어와 응답이 한 글자도 달라지지 않습니다.
+ */
+function json(
+  body: Record<string, unknown>,
+  status = 200,
+  extra?: Record<string, string>,
+): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+    headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...extra },
   });
 }
 
@@ -630,6 +708,27 @@ async function checkToken(request: Request, secret: string): Promise<TokenVerdic
   return (await verifyCoachToken(secret, value)) ? "tokened" : "invalid";
 }
 
+/**
+ * 받아들인 요청에 실어 돌려줄 **다음 표식** 한 칸 (`창번호.토큰` — `<meta>`와 같은 꼴).
+ *
+ * 이 한 함수가 「문서 수명 = 토큰 수명」을 끊습니다. 표식을 심는 자리가 서버 렌더 하나뿐이면,
+ * 앱 안 이동으로만 도는 이 화면에서는 문서가 창 둘(최대 20분)을 넘어서는 순간 정상 트래픽
+ * **전체**가 무토큰 통으로 떨어집니다 — 예산을 둘로 나눈 목적이 그대로 뒤집히고, 서비스를 하루
+ * 끄는 문턱이 `dailyCap`에서 `anonDailyCap`으로 내려앉습니다. 심는 자리를 「매 호출」로 옮기면
+ * 한 판을 두 시간 돌려도 정상 통에 남습니다(사유 전문은 `COACH_TOKEN_REFRESH_HEADER` 주석).
+ *
+ * 붙이는 자리를 좁혀 둡니다 — 출처·Content-Type·크기·작업 이름을 지나고 **표식 대조에서 어긋나지
+ * 않은** 요청에만 붙습니다. 403(다른 출처·어긋난 표식)과 그 앞의 400에는 붙지 않습니다.
+ * `ping`에도 붙이지 않습니다: 토큰을 요구하지 않는 유일한 분기에 토큰을 내주면, 계수기를 거의
+ * 지나지 않는 자리가 표식 발급소가 됩니다.
+ *
+ * 비밀값이 없으면 `undefined`입니다 — 응답이 예전과 한 글자도 다르지 않습니다.
+ */
+async function refreshHeader(secret: string): Promise<Record<string, string> | undefined> {
+  if (secret.length === 0) return undefined;
+  return { [COACH_TOKEN_REFRESH_HEADER]: await coachTokenMetaValue(secret) };
+}
+
 /** JSON 몸통이라고 선언한 요청만 받습니다 — 이 한 줄이 프리플라이트 없는 경로를 닫습니다. */
 function isJsonRequest(request: Request): boolean {
   const type = request.headers.get("content-type");
@@ -708,7 +807,8 @@ function promptFor(task: CoachTask, body: unknown): RelayPrompt | undefined {
  *  · 403 `{ status: "forbidden" }` — 다른 출처에서 왔거나, JSON 요청이 아니거나, 표식이 어긋납니다.
  *
  * `task: "ping"`만 흐름이 다릅니다 — 설정 여부(`readConfig`)만 보고 곧장 답합니다.
- * 상류를 부르지 않고 한도도 쓰지 않으므로, 무대 직전 점검이 요금을 만들지 않습니다.
+ * 상류를 부르지 않고 예산 통도 쓰지 않으므로 무대 직전 점검이 요금을 만들지 않습니다
+ * (IP당 분당 계수 한 칸만 셉니다).
  */
 export async function POST(request: Request): Promise<Response> {
   // ① 출처 — 몸통을 읽기 전에 봅니다. 다른 출처의 요청은 여기서 끝납니다.
@@ -738,24 +838,38 @@ export async function POST(request: Request): Promise<Response> {
   // 작업별 몸통 상한 — 코칭·변주는 예전과 같은 8,192자에서 끊깁니다.
   if (raw.length > bodyLimitFor(task)) return json({ status: "invalid" }, 400);
 
+  const ip = clientIp(request);
+
   /*
    * 점검용 분기 — 상류에 닿지 않는 유일한 작업입니다.
    *
-   * 표식을 요구하지 않습니다. 상류를 부르지 않고 한도도 쓰지 않으므로 값어치가 없는 자리이고,
-   * 무대 직전 점검(/check)이 배포 설정에 따라 붉어지는 편이 더 나쁩니다.
+   * 표식을 요구하지 않고 예산 통도 쓰지 않습니다. 상류를 부르지 않으므로 요금이 나가지 않고,
+   * 무대 직전 점검(/check)이 배포 설정이나 그날의 사용량 때문에 붉어지는 편이 더 나쁩니다.
+   * 다만 **IP당 분당 계수 한 칸**은 셉니다 — 계수기 밖의 완전 무제한 분기를 남겨 두지 않기
+   * 위해서입니다(사유는 `takePingSlot` 주석).
    */
   if (task === "ping") {
+    if (!takePingSlot(ip)) return json({ status: "rate_limited" });
     return json(readConfig() ? { status: "ok" } : { status: "unconfigured" });
   }
 
   /*
    * ③ 표식 — **계수기보다 앞**입니다. 어긋난 표식은 여기서 끝나고 예산을 한 칸도 쓰지 않습니다.
    */
-  const verdict = await checkToken(request, readSharedSecret());
+  const secret = readSharedSecret();
+  const verdict = await checkToken(request, secret);
   if (verdict === "invalid") return json({ status: "forbidden" }, 403);
 
+  /*
+   * 여기서부터의 응답에는 **다음 창의 표식**을 한 칸 실어 보냅니다(설정된 배포에서만).
+   * 표식을 심는 자리를 「서버 렌더 한 번」에서 「매 호출」로 옮기는 한 줄입니다 — 이것이 없으면
+   * 문서를 연 지 20분이 지난 정상 사용자가 통째로 무토큰 통으로 떨어집니다.
+   * 한도에 걸린 응답에도 붙입니다 — 표식까지 잃으면 다음 날에도 작은 통에 남습니다.
+   */
+  const refresh = await refreshHeader(secret);
+
   const config = readConfig();
-  if (!config) return json({ status: "unconfigured" });
+  if (!config) return json({ status: "unconfigured" }, 200, refresh);
 
   /*
    * ④ 한도 — 세 작업이 계수기를 나눠 씁니다(비용은 요청 수로 나갑니다).
@@ -764,15 +878,20 @@ export async function POST(request: Request): Promise<Response> {
    * 쓰지 않은 채 JSON 파싱·정규식·프롬프트 조립 CPU를 무제한으로 태울 수 있었습니다.
    * 지금은 몫을 먼저 집으므로 그 구간이 사라집니다 — 대가는 「형태가 틀린 요청도 몫을 쓴다」이고,
    * 정상 클라이언트는 틀린 몸통을 보내지 않으므로 치를 만한 값입니다.
+   *
+   * ※ 계수기를 **지나지 않는** 자리를 정확히 적어 둡니다: 어긋난 표식(바로 위 403) 하나입니다.
+   *   그 경로는 요청당 HMAC 두 번을 태우고 예산은 쓰지 않습니다 — 값이 어긋난 요청에 예산을
+   *   물리면 표식을 아무렇게나 적어 보내는 쪽이 정상 사용자의 통을 비울 수 있기 때문입니다.
+   *   `ping`은 예산 통만 면제이고 IP당 분당 계수는 셉니다(위 분기).
    */
-  if (!takeSlot(clientIp(request), config.dailyCap, verdict === "tokened")) {
-    return json({ status: "rate_limited" });
+  if (!takeSlot(ip, config.dailyCap, verdict === "tokened")) {
+    return json({ status: "rate_limited" }, 200, refresh);
   }
 
   const prompt = promptFor(task, body);
-  if (!prompt) return json({ status: "invalid" }, 400);
+  if (!prompt) return json({ status: "invalid" }, 400, refresh);
 
   const content = await relay(prompt, config, request.signal);
-  if (content === undefined) return json({ status: "upstream" });
-  return json({ status: "ok", content });
+  if (content === undefined) return json({ status: "upstream" }, 200, refresh);
+  return json({ status: "ok", content }, 200, refresh);
 }

@@ -160,7 +160,18 @@ export function HistoryBoard({
        「아무것도 없다」로 읽혔습니다(페르소나 UI/UX P1).
        움직이지 않는 회색 면입니다 — `animate-pulse`를 쓰지 않는 것은 이 앱의 모션 최소 규율이고,
        기다리는 화면이 깜빡이면 중고령 사용자에게는 「고장」으로 읽히기 때문입니다.
-       낭독에는 위 한 줄만 갑니다(골격은 `aria-hidden`). */
+       (2026-08-26: 이 문장을 적은 날 `TierIndicator`의 L2 칩이 실제로 `animate-pulse`로
+        무한 점멸하고 있었습니다 — 주석이 다음 사람의 근거로 읽히는 코드베이스에서 정반대를
+        말하는 두 문장은 값이 틀린 코드보다 오래 해롭습니다. 그쪽 점멸을 뺐고, 이 선언은
+        「기다리는 화면에는」으로 좁히지 않고 앱 전체 규율로 그대로 둡니다.)
+       낭독에는 위 한 줄만 갑니다(골격은 `aria-hidden`).
+
+       치수는 **rem**입니다 — 골격 막대 둘은 각각 13.5px 캡션 줄과 17px 제목 줄을 대신하는데,
+       px로 굳어 있으면 앱의 「글자 크기」를 올렸을 때 실제 내용만 25% 자라고 골격은 그대로라
+       골격→내용 전환에서 점프가 가장 큰 배율이 「아주 크게」가 됩니다(페르소나 디자이너 low).
+       하필 이 탭이 중고령 사용자가 자기 기록을 확인하러 오는 자리입니다.
+       (같은 판단을 이미 적어 둔 자리: MicButton.tsx · TabBar.tsx — 「글자와 짝지어 서는
+        장식 기하는 rem」.) */
     return (
       <div className="mt-4">
         <p role="status" className="text-[0.9375rem] leading-[1.6] text-ink-soft">
@@ -170,24 +181,25 @@ export function HistoryBoard({
         </p>
 
         <div aria-hidden className="mt-4">
-          {/* 다음엔 이 장면 — 카드 한 장 */}
-          <div className="mb-4 h-[92px] rounded-card bg-paper-2" />
-          {/* 유형별로 해 본 것 — 4칸 한 줄 */}
+          {/* 다음엔 이 장면 — 카드 한 장 (5.75rem = 기본 배율 92px) */}
+          <div className="mb-4 h-[5.75rem] rounded-card bg-paper-2" />
+          {/* 유형별로 해 본 것 — 4칸 한 줄 (4.75rem = 76px) */}
           <div className="mb-[18px] flex overflow-hidden rounded-card bg-paper-2">
             {[0, 1, 2, 3].map((cell) => (
               <div
                 key={cell}
                 /* 칸을 가르는 선은 실제 4칸과 같은 값입니다(회색 면 위에서는 `line`이 묻힙니다). */
-                className={cx("h-[76px] flex-1", cell > 0 && "border-l border-line-strong")}
+                className={cx("h-[4.75rem] flex-1", cell > 0 && "border-l border-line-strong")}
               />
             ))}
           </div>
-          {/* 최근 훈련 — 행 3줄 */}
+          {/* 최근 훈련 — 행 3줄. 막대 높이는 대신하는 글자 줄과 같은 눈금입니다
+              (0.8125rem ≈ 13.5px 캡션 · 1.0625rem = 17px 제목). */}
           <div className="chim-hairline border-t border-line">
             {[0, 1, 2].map((row) => (
               <div key={row} className="py-[14px]">
-                <div className="h-[13px] w-[38%] rounded-field bg-paper-2" />
-                <div className="mt-[8px] h-[17px] w-[72%] rounded-field bg-paper-2" />
+                <div className="h-[0.8125rem] w-[38%] rounded-field bg-paper-2" />
+                <div className="mt-[8px] h-[1.0625rem] w-[72%] rounded-field bg-paper-2" />
               </div>
             ))}
           </div>
@@ -238,7 +250,11 @@ export function HistoryBoard({
         <Link
           href={trainHref(suggestion.candidate.id)}
           aria-label={`${suggestion.candidate.title} 훈련으로 가기. ${nextTrainingSentence(suggestion)}`}
-          className="mb-4 flex min-h-[48px] items-center gap-[10px] rounded-card bg-brand-tint px-[15px] py-[14px] transition-colors duration-150 active:bg-mint-200"
+          /* 좌우 여백은 이 화면의 다른 면 카드들과 같은 rem 한 값입니다(px-4 = 1rem).
+             2026-08-26에 px-[15px]에서 옮겼습니다 — 한 화면에 세로로 쌓이는 카드 셋이
+             15px(px 고정)·16px(rem) 두 단위계로 갈려 있어, 「아주 크게」에서 어긋남이
+             1px에서 5px로 벌어졌습니다(페르소나 디자이너 med). */
+          className="mb-4 flex min-h-[48px] items-center gap-[10px] rounded-card bg-brand-tint px-4 py-[14px] transition-colors duration-150 active:bg-mint-200"
         >
           <span className="min-w-0 flex-1">
             {/* 링크 안이라 문단(EyebrowLabel)을 넣을 수 없는 자리입니다 —
@@ -297,9 +313,14 @@ export function HistoryBoard({
           <p className="text-[1.0625rem] leading-[1.45] font-bold text-ink">
             아직 완주한 훈련이 없습니다
           </p>
+          {/* 고정 문구(「정답을 맞히는 시험이 아니라…」)를 이 자리에서 걷었습니다(2026-08-26).
+              한 글자도 바꾸지 않고 **자리만** 줄인 것입니다 — 문구는 홈 히어로·/guide·첫 브리핑
+              세 곳에 그대로 있습니다. 네 번째로 읽히면 안심이 아니라 「왜 자꾸 이 말을 하지,
+              진짜 시험인가 보다」가 됩니다(현직 검증 · /train 부제에서 같은 이유로 이미 뺀 자리).
+              이력 화면의 빈 상태가 할 말은 따로 있습니다 — **여기에 무엇이 남는가**입니다. */}
           <p className="mt-[3px] text-[0.7813rem] leading-[1.6] text-ink-soft">
-            정답을 맞히는 시험이 아니라 말이 나오게 만드는 연습입니다. 한 번 마치시면 이 자리에
-            잘한 것과 다시 볼 것이 문장으로 남습니다.
+            한 번 마치시면 이 자리에 잘한 것과 다시 볼 것이 문장으로 남습니다. 점수·등급은
+            남지 않습니다.
           </p>
           <Link
             href="/train"

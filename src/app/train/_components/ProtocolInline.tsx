@@ -261,9 +261,9 @@ export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolI
 
         {/* 주소 단계인지는 데이터의 `step.address`가 가르고, 화면에 서는 값은 이 기기에
             적어 두신 주소입니다 — 연습용 예시 주소는 카드가 쓰지 않으므로 넘기지 않습니다.
-            훈련 안에서는 읽기 전용입니다: 적어 두신 것이 있으면 급할 때 무엇이 뜨는지 그대로
-            보여 드리고, 없으면 어디에서 적을 수 있는지 한 줄만 답니다(2026-08-25). */}
-        {step?.address && <ProtocolAddressCard readOnly className="mt-4" />}
+            이 카드는 어디에서나 표시 전용이고, `session`은 적어 두신 것이 없을 때의 한 줄만
+            가릅니다: 연습 중에는 어디에서 적을 수 있는지를 알려 드립니다(2026-08-26). */}
+        {step?.address && <ProtocolAddressCard session className="mt-4" />}
 
         {preview && (
           <p className="mt-4 text-[0.8438rem] leading-[1.6] text-ink-faint">다음 — {preview}</p>

@@ -44,6 +44,7 @@ import {
   COACH_TOKEN_HEADER,
   COACH_TOKEN_LENGTH,
   COACH_TOKEN_META,
+  COACH_TOKEN_REFRESH_HEADER,
   coachTokenWindow,
 } from "./coachLimits";
 import { getSettings, type OnlineCoachingSettings } from "./settings";
@@ -469,6 +470,21 @@ function isAbortError(error: unknown): boolean {
 
 /* ── 요청 헤더 ─────────────────────────────────────────── */
 
+/** `창번호.토큰` 한 줄 — meta와 갱신 헤더가 **같은 꼴**이라 읽는 함수도 하나입니다. */
+interface CoachTokenStamp {
+  window: number;
+  token: string;
+}
+
+function parseTokenStamp(content: string): CoachTokenStamp | undefined {
+  const dot = content.indexOf(".");
+  if (dot <= 0) return undefined;
+  const window = Number.parseInt(content.slice(0, dot), 10);
+  const token = content.slice(dot + 1);
+  if (!Number.isFinite(window) || token.length !== COACH_TOKEN_LENGTH) return undefined;
+  return { window, token };
+}
+
 /**
  * 서버 렌더가 문서에 심어 둔 **단기 토큰 표식**을 읽습니다 (없으면 `undefined`).
  *
@@ -477,26 +493,59 @@ function isAbortError(error: unknown): boolean {
  * 언제나 `undefined`를 돌려주고, 요청은 예전과 **한 글자도 다르지 않게** 나갑니다.
  *
  * meta 값은 `창번호.토큰` 꼴입니다. 창 번호를 함께 읽는 이유는 **낡은 값을 스스로 걷어 내기
- * 위해서**입니다 — 앱 안 이동은 서버 렌더를 다시 타지 않으므로 한 판을 길게 훈련하면 심어 둔
- * 토큰이 창을 넘어섭니다. 그때 낡은 값을 그대로 보내면 서버가 403을 돌려주고 코칭이 조용히
- * 접히는데, 아예 보내지 않으면 「토큰 없는 요청」으로 다뤄져 훈련이 이어집니다.
+ * 위해서**입니다 — 낡은 값을 그대로 보내면 서버가 403을 돌려주고 코칭이 조용히 접히는데,
+ * 아예 보내지 않으면 「토큰 없는 요청」으로 다뤄져 훈련이 이어집니다.
  * 비밀값을 이 기기가 아는 일은 없습니다 — 읽는 것은 서버가 계산해 준 결과 한 줄뿐입니다.
+ *
+ * **이 자리는 첫 한 번의 씨앗입니다.** 앱 안 이동은 서버 렌더를 다시 타지 않으므로 문서에 심긴
+ * 값은 20분이면 낡는데, 그 뒤로는 라우트가 응답 헤더로 돌려주는 최신 값이 앞에 섭니다
+ * (`rememberCoachToken`). 두 자리의 값 꼴이 같아 읽는 함수는 하나입니다.
  */
-function readCoachToken(now: number): string | undefined {
+function readMetaToken(): CoachTokenStamp | undefined {
   if (typeof document === "undefined") return undefined;
   const content = document
     .querySelector(`meta[name="${COACH_TOKEN_META}"]`)
     ?.getAttribute("content")
     ?.trim();
-  if (!content) return undefined;
+  return content ? parseTokenStamp(content) : undefined;
+}
 
-  const dot = content.indexOf(".");
-  if (dot <= 0) return undefined;
-  const window = Number.parseInt(content.slice(0, dot), 10);
-  const token = content.slice(dot + 1);
-  if (!Number.isFinite(window) || token.length !== COACH_TOKEN_LENGTH) return undefined;
+/**
+ * 라우트가 응답 헤더로 돌려준 **최신 표식** — 이 모듈이 사는 동안만 들고 있습니다.
+ *
+ * 저장소에 넣지 않습니다. 표식은 10분이면 죽는 값이고, 남겨 봐야 다음 방문에는 이미 낡았으며,
+ * 「기기에 남는 것은 연습 횟수 하나뿐」이라는 약속에 칸을 하나 더 만들 이유가 없습니다.
+ */
+let refreshed: CoachTokenStamp | undefined;
+
+/**
+ * 응답에 실려 온 다음 표식을 갈무리합니다 — 세 호출자가 fetch 직후에 한 번씩 부릅니다.
+ *
+ * 이 한 줄이 「문서 수명 = 토큰 수명」을 끊습니다. 예전에는 심는 자리가 서버 렌더 하나뿐이라,
+ * 한 판을 20분 넘게 훈련하면 화면이 스스로 표식을 빼고 **작은 예산 통**으로 넘어갔습니다
+ * (자세한 사정은 `COACH_TOKEN_REFRESH_HEADER` 주석).
+ *
+ * **헤더가 없으면 아무 일도 하지 않습니다** — 비밀값이 없는 배포는 이 헤더를 붙이지 않고,
+ * 그때 들고 있던 값을 지우지도 않습니다. 모양이 깨진 값도 그냥 버립니다(믿고 쓰지 않습니다).
+ */
+export function rememberCoachToken(response: { headers?: { get(name: string): string | null } }): void {
+  const content = response.headers?.get(COACH_TOKEN_REFRESH_HEADER)?.trim();
+  if (!content) return;
+  const stamp = parseTokenStamp(content);
+  if (stamp) refreshed = stamp;
+}
+
+/**
+ * 지금 보낼 표식 — **갱신 값이 meta보다 먼저**입니다.
+ *
+ * 갱신 값은 언제나 meta보다 뒤에 받은 것이므로 창 번호가 같거나 큽니다. 그래도 창 검사는
+ * 두 자리에 똑같이 겁니다 — 탭을 오래 열어 둔 채 아무 호출도 하지 않으면 갱신 값도 낡습니다.
+ */
+function readCoachToken(now: number): string | undefined {
+  const stamp = refreshed ?? readMetaToken();
+  if (!stamp) return undefined;
   // 서버는 현재 창과 직전 창만 받습니다. 그보다 낡았으면 보내지 않습니다.
-  return coachTokenWindow(now) - window > 1 ? undefined : token;
+  return coachTokenWindow(now) - stamp.window > 1 ? undefined : stamp.token;
 }
 
 /**
@@ -504,7 +553,8 @@ function readCoachToken(now: number): string | undefined {
  * (코칭·대사 변주·자유 연습). 헤더를 세 곳에 손으로 적어 두면 어느 날 한 곳만 고쳐집니다.
  *
  * @example
- * await fetch(COACH_ENDPOINT, { method: "POST", headers: coachRequestHeaders(), body });
+ * const response = await fetch(COACH_ENDPOINT, { method: "POST", headers: coachRequestHeaders(), body });
+ * rememberCoachToken(response); // 다음 요청이 쓸 표식을 갈무리합니다
  */
 export function coachRequestHeaders(now: number = Date.now()): Record<string, string> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -564,6 +614,8 @@ export async function requestOnlineCoaching(
       // 나가는 것은 이 다섯 칸뿐입니다 — 발화는 이미 가명처리를 지났습니다(buildCoachRequest).
       body: JSON.stringify(request),
     });
+    // 다음 요청이 쓸 표식을 갈무리합니다 — 문서 수명이 곧 토큰 수명이던 자리를 끊습니다.
+    rememberCoachToken(response);
     if (!response.ok) return fallbackOutcome("http");
     payload = await response.json();
   } catch (error) {

@@ -109,9 +109,14 @@ export function CountedFacts({ className }: CountedFactsProps) {
         <Row k={JUDGE_LABEL.both.long} v={`${counted.judge.both}항목`} />
       </dl>
 
+      {/* 전제를 조건부로 적습니다. 예전에는 「지금 배포본에는 생성 호출이 0건이라」로 단언했는데,
+          같은 화면 위쪽 AI 지도는 설정을 읽어 「온라인 모드 켜짐」을 말합니다 — 시연 중 온라인을
+          켜고 이 화면을 열면 위 칸과 아래 칸이 서로 다른 말을 했습니다(페르소나 PM low).
+          결론(AI 칸도 규칙표가 판정한다)은 켠 상태에서도 참이라, 전제 한 구절만 고칩니다. */}
       <p className="mt-3 text-[0.7813rem] leading-[1.6] text-ink-muted">
-        이 배정은 <b className="font-bold">설계상의 배정</b>입니다. 지금 배포본에는 생성 호출이
-        0건이라, AI 칸으로 배정한 항목도 검수된 시나리오 규칙표가 판정합니다.
+        이 배정은 <b className="font-bold">설계상의 배정</b>입니다. 온라인 모드가 꺼진 기본
+        상태에는 생성 호출이 0건입니다. 켜신 상태에서도 AI 칸으로 배정한 항목의 판정은 검수된
+        시나리오 규칙표가 그대로 내립니다. 켜면 달라지는 자리는 위 AI 지도에 적었습니다.
       </p>
     </section>
   );

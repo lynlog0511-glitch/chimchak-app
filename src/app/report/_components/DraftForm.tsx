@@ -50,7 +50,7 @@ const SLOTS: SlotSpec[] = [
 /**
  * 3단계 기록 초안 화면 (v4 언어).
  *
- * 5요소를 편집할 수 있고, 비어 있는 칸은 「채워 주세요」로 강조합니다.
+ * 5요소를 편집할 수 있고, 비어 있는 칸에는 그 칸을 묻는 질문 한마디를 답니다.
  * 확정은 사용자가 직접 눌러야만 일어납니다 — 그 규칙은 그대로입니다.
  */
 export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: DraftFormProps) {
@@ -114,12 +114,14 @@ export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: Dr
                 <label htmlFor={fieldId} className="text-[0.8438rem] leading-[1.45] font-bold text-ink">
                   {label}
                 </label>
-                {/* 빈 칸에는 지시문이 아니라 **질문**을 답니다 — 「채워 주세요」가 다섯 번
+                {/* 빈 칸에는 지시문이 아니라 **질문**만 답니다 — 「채워 주세요」가 다섯 번
                     늘어서면 남은 것이 숙제로 읽히는데, 물어보면 대답이 곧 그 칸의 값입니다
-                    (2026-08-25 · 페르소나 PM P2). 문구는 엔진 상수 한 곳에서 옵니다. */}
+                    (2026-08-25 · 페르소나 PM P2). 문구는 엔진 상수 한 곳에서 옵니다.
+                    2026-08-26 교정: 질문 앞에 「채워 주세요 — 」를 그대로 붙여 두어, 없애려던
+                    표현이 빈 칸 수만큼 다시 늘어서 있었습니다. 지시문은 위 요약 한 줄이 맡습니다. */}
                 {empty && (
                   <span id={hintId} className="text-[0.7813rem] leading-[1.45] font-bold text-warn-ink">
-                    채워 주세요 — {RECORD_SLOT_QUESTIONS[slot.key]}
+                    {RECORD_SLOT_QUESTIONS[slot.key]}
                   </span>
                 )}
               </div>

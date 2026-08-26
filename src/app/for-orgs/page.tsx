@@ -86,9 +86,12 @@ export default function ForOrgsPage() {
         title="기관 도입 안내"
         subtitle="가격이 아니라, 무엇이 줄고 무엇이 서류로 남는지"
         action={
+          /* 48px은 높이만이 아니라 **폭**이기도 합니다 — `min-w`가 없던 동안 이 링크는
+             39×48px이었습니다. 화면 우상단 모서리라 엄지가 닿기 가장 어려운 자리이고,
+             이 화면은 탭바가 없어 이 링크가 유일한 출구입니다(3차 페르소나 UI/UX low). */
           <Link
             href="/safety"
-            className="flex min-h-[48px] items-center rounded-field px-1 text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper-2"
+            className="flex min-h-[48px] min-w-[48px] items-center justify-center rounded-field px-1 text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper-2"
           >
             닫기
           </Link>

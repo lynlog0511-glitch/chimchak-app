@@ -7,6 +7,7 @@ import { BigButton, ChevronGlyph, EyebrowLabel, cx } from "@/components";
 import {
   MASK_KIND_LABELS,
   MASK_KIND_REASONS,
+  MASK_PARTIAL_NOTICE,
   MASK_TOKENS,
   countByKind,
   hasPartialMask,
@@ -325,7 +326,7 @@ export function MaskReview({
           사용자가 읽은 다음에 할 일이 손에 닿습니다. */}
       {partial && (
         <p className="mb-[10px] text-[0.7813rem] leading-[1.6] font-semibold text-ink-soft">
-          일부만 가려졌을 수 있어요. 한 번 확인해 주세요.
+          {MASK_PARTIAL_NOTICE}
         </p>
       )}
 

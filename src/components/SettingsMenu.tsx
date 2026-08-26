@@ -67,26 +67,28 @@ function OptionButton({ label, selected, onSelect }: OptionButtonProps) {
 export interface SettingsMenuProps {
   className?: string;
   /**
-   * 여는 버튼에 적을 낱말.
-   *
-   * 낱말은 **둘뿐**입니다.
-   * - 「설정」(기본값): 홈 상단 바 한 곳. 표시·음성·온라인 모드 셋을 다 여는 자리라 이름을 좁히지 않습니다.
-   * - 「글자 크기」: 훈련 세션 헤더와 `ScreenHeader`의 기본 액션 — 즉 나머지 모든 화면입니다.
-   *   그 자리에서 이 팝오버를 여는 까닭이 사실상 글자 크기 하나이기 때문입니다(평가 초보 m2).
-   *
-   * 화면마다 다른 이름을 붙이지 마세요. 같은 것을 여는 문에 이름이 셋이면 낱말만 늘고
-   * 「아까 그거」를 다시 찾지 못합니다.
-   */
-  label?: string;
-  /**
    * 팝오버를 어디에 맞출지.
    *
    * - `trigger`(기본): 여는 버튼의 오른쪽 끝에 맞춥니다 — 홈 상단 바처럼 버튼이 화면 오른쪽 끝에 있을 때.
-   * - `screen`: 화면 오른쪽 끝에 맞춥니다 — 세션 헤더처럼 버튼 오른쪽에 다른 액션이 더 있을 때입니다.
-   *   버튼에 맞추면 320px 팝오버가 390px 화면의 왼쪽 밖으로 57px 밀려납니다.
+   * - `screen`: **화면(`.chim-screen`) 오른쪽 끝**에 맞춥니다 — 세션 헤더처럼 버튼 오른쪽에
+   *   다른 액션이 더 있을 때입니다. 버튼에 맞추면 320px 팝오버가 390px 화면의 왼쪽 밖으로
+   *   57px 밀려납니다.
    */
   align?: "trigger" | "screen";
 }
+
+/**
+ * 여는 버튼을 찾을 표식 — 화면 안 다른 자리에서 이 팝오버를 열 때 씁니다
+ * (홈 첫 방문 카드의 「설정 열기」가 유일한 사용처입니다).
+ *
+ * 표식을 두는 이유는 하나입니다. 안내 문장이 「화면 오른쪽 위 설정에서 키우실 수 있어요」라고
+ * 적어 두었으면, 그 문장 옆 버튼도 **그 자리의 그 버튼**을 열어야 합니다 — 카드 안에 두 번째
+ * 팝오버를 세우면 다음에 혼자 오셨을 때 찾아갈 자리가 달라집니다.
+ */
+export const SETTINGS_TRIGGER_ATTR = "data-chim-settings-trigger";
+
+/** 여는 버튼에 적는 낱말 — **전 화면 한 낱말**입니다. 아래 컴포넌트 주석 참고. */
+const TRIGGER_LABEL = "설정";
 
 interface SettingsPanelProps {
   panelId: string;
@@ -95,6 +97,11 @@ interface SettingsPanelProps {
   align: "trigger" | "screen";
   /** `screen`일 때 팝오버가 설 세로 위치(px) — 여는 순간 버튼 아래를 실측한 값입니다. */
   screenTop: number;
+  /**
+   * `screen`일 때 **창 오른쪽 끝과 화면 오른쪽 끝 사이**(px) — 여는 순간 실측합니다.
+   * 480px↑에서 화면이 430px 기둥으로 설 때 이 값이 지면 폭의 절반이고, 그 아래에서는 0입니다.
+   */
+  screenGap: number;
   onFontScale: (value: FontScale) => void;
   onSpeechRate: (value: SpeechRate) => void;
   onOnlineCoaching: (patch: Partial<OnlineCoachingSettings>) => void;
@@ -118,6 +125,7 @@ function SettingsPanel({
   voiceSupported,
   align,
   screenTop,
+  screenGap,
   onFontScale,
   onSpeechRate,
   onOnlineCoaching,
@@ -140,13 +148,26 @@ function SettingsPanel({
       ref={panelRef}
       role="dialog"
       aria-modal="true"
+      /* 팝오버 제목 — 여는 버튼(「설정」)이 좁힌 이름이 아니라 **담긴 것 전부**를 적습니다.
+         이름과 내용이 어긋나면 낭독 사용자에게는 문 뒤에 무엇이 있는지 물어볼 자리가 없습니다. */
       aria-label="표시·음성·온라인 모드 설정"
       /* 세션 헤더의 액션 줄은 `whitespace-nowrap`이라, 팝오버 안 문장이 한 줄로 늘어나지 않도록
-         여기서 줄바꿈을 되돌립니다. */
-      style={toScreen ? { top: `${screenTop}px` } : undefined}
+         여기서 줄바꿈을 되돌립니다.
+
+         오른쪽 여백은 **창이 아니라 화면 기준**입니다. `fixed`는 뷰포트를 보므로 `right-3`만
+         두면 480px↑에서 화면이 430px 기둥으로 서 있는 동안 팝오버만 창 오른쪽 끝에 붙습니다 —
+         1440px 노트북에서 기둥 오른쪽 가장자리와 팝오버 사이가 170px 넘게 벌어져, 앱 밖 지면
+         위에 320px 패널이 홀로 떠 있었습니다(3차 페르소나 UI/UX med · 심사가 벌어지는 폭입니다).
+         그래서 실측한 지면 폭(`screenGap`)을 여기에 더합니다. 12px은 `right-3`과 같은 값이되
+         `rem`으로 적어, 글자 크기 3단에서 다른 여백과 함께 늘어납니다. */
+      style={
+        toScreen
+          ? { top: `${screenTop}px`, right: `calc(${screenGap}px + 0.75rem)` }
+          : undefined
+      }
       className={cx(
         "z-50 w-[min(20rem,calc(100vw-2rem))] whitespace-normal",
-        toScreen ? "fixed right-3" : "absolute top-full right-0 mt-2",
+        toScreen ? "fixed" : "absolute top-full right-0 mt-2",
         "rounded-panel bg-white p-4 shadow-panel",
         /* 글자 크기 「아주 크게」에서는 세 절과 고지 문장만으로도 팝오버가 화면을 넘칩니다.
            밖으로 밀려나는 대신 여기서만 세로로 스크롤합니다(실측 기준). */
@@ -269,10 +290,20 @@ function SettingsPanel({
  *
  * 트리거는 **텍스트 버튼**뿐입니다(시안 5a) — 톱니 아이콘은 쓰지 않고 13.5px w600 `ink-muted`
  * 한 낱말로만 둡니다. 탭바에는 두지 않습니다 — 탭바 5칸은 이동용이고, 설정은 이동이 아닙니다.
- * 자리는 셋입니다: 홈 상단 바의 「설정」, 훈련 세션 헤더의 「글자 크기」, 그리고 `ScreenHeader`가
- * `action` 없이 그려질 때 기본으로 서는 「글자 크기」(`label`·`align` 참고).
- * 진입점이 앞의 둘뿐이면, 대사가 작다고 느낀 분이 훈련을 나갔다가 홈까지 가서 설정하고
+ * 자리는 홈 상단 바·훈련 세션 헤더·`ScreenHeader`를 쓰는 모든 화면의 오른쪽 위입니다.
+ * 진입점이 홈과 세션 둘뿐이면, 대사가 작다고 느낀 분이 훈련을 나갔다가 홈까지 가서 설정하고
  * 다시 들어와야 합니다 — 노안이 있는 분께는 그 길이 사실상 막힌 길입니다(평가 UI/UX mi5 · m6 · 초보 m2).
+ *
+ * ## 이름은 전 화면 「설정」 하나입니다
+ *
+ * 한동안 낱말이 둘이었습니다 — 홈만 「설정」이고 세션 헤더와 `ScreenHeader`의 기본값은
+ * 「글자 크기」였습니다(「그 자리에서 이 팝오버를 여는 까닭이 사실상 글자 크기 하나」라는 판단).
+ * 그 판단이 틀린 자리가 팝오버 **안**에 있었습니다: 이 팝오버는 글자 크기 말고도 음성 빠르기·
+ * 온라인 모드 스위치·「처음 오신 분께」를 담고 있어서, 세션 안에서 「이거 마이크 꼭 써야 하나」가
+ * 궁금해진 분이 그 답이 든 문을 「글자 크기」라는 이름 때문에 지나쳤습니다(3차 페르소나 교육생).
+ * 이름이 담긴 것보다 좁으면, 담긴 나머지는 없는 것과 같습니다.
+ * 그래서 낱말을 **고를 수 없게** 두었습니다 — `label` prop을 없앴고, 트리거 문구는
+ * 이 파일의 `TRIGGER_LABEL` 한 곳에만 있습니다.
  *
  * 담는 것은 셋입니다.
  * - **글자 크기**: 루트 font-size를 100/112.5/125%로 바꿉니다. 토큰이 전부 rem이라 화면이 통째로
@@ -292,14 +323,13 @@ function SettingsPanel({
  *
  * @example <SettingsMenu />
  */
-export function SettingsMenu({
-  className,
-  label = "설정",
-  align = "trigger",
-}: SettingsMenuProps) {
+export function SettingsMenu({ className, align = "trigger" }: SettingsMenuProps) {
   const [open, setOpen] = useState(false);
-  /** 화면 오른쪽에 맞출 때 팝오버가 설 세로 위치 — 여는 순간 한 번 잽니다(열린 뒤 튀지 않게). */
-  const [screenTop, setScreenTop] = useState(0);
+  /**
+   * 화면 오른쪽에 맞출 때 팝오버가 설 자리 — 여는 순간 한 번 잽니다(열린 뒤 튀지 않게).
+   * `top`은 버튼 아래, `gap`은 창 오른쪽 끝과 화면(`.chim-screen`) 오른쪽 끝 사이입니다.
+   */
+  const [screenPos, setScreenPos] = useState({ top: 0, gap: 0 });
   const [settings, setSettingsState] = useState<ChimchakSettings>(DEFAULT_SETTINGS);
   const [voiceSupported, setVoiceSupported] = useState(true);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -369,6 +399,7 @@ export function SettingsMenu({
       <button
         ref={triggerRef}
         type="button"
+        {...{ [SETTINGS_TRIGGER_ATTR]: "" }}
         aria-expanded={open}
         aria-haspopup="dialog"
         aria-controls={open ? panelId : undefined}
@@ -377,8 +408,22 @@ export function SettingsMenu({
             close(true);
             return;
           }
-          const rect = triggerRef.current?.getBoundingClientRect();
-          if (rect) setScreenTop(Math.round(rect.bottom + 8));
+          const trigger = triggerRef.current;
+          const rect = trigger?.getBoundingClientRect();
+          if (rect) {
+            /* 지면 폭은 **계산이 아니라 관측**입니다(탭바가 자기 높이를 재는 것과 같은 판단).
+               `(100vw - 430px) / 2`로 되짚으면 430~479px 구간에서만 틀립니다 — 그 구간의
+               화면은 아직 전폭이라 지면이 0인데, 식은 최대 24.5px을 답합니다. */
+            const screen = trigger?.closest(".chim-screen");
+            /* 폭은 `documentElement.clientWidth`로 잽니다 — `innerWidth`는 세로 스크롤바까지
+               세는데 `fixed`와 `getBoundingClientRect`는 둘 다 스크롤바를 뺀 좌표계라,
+               섞어 쓰면 데스크톱에서만 스크롤바 폭(약 15px)만큼 왼쪽으로 밀립니다. */
+            const viewport = document.documentElement.clientWidth || window.innerWidth;
+            const gap = screen
+              ? Math.max(0, Math.round(viewport - screen.getBoundingClientRect().right))
+              : 0;
+            setScreenPos({ top: Math.round(rect.bottom + 8), gap });
+          }
           setOpen(true);
         }}
         className={cx(
@@ -387,7 +432,7 @@ export function SettingsMenu({
           open ? "text-brand-800" : "text-ink-muted hover:text-brand-800",
         )}
       >
-        {label}
+        {TRIGGER_LABEL}
       </button>
 
       {open && (
@@ -396,7 +441,8 @@ export function SettingsMenu({
           settings={settings}
           voiceSupported={voiceSupported}
           align={align}
-          screenTop={screenTop}
+          screenTop={screenPos.top}
+          screenGap={screenPos.gap}
           onFontScale={chooseFontScale}
           onSpeechRate={chooseSpeechRate}
           onOnlineCoaching={changeOnlineCoaching}

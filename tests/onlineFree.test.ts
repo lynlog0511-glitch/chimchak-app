@@ -17,10 +17,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "@/app/api/coach/route";
 import { COACH_RATE_LIMITS } from "@/lib/coachLimits";
 import { CITABLE_DOC_IDS, NON_CITABLE_DOC_IDS } from "@/data/docs";
+import { readFileSync } from "node:fs";
+import { MASK_PARTIAL_NOTICE, hasPartialMask, maskText } from "@/engine/masking";
 import { checkCritical } from "@/engine/rules";
 import { BANNED_PHRASES, MODEL_IDENTITY_WORDS, findBannedExpression } from "@/lib/onlineCoach";
 import {
   FREE_BLOCK_LABEL,
+  FREE_CONSENT_LINES,
   FREE_ENDPOINT,
   FREE_FALLBACK_LINE,
   FREE_HINT_MAX,
@@ -748,5 +751,64 @@ describe("/api/coach (task: free)", () => {
     const response = await POST(freeRequest(oversized));
     expect(response.status).toBe(400);
     expect(calls).toHaveLength(0);
+  });
+});
+
+/* ── 동의 카드와 부분 가림 경고 ────────────────────────── */
+
+describe("시작 전 동의 카드", () => {
+  /**
+   * 이 카드는 **못 잡는 범주를 이름으로 적는 자리**다. 목록이 실제 커버리지보다 넓게 읽히면
+   * 사용자는 「한글 세 글자 이름은 다 가려진다」로 읽는데, 그 반대가 참인 꼴이 하나 남아 있다 —
+   * 「이름 + 공백 + 일반 낱말」이고, 현장 발화에서 가장 흔한 표기다.
+   */
+  const joined = FREE_CONSENT_LINES.join("\n");
+
+  it("첫 줄이 「기기 밖으로 나간다」는 사실부터 말한다", () => {
+    expect(FREE_CONSENT_LINES[0]).toContain("기기 밖으로 나갑니다");
+  });
+
+  it("규칙이 닿지 않는 꼴을 예시까지 붙여 적는다", () => {
+    expect(joined).toContain("호칭 없이");
+    // 고지가 추상으로 끝나지 않게 — 이 앱의 다른 안내와 같은 방식으로 사례를 그대로 적는다.
+    expect(joined).toContain("김영수 상태를 확인했습니다");
+  });
+
+  it("앞서 적은 범주도 그대로 남아 있다 (한 줄을 더한 것이지 바꾼 것이 아니다)", () => {
+    for (const category of ["Mary Kim", "김 민 수", "메신저 아이디", "차량번호"]) {
+      expect(joined, category).toContain(category);
+    }
+  });
+
+  it("실제 인물 정보를 넣지 말라는 부탁이 남아 있다", () => {
+    expect(joined).toContain("실제 인물의 정보는 적지도 말씀하지도");
+  });
+});
+
+describe("/practice의 부분 가림 경고", () => {
+  /**
+   * 이 판정(`hasPartialMask`)은 여태 /report 2단계에만 서 있었다. 거기에는 사람이 한 글자씩
+   * 보는 검토 단계가 있고 /practice에는 없다 — **정작 문자열이 기기 밖으로 나가는 경로에서**
+   * 신호가 빠져 있던 자리다. 화면 조립까지 태우는 검사 도구가 이 저장소에 없으므로, 배선이
+   * 사라지지 않도록 소스에 못을 박아 둔다(`designScale.test.ts`·`swPrecache.test.ts`와 같은 방식).
+   */
+  const source = readFileSync("src/app/practice/_components/FreeComposer.tsx", "utf8");
+
+  it("전송 자리에서 hasPartialMask를 태운다", () => {
+    expect(source).toContain("hasPartialMask");
+    expect(source).toContain("maskText");
+  });
+
+  it("경고 문구는 /report와 **같은 상수**를 본다", () => {
+    // 두 화면이 문장을 따로 들고 있으면 어느 날 한쪽만 고쳐진다.
+    expect(source).toContain("MASK_PARTIAL_NOTICE");
+    const review = readFileSync("src/app/report/_components/MaskReview.tsx", "utf8");
+    expect(review).toContain("MASK_PARTIAL_NOTICE");
+  });
+
+  it("판정 자체는 엔진이 하고 화면은 그대로 쓴다", () => {
+    expect(hasPartialMask(maskText("어르신 계좌 110-123-456789"))).toBe(true);
+    expect(hasPartialMask(maskText("박 어르신께 전해 드렸습니다"))).toBe(false);
+    expect(MASK_PARTIAL_NOTICE.length).toBeGreaterThan(0);
   });
 });

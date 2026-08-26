@@ -364,8 +364,16 @@ describe("화면에 나가는 문구", () => {
     const turn = CHK_C02.turns.find((t) => t.id === "T-C3");
     expect(turn?.isTrigger).toBe(true);
     // 어르신 청취(C-2) 다음, 보고(T4) 앞에 놓인다.
-    for (const branch of cueOf(CHK_C02, "T-C2").branches) expect(branch.next).toBe("T-C3");
-    for (const branch of cueOf(CHK_C02, "T-C3").branches) expect(branch.next).toBe("T4");
+    // 미분류(-n)는 같은 자리에 머무르므로(2026-08-26 체류 원칙) 이 셈에서 뺀다 —
+    // 그 분기가 가리키는 곳은 「다음 장면」이 아니라 「방금 그 장면」이다.
+    for (const branch of cueOf(CHK_C02, "T-C2").branches) {
+      if (branch.id.endsWith("-n")) continue;
+      expect(branch.next).toBe("T-C3");
+    }
+    for (const branch of cueOf(CHK_C02, "T-C3").branches) {
+      if (branch.id.endsWith("-n")) continue;
+      expect(branch.next).toBe("T4");
+    }
   });
 });
 
@@ -655,7 +663,10 @@ describe("B02 응급 구간의 미분류", () => {
     expect(result.feedback.branchId).toBe("D1-n");
     expect(result.feedback.rubricHits).toEqual([]);
     // 관찰 지연으로 돌발 변수(T-1)가 앞당겨지지도 않는다.
-    expect(result.state.currentTurnId).toBe("T2");
+    // 2026-08-26 — 말이 닿지 않은 회차는 같은 자리에 머문다(체류 원칙). 다시 말할 자리가
+    // 열려 있어야 하므로 보기 버튼도 함께 확인한다.
+    expect(result.state.currentTurnId).toBe("T1");
+    expect(cueOptions(CHK_B02, result.state).length).toBeGreaterThan(0);
   });
 
   it("상황실 응답(CUE-4)의 미분류가 네 항목을 한꺼번에 1점으로 만들지 않는다", () => {

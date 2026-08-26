@@ -28,6 +28,14 @@ export interface CueResponderProps {
   /** 음성 인식 가능 여부 — 마운트 전에는 `unknown`이고, 그동안에는 단정하지 않습니다 */
   micCheck: MicCheck;
   /**
+   * 이 도크가 **사용자가 버튼을 눌러 만든 화면 교체**로 열렸는지 (브리핑의 「시작하기」·
+   * 「이어서 하기」, 응급 프로토콜을 마치고 대화로 돌아온 자리).
+   *
+   * 참이면 **첫 CUE 지시문도** 초점을 받습니다. 마운트되는 순간의 값만 씁니다 — 도중에 바뀌어도
+   * 이미 열린 도크의 초점 규칙은 흔들리지 않습니다.
+   */
+  focusFirstCue?: boolean;
+  /**
    * ⚑CF 시트에서 고르신 대안 문장.
    * 같은 CUE로 돌아왔을 때 **보기 목록 맨 위에 그대로** 다시 세워, 버튼만으로도 이어가실 수 있게 합니다.
    */
@@ -175,6 +183,7 @@ export function CueResponder({
   cue,
   attempt,
   micCheck,
+  focusFirstCue = false,
   chosenAlternative,
   anchor,
   demoExamples,
@@ -208,8 +217,10 @@ export function CueResponder({
   const micGraceUsedRef = useRef(false);
   /** 지금 화면의 CUE 지시문 — 턴이 넘어가면 여기로 초점을 옮깁니다 */
   const promptRef = useRef<HTMLHeadingElement | null>(null);
-  /** 마지막으로 초점을 옮긴 CUE. 첫 렌더에서는 초점을 건드리지 않습니다. */
+  /** 마지막으로 초점을 옮긴 CUE. 첫 렌더에서는(아래 조건이 아니면) 초점을 건드리지 않습니다. */
   const focusedCueRef = useRef<string | null>(null);
+  /** 이 도크가 열린 까닭 — **마운트 시점의 값**만 붙들어 둡니다(위 prop 주석 참고). */
+  const focusFirstCueRef = useRef(focusFirstCue);
   /**
    * 마이크 버튼을 감싸는 상자 — 대기(52px)와 녹음 중(64px)은 **서로 다른 서브트리**라,
    * `listening`이 바뀌는 순간 누르고 계시던 버튼이 언마운트되고 초점이 BODY로 떨어집니다.
@@ -268,12 +279,20 @@ export function CueResponder({
    * 누른 보기 버튼이 언마운트되면서 초점이 BODY로 떨어지면, 다음 보기까지 가려고
    * 스킵 링크·‹·소리 끄기·종료·로그 전체를 매 턴 다시 Tab으로 지나야 합니다(평가 UI/UX m4 실측).
    * 스크롤은 로그가 따로 잡으므로 여기서는 움직이지 않습니다.
+   *
+   * **첫 CUE는 두 가지 경우가 섞여 있습니다.** 하나는 문서가 막 열린 자리(주소로 곧장 들어와
+   * 진행 중인 판이 복원된 경우)이고, 다른 하나는 사용자가 「시작하기」를 눌러 브리핑을 통째로
+   * 갈아 끼운 자리입니다. 앞은 초점을 건드리면 안 되고(읽는 자리를 빼앗습니다), 뒤는 라우트
+   * 전환과 성격이 같아 **반드시** 옮겨야 합니다 — 누른 버튼이 사라져 초점이 BODY로 떨어지는
+   * 자리인데 하필 이 제품의 중심 장면이었습니다(3차 페르소나 UI/UX med).
+   * 둘을 가르는 값은 부모만 알 수 있으므로 `focusFirstCue`로 받습니다
+   * (`RouteFocus`가 첫 로드를 제외하는 것과 같은 판단 기준입니다).
    */
   useEffect(() => {
     if (focusedCueRef.current === resetKey) return;
     const first = focusedCueRef.current === null;
     focusedCueRef.current = resetKey;
-    if (first) return;
+    if (first && !focusFirstCueRef.current) return;
     promptRef.current?.focus({ preventScroll: true });
   }, [resetKey]);
 
@@ -935,11 +954,16 @@ export function CueResponder({
           ) : (
             /* 대기 — 입력 pill + 마이크 (시안 4a).
                pill에 line-strong 1px 보더를 둘러 「눌러야 하는 것」임을 형태로 말합니다
-               (보더가 없을 때는 비활성 입력칸으로 읽혔습니다 — 평가 초보 mi72). */
+               (보더가 없을 때는 비활성 입력칸으로 읽혔습니다 — 평가 초보 mi72).
+               반지름은 `rounded-chip`(= `--radius-chip` 999px)입니다. 예전에는 `rounded-[24px]`라
+               높이(h-12 = 3rem)만 배율을 따라가고 반지름은 px에 묶여, 「아주 크게」(125%)에서
+               높이 60px·반지름 24px이 되어 양 끝이 반원이 아니었습니다. 바로 옆 MicButton은
+               `rounded-full` + rem 지름이라 언제나 완전한 원이고, 같은 줄에서 둘의 곡률 문법이
+               갈리던 자리입니다(2026-08-26 페르소나 디자이너 low). */
             <button
               type="button"
               onClick={openInput}
-              className="h-12 min-w-0 flex-1 rounded-[24px] border border-line-strong bg-paper-2 px-4 text-left text-[0.9375rem] text-ink-muted transition-colors duration-150 active:bg-neutral-line"
+              className="h-12 min-w-0 flex-1 rounded-chip border border-line-strong bg-paper-2 px-4 text-left text-[0.9375rem] text-ink-muted transition-colors duration-150 active:bg-neutral-line"
             >
               직접 입력…
             </button>

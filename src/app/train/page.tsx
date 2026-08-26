@@ -184,7 +184,14 @@ export default function TrainIndexPage() {
                  `false`는 프리페치를 끄는 것이 아니라 **시점을 옮기는 것**입니다 —
                  뷰포트 진입에는 받지 않고, 손가락이 올라간(hover) 뒤에 받습니다. */
               prefetch={false}
-              aria-label={`${scenario.title} — 브리핑 열기`}
+              /* aria-label을 걷었습니다(2026-08-26 · 페르소나 UI/UX low).
+                 링크에 aria-label이 있으면 그 문자열이 카드 안 내용을 **전부 대체**합니다 —
+                 난이도·소요시간 eyebrow, 한 줄 요약, 해 본 횟수, 그리고 3차에 새로 넣은
+                 「안 가 본 갈래 N곳」이 낭독에서 통째로 빠지고 있었습니다. 하필 그 줄은
+                 「같은 상황을 왜 또 하나」에 답하려고 만든 줄이라, 정확히 그 답이 필요한
+                 분께만 닿지 않는 구조였습니다. 카드에 정보를 더할 때마다 격차가 벌어지는
+                 방향이라 지금 걷습니다 — 이름은 카드 안 내용이 그대로 만들고,
+                 목적지만 맨 끝 `sr-only` 한 조각이 덧붙입니다. */
               className="flex items-start gap-[12px] rounded-card bg-paper-2 px-4 py-[15px] transition-colors duration-150 ease-soft active:bg-neutral-line"
             >
               {/* 한 글자 마커 — 응급 목록과 같은 42px·radius 12·17px w800입니다.
@@ -211,9 +218,12 @@ export default function TrainIndexPage() {
                 <span className="mt-[10px] flex items-center gap-3">
                   {/* 해 본 횟수는 기기(localStorage)에서만 읽습니다 — 마운트 뒤에 채워집니다. */}
                   <PracticeCount scenarioId={scenario.id} />
+                  {/* 색이 brand-800인 이유 — 카드 면이 paper-2(눌리면 neutral-line)입니다.
+                      brand-700은 흰 지면 전용이라 여기서 4.49:1 · 눌림 3.90:1로 AA 미달이고,
+                      brand-800은 6.27:1 · 5.45:1입니다(globals.css의 brand-700 주석이 정본). */}
                   <span
                     aria-hidden
-                    className="ml-auto text-[0.9375rem] leading-none font-bold text-brand-700"
+                    className="ml-auto text-[0.9375rem] leading-none font-bold text-brand-800"
                   >
                     연습하기 ›
                   </span>
@@ -233,6 +243,9 @@ export default function TrainIndexPage() {
                     <span className="mt-[2px] block">{REVIEW_PENDING_SCOPE}</span>
                   </span>
                 )}
+                {/* 목적지 — 눈으로는 「연습하기 ›」 셰브론이 말하고(그쪽은 aria-hidden),
+                    낭독에는 이 한 조각이 말합니다. 카드 이름의 맨 끝에 붙습니다. */}
+                <span className="sr-only">브리핑 열기</span>
               </span>
             </Link>
           );
@@ -310,7 +323,9 @@ export default function TrainIndexPage() {
         <Link
           href={FREE_PRACTICE_HREF}
           prefetch={false}
-          aria-label={`${FREE_ENTRY_TITLE} — ${FREE_ENTRY_EYEBROW}`}
+          /* 위 시나리오 카드와 같은 이유로 aria-label을 걷었습니다 — 이 카드에서 가려지던 것은
+             한 줄 요약과 「온라인 모드가 필요해요」 한 줄이었습니다. 하필 그 줄이 「들어가 보고
+             나서야 회선이 필요하다는 걸 알게 되지 않도록」 문 앞에 적어 둔 조건입니다. */
           className="block rounded-card bg-paper-2 px-4 py-[15px] transition-colors duration-150 ease-soft active:bg-neutral-line"
         >
           <span className="block text-[0.7813rem] leading-[1.45] font-bold text-ink-muted">
@@ -329,10 +344,12 @@ export default function TrainIndexPage() {
             <span className="min-w-0 text-[0.7813rem] leading-[1.45] text-ink-faint">
               온라인 모드가 필요해요. 들어가시면 바로 켜실 수 있어요
             </span>
-            <span aria-hidden className="ml-auto text-[0.9375rem] leading-none font-bold text-brand-700">
+            {/* brand-800 — 위 시나리오 카드와 같은 면(paper-2)이라 같은 규칙입니다. */}
+            <span aria-hidden className="ml-auto text-[0.9375rem] leading-none font-bold text-brand-800">
               열어 보기 ›
             </span>
           </span>
+          <span className="sr-only">자유 연습 열기</span>
         </Link>
       </section>
 

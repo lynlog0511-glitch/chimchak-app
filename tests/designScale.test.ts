@@ -18,34 +18,145 @@ import { describe, expect, it } from "vitest";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SRC = join(ROOT, "src");
 
+/**
+ * 걷는 확장자 — `.tsx` **와 `.ts`·`.css`**다.
+ *
+ * 2026-08-26까지는 `.tsx`만 걸었다. 그 한 줄 때문에 그물 밖에 있던 것들이 실제로 있었다:
+ *   · `globals.css`의 `.chim-core { font-size: 1.125rem }` — 사다리에 없는 18px을,
+ *     같은 파일이 「눈금은 11/12.5/13.5/15/17/19/22」라고 적어 둔 채로 선언하고 있었다.
+ *   · `train/_components/constants.ts`의 `"bg-ok-soft text-brand-700"` — 클래스 문자열이
+ *     `.ts`에 살면 화면 검사를 통째로 비껴간다(델타 칩 4.41:1, AA 미달).
+ * 화면에 나가는 값이 어느 확장자에 적혀 있는지는 규칙과 아무 상관이 없다(3차 페르소나 디자이너 P0).
+ */
+const SCANNED = [".tsx", ".ts", ".css"];
+
 function walk(dir: string): string[] {
   const out: string[] = [];
   for (const entry of readdirSync(dir)) {
     const path = join(dir, entry);
     if (statSync(path).isDirectory()) out.push(...walk(path));
-    else if (entry.endsWith(".tsx")) out.push(path);
+    else if (SCANNED.some((ext) => entry.endsWith(ext))) out.push(path);
   }
   return out;
 }
 
-const FILES = walk(SRC).map((path) => ({
-  /** 저장소 기준 경로 — 실패 메시지에 그대로 싣는다. */
-  rel: path.slice(ROOT.length + 1).replaceAll("\\", "/"),
-  source: readFileSync(path, "utf8"),
-}));
+/**
+ * 주석을 **같은 길이의 공백**으로 지운다(줄 번호와 열 위치가 그대로 남게).
+ *
+ * 이 코드베이스는 규칙을 주석으로 설명한다 — 「`leading-tight`는 1.25라 3단 밖입니다」처럼
+ * **금지된 낱말을 그대로 적어야** 다음 사람이 이유를 안다. 원문을 그대로 세면 그 설명들이
+ * 전부 위반으로 잡혀, 게이트를 통과시키려면 설명을 지워야 하는 뒤집힌 상태가 된다.
+ * 그래서 세는 것은 **출고되는 코드**뿐이다.
+ *
+ * 문자열·템플릿 리터럴 안은 건드리지 않는다 — 클래스 이름이 사는 곳이 바로 거기다.
+ */
+function stripComments(source: string): string {
+  const out: string[] = [];
+  type Mode = "code" | "line" | "block" | "'" | '"' | "`";
+  let mode: Mode = "code";
+
+  for (let i = 0; i < source.length; i += 1) {
+    const ch = source[i];
+    const next = source[i + 1];
+
+    if (mode === "code") {
+      if (ch === "/" && next === "/") {
+        mode = "line";
+        out.push("  ");
+        i += 1;
+      } else if (ch === "/" && next === "*") {
+        mode = "block";
+        out.push("  ");
+        i += 1;
+      } else if (ch === "'" || ch === '"' || ch === "`") {
+        mode = ch;
+        out.push(ch);
+      } else {
+        out.push(ch);
+      }
+      continue;
+    }
+
+    if (mode === "line") {
+      if (ch === "\n") {
+        mode = "code";
+        out.push("\n");
+      } else {
+        out.push(" ");
+      }
+      continue;
+    }
+
+    if (mode === "block") {
+      if (ch === "*" && next === "/") {
+        mode = "code";
+        out.push("  ");
+        i += 1;
+      } else {
+        out.push(ch === "\n" ? "\n" : " ");
+      }
+      continue;
+    }
+
+    // 문자열 안 — 이스케이프를 건너뛰며 닫는 따옴표까지 원문 그대로 옮긴다.
+    out.push(ch);
+    if (ch === "\\" && next !== undefined) {
+      out.push(next);
+      i += 1;
+    } else if (ch === mode) {
+      mode = "code";
+    }
+  }
+
+  return out.join("");
+}
+
+const FILES = walk(SRC).map((path) => {
+  const source = readFileSync(path, "utf8");
+  return {
+    /** 저장소 기준 경로 — 실패 메시지에 그대로 싣는다. */
+    rel: path.slice(ROOT.length + 1).replaceAll("\\", "/"),
+    source,
+    /** 주석을 지운 사본 — 모든 검사는 이쪽을 센다. */
+    code: stripComments(source),
+  };
+});
 
 /** 규칙을 어긴 자리를 「파일:줄 — 내용」으로 모은다(0건이 아닐 때 어디를 고칠지 바로 보이게). */
 function hits(pattern: RegExp, skip: (rel: string) => boolean = () => false): string[] {
   const found: string[] = [];
   for (const file of FILES) {
     if (skip(file.rel)) continue;
-    file.source.split("\n").forEach((line, i) => {
+    file.code.split("\n").forEach((line, i) => {
       const matches = line.match(new RegExp(pattern.source, "g"));
       if (matches) found.push(`${file.rel}:${i + 1} ${matches.join(" ")}`);
     });
   }
   return found;
 }
+
+/**
+ * 타이포 사다리 — 화면이 쓰는 열두 값(가이드 §9-7).
+ *   40 · 29 · 23 · 22 · 19 · 17 · 16 · 15 · 13.5 · 12.5 · 11.5 · 11px
+ * 화면 쪽 `text-[Xrem]`과 CSS의 `font-size` 선언이 **같은 목록**을 본다.
+ */
+const LADDER = new Set([
+  "0.6875", // 11
+  "0.7188", // 11.5
+  "0.7813", // 12.5
+  "0.8438", // 13.5
+  "0.9375", // 15
+  "1", // 16
+  "1.0625", // 17
+  "1.1875", // 19
+  "1.375", // 22
+  "1.4375", // 23
+  "1.8125", // 29
+  "2.5", // 40
+]);
+
+/** 행간 3단 — 1.3(제목) · 1.45(밀집) · 1.6(본문). 예외는 /report 1.85와 40px 수치 1.05뿐. */
+const LINE_HEIGHTS = new Set(["1.3", "1.45", "1.6"]);
 
 describe("디자인 눈금 게이트", () => {
   it("데스크톱 시절 폭 제한이 남아 있지 않다", () => {
@@ -85,21 +196,9 @@ describe("디자인 눈금 게이트", () => {
             기입값 14→15 · h2 18→19. 여기 남은 것은 종이 값뿐이다.)
          · 엔딩 한 글자 마커 24px — 54px 원 안의 `✓`/`↺`다. 읽는 글자가 아니라 도형이고
            `aria-hidden`이며, 뜻은 옆의 `sr-only` 라벨이 전한다.
-       `@media print` 블록 안의 `pt`·`mm`은 애초에 이 검사의 대상이 아니다(종이의 단위다). */
-    const LADDER = new Set([
-      "0.6875", // 11
-      "0.7188", // 11.5
-      "0.7813", // 12.5
-      "0.8438", // 13.5
-      "0.9375", // 15
-      "1", // 16
-      "1.0625", // 17
-      "1.1875", // 19
-      "1.375", // 22
-      "1.4375", // 23
-      "1.8125", // 29
-      "2.5", // 40
-    ]);
+       `@media print` 블록 안의 `pt`·`mm`은 애초에 이 검사의 대상이 아니다(종이의 단위다).
+
+       사다리 목록(`LADDER`)은 이 파일 위쪽에 있다 — 아래 「CSS 선언」 검사가 같은 목록을 본다. */
 
     /** 파일별로 열어 둔 눈금 밖 값 — 가이드 §9-7의 예외 목록과 같은 값이다. */
     const ALLOWED_EXCEPTIONS: Record<string, string[]> = {
@@ -111,7 +210,7 @@ describe("디자인 눈금 게이트", () => {
     const found: string[] = [];
     for (const file of FILES) {
       const allowed = ALLOWED_EXCEPTIONS[file.rel] ?? [];
-      file.source.split("\n").forEach((line, i) => {
+      file.code.split("\n").forEach((line, i) => {
         for (const match of line.matchAll(/text-\[([0-9.]+)rem\]/g)) {
           const value = match[1];
           if (LADDER.has(value) || allowed.includes(value)) continue;
@@ -154,7 +253,7 @@ describe("디자인 눈금 게이트", () => {
     const overlay = FILES.find(
       (file) => file.rel === "src/app/train/_components/TrainSession.tsx",
     );
-    const found = overlay?.source.match(/\b(?:sm|md|lg|xl|2xl):(?=[a-z-])/g) ?? [];
+    const found = overlay?.code.match(/\b(?:sm|md|lg|xl|2xl):(?=[a-z-])/g) ?? [];
     expect(found).toEqual(["sm:"]);
   });
 
@@ -179,5 +278,155 @@ describe("디자인 눈금 게이트", () => {
     expect(hits(new RegExp(`\\b(?:${PREFIX})-(?:${ALIAS})\\b`))).toEqual([]);
     /* CSS 변수로 우회하는 길도 함께 막는다(`var(--color-tint)` 같은 인라인 style). */
     expect(hits(new RegExp(`var\\(--color-(?:${ALIAS})\\)`))).toEqual([]);
+  });
+
+  it("행간은 Tailwind 프리셋으로도 3단 밖을 쓰지 않는다", () => {
+    /* 위 「행간은 1.3 / 1.45 / 1.6 세 단만」은 **임의값**(`leading-[1.25]`)만 셌다.
+       그래서 같은 값을 프리셋 클래스로 적으면 그물을 통과했다 — 2026-08-26 실측에서
+       `TierIndicator`의 네 줄이 `leading-tight`(1.25)·`leading-relaxed`(1.625)로 나가고 있었다.
+       하필 그 넷은 `.chim-caption`(line-height 1.45)을 쓰면서 유틸리티 레이어가 뒤라
+       선언을 이기고 있었으므로, 파일만 읽어서는 1.45로 보이고 브라우저에서만 달랐다.
+
+       프리셋 값: tight 1.25 · snug 1.375 · normal 1.5 · relaxed 1.625 · loose 2.
+       1.25는 1.3에서 0.05, 1.625는 1.6에서 0.025 떨어져 있다 — globals.css가
+       「0.05 차이는 지각 역치 아래라 위계를 만들지 못하고 편차만 만듭니다」라고 적은 바로 그 구간이다. */
+    expect(hits(/\bleading-(?:tight|snug|normal|relaxed|loose)\b/)).toEqual([]);
+  });
+
+  it("장식 루프를 쓰지 않는다 — animate-pulse 0건", () => {
+    /* 가이드 §6은 「금지: 장식 루프」이고 globals.css의 등장 모션은 **240ms·180ms 두 단뿐**이다.
+       Tailwind의 `animate-pulse`는 2s 무한 반복이라 그 목록에 없는 셋째 어휘다.
+       2026-08-26 실측: `/history` 스켈레톤 주석이 「`animate-pulse`를 쓰지 않는 것은 이 앱의
+       모션 최소 규율」이라고 선언하는 그 순간 `TierIndicator`의 L2 칩이 그것으로 무한 점멸하고
+       있었다 — 주석이 다음 사람의 근거로 읽히는 코드베이스에서 정반대를 말하는 두 문장은
+       값이 틀린 코드보다 오래 해롭다(3차 페르소나 디자이너 low). 이제 문장이 아니라 여기서 센다.
+       기다리는 화면(스켈레톤)은 **움직이지 않는 회색 면**이다 — 깜빡이면 중고령 사용자에게
+       「고장」으로 읽힌다. reduced-motion 가드가 있어도 예외로 열지 않는다(가드는 설정하신
+       분에게만 닿고, 대부분은 설정하지 않은 채 그 점멸을 본다). */
+    expect(hits(/\banimate-pulse\b/)).toEqual([]);
+  });
+
+  it("leading-none은 단일 글리프 자리에만 있고, 그 자리와 개수가 목록과 같다", () => {
+    /* `leading-none`(line-height: 1)은 3단 사다리의 예외로 **열어 둔다** — 줄이 하나뿐인
+       글리프(셰브론 `›`·화살표·54px 원 안의 `✓`)에서는 행간이 위아래 여백으로만 남아
+       도형을 세로 중앙에서 밀어내기 때문이다. 다만 열어 두기만 하면 「행간을 없애는 클래스」가
+       문장에도 번진다. 그래서 `sm:` 오버레이 예외와 **같은 방식**으로 파일과 개수를 못 박는다.
+
+       목록을 늘리려면 여기와 가이드 §9-10을 함께 고쳐야 하고, 그 마찰이 이 예외가 조용히
+       넓어지는 것을 막는다. 줄이 둘 이상인 글자라면 예외를 늘리지 말고 `.chim-*` 단이나
+       `leading-[1.3|1.45|1.6]`을 쓰면 된다. */
+    const ALLOWED_LEADING_NONE: Record<string, number> = {
+      "src/app/history/_components/ReportList.tsx": 1, // 펼침 셰브론
+      "src/app/history/certificate/_components/CertificateSheet.tsx": 1, // 예시 워터마크 한 줄
+      "src/app/safety/_components/EvidenceFlow.tsx": 1, // 접힘 셰브론
+      "src/app/safety/_components/MobileFold.tsx": 1, // 접힘 셰브론
+      "src/app/safety/_components/RubricAllList.tsx": 1, // 접힘 셰브론
+      "src/app/safety/page.tsx": 2, // 접힘 셰브론 · 목록 `·`
+      "src/app/train/_components/BriefingPanel.tsx": 1, // 되돌아가기 화살표 줄
+      "src/app/train/_components/EndingPanel.tsx": 1, // 54px 원 안 `✓`/`↺`
+      "src/app/train/page.tsx": 2, // 카드 CTA 셰브론 둘(연습하기 › · 열어 보기 ›)
+      "src/components/BackGlyph.tsx": 1, // `‹`
+    };
+
+    const counted: Record<string, number> = {};
+    for (const file of FILES) {
+      const n = file.code.match(/\bleading-none\b/g)?.length ?? 0;
+      if (n > 0) counted[file.rel] = n;
+    }
+    expect(counted).toEqual(ALLOWED_LEADING_NONE);
+  });
+
+  it("CSS가 선언하는 글자 크기·행간도 같은 사다리 안이다", () => {
+    /* 화면 쪽 `text-[Xrem]`은 허용 목록으로 잠갔는데 **CSS 선언은 아무도 세지 않았다**.
+       그 사이로 `globals.css`의 `.chim-core { font-size: 1.125rem }`(18px)가 살아남았고,
+       같은 파일이 두 문단 위에서 「눈금은 11/12.5/13.5/15/17/19/22입니다」라고 적고 있었다 —
+       공용 규격이 게이트가 금지한 값을 권하는 상태였다(3차 페르소나 디자이너 low).
+
+       단위는 **rem만** 받는다. px로 선언하면 앱의 「글자 크기」 3단(루트 백분율 100/112.5/125%)이
+       그 글자만 비껴간다 — 이 제품에서 「아주 크게」는 예외가 아니라 주된 상황이다.
+       (인쇄면이 `pt`를 써야 하는 날이 오면 그때 이 검사에 `@media print` 예외를 함께 적는다.
+        지금 `globals.css`의 print 블록에는 글자 크기 선언이 없다.) */
+    const badSize: string[] = [];
+    const badLine: string[] = [];
+
+    for (const file of FILES) {
+      if (!file.rel.endsWith(".css")) continue;
+      file.code.split("\n").forEach((line, i) => {
+        for (const match of line.matchAll(/font-size:\s*([0-9.]+)(rem|px|em|pt)/g)) {
+          const [value, unit] = [match[1], match[2]];
+          if (unit !== "rem" || !LADDER.has(value)) {
+            badSize.push(`${file.rel}:${i + 1} ${match[0]}`);
+          }
+        }
+        for (const match of line.matchAll(/line-height:\s*([0-9.]+)\s*;/g)) {
+          if (!LINE_HEIGHTS.has(match[1])) badLine.push(`${file.rel}:${i + 1} ${match[0]}`);
+        }
+      });
+    }
+
+    expect(badSize).toEqual([]);
+    expect(badLine).toEqual([]);
+  });
+
+  it("brand-700 글자를 색 면 위에 얹지 않는다", () => {
+    /* **brand-700(#157f75)은 지면 조건부다.** 흰 지면에서만 AA(4.86:1)이고 색 면에서는 전부 미달:
+         paper-2 4.49 · ok-soft 4.41 · warn-soft 4.37 · brand-tint 4.31 · danger-soft 4.31
+       (AA 하한 4.5:1 · 2026-08-26 실측). 값이 다섯이라 외울 수 없으므로 규칙 한 줄로 기억한다 —
+       **흰 지면이 아니면 brand-800**(같은 다섯 면에서 6.27 · 6.16 · 6.10 · 6.02 · 6.02).
+
+       이 규칙은 2026-08-25에 globals.css 주석·가이드 §9-8·홈 주석 **세 곳에 적혔는데도**
+       실코드는 이름을 댄 두 자리만 고쳐졌고, 정작 그 주석이 대표 사례로 든 「이어서 ›」와
+       /train 카드 CTA 7장·델타 칩·/check 발표자 도구 4자리가 그대로 샜다
+       (3차 페르소나 디자이너 med · UI/UX low). 그래서 문장이 아니라 여기서 센다.
+
+       ── 두 겹으로 센다 ────────────────────────────────────────
+       ① 같은 className 문자열 안의 동거 — 예외 없이 0건. (`.ts`의 클래스 문자열도 포함된다.)
+       ② 색 면과 `text-brand-700`이 **같은 파일 안에** 있으면, 그 파일은 아래 허용 목록에
+          등재돼 있어야 한다. 정규식으로는 「이 글자가 그 면 **안**에 있는가」를 알 수 없다 —
+          ResumeCard는 면이 86행, 글자가 107행이라 ①로는 잡히지 않는다. 그래서 파일 단위로
+          사람을 한 번 세우고, 흰 지면임을 확인한 자리만 목록에 남긴다.
+
+       변형 접두(`active:`·`hover:`)가 붙은 면은 세지 않는다 — 그 자리의 **정본 지면은 흰색**이고
+       색 면은 손끝 아래 150ms다. (그 상태에서도 brand-800이 더 안전한 것은 사실이라,
+       새로 만드는 링크는 처음부터 brand-800으로 적는 편이 낫다.)
+       `bg-brand-700`(흰 글자를 얹는 채움)은 이 규칙의 대상이 아니다 — 대상은 `text-brand-700`뿐이다. */
+    const SURFACE = "paper-2|brand-tint|ok-soft|warn-soft|danger-soft";
+    const surfaceRe = new RegExp(`(?<![\\w:-])bg-(?:${SURFACE})\\b`);
+    const inkRe = /\btext-brand-700\b/;
+
+    /** ① 같은 문자열 안 동거 — 0건. */
+    const sameString: string[] = [];
+    for (const file of FILES) {
+      file.code.split("\n").forEach((line, i) => {
+        if (surfaceRe.test(line) && inkRe.test(line)) {
+          sameString.push(`${file.rel}:${i + 1} ${line.trim()}`);
+        }
+      });
+    }
+    expect(sameString).toEqual([]);
+
+    /**
+     * ② 파일 안 동거 — 흰 지면임을 사람이 확인한 자리만 등재한다.
+     * 등재할 때는 **어디가 흰 지면인지**를 함께 적는다(다음 사람이 다시 재지 않아도 되게).
+     */
+    const ALLOWED_WHITE_GROUND: Record<string, string> = {
+      "src/app/for-orgs/page.tsx":
+        "「콘솔 미리보기 열어 보기 ›」는 paper-2 카드(145~168행)가 닫힌 뒤 흰 지면에 선다",
+      "src/app/history/certificate/_components/CertificateSheet.tsx":
+        "「기관 담당자용 안내 보기 ›」는 인쇄면 밖 `data-noprint` 블록의 흰 지면에 선다",
+      "src/app/history/_components/HistoryBoard.tsx":
+        "빈 상태 링크 셋과 IconSprout는 헤어라인 행(흰 지면)이다 — 면 카드 안에는 brand-700이 없다",
+      "src/app/history/_components/TrainingRow.tsx":
+        "「다시 ›」는 행 자체(흰 지면)에 있고, paper-2 패널은 그 아래 펼침 안이다",
+      "src/app/safety/_components/EvidenceFlow.tsx":
+        "번호 글리프 둘은 `border-t` 행(흰 지면)이고, paper-2 카드는 그 아래 다른 블록이다",
+      "src/app/train/page.tsx":
+        "「처음 오신 분께 ›」는 카드 목록 밖 고지 줄(흰 지면)에 선다",
+    };
+
+    const pairs = FILES.filter(
+      (file) => surfaceRe.test(file.code) && inkRe.test(file.code),
+    ).map((file) => file.rel);
+    expect(pairs.sort()).toEqual(Object.keys(ALLOWED_WHITE_GROUND).sort());
   });
 });

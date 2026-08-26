@@ -202,7 +202,10 @@ export default function Home() {
           이 줄은 그 문 앞에 붙은 손잡이입니다. 막대가 빠지면서 이 화면의 틸 채움은
           호흡 마크와 주 CTA 둘만 남습니다(가이드 §0 화면당 2곳).
           「보기」가 여는 문은 /safety가 아니라 /guide의 같은 질문 항목입니다 — 아래 링크 주석 참조. */}
-      <section className="mt-[14px] rounded-card bg-paper-2 px-[15px] py-[14px]">
+      {/* 좌우 여백은 홈의 다른 회색 카드(첫 방문 안내·하던 훈련)와 같은 rem 한 값입니다
+          (px-4 = 1rem). 2026-08-26에 px-[15px]에서 옮겼습니다 — 「아주 크게」에서 rem 카드만
+          20px로 자라고 이 카드는 15px에 멈춰 세로로 쌓인 카드들의 글자 왼쪽 끝이 어긋났습니다. */}
+      <section className="mt-[14px] rounded-card bg-paper-2 px-4 py-[14px]">
         <p className="text-[0.8438rem] leading-[1.6] text-ink-soft">{SAFETY_LINE}</p>
         {/* 「보기」는 누르는 것이라 48px 타깃을 지키고, 좁은 화면에서는 줄 아래로 내려섭니다.
             채움이 아니라 글자 링크입니다 — 이 카드는 읽고 지나가는 자리이지 눌러야 하는 자리가 아닙니다.

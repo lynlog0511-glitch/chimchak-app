@@ -32,7 +32,24 @@ import {
   type TrainAction,
   type TrainState,
 } from "@/app/train/_components/sessionMachine";
-import { PROTOCOL_HANDOFF_TITLE } from "@/app/train/_components/constants";
+import {
+  PROTOCOL_HANDOFF_TITLE,
+  UNCLEAR_REPEAT_COACHING,
+} from "@/app/train/_components/constants";
+
+/** CHK-A01 미분류 분기의 코칭 원문 — 시나리오 데이터에서 그대로 읽어 온다(옮겨 적지 않는다). */
+const UNCLEAR_COACHING_A01 =
+  CHK_A01.turns.find((t) => t.id === "T1")?.cue?.branches.find((b) => b.id === "D1-n")?.coaching ??
+  "";
+
+/** 로그 맨 끝의 피드백 문구 */
+function lastFeedbackText(state: TrainState): string | undefined {
+  for (let i = state.log.length - 1; i >= 0; i -= 1) {
+    const item = state.log[i];
+    if (item?.kind === "feedback") return item.feedback.message;
+  }
+  return undefined;
+}
 
 /* ── 도우미 ───────────────────────────────────────────── */
 
@@ -202,6 +219,57 @@ describe("미분류는 같은 자리에 머물고, 대사를 다시 읽지 않�
     expect(answered.session.currentTurnId).toBe("T2");
     const t2 = CHK_A01.turns.find((turn) => turn.id === "T2")?.text as string;
     expect(countLine(answered, t2)).toBe(1);
+  });
+
+  /* 미분류가 같은 자리에 머물게 되면서 생긴 자리다(2026-08-26 체류 원칙).
+     같은 문구가 매번 똑같이 돌아오면 「몇 번째인지 아무도 세고 있지 않다」로 읽힌다 —
+     첫 턴 미분류율이 75%라 이 자리는 자주 밟힌다(교육생 3차 med).
+     되묻지는 않는다(확정 원칙). 두 번째부터 **보기 쪽을 한 단 세우는 말**로 바꿀 뿐이다. */
+  it("같은 자리에서 두 번째 미분류부터는 다르게 말한다", () => {
+    const { reduce, started } = machine(CHK_A01);
+    const unclear = (state: TrainState) =>
+      reduce(state, { type: "submit", input: { utterance: "음…", viaButton: false } });
+
+    const first = unclear(started);
+    expect(first.lastFeedback?.message).toBe(UNCLEAR_COACHING_A01);
+    expect(first.lastFeedback?.message).not.toBe(UNCLEAR_REPEAT_COACHING);
+
+    const second = unclear(first);
+    expect(second.lastFeedback?.message).toBe(UNCLEAR_REPEAT_COACHING);
+    expect(lastFeedbackText(second)).toBe(UNCLEAR_REPEAT_COACHING);
+
+    // 세 번째에도 같은 안내를 유지한다 — 되돌아가면 다시 「처음처럼」이 된다.
+    expect(unclear(second).lastFeedback?.message).toBe(UNCLEAR_REPEAT_COACHING);
+  });
+
+  it("판정과 기록은 그대로다 — 바뀌는 것은 화면에 서는 한 줄뿐이다", () => {
+    const { reduce, started } = machine(CHK_A01);
+    let next = started;
+    for (let i = 0; i < 2; i += 1) {
+      next = reduce(next, { type: "submit", input: { utterance: "음…", viaButton: false } });
+    }
+    // 엔진이 남긴 이벤트에는 시나리오 데이터의 문구가 그대로 있다(성장 기록이 이걸 읽는다).
+    const events = next.session.events;
+    for (const event of events) {
+      expect(event.feedback?.message).toBe(UNCLEAR_COACHING_A01);
+      expect(event.feedback?.rubricHits).toEqual([]);
+    }
+    expect(next.session.gauge).toBe(CHK_A01.gauge.start);
+    expect(next.session.currentTurnId).toBe("T1");
+  });
+
+  it("다른 갈래를 한 번 지나면 연속이 끊긴다", () => {
+    const { reduce, started } = machine(CHK_A01);
+    // CUE-1에서 한 번 미분류 → 감정 인정으로 T2로 넘어간 뒤 → T2에서 첫 미분류.
+    const first = reduce(started, { type: "submit", input: { utterance: "음…", viaButton: false } });
+    const answered = reduce(first, {
+      type: "submit",
+      input: { utterance: "애기 밥 챙겨주셔야 하는구나, 마음이 급하시겠어요", viaButton: false },
+    });
+    expect(answered.session.currentTurnId).toBe("T2");
+    const atT2 = reduce(answered, { type: "submit", input: { utterance: "음…", viaButton: false } });
+    // 이 자리에서는 첫 번째다 — 다시 청하는 말이 나와야 한다.
+    expect(atT2.lastFeedback?.message).toBe(UNCLEAR_COACHING_A01);
   });
 });
 

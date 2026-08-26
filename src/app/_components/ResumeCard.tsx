@@ -82,8 +82,12 @@ export function ResumeCard({ scenarios, className }: ResumeCardProps) {
       href={scenario.href}
       aria-label={`하던 훈련 이어서 하기 — ${scenario.title}, ${stepLabel}`}
       className={cx(
-        // 라운드·면·좌우 여백은 홈의 다른 회색 카드(첫 방문 안내·3계층 밴드)와 같은 값입니다.
-        "flex min-h-[48px] items-center gap-[10px] rounded-card bg-paper-2 px-[15px] py-[14px]",
+        /* 라운드·면·좌우 여백은 홈의 다른 회색 카드(첫 방문 안내·안전 설계 카드)와 같은 값입니다.
+           좌우는 **rem 한 값**(px-4 = 1rem)입니다 — 예전에는 px-[15px]이라 「아주 크게」(125%)에서
+           옆 카드의 px-4가 20px로 자라는 동안 이 카드만 15px에 멈춰, 세로로 쌓인 카드들의
+           글자 왼쪽 끝이 5px씩 어긋났습니다(2026-08-26 페르소나 디자이너 med).
+           글자와 나란히 서는 치수는 rem이라는 이 앱의 규칙(MicButton·TabBar)이 여백에도 같습니다. */
+        "flex min-h-[48px] items-center gap-[10px] rounded-card bg-paper-2 px-4 py-[14px]",
         // 눌림 = 면 한 단 + 1.5% 축소를 한 박자에. hover는 마우스에서 「눌리는 카드」임을 알립니다.
         // 대비: ink #191f1e 위 neutral-line 13.4:1 · ink-muted 4.94:1 — 둘 다 AA 통과.
         "chim-press hover:bg-neutral-line active:bg-neutral-line",
@@ -104,7 +108,12 @@ export function ResumeCard({ scenarios, className }: ResumeCardProps) {
           <span className="chim-num font-medium text-ink-muted">· {stepLabel}</span>
         </span>
       </span>
-      <span aria-hidden className="flex-none text-[0.8438rem] font-bold text-brand-700">
+      {/* 색이 brand-800인 이유 — 이 카드의 면은 paper-2이고 눌리면 neutral-line 한 단 더
+          어두워집니다. brand-700은 흰 지면에서만 AA(4.86:1)이고 여기서는 4.49:1(눌림 3.90:1)로
+          미달입니다. brand-800은 같은 두 면에서 6.27:1 · 5.45:1입니다(2026-08-26 실측).
+          「흰 지면이 아니면 brand-800」 — globals.css의 brand-700 주석이 정본이고,
+          designScale 게이트가 이 조합의 재유입을 셉니다. */}
+      <span aria-hidden className="flex-none text-[0.8438rem] font-bold text-brand-800">
         이어서 ›
       </span>
     </Link>

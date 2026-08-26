@@ -193,7 +193,12 @@ export function ProtocolPlayer({ title, steps, backHref }: ProtocolPlayerProps) 
           <p className="mt-3 text-[0.9375rem] leading-[1.6] text-ink-soft">{step.screen}</p>
         )}
 
-        {step?.address && <ProtocolAddressCard address={step.address} className="mt-4" />}
+        {/* 주소 단계인지는 데이터의 `step.address`가 가르고, 화면에 서는 값은 이 기기에 적어
+            두신 주소입니다 — 연습용 예시 주소는 카드가 쓰지 않으므로 넘기지 않습니다.
+            재생 화면에서는 **보여 주기만** 합니다(2026-08-26). 저장 칸은 `/emergency` 목록의
+            `ProtocolAddressPanel` 한 곳에 있습니다 — 어르신 앞에서 화면이 도로명 주소를 타자로
+            치라고 하면 그 손이 어르신에게서 떨어집니다(페르소나 현직 P0, 3차). */}
+        {step?.address && <ProtocolAddressCard className="mt-4" />}
 
         {preview && (
           <p className="mt-4 text-[0.8438rem] leading-[1.6] text-ink-faint">다음 — {preview}</p>

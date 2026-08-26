@@ -76,7 +76,9 @@ export function DemoJumpPanel() {
               className="-mx-1.5 flex min-h-[48px] flex-col justify-center rounded-field px-1.5 py-[10px] transition-colors duration-150 active:bg-paper-2"
             >
               <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                <span className="text-[0.8438rem] leading-[1.45] font-bold text-brand-700">
+                {/* 이 패널 전체가 paper-2 면 카드(위 <section>) 안이라 brand-800입니다 —
+                    brand-700은 흰 지면 전용(4.49:1 미달)입니다. globals.css의 brand-700 주석 참조. */}
+                <span className="text-[0.8438rem] leading-[1.45] font-bold text-brand-800">
                   {row.label} ›
                 </span>
                 <span className="text-[0.6875rem] leading-[1.45] text-ink-muted">{row.scene}</span>

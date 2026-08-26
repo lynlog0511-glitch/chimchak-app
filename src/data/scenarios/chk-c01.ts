@@ -24,6 +24,14 @@ import type { Scenario } from "@/types";
 const UNCLEAR_COACHING =
   "잘 전달되지 않았습니다. 지금 하신 말씀은 판정에 넣지 않았으니, 한 문장으로 짧게 다시 말씀해 주시거나 아래 버튼에서 골라 주세요.";
 
+/* 미분류(-n) 분기의 next는 **같은 CUE**입니다(2026-08-26 · 체류 원칙).
+   말이 닿지 않았다는 이유로 다음 장면으로 떠밀면 하시려던 말을 할 자리가 사라집니다.
+   되묻지는 않습니다(확정 원칙) — 그 자리에 머물고 보기 버튼을 그대로 열어 둘 뿐입니다.
+   예외 자리에는 아래 문구를 쓰고, 각 분기 주석에 사유를 적었습니다. */
+/** 회차를 닫는 자리의 코칭 문구 — 그 자리의 대사가 이미 마무리를 알립니다(체류 예외②). */
+const UNCLEAR_COACHING_CLOSING =
+  "지금 하신 말씀은 판정에 넣지 않았습니다. 오늘 방문은 여기서 마무리됩니다.";
+
 export const CHK_C01: Scenario = {
   id: "CHK-C01",
   title: "온 김에 반찬 좀",
@@ -196,7 +204,7 @@ export const CHK_C01: Scenario = {
             rubricHits: [],
             coaching: UNCLEAR_COACHING,
             docId: "DOC-GUIDE-006",
-            next: "T2",
+            next: "T1",
           },
         ],
       },
@@ -325,7 +333,7 @@ export const CHK_C01: Scenario = {
             rubricHits: [],
             coaching: UNCLEAR_COACHING,
             docId: "DOC-LAW-007",
-            next: "T3",
+            next: "T2",
           },
         ],
       },
@@ -440,7 +448,7 @@ export const CHK_C01: Scenario = {
             rubricHits: [],
             coaching: UNCLEAR_COACHING,
             docId: "DOC-NOTI-002",
-            next: "T4",
+            next: "T3",
           },
         ],
       },
@@ -565,7 +573,7 @@ export const CHK_C01: Scenario = {
             rubricHits: [],
             coaching: UNCLEAR_COACHING,
             docId: "DOC-LAW-003",
-            next: "T5",
+            next: "T4",
           },
         ],
       },
@@ -660,7 +668,7 @@ export const CHK_C01: Scenario = {
             rubricHits: [],
             coaching: UNCLEAR_COACHING,
             docId: "DOC-NOTI-002",
-            next: "T6",
+            next: "T5",
           },
         ],
       },
@@ -734,7 +742,7 @@ export const CHK_C01: Scenario = {
             rubricHits: [],
             coaching: UNCLEAR_COACHING,
             docId: "DOC-GUIDE-006",
-            next: "T7",
+            next: "T6",
           },
         ],
       },
@@ -806,7 +814,9 @@ export const CHK_C01: Scenario = {
             gaugeDelta: 0,
             aiReaction: "오늘 훈련을 마쳤습니다.",
             rubricHits: [],
-            coaching: UNCLEAR_COACHING,
+            /* 체류 원칙의 **예외②** — 회차를 닫는 자리입니다. 이 분기의 대사가 이미
+               마무리를 알리고, 새 대사를 더하는 것은 금지라(오디오 재합성) 여기서는 진행이 맞습니다. */
+            coaching: UNCLEAR_COACHING_CLOSING,
             next: "end:E-부분",
           },
         ],
@@ -863,7 +873,7 @@ export const CHK_C01: Scenario = {
       verdict: "재시도",
       condition: "요구 수용(경계 붕괴) 또는 관계 파탄(긴장도 5)",
       message:
-        "이 지점의 수용은 다음 요구의 기준선이 됩니다. 재시도 1회를 벌점 없이 제공합니다.",
+        "이 지점의 수용은 다음 요구의 기준선이 됩니다. 다시 한 번 해 보실 수 있습니다. 점수는 매기지 않습니다.",
     },
     {
       id: "E-재훈련권고",
@@ -871,7 +881,7 @@ export const CHK_C01: Scenario = {
       verdict: "재훈련 권고",
       condition: "폭언에 폭언으로 대응 / 어르신 앞 험담",
       message:
-        "⚑CF는 아닙니다. 안전 위험이 아니라 존엄·관계에 대한 부분이므로, 벌점 없이 이 장면으로 돌아가 다시 연습해 보시길 권해 드립니다.",
+        "⚑CF는 아닙니다. 안전 위험이 아니라 존엄·관계에 대한 부분이므로, 이 장면으로 돌아가 다시 연습해 보시길 권해 드립니다. 점수는 매기지 않습니다.",
     },
   ],
   appliedRubric: [

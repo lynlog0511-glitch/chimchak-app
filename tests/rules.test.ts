@@ -1408,6 +1408,98 @@ describe("분류기 — 여러 분기에 걸린 발화", () => {
   });
 });
 
+/* ── 빈 조각 표지 제거 (2026-08-25 배치 A-2) ─────────────────────────
+   조각 하나가 충족 판정을 만들던 자리를 걷어냈다. 걷어낸 뒤에는 **중립 미분류**로
+   떨어져야 한다 — 감점이 아니라 다시 말할 기회다. */
+
+describe("분류기 — 조각 하나로는 충족이 되지 않는다", () => {
+  function cueOf(scenarioId: string, turnId: string): CueDef {
+    const cue = getScenario(scenarioId)?.turns.find((t) => t.id === turnId)?.cue;
+    if (!cue) throw new Error(`${scenarioId} ${turnId} 에 CUE가 없습니다`);
+    return cue;
+  }
+
+  it("A01 CUE-1 — 「얼마나」·「마음이」만으로는 감정 인정이 아니다", () => {
+    const cue = cueOf("CHK-A01", "T1");
+    expect(classifyInput(cue, { utterance: "얼마나 걸릴까요?" }).branch.id).toBe("D1-n");
+    expect(classifyInput(cue, { utterance: "제 마음이 좀 급하네요" }).branch.id).toBe("D1-n");
+    // 실제로 마음을 알아드린 문장은 그대로 충족이다.
+    expect(
+      classifyInput(cue, { utterance: "마음이 급하시겠어요" }).branch.id,
+    ).toBe("D1-c");
+  });
+
+  it("A02 CUE-1도 같은 기준이다", () => {
+    const cue = cueOf("CHK-A02", "T1");
+    expect(classifyInput(cue, { utterance: "제 마음이 좀 급하네요" }).branch.id).toBe("D1-n");
+    expect(
+      classifyInput(cue, { utterance: "차 나가야 한다는 생각에 마음이 급하시겠어요" }).branch.id,
+    ).toBe("D1-c");
+  });
+
+  it("A01 CUE-2 — 접속어 「아니면」은 선택권 제공이 아니다", () => {
+    const cue = cueOf("CHK-A01", "T2");
+    expect(classifyInput(cue, { utterance: "아니면 그냥 계세요" }).branch.id).toBe("D2-n");
+    expect(
+      classifyInput(cue, {
+        utterance: "지금 바로 나가실래요, 아니면 따뜻한 물 한 잔 드시고 같이 나가볼까요?",
+      }).branch.id,
+    ).toBe("D2-c");
+  });
+
+  it("A01 CUE-4 — 보고 종결어만으로는 5요소 보고가 아니다", () => {
+    const cue = cueOf("CHK-A01", "T4");
+    expect(classifyInput(cue, { utterance: "보고드리겠습니다" }).branch.id).toBe("R1-n");
+  });
+});
+
+/* ── 보고 CUE의 요소 개수 판정 (2026-08-25 배치 A-3) ───────────────── */
+
+describe("분류기 — 보고는 담긴 요소 개수로 갈린다", () => {
+  function reportCue(): CueDef {
+    const cue = getScenario("CHK-A01")?.turns.find((t) => t.id === "T4")?.cue;
+    if (!cue) throw new Error("CHK-A01 T4 에 CUE가 없습니다");
+    return cue;
+  }
+
+  it("3가지 이상 담기면 5요소 보고다", () => {
+    const result = classifyInput(reportCue(), {
+      utterance:
+        "16시 40분에 어머님이 현관에서 귀가를 요구하셔서 화장실로 안내드렸고, 지금은 소파에 앉아 계십니다",
+    });
+    expect(result.branch.id).toBe("R1-a");
+    expect(result.source).toBe("pattern");
+    expect(result.matchedElements).toContain("시각");
+    expect(result.matchedElements).toContain("현재 상태");
+    expect(result.matchedPattern).toContain("요소");
+  });
+
+  it("한 가지만 담기면 부분 보고다 — 요소 판정이 심각도보다 앞이다", () => {
+    const result = classifyInput(reportCue(), { utterance: "16시였는데 정말 힘들었습니다" });
+    expect(result.branch.id).toBe("R1-b");
+    expect(result.matchedElements).toEqual(["시각"]);
+  });
+
+  it("한 가지도 담기지 않으면 심각도 매칭으로 넘어간다", () => {
+    const cue = reportCue();
+    expect(classifyInput(cue, { utterance: "별일 아니라서 보고 안 하겠습니다" }).branch.id).toBe(
+      "R1-d",
+    );
+    expect(
+      classifyInput(cue, { utterance: "고집이 세셔서 정말 힘들었습니다" }).branch.id,
+    ).toBe("R1-c");
+  });
+
+  it("한글 수사로 말한 시각도 요소로 센다", () => {
+    const result = classifyInput(reportCue(), {
+      utterance:
+        "네 시 사십 분에 어머님이 현관에서 귀가를 요구하셨고, 지금은 소파에 앉아 계십니다",
+    });
+    expect(result.branch.id).toBe("R1-a");
+    expect(result.matchedElements).toContain("시각");
+  });
+});
+
 describe("한글 수사 시각", () => {
   function cueOf(scenarioId: string, turnId: string): CueDef {
     const cue = getScenario(scenarioId)?.turns.find((t) => t.id === turnId)?.cue;

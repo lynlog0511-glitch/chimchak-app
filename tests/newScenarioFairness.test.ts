@@ -28,6 +28,7 @@ import {
   advanceAfterCF,
   advanceAuto,
   buildRecord,
+  cueOptions,
   currentCue,
   currentTurn,
   protocolIdOf,
@@ -432,21 +433,186 @@ describe("워크스루 4경로", () => {
     expect(state.endingId).toBe("E-결렬");
   });
 
+  /* 미분류 계약은 2026-08-25에 다시 적었다.
+     예전 계약은 「미분류만으로도 끝까지 완주된다」였다. 그러려면 말이 닿지 않은 회차도
+     다음 장면으로 밀려야 한다 — 하시려던 말을 할 자리가 사라진다는 뜻이다.
+     그래서 일부 CUE(A01 CUE-1·CUE-2, A02 CUE-1)는 같은 자리에 머문다.
+     계약은 둘로 갈라 적는다. ① 미분류는 어디서도 해를 끼치지 않는다 ② 완주는 버튼이 보장한다. */
   it.each(SCENARIOS.map((s) => [s.id, s] as const))(
-    "%s — 미분류만으로도 끝까지 완주된다 (감점 없이)",
+    "%s — 미분류는 어느 CUE에서도 감점·게이지·⚑CF·위기 엔딩을 만들지 않는다",
     (_id, scenario) => {
       let state = startSession(scenario);
       for (let guard = 0; guard < 20 && state.status === "running"; guard += 1) {
+        const before = state.currentTurnId;
         const result = step(scenario, state, { utterance: "음…", viaButton: false });
         expect(result.interrupted).toBe(false);
+        expect(result.feedback.criticalFail).toBe(false);
+        expect(result.feedback.rubricHits).toEqual([]);
+        expect(result.feedback.gaugeDelta).toBe(0);
         state = result.state;
+        expect(state.gauge).toBe(scenario.gauge.start);
+        expect(state.cfCount).toBe(0);
+        expect(Object.keys(state.scores)).toEqual([]);
+        expect(state.endingId).not.toBe(scenario.gauge.crisisEndingId);
+        // 같은 자리에 머무는 CUE라면 다시 말할 길이 반드시 열려 있어야 한다.
+        if (state.status === "running" && state.currentTurnId === before) {
+          expect(cueOptions(scenario, state).length).toBeGreaterThan(0);
+        }
       }
-      expect(state.status).toBe("ended");
-      expect(state.gauge).toBe(scenario.gauge.start);
-      expect(state.cfCount).toBe(0);
-      expect(Object.keys(state.scores)).toEqual([]);
     },
   );
+
+  it.each(SCENARIOS.map((s) => [s.id, s] as const))(
+    "%s — 버튼 보기만으로 끝까지 완주된다 (마이크 없이)",
+    (_id, scenario) => {
+      let state = startSession(scenario);
+      for (let guard = 0; guard < 24 && state.status === "running"; guard += 1) {
+        const options = cueOptions(scenario, state);
+        expect(options.length).toBeGreaterThan(0);
+        const pick =
+          options.find((b) => b.criticalFail !== true && b.next !== state.currentTurnId) ??
+          options[0];
+        if (!pick) break;
+        const result = step(scenario, state, { branchId: pick.id, viaButton: true });
+        state = result.interrupted ? advanceAfterCF(scenario, result.state) : result.state;
+      }
+      expect(state.status).toBe("ended");
+    },
+  );
+
+  it("A01 — 미분류로 머문 자리에서 다음 발화는 그대로 판정된다", () => {
+    const first = step(CHK_A01, startSession(CHK_A01), { utterance: "음…", viaButton: false });
+    expect(first.feedback.branchId).toBe("D1-n");
+    expect(first.state.currentTurnId).toBe("T1");
+    expect(cueOptions(CHK_A01, first.state).length).toBeGreaterThan(0);
+
+    const second = step(CHK_A01, first.state, {
+      utterance: "애기 밥 챙겨주셔야 하는구나, 마음이 급하시겠어요",
+      viaButton: false,
+    });
+    expect(second.feedback.branchId).toBe("D1-c");
+    expect(second.state.currentTurnId).toBe("T2");
+  });
+});
+
+/* ── ⑥-2 ⚑CF 예외어 — 권하는 대안이 억제로 잡히지 않는다 ── */
+
+describe("A01 ⚑CF 억제 분기의 예외어 (2026-08-25)", () => {
+  // 이 앱이 스스로 권하는 대안이다("동의를 구한 뒤 손을 잡고 함께 움직이기").
+  // 규칙 사전은 예외어로 통과시켜 왔는데, 분기의 홑 어간 「붙잡」이 삼켜 ⚑CF가 났다.
+  const 권하는_대안 = "어머님, 제 팔 붙잡으세요. 같이 나가요";
+
+  it("CUE-1에서 멈춰 세우지 않는다", () => {
+    const result = step(CHK_A01, startSession(CHK_A01), {
+      utterance: 권하는_대안,
+      viaButton: false,
+    });
+    expect(result.interrupted).toBe(false);
+    expect(result.feedback.criticalFail).toBe(false);
+    expect(result.feedback.branchId).toBe("D1-n");
+  });
+
+  it("CUE-T1에서는 권하는 대안 분기로 받는다", () => {
+    const walked = walk(CHK_A01, ["D1-a"]);
+    expect(walked.state.currentTurnId).toBe("T-1");
+    const result = step(CHK_A01, walked.state, { utterance: 권하는_대안, viaButton: false });
+    expect(result.interrupted).toBe(false);
+    expect(result.feedback.branchId).toBe("TA-a");
+  });
+
+  it("예외어를 끼워 넣은 실행 선언은 그대로 잡힌다", () => {
+    const result = step(CHK_A01, startSession(CHK_A01), {
+      utterance: "제 팔을 잡아 끌고 가겠습니다",
+      viaButton: false,
+    });
+    expect(result.interrupted).toBe(true);
+    expect(result.feedback.criticalFail).toBe(true);
+  });
+
+  it("A02 CUE-1에서도 같은 문장이 통과한다", () => {
+    const result = step(CHK_A02, startSession(CHK_A02), {
+      utterance: "어르신, 제 팔 붙잡으세요. 같이 가요",
+      viaButton: false,
+    });
+    expect(result.interrupted).toBe(false);
+    expect(result.feedback.criticalFail).toBe(false);
+  });
+});
+
+/* ── ⑥-3 선행 조건 게이트 — 「맞는 말인데 순서가 일렀다」 ── */
+
+describe("A01 CUE-2 D2-a 선행 조건 (2026-08-25)", () => {
+  const 확인_발화 = "나가시기 전에 화장실 한번 다녀오실래요?";
+
+  /** 감정 인정(D1-c)을 지나지 않고 T2에 닿는 경로. 게이지를 올리지 않는 조합을 쓴다. */
+  function atT2WithoutEmpathy() {
+    const walked = walk(CHK_A01, ["D1-d", "TA-a"]);
+    expect(walked.state.currentTurnId).toBe("T2");
+    expect(walked.state.gauge).toBe(CHK_A01.gauge.start);
+    return walked.state;
+  }
+
+  it("선행이 없으면 D2-a-x로 받고 같은 CUE에 머문다", () => {
+    const before = atT2WithoutEmpathy();
+    const result = submitResponse(CHK_A01, before, { utterance: 확인_발화, viaButton: false });
+    expect(result.feedback.branchId).toBe("D2-a-x");
+    expect(result.feedback.gaugeDelta).toBe(1);
+    expect(result.state.gauge).toBe(before.gauge + 1);
+    expect(result.state.currentTurnId).toBe("T2");
+    expect(result.feedback.trace?.gatedFrom).toBe("D2-a");
+    // 감점 분기가 아니다 — 루브릭은 건드리지 않는다.
+    expect(result.feedback.rubricHits).toEqual([]);
+  });
+
+  it("감정을 먼저 인정했으면 그대로 열린다", () => {
+    const walked = walk(CHK_A01, ["D1-c"]);
+    expect(walked.state.currentTurnId).toBe("T2");
+    const result = submitResponse(CHK_A01, walked.state, { utterance: 확인_발화, viaButton: false });
+    expect(result.feedback.branchId).toBe("D2-a");
+    expect(result.feedback.trace?.gatedFrom).toBeUndefined();
+    expect(result.state.currentTurnId).toBe("T-3");
+  });
+
+  it("버튼으로 골라도 같은 게이트를 지난다", () => {
+    const result = submitResponse(CHK_A01, atT2WithoutEmpathy(), {
+      branchId: "D2-a",
+      viaButton: true,
+    });
+    expect(result.feedback.branchId).toBe("D2-a-x");
+    expect(result.feedback.trace?.gatedFrom).toBe("D2-a");
+  });
+});
+
+/* ── ⑥-4 CUE-T2 센터 보고 갈래 ─────────────────────────── */
+
+describe("A01 CUE-T2의 센터 보고 갈래 P-e (2026-08-25)", () => {
+  it("센터에 먼저 알리겠다는 응답을 P-a와 같은 무게로 받는다", () => {
+    const walked = walk(CHK_A01, ["D1-c", "D2-b"]);
+    expect(walked.state.currentTurnId).toBe("T-2");
+    const result = step(CHK_A01, walked.state, {
+      utterance: "지금은 어머님 곁에 있어야 해서, 센터에 먼저 알리고 지시를 받겠습니다",
+      viaButton: false,
+    });
+    expect(result.feedback.branchId).toBe("P-e");
+    expect(result.feedback.ok).toBe(true);
+    expect(result.state.currentTurnId).toBe("T3");
+  });
+
+  it("재연락 약속(P-a)은 그대로 P-a로 남는다", () => {
+    const walked = walk(CHK_A01, ["D1-c", "D2-b"]);
+    const result = step(CHK_A01, walked.state, {
+      utterance: "지금 어머님 곁에 있어야 해서, 5분 뒤에 제가 다시 걸겠습니다",
+      viaButton: false,
+    });
+    expect(result.feedback.branchId).toBe("P-a");
+  });
+
+  it("3초 국면에는 이 갈래를 두지 않는다 (문서화된 한계)", () => {
+    for (const turnId of ["T-1", "T-1B"]) {
+      const ids = cueOf(CHK_A01, turnId).branches.map((b) => b.id);
+      expect(ids, turnId).not.toContain("P-e");
+    }
+  });
 });
 
 /* ── ⑦ A01 문고리 구간 — 미분류로 문이 열리지 않는다 ───── */

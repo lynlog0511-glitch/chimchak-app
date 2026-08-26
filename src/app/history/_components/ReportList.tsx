@@ -20,7 +20,7 @@ export interface ReportListProps {
 const SLOT_ORDER: RecordSlot[] = ["time", "who", "what", "action", "status"];
 
 /**
- * 가명처리 토큰만 강조합니다 — 무엇이 가려졌는지가 한눈에 보여야 하므로
+ * 가린 자리 토큰만 강조합니다 — 무엇이 가려졌는지가 한눈에 보여야 하므로
  * 성장 기록에서도 이 표시는 그대로 유지합니다. 채움만 쓰고 보더는 두지 않습니다.
  */
 function TokenText({ text }: { text: string }) {
@@ -31,7 +31,7 @@ function TokenText({ text }: { text: string }) {
         isMaskToken(part) ? (
           <strong
             key={index}
-            className="mx-[2px] rounded-[6px] bg-tint px-[5px] py-[1px] font-extrabold text-brand-900"
+            className="mx-[2px] rounded-[6px] bg-brand-tint px-[5px] py-[1px] font-extrabold text-brand-900"
           >
             {part}
           </strong>
@@ -75,9 +75,9 @@ function ReportRow({ report }: { report: StoredReport }) {
         className="flex min-h-[48px] w-full items-center gap-3 rounded-field px-[2px] py-[14px] text-left transition-colors duration-150 active:bg-paper-2"
       >
         <span className="min-w-0 flex-1">
-          <span className="block text-[0.7813rem] leading-[1.45] text-tertiary">
+          <span className="block text-[0.7813rem] leading-[1.45] text-ink-faint">
             {isExample && <span className="font-bold text-warn-ink">예시 · </span>}
-            {formatShortDate(report.createdAt)} · 가명처리 완료
+            {formatShortDate(report.createdAt)} · 가리기 완료
             {isDisplayableElapsed(report.elapsedSec) &&
               ` · ${formatElapsedDuration(report.elapsedSec)} 동안 작성`}
           </span>
@@ -91,7 +91,7 @@ function ReportRow({ report }: { report: StoredReport }) {
         <span
           aria-hidden
           className={cx(
-            "flex-none text-[1.0625rem] leading-none text-faint transition-transform duration-150",
+            "flex-none text-[1.0625rem] leading-none text-ink-ghost transition-transform duration-150",
             open && "rotate-90",
           )}
         >
@@ -112,7 +112,7 @@ function ReportRow({ report }: { report: StoredReport }) {
           </p>
 
           {counts.length > 0 && (
-            <p className="mt-[10px] text-[0.7813rem] leading-[1.45] text-tertiary">
+            <p className="mt-[10px] text-[0.7813rem] leading-[1.45] text-ink-faint">
               {counts.map(([kind, value]) => `${kind} ${value}곳`).join(" · ")} 가림
             </p>
           )}
@@ -139,8 +139,8 @@ function ReportRow({ report }: { report: StoredReport }) {
             })}
           </dl>
 
-          <p className="mt-[10px] text-[0.7813rem] leading-[1.45] text-tertiary">
-            남아 있는 것은 가명처리를 마친 텍스트뿐이며, 음성과 원문은 저장하지 않았습니다.
+          <p className="mt-[10px] text-[0.7813rem] leading-[1.45] text-ink-faint">
+            남아 있는 것은 가린 문장뿐이며, 음성과 원문은 저장하지 않았습니다.
           </p>
         </div>
       )}
@@ -150,7 +150,7 @@ function ReportRow({ report }: { report: StoredReport }) {
 
 /**
  * 확정한 기록 목록.
- * 저장된 것은 가명처리를 마친 텍스트뿐이며, 원문·음성은 남아 있지 않습니다.
+ * 저장된 것은 가린 문장뿐이며, 원문·음성은 남아 있지 않습니다.
  */
 export function ReportList({ reports }: ReportListProps) {
   return (

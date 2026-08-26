@@ -155,6 +155,56 @@ describe("다섯 시나리오를 버튼만으로 완주한다", () => {
   });
 });
 
+/* ── 1-2. 미분류로 같은 자리에 머무를 때 (2026-08-25) ──── */
+
+describe("미분류는 같은 자리에 머물고, 대사를 다시 읽지 않는다", () => {
+  const opening = CHK_A01.turns.find((turn) => turn.id === "T1")?.text as string;
+  const unclearReaction = CHK_A01.turns
+    .find((turn) => turn.id === "T1")
+    ?.cue?.branches.find((branch) => branch.id === "D1-n")?.aiReaction as string;
+
+  function countLine(state: TrainState, text: string): number {
+    return state.log.filter((item) => item.kind === "line" && item.text === text).length;
+  }
+
+  it("어르신 대사가 로그에 한 번만 남는다", () => {
+    const { reduce, started } = machine(CHK_A01);
+    expect(countLine(started, opening)).toBe(1);
+
+    const after = reduce(started, {
+      type: "submit",
+      input: { utterance: "음…", viaButton: false },
+    });
+
+    expect(after.session.currentTurnId).toBe("T1");
+    expect(countLine(after, opening)).toBe(1);
+    // 되묻는 반응은 그대로 붙는다 — 그것이 이 자리의 대사다.
+    expect(countLine(after, unclearReaction)).toBe(1);
+    // 보기 버튼은 그대로 열려 있다.
+    expect(cueOf(CHK_A01, after)?.branches.length).toBeGreaterThan(0);
+  });
+
+  it("여러 번 미분류가 이어져도 겹쳐 쌓이지 않는다", () => {
+    const { reduce, started } = machine(CHK_A01);
+    let next = started;
+    for (let i = 0; i < 3; i += 1) {
+      next = reduce(next, { type: "submit", input: { utterance: "음…", viaButton: false } });
+    }
+    expect(next.session.currentTurnId).toBe("T1");
+    expect(countLine(next, opening)).toBe(1);
+    expect(next.session.gauge).toBe(CHK_A01.gauge.start);
+
+    // 그 다음 발화는 그대로 판정되고, 다음 장면의 대사가 이어진다.
+    const answered = reduce(next, {
+      type: "submit",
+      input: { utterance: "애기 밥 챙겨주셔야 하는구나, 마음이 급하시겠어요", viaButton: false },
+    });
+    expect(answered.session.currentTurnId).toBe("T2");
+    const t2 = CHK_A01.turns.find((turn) => turn.id === "T2")?.text as string;
+    expect(countLine(answered, t2)).toBe(1);
+  });
+});
+
 /* ── 2. ⚑CF 중단과 복귀 ───────────────────────────────── */
 
 /** ⚑CF 분기가 있는 CUE를 만나면 그 분기를 고른다 — 없으면 안전 분기로 지나간다. */
@@ -162,7 +212,7 @@ function pickCritical(cue: CueDef): BranchDef {
   return cue.branches.find((b) => b.criticalFail === true) ?? safeBranch(cue);
 }
 
-describe("⚑CF — 멈춰 세우고, 같은 자리에서 벌점 없이 다시 한다", () => {
+describe("⚑CF — 멈춰 세우고, 같은 자리에서 점수 없이 다시 한다", () => {
   it("전면 인터럽트가 열리고 대안이 함께 온다", () => {
     const { reduce, started } = machine(CHK_A01);
     const stopped = play(CHK_A01, started, reduce, pickCritical, { stopAtInterrupt: true });
@@ -195,14 +245,14 @@ describe("⚑CF — 멈춰 세우고, 같은 자리에서 벌점 없이 다시 �
     const last = again.log[again.log.length - 1];
     expect(last?.kind).toBe("notice");
     expect(last?.kind === "notice" && last.text).toContain(alternative);
-    expect(last?.kind === "notice" && last.text).toContain("벌점은 없습니다");
+    expect(last?.kind === "notice" && last.text).toContain("점수는 매기지 않습니다");
   });
 
   it("대안 없이 다시 하기도 같은 자리로 돌아온다", () => {
     const { reduce, started } = machine(CHK_A01);
     const stopped = play(CHK_A01, started, reduce, pickCritical, { stopAtInterrupt: true });
     const again = reduce(stopped, { type: "retryAfterCritical" });
-    expect(noticeTexts(again.log).some((t) => t.includes("벌점은 없습니다"))).toBe(true);
+    expect(noticeTexts(again.log).some((t) => t.includes("점수는 매기지 않습니다"))).toBe(true);
     expect(again.session.status).toBe("running");
   });
 

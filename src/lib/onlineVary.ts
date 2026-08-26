@@ -44,6 +44,7 @@ import type { PersonaDef, Scenario, ScenarioType, TurnDef } from "@/types";
 import {
   BANNED_PHRASES,
   COACH_ENDPOINT,
+  coachRequestHeaders,
   extractJson,
   findBannedExpression,
   squash,
@@ -500,7 +501,8 @@ export async function requestLineVariation(
   try {
     const response = await doFetch(VARY_ENDPOINT, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      // 헤더 한 벌은 코칭·자유 연습과 **같은 함수**가 만듭니다(`onlineCoach.ts`) — 단기 토큰 표식 포함.
+      headers: coachRequestHeaders(),
       signal: controller.signal,
       // 나가는 것은 이 네 칸과 작업 이름뿐입니다 — 학습자 발화는 여기 없습니다.
       body: JSON.stringify({ task: "vary", ...request }),

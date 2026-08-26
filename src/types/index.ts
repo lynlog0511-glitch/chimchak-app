@@ -45,6 +45,16 @@ export interface BranchDef {
   label: string; // 분기 유형명 (예: "감정 인정형")
   patterns: string[]; // 판정 신호 — 발화에 포함되면 이 분기로 분류 (부분 문자열, 우선순위는 배열 순서)
   skipNegated?: boolean; // 부정 문맥(「~하지 않고」)에서는 이 분기 매치를 건너뜀 — 감점 분기 옵트인 (classify.ts NegationAwareBranch가 읽음)
+  /**
+   * 매치 주변(±창)에 이 말이 있으면 그 매치를 건너뜀.
+   * 규칙 사전(rules.ts)의 예외어와 **같은 배열**을 참조해 두 판정선이 갈라지지 않게 한다.
+   * 예: ⚑CF 억제 분기가 RESTRAINT_EXCEPT_TERMS를 받아 "제 팔 붙잡으세요"(권하는 대안)를 통과시킨다.
+   */
+  except?: string[];
+  /** 이 분기 중 하나를 지나온 세션에서만 열림 (선행 조건 게이트 — session.ts가 읽음) */
+  requiresPriorBranchIds?: string[];
+  /** requiresPriorBranchIds 미충족 시 대신 적용할 분기 id */
+  unmetBranchId?: string;
   fallbackOption?: string; // 버튼 폴백으로 노출할 문구 (없으면 버튼 미노출 분기)
   gaugeDelta: number; // 초조도/긴장도 변동 (▲)
   aiReaction: string; // AI(어르신·보호자 등) 반응 대사
@@ -61,12 +71,26 @@ export interface BranchDef {
   next: string; // 다음 턴 id 또는 "end:E-성공"
 }
 
+/**
+ * 요소 개수 판정 (보고 CUE 전용).
+ *
+ * 보고는 「무엇이 들어 있는가」로 갈립니다. 한 조각만 걸려도 5요소 보고가 되던 자리를,
+ * 그룹별로 세어 개수로 나눕니다. classify.ts가 버튼·⚑CF 다음, 패턴 대조 **앞**에서 봅니다.
+ */
+export interface ElementJudgeDef {
+  groups: { id: string; label: string; patterns: string[] }[];
+  /** minCount 내림차순 — 먼저 충족되는 단계를 채택 */
+  tiers: { minCount: number; branchId: string }[];
+}
+
 export interface CueDef {
   id: string; // "CUE-1"
   prompt: string; // 학습자 지시문 (예: "첫 응답 — 무엇이라고 말하시겠습니까?")
   waitSec: number; // 응답 대기 상한 (8초, 응급 6초/4초)
   branches: BranchDef[];
   defaultBranchId: string; // 무응답·미분류 시 적용할 분기 id
+  /** 요소 개수로 가르는 CUE(보고)만 선언합니다. 0개면 채택 없이 패턴 대조로 넘어갑니다. */
+  elementJudge?: ElementJudgeDef;
 }
 
 export interface TurnDef {

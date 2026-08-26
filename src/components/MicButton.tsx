@@ -62,8 +62,8 @@ const SPEC: Record<MicButtonSize, MicSpec> = {
 
 /** 대기(md) 옅은 링 3px / 녹음(lg) 이중 링 8px + 16px */
 const RING: Record<MicButtonSize, string> = {
-  md: "0 0 0 3px var(--color-tint)",
-  lg: "0 0 0 8px var(--color-tint), 0 0 0 16px var(--color-brand-50)",
+  md: "0 0 0 3px var(--color-brand-tint)",
+  lg: "0 0 0 8px var(--color-brand-tint), 0 0 0 16px var(--color-brand-50)",
 };
 
 export interface MicButtonProps {

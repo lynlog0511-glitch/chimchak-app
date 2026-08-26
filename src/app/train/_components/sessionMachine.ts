@@ -449,8 +449,15 @@ export function makeTrainReducer(scenario: Scenario) {
           };
         }
 
+        /* 같은 CUE에 머무는 경우(미분류)에는 턴 대사를 다시 붙이지 않습니다.
+           미분류 분기의 next가 같은 턴을 가리키므로, 그대로 두면 어르신 대사가 한 번 더
+           낭독되고 로그에도 같은 줄이 겹쳐 쌓입니다. 되묻는 반응(aiReaction)은 위에서
+           이미 붙었고, 보기 버튼도 그대로 열려 있습니다. */
+        const stayed =
+          result.state.status === "running" &&
+          result.state.currentTurnId === state.session.currentTurnId;
         const entered =
-          result.state.status === "running"
+          result.state.status === "running" && !stayed
             ? enterCurrent(scenario, result.state, log, seq)
             : { session: result.state, log, seq };
 
@@ -485,8 +492,8 @@ export function makeTrainReducer(scenario: Scenario) {
               kind: "notice",
               text:
                 picked.length > 0
-                  ? `「${picked}」 — 이 대안으로 같은 지점에서 다시 해보겠습니다. 벌점은 없습니다.`
-                  : "같은 지점에서 다시 해보겠습니다. 벌점은 없습니다.",
+                  ? `「${picked}」 — 이 대안으로 같은 지점에서 다시 해보겠습니다. 점수는 매기지 않습니다.`
+                  : "같은 지점에서 다시 해보겠습니다. 점수는 매기지 않습니다.",
               tone: "brand",
             },
           ],

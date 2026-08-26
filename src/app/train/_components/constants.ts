@@ -5,7 +5,10 @@
  * 점수·등급·순위·백분위 표기는 어떤 상수에도 두지 않습니다.
  */
 
-import type { BadgeTone } from "@/components";
+/* 2026-08-25: `TIER_TONE`·`TYPE_TONE`·`VERDICT_TONE` 세 표를 지웠습니다.
+   공용 `Badge`에 넘기려고 만든 표인데 Badge는 렌더 0건이라 파일째 폐기됐고, 세 표 자체도
+   소비처가 0건이었습니다(계층 칩은 `TierIndicator`, 유형 라벨은 각 목록, 판정 표기는
+   `TrainingRow`가 직접 그립니다). 아래 `*_LABEL` 표들은 실제로 쓰이므로 그대로입니다. */
 import type { StatusMarkKind } from "@/components/icons";
 import { getRule, type TracedFeedback } from "@/engine";
 import type { EndingDef, GaugeDef, PersonaDef, Scenario, ScenarioType, Tier, TurnDef } from "@/types";
@@ -15,6 +18,22 @@ export const PRACTICE_LINE = "정답을 맞히는 시험이 아니라, 말이 �
 
 /** 가상 인물 고지 */
 export const FICTION_NOTICE = "등장인물은 전원 가상 인물이며 실존 인물·기관과 무관합니다.";
+
+/**
+ * 이 기기에서 음성 인식을 쓸 수 있는지 — **아직 모른다**를 따로 갖는 세 상태입니다.
+ *
+ * 판정은 마운트 뒤에야 납니다(`isRecognitionSupported()`). 그전까지를 `false`로 두면,
+ * 되는 기기에서도 첫 프레임이 「이 기기에서는 음성 인식을 쓸 수 없습니다」라고 단정하고
+ * 마이크 버튼이 잠긴 채로 그려집니다 — 그 몇 백 밀리초에 손이 이미 버튼 쪽으로 갑니다
+ * (페르소나 현직·PM). 모르는 동안에는 모른다고 적습니다.
+ *
+ * 문법은 `/report`의 음성 입력(`report/_components/VoiceInput`)에 이미 있는 것을 그대로
+ * 옮겨 온 것입니다 — 같은 사실을 두 화면이 다른 말로 하지 않게 합니다.
+ */
+export type MicCheck = "unknown" | "yes" | "no";
+
+/** 마이크 판정이 나기 전 한 줄 — `/report`와 **같은 문장**입니다. */
+export const MIC_CHECKING_LINE = "마이크를 확인하고 있어요";
 
 /* 생성 자리 고지(GENERATION_ADAPTER_NOTE·VARY_ADAPTER_NOTE 노출)는 2026-08-24에 세션 상단에서
    걷어냈습니다. 「어댑터 자리」·「근거 가드 검증을 통과한 구간」은 심사·개발 상태를 말하는 문장이라,
@@ -32,12 +51,6 @@ export const TIER_LABEL: Record<Tier, string> = {
   L1: "L1 · 훈련",
   L2: "L2 · 채점",
   L3: "L3 · 실전 응급",
-};
-
-export const TIER_TONE: Record<Tier, BadgeTone> = {
-  L1: "brand",
-  L2: "warn",
-  L3: "danger",
 };
 
 /** 계층 표시기 — 좁은 화면에서 두 줄로 나눠 적기 위한 짧은 이름입니다. */
@@ -59,22 +72,6 @@ export const TIER_UNUSED_NOTE = "이 시나리오에서는 쓰지 않습니다";
 
 /** 계층 표시기 — 세션이 끝난 뒤 문구입니다. */
 export const TIER_ENDED_NOTE = "이번 훈련이 끝났습니다 — 계층 표시를 멈춥니다.";
-
-export const TYPE_TONE: Record<ScenarioType, BadgeTone> = {
-  BPSD: "brand",
-  EMERGENCY: "danger",
-  CONFLICT: "warn",
-  RISK: "neutral",
-};
-
-/** 엔딩 판정 표기 톤 — 점수가 아니라 상태 표시입니다. */
-export const VERDICT_TONE: Record<EndingDef["verdict"], BadgeTone> = {
-  충족: "ok",
-  "부분 충족": "warn",
-  재시도: "warn",
-  재훈련: "danger",
-  "재훈련 권고": "danger",
-};
 
 export const ROLE_LABEL: Record<PersonaDef["role"], string> = {
   care_recipient: "돌봄 대상",

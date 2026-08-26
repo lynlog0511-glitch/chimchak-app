@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
+import { connection } from "next/server";
+import { RouteFocus } from "@/components/RouteFocus";
 import { SettingsBoot } from "@/components/SettingsBoot";
 import { SwRegister } from "@/components/SwRegister";
+import { COACH_TOKEN_META, coachTokenMetaValue } from "@/lib/coachLimits";
 import { FONT_SCALE_PERCENT, SETTINGS_KEY } from "@/lib/settings";
 import "./globals.css";
 
@@ -70,9 +73,30 @@ export const viewport: Viewport = {
   themeColor: "#17948a",
 };
 
-export default function RootLayout({
+/**
+ * `/api/coach`에 얹을 **단기 토큰 표식**을 한 줄 심습니다 — 설정된 배포에서만.
+ *
+ * 값은 `HMAC-SHA256(현재 10분 창, COACH_SHARED_SECRET)`의 앞 16자이고, 창 번호를 함께 적습니다
+ * (`창번호.토큰` — 화면 쪽이 낡은 값을 스스로 걷어 내는 데 씁니다). 비밀값 자체는 서버에만
+ * 있고, 브라우저가 보는 것은 이 계산 결과 한 줄뿐입니다. 계산은 Web Crypto로 하며 이 파일은
+ * 서버 컴포넌트라 Node 런타임에서 돕니다(`src/lib/coachLimits.ts`가 함수의 집입니다).
+ *
+ * **비밀값이 없으면 아무 일도 하지 않습니다.** `connection()`도 부르지 않으므로 기본 빌드는
+ * 지금까지처럼 정적으로 그려지고, 화면·요청 계약은 한 글자도 바뀌지 않습니다. 값이 있는
+ * 배포에서만 `connection()`으로 요청 시점 렌더로 내려가는데, 창마다 값이 달라져야 하는 표식을
+ * 빌드 때 굳혀 두면 배포 다음 날부터 전부 낡은 값이 되기 때문입니다.
+ */
+async function coachTokenMeta(): Promise<React.ReactNode> {
+  const secret = (process.env.COACH_SHARED_SECRET ?? "").trim();
+  if (secret.length === 0) return null;
+  await connection();
+  return <meta name={COACH_TOKEN_META} content={await coachTokenMetaValue(secret)} />;
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const tokenMeta = await coachTokenMeta();
   return (
     // suppressHydrationWarning: 글자 크기 설정(src/lib/settings.ts)이 **첫 페인트 전에**
     // <html>에 font-size·data-chim-font-scale을 심습니다(아래 body 첫머리의 동기 스크립트).
@@ -81,6 +105,8 @@ export default function RootLayout({
     <html lang="ko" suppressHydrationWarning>
       {/* 지면은 앱 프레임 밖 배경(#f1f2f0)입니다 — 화면(흰 면)은 PageShell이 그립니다. */}
       <body className="min-h-dvh bg-paper-out antialiased">
+        {/* 온라인 중계에 얹을 단기 토큰 표식 — 배포에 비밀값이 없으면 null입니다(위 주석). */}
+        {tokenMeta}
         {/* 저장된 글자 크기를 첫 페인트 전에 심습니다 — 위 FONT_SCALE_BOOT 주석 참조.
             문서 맨 앞의 동기 스크립트라 아래 내용이 그려지기 전에 실행됩니다(async가 아니므로
             React가 head로 끌어올리지도 않습니다 — 실행 시점이 곧 이 자리입니다). */}
@@ -95,6 +121,13 @@ export default function RootLayout({
           type="font/woff2"
           crossOrigin="anonymous"
         />
+        {/* 화면 사이의 초점 — 라우트가 바뀌면 새 화면의 h1로 초점을 옮깁니다(그리는 것은 없습니다).
+            화면 제목 공지는 App Router가 이미 하고 있어 여기서 겹쳐 넣지 않습니다 —
+            사유와 근거는 RouteFocus.tsx 머리 주석에 있습니다.
+            `{children}`보다 **앞에** 두는 것은 효과 실행 순서 때문입니다: 앱 안 이동 사실을
+            먼저 기록해야, 그 이동으로 막 마운트된 화면의 조각들이 같은 커밋에서 그 사실을
+            읽을 수 있습니다(`hasNavigatedWithinApp`). */}
+        <RouteFocus />
         {children}
         {/* 전역 헤더가 사라졌으므로 글자 크기 설정은 여기서 부팅합니다(v3에서는 AppHeader가 했습니다). */}
         <SettingsBoot />

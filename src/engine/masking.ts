@@ -74,6 +74,29 @@ const NAME_MARKERS = "님|씨|어르신|할머님|할아버님|할머니|할아�
 const NAME_JOSA = "은|는|이|가|을|를|과|와|도|의";
 
 /**
+ * 이름 뒤에 **아무것도 붙지 않는 자리** — 문장 끝·구두점·「입니다」류 앞.
+ *
+ * 조사 규칙(name-josa)은 조사를, 호칭 규칙(name-heuristic)은 호칭을 요구한다. 그런데 실무
+ * 표기의 상당수는 둘 다 없다 — "성함은 김영수입니다" · "대상자: 김영수" · "김영수, 이순자" ·
+ * "김영수 (85세)" · "보고 대상 김영수 / 이순자"가 전부 통째로 새고 있었다. 사람이 검토하는
+ * 단계가 없는 경로(/practice 자유 연습)에서는 이 자동 체가 마지막이라, 종결·구두점 경계를
+ * 조사와 **같은 무게**로 받는다.
+ *
+ * **소비하지 않는 전방탐색(lookahead)** 이라는 점이 목록 표기를 살린다 — "김영수, 이순자"에서
+ * 쉼표를 삼키지 않으므로 정규식의 다음 탐색이 쉼표 바로 뒤에서 다시 시작하고, 두 번째 이름도
+ * 그대로 걸린다(예전 규칙은 조사를 삼켜 뒤 이름이 밀려났다).
+ *
+ * **공백 하나만으로는 발동하지 않는다** — 이 경계를 넓게 잡으면 한국어 산문이 통째로 걸린다.
+ * 실측으로 확인한 자리다: 이 앱의 화면·데이터 문장에 `\s`를 경계로 넣으면 「마무리」·「배우자」·
+ * 「정신은 있으실 때」·「휠체어 이동은」·「조용한 데서」가 전부 이름으로 읽혔다(25건).
+ * 그래서 공백은 **뒤에 여는 괄호나 목록 구분자가 따라올 때만** 경계로 친다("김영수 (85세)" ·
+ * "보고 대상 김영수 / 이순자"). 하이픈·물결표는 넣지 않는다 — 번호 조각과 붙은 자리를
+ * 이름으로 읽을 이유가 없다.
+ */
+const NAME_TAIL_BOUNDARY =
+  "(?=$|[,.!?;:·「」『』)\\]}>\"'“”‘’]|\\s*[(（\\[［/]|입니다|이십니다|이라고|이라는)";
+
+/**
  * 이름 두 번째·세 번째 글자로 흔히 쓰는 음절.
  *
  * 조사만 보고 이름이라고 하면 한국어 산문이 통째로 걸린다("여기에는"·"하는지를"·"고르시는"은
@@ -241,6 +264,50 @@ const NAME_STOPWORDS = new Set([
   "정황",
   "하면",
   "전에",
+  /*
+   * ── 맨이름 규칙(name-bare)을 세우며 **실측으로** 추린 예외어 ──
+   *
+   * 종결·구두점 경계를 이름 경계로 받기 시작하면, 성씨로 시작하고 이름 음절 두 개가 이어지는
+   * 보통 낱말이 문장 끝·쉼표 앞에서 이름으로 읽힌다. 아래는 이 저장소의 화면·데이터 문장을
+   * 전수로 훑어(src/** · docs/**) 실제로 걸린 것과, 같은 꼴이라 곧 걸릴 것이 분명한 돌봄
+   * 현장 낱말이다. 두 글자 항목은 뒤에 조사가 붙은 꼴까지 함께 막는다(isCommonWord).
+   */
+  "마무리",
+  "배우자",
+  "조용한",
+  "유일한",
+  "정리한",
+  "배정한",
+  "안심만",
+  "이유만",
+  "지우신",
+  "지우실",
+  "채우신",
+  "채우실",
+  "이수한",
+  "이수일",
+  "지연선",
+  "최신순",
+  "문자열",
+  "하임리",
+  "최소한",
+  "최우선",
+  "소중한",
+  "정중한",
+  "소심한",
+  "노인분",
+  "구성원",
+  "정신",
+  "이동",
+  "이송",
+  "고정",
+  "설정",
+  "표현",
+  "표식",
+  "원문",
+  "유형",
+  "지연",
+  "문형",
 ]);
 
 /** 기관 어미 앞에 오더라도 특정 기관으로 보기 어려운 말 */
@@ -348,6 +415,16 @@ function isCommonWord(candidate: string): boolean {
   if (NAME_STOPWORDS.has(candidate)) return true;
   const tail = TRIMMABLE_TAILS.find((t) => candidate.endsWith(t) && candidate.length > t.length);
   return tail !== undefined && NAME_STOPWORDS.has(candidate.slice(0, -tail.length));
+}
+
+/**
+ * 호칭 없이 이름만 나온 후보를 받아들일지 — 조사 규칙(name-josa)과 맨이름 규칙(name-bare)이
+ * **같은 검사**를 쓴다. 사전이 두 벌로 갈라지면 한쪽만 넓어지는 날이 온다.
+ */
+function acceptBareName(matched: string, text: string, start: number): boolean {
+  if (isHangulAt(text, start - 1)) return false;
+  if (isCommonWord(matched)) return false;
+  return [...matched.slice(1)].every((syllable) => GIVEN_NAME_SYLLABLES.has(syllable));
 }
 
 const MASK_RULES: MaskRule[] = [
@@ -529,11 +606,23 @@ const MASK_RULES: MaskRule[] = [
     pattern: new RegExp(`([${SURNAMES}][가-힣]{2})(?:${NAME_JOSA})(?![가-힣])`, "g"),
     group: 1,
     priority: 10,
-    accept: (matched, text, start) => {
-      if (isHangulAt(text, start - 1)) return false;
-      if (isCommonWord(matched)) return false;
-      return [...matched.slice(1)].every((syllable) => GIVEN_NAME_SYLLABLES.has(syllable));
-    },
+    accept: acceptBareName,
+  },
+  /*
+   * 성씨 + 이름 두 자 + **아무 표지 없음** ("성함은 김영수입니다", "대상자: 김영수", "김영수, 이순자").
+   *
+   * 위 조사 규칙과 사전·검사가 **같다**(acceptBareName 하나를 나눠 쓴다) — 다른 것은 뒤에 무엇이
+   * 오는가 하나뿐이다. 규칙을 따로 세운 이유는 조사 규칙의 매치 폭을 한 글자도 건드리지 않기
+   * 위해서다(조사를 선택적으로 만들면 기존 매치의 lastIndex가 함께 움직인다).
+   * 과탐 방어선은 세 겹 그대로다 — 앞이 한글이면 제외 · 예외어면 제외 · 두 이름 글자가
+   * 모두 GIVEN_NAME_SYLLABLES 안일 것.
+   */
+  {
+    id: "name-bare",
+    kind: "성명",
+    pattern: new RegExp(`[${SURNAMES}][가-힣]{2}${NAME_TAIL_BOUNDARY}`, "g"),
+    priority: 10,
+    accept: acceptBareName,
   },
 ];
 
@@ -661,6 +750,47 @@ export function countByKind(spans: MaskSpan[]): Partial<Record<MaskKind, number>
     out[s.kind] = (out[s.kind] ?? 0) + 1;
   }
   return out;
+}
+
+/* ── 부분 가림 감지 ────────────────────────────────────── */
+
+/** 치환 토큰 **바로 앞**에 붙은 조각 — 숫자·붙임표·로마자 한 글자("110-123-[번호]", "L[번호]") */
+const LEFTOVER_BEFORE = /[0-9A-Za-z\-–—]$/;
+
+/** 치환 토큰 **바로 뒤**에 붙은 조각 — 숫자·붙임표("[번호]-4567") */
+const LEFTOVER_AFTER = /^[0-9\-–—]/;
+
+/** 토큰과 공백 하나를 사이에 두고 남은 번지·번호 꼴("[주소] 12-3", "110-123 [번호]") */
+const SPACED_FRAGMENT_AFTER = /^\s\d{1,4}\s*[-–—]\s*\d{1,4}/;
+const SPACED_FRAGMENT_BEFORE = /\d{1,4}\s*[-–—]\s*\d{1,4}\s$/;
+
+/**
+ * **일부만 가려졌는지** — 치환 토큰에 숫자·붙임표 조각이 맞붙어 남았는지 본다.
+ *
+ * 왜 세는 것으로 부족한가: `countByKind`는 가린 자리의 **개수**만 센다. 그런데 규칙이 값의
+ * 일부만 물고 지나가는 자리가 실제로 있다 — "계좌 110-123-456789"는 "110-123-[번호]"가 되고,
+ * "역삼동 12-3"은 "[주소] 12-3"이 되며, "인정번호 L0123456789"는 "L[번호]"가 된다. 화면이
+ * 「1건 가렸습니다」라고만 말하면 사용자는 다 가려진 줄 안다. 남은 조각이 있다는 사실은
+ * 개수보다 훨씬 쓸모 있는 정보라, 화면이 그 한 줄을 세울 수 있게 여기서 판정한다.
+ *
+ * 순수 함수다 — 문자열을 고치지 않고 참·거짓만 돌려준다. 가리는 일 자체는 손대지 않는다
+ * (규칙을 넓히는 것과 「남았을 수 있다」고 말하는 것은 다른 판단이고, 뒤쪽이 훨씬 정직하다).
+ *
+ * @example
+ * hasPartialMask(maskText("계좌 110-123-456789"));   // true  ("110-123-[번호]")
+ * hasPartialMask(maskText("어르신 댁은 역삼동 12-3")); // true  ("[주소] 12-3")
+ * hasPartialMask(maskText("박 어르신께 전해 드렸습니다")); // false
+ */
+export function hasPartialMask(result: MaskResult): boolean {
+  for (const span of result.spans) {
+    const before = result.masked.slice(0, span.start);
+    const after = result.masked.slice(span.end);
+    if (LEFTOVER_BEFORE.test(before)) return true;
+    if (LEFTOVER_AFTER.test(after)) return true;
+    if (SPACED_FRAGMENT_BEFORE.test(before)) return true;
+    if (SPACED_FRAGMENT_AFTER.test(after)) return true;
+  }
+  return false;
 }
 
 /**

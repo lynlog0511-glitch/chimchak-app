@@ -8,6 +8,8 @@
  * 판정 순서
  * 1) 버튼으로 분기를 직접 지정했으면(branchId) 그 분기가 최우선 — 데이터의 판단을 그대로 따른다.
  * 2) ⚑CF 플래그가 붙은 분기의 패턴을 먼저 검사한다 (안전 판정 우선).
+ * 2.5) CUE에 elementJudge가 선언돼 있으면(보고 CUE) **요소 개수**로 먼저 가른다.
+ *      한 조각이 걸렸는지가 아니라 몇 가지가 들어 있는지로 판정한다. 0개면 채택하지 않고 3)으로 넘긴다.
  * 3) 나머지 분기를 부분 문자열로 대조하고(공백 제거·소문자화), **걸린 분기를 모두 모아**
  *    심각도가 높은 쪽을 채택한다(아래 「심각도 순위」). 같은 순위면 배열 순서를 따른다.
  * 4) 그래도 못 찾으면 defaultBranchId.
@@ -17,7 +19,7 @@
  */
 
 import type { BranchDef, CueDef } from "@/types";
-import { expandKoreanTimeNumerals, indexOfPattern, isNegated, normalize } from "./rules";
+import { expandKoreanTimeNumerals, hasExceptionNear, indexOfPattern, isNegated, normalize } from "./rules";
 import { isMet, lowestScore } from "./scoring";
 
 export type ClassifySource = "button" | "criticalPattern" | "pattern" | "default";
@@ -64,6 +66,8 @@ export interface ClassifyResult {
   source: ClassifySource;
   /** 어떤 패턴에 걸렸는지 (디버깅·설명용) */
   matchedPattern?: string;
+  /** 요소 개수 판정에서 실제로 걸린 요소 이름 (예: ["시각", "행위·조치", "현재 상태"]) */
+  matchedElements?: string[];
 }
 
 /* ── 심각도 순위 ────────────────────────────────────────────
@@ -162,13 +166,17 @@ export function fallbackBranches(cue: CueDef): BranchDef[] {
  * - `skipNegated`면 "밀어내지 않고", "억지로 하지 않고"처럼 부정 문맥 안의 매치는
  *   건너뛴다. 규칙 엔진(rules.ts)과 같은 기준이며, 어느 분기가 이걸 켜는지는
  *   isNegationAware()가 정한다.
+ * - `except`가 있으면 매치 주변(앞뒤 6글자)에 그 말이 있는 매치를 건너뛴다.
+ *   규칙 사전과 **같은 함수**(rules.hasExceptionNear)를 쓴다 — 창과 대조기가 갈라지면
+ *   같은 문장이 게이트에서는 통과하고 분기에서는 ⚑CF가 된다.
  */
-function matchPattern(
+function matchPatternList(
   normalizedUtterance: string,
-  branch: BranchDef,
-  mode: "none" | "direct" | "full" = "none",
+  patterns: string[],
+  mode: "none" | "direct" | "full",
+  except?: string[],
 ): string | undefined {
-  for (const pattern of branch.patterns) {
+  for (const pattern of patterns) {
     // 발화와 **같은 변환**을 지나게 합니다 — 표지가 한글 수사로 적힌 자리("새벽 두 시")도
     // 숫자로 말한 발화("새벽 2시")와 만나야 합니다. 시나리오 데이터는 그대로 두고
     // 대조 직전에만 맞춥니다.
@@ -183,9 +191,47 @@ function matchPattern(
         mode === "full"
           ? isNegated(normalizedUtterance, idx, end)
           : mode === "direct" && isDirectlyNegated(normalizedUtterance, end);
-      if (!negated) return pattern;
+      const excepted = !negated && hasExceptionNear(normalizedUtterance, except, idx, end);
+      if (!negated && !excepted) return pattern;
       from = idx + 1;
     }
+  }
+  return undefined;
+}
+
+function matchPattern(
+  normalizedUtterance: string,
+  branch: BranchDef,
+  mode: "none" | "direct" | "full" = "none",
+): string | undefined {
+  return matchPatternList(normalizedUtterance, branch.patterns, mode, branch.except);
+}
+
+/**
+ * 요소 개수 판정 (보고 CUE 전용 — cue.elementJudge).
+ *
+ * 보고는 「어떤 조각이 걸렸는가」가 아니라 「몇 가지가 들어 있는가」로 갈립니다.
+ * 예전에는 「귀가 요구」 한 마디만 있어도 5요소 보고가 됐고, 반대로 다 갖춘 보고가
+ * 「나가시려고」 한 조각 때문에 부분 보고로 내려갔습니다.
+ *
+ * 그룹마다 표지를 하나라도 만나면 그 요소가 있는 것으로 세고, tiers를 위에서부터 내려가며
+ * 처음 충족되는 분기를 채택합니다. 0개면 채택하지 않고 심각도 매칭으로 넘깁니다.
+ */
+function judgeElements(
+  cue: CueDef,
+  normalized: string,
+): { branch: BranchDef; labels: string[] } | undefined {
+  const judge = cue.elementJudge;
+  if (!judge) return undefined;
+  const labels: string[] = [];
+  for (const group of judge.groups) {
+    if (matchPatternList(normalized, group.patterns, "direct")) labels.push(group.label);
+  }
+  if (labels.length === 0) return undefined;
+  for (const tier of judge.tiers) {
+    if (labels.length < tier.minCount) continue;
+    const branch = findBranch(cue, tier.branchId);
+    if (branch) return { branch, labels };
   }
   return undefined;
 }
@@ -230,6 +276,18 @@ export function classifyInput(cue: CueDef, input: { utterance?: string; branchId
     if (!branch.criticalFail) continue;
     const matched = matchPattern(normalized, branch, "full");
     if (matched) return { branch, source: "criticalPattern", matchedPattern: matched };
+  }
+
+  // 2.5) 보고 CUE — 요소 개수로 먼저 가른다 (0개면 아래 심각도 매칭으로 넘어간다)
+  const elements = judgeElements(cue, normalized);
+  if (elements) {
+    return {
+      branch: elements.branch,
+      source: "pattern",
+      // 요소 이름 자체에 가운뎃점이 든 것("행위·조치")이 있어, 나열은 쉼표로 합니다.
+      matchedPattern: `${elements.labels.join(", ")} (${elements.labels.length}요소)`,
+      matchedElements: elements.labels,
+    };
   }
 
   // 3) 걸린 분기를 **모두** 모아 심각도가 높은 쪽을 채택한다 (같은 순위면 배열 순서)

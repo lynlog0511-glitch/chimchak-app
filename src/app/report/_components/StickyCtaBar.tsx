@@ -5,13 +5,22 @@ import type { ReactNode, RefObject } from "react";
 import { cx } from "@/components";
 
 /**
- * 하단 탭바가 차지하는 높이.
- * `TabBar`는 `pt-1(4) + 링크 min-h 48 + pb-2(8) + 헤어라인 1` = 61px이고 전부 px 고정값이라
- * 글자 크기 설정(16/18/20px)을 바꿔도 값이 변하지 않습니다. safe-area는 탭바가 자기 padding으로
- * 따로 먹으므로 여기서 한 번 더 더해 줍니다.
- * 탭바는 어느 폭에서도 서므로 이 오프셋도 한 값입니다.
+ * 하단 탭바 **위에** 도킹하는 자리.
+ *
+ * 높이는 여기서 계산하지 않습니다 — `TabBar`가 마운트 뒤 자기 `offsetHeight`를
+ * `--chim-tabbar-h`에 적고, 이 바는 그 값을 읽기만 합니다(값 하나·주인 하나).
+ *
+ * 예전에는 이 자리에 61px이 리터럴로 박혀 있었고, 그 근거로 적힌 계산이 두 군데 틀렸습니다 —
+ * 링크 하한은 48px이 아니라 `min-h-[54px]`이고, `pt-1`·`pb-2`는 px가 아니라 rem(0.25rem 배수)이라
+ * 「전부 px 고정값」이 아니었습니다. 실제 값은 기본 16px 루트에서 1+4+54+8 = **67px**이고,
+ * 「아주 크게」(125%)에서는 링크 내용이 min-h 바닥을 넘겨 **76px**까지 자랍니다. 그래서 도킹 바
+ * 하단이 6~15px씩 탭바에 가려져 있었습니다(페르소나 FE med — 1차 지적이 2차까지 생존한 자리).
+ *
+ * safe-area는 탭바가 자기 padding으로 따로 먹으므로 여기서 한 번 더 더해 줍니다.
+ * 탭바는 어느 폭에서도 서므로 이 오프셋도 한 값입니다. 기본값 67px은 탭바가 아직 값을 적기 전
+ * (첫 페인트) 한 프레임 동안만 쓰이고, `globals.css`의 `:root` 선언과 같은 수입니다.
  */
-const DOCK_POSITION = "sticky bottom-[calc(61px_+_var(--chim-safe-b))]";
+const DOCK_POSITION = "sticky bottom-[calc(var(--chim-tabbar-h,67px)_+_var(--chim-safe-b))]";
 
 export interface StickyCtaBarProps {
   children: ReactNode;

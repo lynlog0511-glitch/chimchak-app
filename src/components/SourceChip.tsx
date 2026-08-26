@@ -99,7 +99,7 @@ export function SourceChip({
      바깥 래퍼가 48px 터치 영역을 먹고, 안쪽 칩은 py-1.5(≈30px)로 칩 크기를 지킵니다. */
   const chipClass = cx(
     "chim-caption inline-flex max-w-full items-center gap-1.5 rounded-chip bg-brand-50 px-3.5 py-1.5 text-brand-800",
-    interactive && "transition-colors duration-150 group-hover:bg-brand-100 group-active:bg-brand-100",
+    interactive && "transition-colors duration-150 group-hover:bg-brand-tint group-active:bg-brand-tint",
   );
 
   if (!interactive) {
@@ -146,7 +146,7 @@ export function SourceChip({
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="chim-caption mt-3 inline-flex min-h-[48px] items-center rounded-field bg-neutral-soft px-4 font-semibold text-ink-soft transition-colors duration-150 hover:bg-neutral-line active:bg-neutral-line"
+            className="chim-caption mt-3 inline-flex min-h-[48px] items-center rounded-field bg-paper-2 px-4 font-semibold text-ink-soft transition-colors duration-150 hover:bg-neutral-line active:bg-neutral-line"
           >
             닫기
           </button>

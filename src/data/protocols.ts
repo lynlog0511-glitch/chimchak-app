@@ -13,6 +13,12 @@
  *
  * ※ P-02는 설계서 §3.2 F의 6단계 고정 문구를 한 글자도 바꾸지 않고 그대로 담았습니다.
  *   나머지 4종은 같은 안전 원칙으로 작성한 알파 초안이며 2차 현직 감수를 남겨 두었습니다.
+ *
+ * 2026-08-25 수정 — 현직 감수 재확인 대기: 주소 단계 음성 5줄(화면과 어긋나던 단언 교정).
+ *   예전 문장은 「주소를 말하세요. 화면에 있습니다」였습니다. 그런데 화면에 서 있던 것은 연습용
+ *   예시 주소였고, 실제 방문지 주소를 미리 적어 두지 않으신 분께는 그 단언이 그대로 거짓이
+ *   됩니다. 119에 대고 화면을 봤는데 동그라미만 있는 2~3초가 이 수정의 이유입니다.
+ *   고친 것은 이 다섯 줄뿐이고, 다른 단계의 음성·화면 문구는 한 글자도 건드리지 않았습니다.
  */
 
 import type { EmergencyProtocol } from "@/types";
@@ -42,8 +48,9 @@ const HANDOFF_SCREEN = "지금은 119 상황실이 안내합니다. 통화를 �
  */
 const TRAINING_ADDRESS = "○○구 ○○로 00";
 
-/** 주소 단계에서 자막 아래에 덧붙이는 화면 문구입니다. */
-const ADDRESS_SCREEN = "아래 주소를 소리 내어 그대로 읽어 주세요.";
+/** 주소 단계에서 자막 아래에 덧붙이는 화면 문구입니다.
+    (2026-08-25 함께 수정 — 감수 재확인 대기: 주소를 적어 두지 않은 상태에서도 참이 되게.) */
+const ADDRESS_SCREEN = "적어 두신 방문지 주소가 있으면 소리 내어 그대로 읽어 주세요.";
 
 export const PROTOCOLS: EmergencyProtocol[] = [
   /* ── P-01 낙상(의식 있음) ─────────────────────────────────────── */
@@ -79,7 +86,7 @@ export const PROTOCOLS: EmergencyProtocol[] = [
       },
       {
         id: "P-01-6",
-        voice: "주소를 말하세요. 화면에 있습니다.",
+        voice: "지금 계신 곳 주소를 119에 말씀하세요.",
         screen: ADDRESS_SCREEN,
         address: TRAINING_ADDRESS,
       },
@@ -140,7 +147,7 @@ export const PROTOCOLS: EmergencyProtocol[] = [
       },
       {
         id: "P-02-4",
-        voice: "주소를 말하세요. 화면에 있습니다.",
+        voice: "지금 계신 곳 주소를 119에 말씀하세요.",
         screen: ADDRESS_SCREEN,
         address: TRAINING_ADDRESS,
       },
@@ -202,7 +209,7 @@ export const PROTOCOLS: EmergencyProtocol[] = [
       },
       {
         id: "P-03-5",
-        voice: "주소를 말하세요. 화면에 있습니다.",
+        voice: "지금 계신 곳 주소를 119에 말씀하세요.",
         screen: ADDRESS_SCREEN,
         address: TRAINING_ADDRESS,
       },
@@ -264,7 +271,7 @@ export const PROTOCOLS: EmergencyProtocol[] = [
       },
       {
         id: "P-04-5",
-        voice: "주소를 말하세요. 화면에 있습니다.",
+        voice: "지금 계신 곳 주소를 119에 말씀하세요.",
         screen: ADDRESS_SCREEN,
         address: TRAINING_ADDRESS,
       },
@@ -326,7 +333,7 @@ export const PROTOCOLS: EmergencyProtocol[] = [
       },
       {
         id: "P-05-5",
-        voice: "주소를 말하세요. 화면에 있습니다.",
+        voice: "지금 계신 곳 주소를 119에 말씀하세요.",
         screen: ADDRESS_SCREEN,
         address: TRAINING_ADDRESS,
       },

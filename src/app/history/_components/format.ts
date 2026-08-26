@@ -5,7 +5,6 @@
  * - 판정 배지: 점수·등급·순위·백분위는 어떤 형태로도 만들지 않습니다. 엔딩 판정 문구만 그대로 씁니다.
  */
 
-import type { BadgeTone } from "@/components";
 import type { StatusMarkKind } from "@/components/icons";
 import type { EndingDef, ScenarioType } from "@/types";
 
@@ -63,22 +62,9 @@ export function formatTinyDate(iso: string, now: Date = new Date()): string {
   return `${String(date.getFullYear()).slice(2)}.${md}`;
 }
 
-/** 엔딩 판정별 배지 톤 — 색만 다르고 점수는 붙지 않습니다. */
-export function verdictTone(verdict: EndingDef["verdict"]): BadgeTone {
-  switch (verdict) {
-    case "충족":
-      return "ok";
-    case "부분 충족":
-      return "brand";
-    case "재시도":
-      return "warn";
-    case "재훈련 권고":
-      // ⚑CF와 구분되는 별도 판정선입니다 (설계서 §3.3 — 안전 위험이 아니라 존엄·관계).
-      return "warn";
-    default:
-      return "danger";
-  }
-}
+/* 2026-08-25: `verdictTone()`을 지웠습니다 — 공용 `Badge`에 넘기려고 만든 함수인데
+   Badge가 렌더 0건이라 파일째 폐기됐고, 이 함수 자체도 호출처가 0건이었습니다.
+   판정 표기는 아래 `verdictMark()`(StatusMark + 판정어 텍스트)가 담당합니다. */
 
 /**
  * 엔딩 판정별 표준 마크(v3 §4).
@@ -113,7 +99,7 @@ export function verdictNote(verdict: EndingDef["verdict"]): string {
     case "재훈련 권고":
       return "안전 위험이 아니라 존엄·관계에 대한 부분입니다. 벌점 없이 같은 장면을 다시 연습해 보세요.";
     default:
-      return "안전과 직결된 구간이라 같은 유형을 다시 훈련하시길 권합니다.";
+      return "안전과 직결된 구간이라 같은 유형을 다시 훈련하시길 권합니다. 이 표시는 벌점이 아니라 다시 볼 지점 안내입니다.";
   }
 }
 

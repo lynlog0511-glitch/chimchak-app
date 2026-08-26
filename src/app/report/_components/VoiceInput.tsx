@@ -240,7 +240,7 @@ export function VoiceInput({
                   </span>
                 </>
               ) : (
-                <span className="text-tertiary">말씀을 기다리고 있어요.</span>
+                <span className="text-ink-faint">말씀을 기다리고 있어요.</span>
               )}
             </p>
           </div>
@@ -331,7 +331,7 @@ export function VoiceInput({
              적는 자리」를 말해야 해서 회색 면보다 약합니다(가이드 §1 — 입력 필드는 paper-2 면 하나).
              `focus:border-brand-400`은 뗐습니다 — 전역 포커스 outline(brand-600)과 2px 간격으로
              겹쳐 틸 두 겹이 번져 보였습니다(페르소나 디자이너 low). */
-          className="mt-[6px] w-full rounded-card border border-line-strong bg-paper-2 p-[14px] text-[1.0625rem] leading-[1.6] text-ink placeholder:text-tertiary"
+          className="mt-[6px] w-full rounded-card border border-line-strong bg-paper-2 p-[14px] text-[1.0625rem] leading-[1.6] text-ink placeholder:text-ink-faint"
         />
 
         {/* 지우기는 예시가 아니라 위 입력칸에 딸린 조작이라, 예시 목록에서 빼 칸 아래에 둡니다. */}
@@ -369,7 +369,7 @@ export function VoiceInput({
 
         {/* 예시 고지 — 11px(각주 단)에서 12.5px로 올려 아래 개인정보 안내와 같은 단에 둡니다.
             화면이 길어지는 만큼은 위 과업 지시문을 올리며 상쇄합니다(페르소나 UI/UX med). */}
-        <p className="mt-[8px] text-[0.7813rem] leading-[1.6] text-tertiary">{EXAMPLE_NOTICE}</p>
+        <p className="mt-[8px] text-[0.7813rem] leading-[1.6] text-ink-faint">{EXAMPLE_NOTICE}</p>
       </div>
 
       {/* 개인정보 안내 — 이 화면이 신뢰를 얻는 두 문장 중 하나라 15px로 올립니다.
@@ -401,7 +401,7 @@ export function VoiceInput({
         가리기로 넘어가기
       </BigButton>
       {empty && (
-        <p className="mt-[6px] text-center text-[0.7813rem] leading-[1.45] text-tertiary">
+        <p className="mt-[6px] text-center text-[0.7813rem] leading-[1.45] text-ink-faint">
           말씀하시거나 적어 주시면 다음 단계로 넘어갈 수 있습니다
         </p>
       )}

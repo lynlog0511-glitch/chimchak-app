@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { ScenarioType, SessionRecord } from "@/types";
-import { EyebrowLabel, InlineDisclaimer } from "@/components";
+import { EyebrowLabel, InlineDisclaimer, cx } from "@/components";
 import { IconClock, IconSprout, StatusMark } from "@/components/icons";
 import { DEMO_SEED_SUMMARY, clearDemoRecords, isDemoRecord } from "@/lib/demoSeed";
 import {
@@ -149,14 +149,50 @@ export function HistoryBoard({
   );
 
   if (!loaded) {
-    /* 이 화면에서 지금 글자는 이것 하나뿐입니다 — 가장 작고 흐린 단(12.5px·tertiary)에 두는 것은
-       방향이 반대라 15px 읽히는 톤으로 올렸습니다(페르소나 UI/UX med). */
+    /* 이 화면에서 지금 글자는 이것 하나뿐입니다 — 가장 작고 흐린 단(12.5px·ink-faint)에 두는 것은
+       방향이 반대라 15px 읽히는 톤으로 올렸습니다(페르소나 UI/UX med).
+
+       ── 골격을 함께 그립니다(2026-08-26) ─────────────────────────
+       기록은 이 기기의 저장소에 있어 서버가 값을 모릅니다. 그래도 **모양은 압니다** —
+       추천 카드 한 장, 유형 4칸, 최근 훈련 몇 줄이라는 뼈대는 값과 무관하게 늘 같습니다.
+       예전에는 이 자리에 문장 한 줄만 있어서, 서버 HTML의 `<main>` 안 글자가 65자였습니다.
+       하필 「내가 쌓아 온 것」을 보러 오는 탭이라 그 공백이 「아직 로딩」이 아니라
+       「아무것도 없다」로 읽혔습니다(페르소나 UI/UX P1).
+       움직이지 않는 회색 면입니다 — `animate-pulse`를 쓰지 않는 것은 이 앱의 모션 최소 규율이고,
+       기다리는 화면이 깜빡이면 중고령 사용자에게는 「고장」으로 읽히기 때문입니다.
+       낭독에는 위 한 줄만 갑니다(골격은 `aria-hidden`). */
     return (
-      <p role="status" className="mt-4 text-[0.9375rem] leading-[1.6] text-ink-soft">
-        {stalled
-          ? "이 기기의 저장소를 읽지 못했습니다. 화면을 새로고침해 주세요."
-          : "이 기기에 저장된 기록을 불러오는 중입니다."}
-      </p>
+      <div className="mt-4">
+        <p role="status" className="text-[0.9375rem] leading-[1.6] text-ink-soft">
+          {stalled
+            ? "이 기기의 저장소를 읽지 못했습니다. 화면을 새로고침해 주세요."
+            : "이 기기에 저장된 기록을 불러오는 중입니다."}
+        </p>
+
+        <div aria-hidden className="mt-4">
+          {/* 다음엔 이 장면 — 카드 한 장 */}
+          <div className="mb-4 h-[92px] rounded-card bg-paper-2" />
+          {/* 유형별로 해 본 것 — 4칸 한 줄 */}
+          <div className="mb-[18px] flex overflow-hidden rounded-card bg-paper-2">
+            {[0, 1, 2, 3].map((cell) => (
+              <div
+                key={cell}
+                /* 칸을 가르는 선은 실제 4칸과 같은 값입니다(회색 면 위에서는 `line`이 묻힙니다). */
+                className={cx("h-[76px] flex-1", cell > 0 && "border-l border-line-strong")}
+              />
+            ))}
+          </div>
+          {/* 최근 훈련 — 행 3줄 */}
+          <div className="chim-hairline border-t border-line">
+            {[0, 1, 2].map((row) => (
+              <div key={row} className="py-[14px]">
+                <div className="h-[13px] w-[38%] rounded-field bg-paper-2" />
+                <div className="mt-[8px] h-[17px] w-[72%] rounded-field bg-paper-2" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     );
   }
 
@@ -202,7 +238,7 @@ export function HistoryBoard({
         <Link
           href={trainHref(suggestion.candidate.id)}
           aria-label={`${suggestion.candidate.title} 훈련으로 가기. ${nextTrainingSentence(suggestion)}`}
-          className="mb-4 flex min-h-[48px] items-center gap-[10px] rounded-card bg-tint px-[15px] py-[14px] transition-colors duration-150 active:bg-mint-200"
+          className="mb-4 flex min-h-[48px] items-center gap-[10px] rounded-card bg-brand-tint px-[15px] py-[14px] transition-colors duration-150 active:bg-mint-200"
         >
           <span className="min-w-0 flex-1">
             {/* 링크 안이라 문단(EyebrowLabel)을 넣을 수 없는 자리입니다 —
@@ -277,7 +313,7 @@ export function HistoryBoard({
       {/* 이수 확인서 — 인쇄용 화면으로 나갑니다(이수 사실만 담습니다). */}
       <Link
         href="/history/certificate"
-        className="mt-4 flex min-h-[50px] w-full items-center justify-center rounded-card bg-neutral-soft text-[0.9375rem] font-bold text-ink transition-colors duration-150 active:bg-neutral-line"
+        className="mt-4 flex min-h-[50px] w-full items-center justify-center rounded-card bg-paper-2 text-[0.9375rem] font-bold text-ink transition-colors duration-150 active:bg-neutral-line"
       >
         이수 확인서 만들기
       </Link>
@@ -305,7 +341,7 @@ export function HistoryBoard({
             아직 확정한 기록이 없습니다
           </p>
           <p className="mt-[3px] text-[0.7813rem] leading-[1.6] text-ink-soft">
-            오늘 있었던 일을 말로 보고하시면 가명처리를 거쳐 급여제공기록지 5요소 초안이
+            오늘 있었던 일을 말로 보고하시면 이름·번호를 가린 뒤 급여제공기록지 5요소 초안이
             만들어집니다.
           </p>
           <Link

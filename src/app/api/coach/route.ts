@@ -17,13 +17,16 @@
  * 앞의 세 일은 검증도 프롬프트도 생성 상한도 따로지만, **한도 계수기는 하나를 나눠 씁니다** —
  * 비용은 요청 수로 나가지 작업 이름으로 나가지 않습니다.
  *
- * 이 파일이 하는 일은 넷뿐입니다.
+ * 이 파일이 하는 일은 다섯뿐입니다.
  *  ① **출처 확인** — 같은 출처에서 온 JSON 요청만 받습니다. 아무 웹사이트가 방문자의 브라우저로
  *    이 주소에 POST를 쏘는 길(프리플라이트가 붙지 않는 단순 요청)을 입구에서 닫습니다.
- *  ② **검증** — 클라이언트가 보내는 산출물 모양만 받습니다. 그 밖의 값은 버리고 400으로 끊습니다
- *    (상류로 흘려보내지 않습니다). 발화는 500자가 상한입니다.
+ *  ② **표식 대조** — `COACH_SHARED_SECRET`이 설정된 배포에서만. 서버 렌더가 심어 준 단기 토큰을
+ *    되돌려 보낸 요청과 그렇지 않은 요청을 갈라 **예산 통을 둘로 나눕니다**(값이 어긋난 표식은
+ *    계수기에 닿기 전 403). 비밀값이 없으면 이 단은 통째로 잠들고 계약도 그대로입니다.
  *  ③ **한도** — IP당 분당·일당, 그리고 배포 전체 일당 상한을 셉니다(비용 가드).
- *  ④ **중계** — 키를 붙여 상류를 한 번 부르고, **원문 텍스트만** 그대로 돌려줍니다.
+ *  ④ **검증** — 클라이언트가 보내는 산출물 모양만 받습니다. 그 밖의 값은 버리고 400으로 끊습니다
+ *    (상류로 흘려보내지 않습니다). 발화는 500자가 상한입니다.
+ *  ⑤ **중계** — 키를 붙여 상류를 한 번 부르고, **원문 텍스트만** 그대로 돌려줍니다.
  *
  * 하지 않는 일이 더 중요합니다.
  *  · **가드 체인을 여기서 돌리지 않습니다.** 코칭의 형식·근거·표현·길이 네 단도, 변주의 형식·
@@ -43,7 +46,11 @@
  * 첫 줄에서 그대로 통과시킵니다(개인정보가 담길 수 있는 POST는 저장하지 않는다는 규칙).
  */
 
-import { COACH_RATE_LIMITS } from "@/lib/coachLimits";
+import {
+  COACH_RATE_LIMITS,
+  COACH_TOKEN_HEADER,
+  verifyCoachToken,
+} from "@/lib/coachLimits";
 import {
   buildSystemPrompt,
   buildUserPrompt,
@@ -168,6 +175,7 @@ const FREE_TEMPERATURE: Record<FreeRequest["stage"], number> = {
 const PER_IP_PER_MINUTE = COACH_RATE_LIMITS.perIpPerMinute;
 const PER_IP_PER_DAY = COACH_RATE_LIMITS.perIpPerDay;
 const DEFAULT_DAILY_CAP = COACH_RATE_LIMITS.defaultDailyCap;
+const ANON_DAILY_CAP = COACH_RATE_LIMITS.anonDailyCap;
 
 /* ── 서버 설정 ─────────────────────────────────────────── */
 
@@ -368,7 +376,10 @@ interface IpBucket {
 
 const ipBuckets = new Map<string, IpBucket>();
 let globalDay = -1;
+/** 토큰 표식이 붙은 요청의 몫 — 화면에서 온 정상 호출입니다. */
 let globalCount = 0;
+/** 토큰 없는 요청의 몫 — 비밀값이 설정된 배포에서만 따로 셉니다(위 `anonDailyCap` 주석). */
+let anonCount = 0;
 
 /** 지도가 무한정 자라지 않게 — 하루가 지난 자리는 버립니다. */
 function prune(day: number): void {
@@ -383,27 +394,45 @@ function prune(day: number): void {
  * 상류를 부르기 **전에** 셉니다 — 실패한 호출도 비용과 부하를 만들기 때문입니다.
  *
  * `ip`가 없으면(프록시 없는 배포) **배포 전체 상한만** 겁니다 — 위 `clientIp()` 주석 참조.
+ *
+ * **배포 전체 상한은 두 통입니다.** `tokened`가 참인 요청(화면이 서버 렌더 때 받은 단기 토큰을
+ * 붙여 온 요청)은 `dailyCap` 통을, 토큰 없는 요청은 훨씬 작은 `anonDailyCap` 통을 씁니다.
+ * 통을 나누기 전에는 상한 하나가 곧 「그날 하루 전 사용자의 온라인 코칭을 끄는 스위치」였습니다.
+ * 비밀값이 설정되지 않은 배포에서는 호출자가 `tokened`를 언제나 참으로 넘기므로 **통은 하나이고
+ * 동작은 예전 그대로**입니다(파일럿 무중단).
+ *
+ * IP당 한도는 두 통이 **함께** 씁니다 — IP 하나가 토큰을 붙였다 뺐다 하며 몫을 두 배로 쓰는
+ * 길을 열지 않기 위해서입니다.
  */
-function takeSlot(ip: string | undefined, dailyCap: number, now: number = Date.now()): boolean {
+function takeSlot(
+  ip: string | undefined,
+  dailyCap: number,
+  tokened: boolean,
+  now: number = Date.now(),
+): boolean {
   const minute = Math.floor(now / 60_000);
   const day = Math.floor(now / 86_400_000);
 
   if (globalDay !== day) {
     globalDay = day;
     globalCount = 0;
+    anonCount = 0;
   }
-  if (globalCount >= dailyCap) return false;
-  if (ip === undefined) {
-    globalCount += 1;
+  if (tokened ? globalCount >= dailyCap : anonCount >= ANON_DAILY_CAP) return false;
+
+  const take = (): true => {
+    if (tokened) globalCount += 1;
+    else anonCount += 1;
     return true;
-  }
+  };
+
+  if (ip === undefined) return take();
 
   const bucket = ipBuckets.get(ip);
   if (!bucket || bucket.day !== day) {
     prune(day);
     ipBuckets.set(ip, { minute, minuteCount: 1, day, dayCount: 1 });
-    globalCount += 1;
-    return true;
+    return take();
   }
   if (bucket.dayCount >= PER_IP_PER_DAY) return false;
   if (bucket.minute !== minute) {
@@ -414,8 +443,7 @@ function takeSlot(ip: string | undefined, dailyCap: number, now: number = Date.n
 
   bucket.minuteCount += 1;
   bucket.dayCount += 1;
-  globalCount += 1;
-  return true;
+  return take();
 }
 
 /**
@@ -543,12 +571,20 @@ function readTask(body: unknown): CoachTask | undefined {
  * 어떻게 막는가: 최신 브라우저가 스스로 붙이는 `Sec-Fetch-Site`(위조 불가 헤더)가 있으면 그것을
  * 먼저 보고, 없으면 `Origin`을 이 서버의 출처와 대조합니다. 브라우저가 아닌 호출(curl 등)은
  * `Origin`을 붙이지 않는데, 그 경우 `Sec-Fetch-Site`도 없으므로 여기서 걸립니다.
- * 이 검사는 **브라우저가 지키는 경계**이지 인증이 아닙니다 — 헤더를 손으로 적을 수 있는 도구
- * 앞에서는 통과합니다. 파일럿 다음 단계의 몫(공유 비밀·서명 토큰)은 그때의 일로 남겨 둡니다.
+ *
+ * `same-origin` 하나만 받습니다. 예전에는 `none`도 받았는데, 그 값은 주소창 입력·북마크 같은
+ * **사용자 개시 내비게이션**에 붙는 값이라 이 라우트의 정상 호출 경로에는 등장하지 않습니다
+ * (화면 코드의 fetch는 언제나 `same-origin`입니다). 헤더를 손으로 적는 쪽에 통과 값을 하나 더
+ * 주던 자리라 걷어 냈습니다.
+ *
+ * **이 검사가 실제로 막는 것**: 브라우저가 다른 출처에서 쏘는 교차 출처 호출입니다. 헤더를
+ * 위조하는 비브라우저 호출(curl·스크립트)은 이 검사로 막히지 않고, 그 자리는 아래 세 가지가
+ * 나눠 맡습니다 — 단기 토큰 표식(`x-chimchak-key`, 설정된 배포에서), 무토큰 요청의 작은 예산 통,
+ * 그리고 어느 배포에서든 참인 상류 계정의 지출 상한. 인증이라고 적지 않는 이유가 이 문단입니다.
  */
 function isSameOrigin(request: Request): boolean {
   const fetchSite = request.headers.get("sec-fetch-site");
-  if (fetchSite) return fetchSite === "same-origin" || fetchSite === "none";
+  if (fetchSite) return fetchSite === "same-origin";
 
   const origin = request.headers.get("origin");
   if (!origin) return false;
@@ -557,6 +593,41 @@ function isSameOrigin(request: Request): boolean {
   } catch {
     return false;
   }
+}
+
+/* ── 단기 토큰 표식 ────────────────────────────────────── */
+
+/**
+ * 공유 비밀값 — **선택입니다.** 비어 있으면 이 절 전체가 잠들고 라우트는 예전 그대로 돕니다.
+ *
+ * 파일럿을 세우지 않기 위한 규칙입니다. 값을 넣지 않은 배포에서는 토큰을 심지도(레이아웃),
+ * 요구하지도(여기) 않으므로 요청 계약이 한 글자도 바뀌지 않습니다.
+ */
+function readSharedSecret(): string {
+  return (process.env.COACH_SHARED_SECRET ?? "").trim();
+}
+
+/** 토큰 대조 결과 — 세 갈래입니다. */
+type TokenVerdict =
+  /** 유효한 표식이 붙었습니다(또는 비밀값이 없어 표식을 요구하지 않습니다) → 정상 예산 통 */
+  | "tokened"
+  /** 표식이 없습니다 → 작은 예산 통(옛 클라이언트가 그대로 동작합니다) */
+  | "anonymous"
+  /** 표식이 붙었는데 값이 어긋납니다 → 403 (계수기에 닿기 전입니다) */
+  | "invalid";
+
+/**
+ * 이 요청에 붙은 표식을 봅니다. **계수기보다 앞**에서 부릅니다.
+ *
+ * 값이 어긋난 표식만 403입니다. 표식이 아예 없는 요청은 막지 않습니다 — 요청 계약의 하위
+ * 호환을 지키기 위해서이고(옛 화면이 그대로 동작합니다), 대신 그 요청은 작은 예산 통으로
+ * 갑니다. 「없으면 통과, 틀리면 거절」이 이 함수의 전부입니다.
+ */
+async function checkToken(request: Request, secret: string): Promise<TokenVerdict> {
+  if (secret.length === 0) return "tokened";
+  const value = request.headers.get(COACH_TOKEN_HEADER)?.trim() ?? "";
+  if (value.length === 0) return "anonymous";
+  return (await verifyCoachToken(secret, value)) ? "tokened" : "invalid";
 }
 
 /** JSON 몸통이라고 선언한 요청만 받습니다 — 이 한 줄이 프리플라이트 없는 경로를 닫습니다. */
@@ -634,7 +705,7 @@ function promptFor(task: CoachTask, body: unknown): RelayPrompt | undefined {
  *  · `{ status: "rate_limited" }`  — 한도를 넘었습니다. 잠시 뒤 다시 청하면 됩니다.
  *  · `{ status: "upstream" }`      — 상류가 늦거나 실패했습니다.
  *  · 400 `{ status: "invalid" }`   — 기대 형태가 아닙니다.
- *  · 403 `{ status: "forbidden" }` — 다른 출처에서 왔거나 JSON 요청이 아닙니다.
+ *  · 403 `{ status: "forbidden" }` — 다른 출처에서 왔거나, JSON 요청이 아니거나, 표식이 어긋납니다.
  *
  * `task: "ping"`만 흐름이 다릅니다 — 설정 여부(`readConfig`)만 보고 곧장 답합니다.
  * 상류를 부르지 않고 한도도 쓰지 않으므로, 무대 직전 점검이 요금을 만들지 않습니다.
@@ -667,19 +738,39 @@ export async function POST(request: Request): Promise<Response> {
   // 작업별 몸통 상한 — 코칭·변주는 예전과 같은 8,192자에서 끊깁니다.
   if (raw.length > bodyLimitFor(task)) return json({ status: "invalid" }, 400);
 
-  // 점검용 분기 — 상류에 닿지 않는 유일한 작업입니다.
+  /*
+   * 점검용 분기 — 상류에 닿지 않는 유일한 작업입니다.
+   *
+   * 표식을 요구하지 않습니다. 상류를 부르지 않고 한도도 쓰지 않으므로 값어치가 없는 자리이고,
+   * 무대 직전 점검(/check)이 배포 설정에 따라 붉어지는 편이 더 나쁩니다.
+   */
   if (task === "ping") {
     return json(readConfig() ? { status: "ok" } : { status: "unconfigured" });
   }
 
-  const prompt = promptFor(task, body);
-  if (!prompt) return json({ status: "invalid" }, 400);
+  /*
+   * ③ 표식 — **계수기보다 앞**입니다. 어긋난 표식은 여기서 끝나고 예산을 한 칸도 쓰지 않습니다.
+   */
+  const verdict = await checkToken(request, readSharedSecret());
+  if (verdict === "invalid") return json({ status: "forbidden" }, 403);
 
   const config = readConfig();
   if (!config) return json({ status: "unconfigured" });
 
-  // 한도는 세 작업이 하나를 나눠 씁니다 — 비용은 요청 수로 나갑니다.
-  if (!takeSlot(clientIp(request), config.dailyCap)) return json({ status: "rate_limited" });
+  /*
+   * ④ 한도 — 세 작업이 계수기를 나눠 씁니다(비용은 요청 수로 나갑니다).
+   *
+   * **프롬프트 조립보다 앞**입니다. 예전에는 순서가 반대라, 400으로 끊길 요청이 한도를 한 칸도
+   * 쓰지 않은 채 JSON 파싱·정규식·프롬프트 조립 CPU를 무제한으로 태울 수 있었습니다.
+   * 지금은 몫을 먼저 집으므로 그 구간이 사라집니다 — 대가는 「형태가 틀린 요청도 몫을 쓴다」이고,
+   * 정상 클라이언트는 틀린 몸통을 보내지 않으므로 치를 만한 값입니다.
+   */
+  if (!takeSlot(clientIp(request), config.dailyCap, verdict === "tokened")) {
+    return json({ status: "rate_limited" });
+  }
+
+  const prompt = promptFor(task, body);
+  if (!prompt) return json({ status: "invalid" }, 400);
 
   const content = await relay(prompt, config, request.signal);
   if (content === undefined) return json({ status: "upstream" });

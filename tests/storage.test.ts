@@ -10,6 +10,8 @@
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  ADDRESS_KEY,
+  MAX_VISIT_ADDRESS_LEN,
   PROGRESS_KEY,
   REPORTS_KEY,
   SAVE_FAILED_BODY,
@@ -21,16 +23,20 @@ import {
   clearProgress,
   clearReports,
   clearSessions,
+  clearVisitAddress,
   deleteReport,
   deleteSession,
   loadAllProgress,
   loadProgress,
   loadReports,
   loadSessions,
+  loadVisitAddress,
   progressStepCount,
   saveProgress,
   saveReport,
   saveSession,
+  saveVisitAddress,
+  normalizeVisitAddress,
 } from "@/lib/storage";
 import type { RecordDraft, SessionRecord, SessionState } from "@/types";
 
@@ -481,5 +487,75 @@ describe("스키마 정화 — 깨진 레코드만 버리고 나머지는 살린
     const record = makeRecord({ greenChecks: ["가"], coachingPoints: ["나"], cfCount: 1 });
     saveSession(record);
     expect(loadSessions()).toEqual([record]);
+  });
+});
+
+/* ── 방문지 주소 ───────────────────────────────────────── */
+
+describe("방문지 주소", () => {
+  /**
+   * 다른 저장 항목과 성격이 다르다 — 「무엇을 했는가」가 아니라 「어디로 가는가」이고, 급할 때
+   * 119에 불러 줄 값이라 **사람이 직접 적어 넣는 유일한 주소**다. 그래서 다듬기·상한·지우기를
+   * 화면이 아니라 여기서 못 박는다. 이 칸은 기기 밖으로 나가는 경로가 하나도 없다.
+   */
+  it("줄바꿈·탭을 공백으로 낮추고 연속 공백을 하나로 줄인다", () => {
+    expect(normalizeVisitAddress("  ○○구 ○○로 00\n 101동 202호 ")).toBe("○○구 ○○로 00 101동 202호");
+    expect(normalizeVisitAddress("○○로\t\t00")).toBe("○○로 00");
+  });
+
+  it("문자열이 아니면 빈 값이다", () => {
+    for (const value of [undefined, null, 42, {}, ["○○로 00"]]) {
+      expect(normalizeVisitAddress(value)).toBe("");
+    }
+  });
+
+  it("120자를 넘으면 잘라 낸다", () => {
+    const long = "가".repeat(MAX_VISIT_ADDRESS_LEN + 40);
+    expect(normalizeVisitAddress(long)).toHaveLength(MAX_VISIT_ADDRESS_LEN);
+    expect(saveVisitAddress(long)).toBe(true);
+    expect(loadVisitAddress()).toHaveLength(MAX_VISIT_ADDRESS_LEN);
+  });
+
+  it("저장한 그대로 되읽힌다", () => {
+    expect(saveVisitAddress(" ○○구 ○○로 00  101동 202호 ")).toBe(true);
+    expect(loadVisitAddress()).toBe("○○구 ○○로 00 101동 202호");
+  });
+
+  it("적어 두지 않았으면 빈 문자열이다", () => {
+    expect(loadVisitAddress()).toBe("");
+  });
+
+  it("빈 값을 저장하면 지우기와 같다 — 「적어 두셨는데 아무것도 없는」 상태를 만들지 않는다", () => {
+    saveVisitAddress("○○구 ○○로 00");
+    expect(saveVisitAddress("   ")).toBe(true);
+    expect(loadVisitAddress()).toBe("");
+    expect(store.getItem(ADDRESS_KEY)).toBeNull();
+  });
+
+  it("지우면 남지 않는다", () => {
+    saveVisitAddress("○○구 ○○로 00");
+    clearVisitAddress();
+    expect(loadVisitAddress()).toBe("");
+    expect(store.getItem(ADDRESS_KEY)).toBeNull();
+  });
+
+  it("값이 훼손돼 있으면 빈 값으로 읽는다 (화면이 깨진 값을 크게 띄우지 않는다)", () => {
+    store.setItem(ADDRESS_KEY, JSON.stringify({ text: 42 }));
+    expect(loadVisitAddress()).toBe("");
+    store.setItem(ADDRESS_KEY, "이건 JSON이 아니다");
+    expect(loadVisitAddress()).toBe("");
+  });
+
+  it("저장에 실패하면 false를 돌려준다 (다른 쓰기와 같은 규율)", () => {
+    store.failOnWrite = true;
+    expect(saveVisitAddress("○○구 ○○로 00")).toBe(false);
+  });
+
+  it("훈련 기록·보고 기록과 자리를 나눠 쓰지 않는다", () => {
+    // 「이 기기의 기록 지우기」가 회차를 지우려다 방문지 주소까지 잃으면 다음 응급 때 화면이 빈다.
+    saveVisitAddress("○○구 ○○로 00");
+    clearSessions();
+    clearReports();
+    expect(loadVisitAddress()).toBe("○○구 ○○로 00");
   });
 });

@@ -358,7 +358,7 @@ export default function SafetyPage() {
     <PageShell>
       <ScreenHeader title="안전 설계" subtitle="판정은 지침이, 응급은 119가 합니다" />
 
-      <SafetyToc items={TOC} className="mt-3" />
+      <SafetyToc items={TOC} label="안전 설계 목차" className="mt-3" />
 
       {/* 1. 주장 → 2. 계측 → 3. 경로. 이 세 덩어리가 화면의 첫 인상입니다. */}
       <section aria-labelledby="tier-share-title" className="pt-3">

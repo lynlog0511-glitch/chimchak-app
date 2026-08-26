@@ -29,7 +29,7 @@ const JUDGE_LIGHT_MS = 1500;
 
 /** 작동 중인 계층만 면으로 표시합니다 — 선은 쓰지 않습니다(§1-4). */
 const ACTIVE_STYLE: Record<Tier, string> = {
-  L1: "bg-brand-100 text-brand-900",
+  L1: "bg-brand-tint text-brand-900",
   L2: "bg-warn-soft text-warn-ink",
   L3: "bg-danger-soft text-danger-ink",
 };

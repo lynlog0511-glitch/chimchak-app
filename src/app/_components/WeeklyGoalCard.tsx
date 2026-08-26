@@ -64,7 +64,7 @@ export function WeeklyGoalCard({ className }: WeeklyGoalCardProps) {
 
   return (
     /* 라운드·면·여백은 홈의 다른 회색 카드(첫 방문 안내·「하던 훈련」·3계층 밴드)와 같은 값입니다. */
-    <Card tone="quiet" padded={false} className={cx("px-[15px] py-[14px]", className)}>
+    <Card tone="paper-2" padded={false} className={cx("px-[15px] py-[14px]", className)}>
       <section aria-labelledby={titleId}>
         <EyebrowLabel id={titleId}>이번 주 목표</EyebrowLabel>
 

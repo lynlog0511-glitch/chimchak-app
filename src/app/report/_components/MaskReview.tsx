@@ -9,6 +9,7 @@ import {
   MASK_KIND_REASONS,
   MASK_TOKENS,
   countByKind,
+  hasPartialMask,
   maskSpansOnOriginal,
   maskText,
   type MaskKind,
@@ -115,7 +116,7 @@ type DisplayPart =
   | { type: "chip"; text: string; kind: MaskKind; manualIndex?: number };
 
 /** 낱말 앞뒤 문장부호는 가림에서 뺍니다 — 「어르신이,」에서 쉼표까지 가리면 문장이 무너집니다. */
-const LEADING_PUNCT = /^[("'\[{]+/;
+const LEADING_PUNCT = /^[("'[{]+/;
 const TRAILING_PUNCT = /[.,!?…"')\]}·:;]+$/;
 
 function splitWords(text: string, from: number, to: number): DisplayPart[] {
@@ -216,6 +217,8 @@ export function MaskReview({
   const display = useMemo(() => buildDisplay(text, merged), [text, merged]);
   const parts = useMemo(() => splitOriginal(text, merged), [text, merged]);
   const counts = useMemo(() => countByKind(result.spans), [result]);
+  /** 규칙이 값의 일부만 물고 지나갔는지 — 남은 숫자·붙임표 조각을 엔진이 판정합니다. */
+  const partial = useMemo(() => hasPartialMask(result), [result]);
   /** 다음 화면에서 만들 초안을 미리 보여 줍니다 — 같은 결정론 함수라 결과가 어긋나지 않습니다. */
   const preview = useMemo(() => extractDraft(result.masked), [result.masked]);
   const foundKinds = KIND_ORDER.filter((kind) => (counts[kind] ?? 0) > 0);
@@ -316,6 +319,16 @@ export function MaskReview({
         </p>
       )}
 
+      {/* 부분 가림 경고 — 규칙이 값의 일부만 물고 지나간 자리가 있으면 한 줄로 밝힙니다.
+          「N곳 가렸습니다」는 완전 처리 신호로 읽히는데, "110-123-[번호]"·"[주소] 12-3"처럼
+          앞뒤 조각이 남는 실측 사례가 있습니다. 바로 아래 「직접 가리기」로 이어지는 자리라
+          사용자가 읽은 다음에 할 일이 손에 닿습니다. */}
+      {partial && (
+        <p className="mb-[10px] text-[0.7813rem] leading-[1.6] font-semibold text-ink-soft">
+          일부만 가려졌을 수 있어요. 한 번 확인해 주세요.
+        </p>
+      )}
+
       {/* 수동 가리기 — 사전에 없는 이름을 놓쳤을 때 화면 안에서 끝내는 길입니다. */}
       <div className="mb-4">
         <button
@@ -408,7 +421,7 @@ export function MaskReview({
             </span>
             {/* 동봉 Pretendard cmap에 U+2304 `⌄`가 없어 OS 심볼 폰트로 떨어지던 자리입니다.
                 글리프는 상하대칭이라 group-open의 rotate-180이 광학 중심에서 돕니다. */}
-            <ChevronGlyph className="text-faint group-open:rotate-180" />
+            <ChevronGlyph className="text-ink-ghost group-open:rotate-180" />
           </summary>
 
           <div className="pb-4">

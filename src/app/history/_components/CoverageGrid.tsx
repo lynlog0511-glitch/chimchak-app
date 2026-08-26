@@ -140,7 +140,7 @@ export function CoverageGrid({
 
       {/* 아직 열지 않은 유형은 「—」로만 두면 이유를 알 수 없어, 아래 한 줄로 조용히 적어 둡니다. */}
       {pending.length > 0 && (
-        <p className="mt-[6px] text-[0.8438rem] leading-[1.45] text-tertiary">
+        <p className="mt-[6px] text-[0.8438rem] leading-[1.45] text-ink-faint">
           {pending.map((type) => TYPE_SHORT_LABELS[type]).join(" · ")}은 아직 열리지 않았습니다
         </p>
       )}

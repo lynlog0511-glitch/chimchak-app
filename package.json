@@ -6,6 +6,7 @@
     "dev": "next dev",
     "prebuild": "node scripts/stamp-sw.mjs && node scripts/split-audio-manifest.mjs",
     "build": "next build",
+    "postbuild": "node scripts/verify-sw-stamp.mjs",
     "start": "next start",
     "font": "python scripts/subset-font.py",
     "audio": "python scripts/synthesize-audio.py",

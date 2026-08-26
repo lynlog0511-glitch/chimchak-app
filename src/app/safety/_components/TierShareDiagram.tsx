@@ -64,7 +64,7 @@ const ROWS: readonly TierRow[] = [
   {
     label: "L2 채점",
     filled: 1,
-    bar: "bg-faint",
+    bar: "bg-ink-ghost",
     note: "규칙 사전",
     say: "L2 채점 단계 — 범위를 좁혔습니다. 판정은 규칙 사전이 합니다.",
   },

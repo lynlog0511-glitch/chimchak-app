@@ -24,6 +24,17 @@
  *          → S4 안전확보·대체행동(T4/CUE-4) → S5 보고·기록(CUE-5~7)
  *          (초조도 5 도달 시 위기 엔딩 → 재시도 1회 무벌점)
  *
+ * 2026-08-25 수정 — 현직 감수 재확인 대기
+ *  (1) ⚑CF 억제 분기 2곳(D1-b-CF·NA-b)에 규칙 사전의 예외어(RESTRAINT_EXCEPT_TERMS)를
+ *      연결했습니다. "제 팔 붙잡으세요"처럼 어르신께 청하는 꼴이 홑 어간 「붙잡」에 걸리던 자리입니다.
+ *  (2) 빈 조각 표지 제거 — D1-c의 「마음이」. 한 조각만으로 충족 판정이 되던 자리입니다.
+ *      폴백 문구는 「급하시」·「차 나가야」로 그대로 이 분기에 걸립니다.
+ *  (3) 미분류 분기 D1-n의 next를 같은 CUE(T1)로 돌렸습니다.
+ *
+ * 감수 안건(초안 — 이번 배치에서는 적용하지 않음)
+ *  - CUE-2 D2-a에 A01과 같은 선행 조건 게이트(감정 인정 먼저)를 걸지 여부.
+ *    야간·시설 조건에서 통증 탐색이 늦어지는 위험이 A01의 배뇨 탐색과 무게가 같은지 현직 판단이 필요합니다.
+ *
  * 판정 공정성 (8/6 감사 반영)
  *  - 모든 CUE에 **중립 미분류 분기**(…-n)를 두고 defaultBranchId를 그리로 돌렸습니다.
  *    말이 신호에 걸리지 않았다는 것과 잘못 대응했다는 것은 다른 사실입니다. 감점 분기는
@@ -33,6 +44,7 @@
  */
 
 import type { Scenario } from "@/types";
+import { RESTRAINT_EXCEPT_TERMS } from "@/engine/rules";
 
 /**
  * 중립 미분류 분기의 코칭 문구 — 감점이 아니라 **다시 말할 기회**입니다.
@@ -195,6 +207,7 @@ export const CHK_A02: Scenario = {
           {
             id: "D1-c",
             label: "감정 인정형",
+            // 홑 「마음이」는 뺐습니다 — 조각 하나로 충족이 되던 자리입니다(A01 D1-c와 같은 교정).
             patterns: [
               "늦으셨",
               "급하시",
@@ -203,7 +216,6 @@ export const CHK_A02: Scenario = {
               "차 나가야",
               "오래 하셨",
               "성실하",
-              "마음이",
               "그러시구나",
               "그러셨구나",
               "챙기셔야",
@@ -283,6 +295,7 @@ export const CHK_A02: Scenario = {
             id: "D1-b-CF",
             label: "지시·제지형 — 신체 접촉·문 잠금 (⚑CF)",
             patterns: RESTRAINT_PATTERNS,
+            except: RESTRAINT_EXCEPT_TERMS,
             gaugeDelta: 0,
             aiReaction: "이거 놔! 놓으라니까!",
             aiReactionNote: "지팡이를 짚은 채 몸을 뒤로 빼십니다.",
@@ -312,6 +325,7 @@ export const CHK_A02: Scenario = {
           },
           {
             // 미분류 전용 중립 분기 — 게이지 변동 0, 루브릭 반영 없음.
+            // next는 **같은 CUE**입니다 — 말이 닿지 않았다고 다음 장면으로 떠밀지 않습니다.
             id: "D1-n",
             label: "무응답·미분류",
             patterns: [],
@@ -320,7 +334,7 @@ export const CHK_A02: Scenario = {
             rubricHits: [],
             coaching: UNCLEAR_COACHING,
             docId: "DOC-GUIDE-001",
-            next: "T-N1",
+            next: "T1",
           },
         ],
       },
@@ -400,6 +414,7 @@ export const CHK_A02: Scenario = {
             id: "NA-b",
             label: "신체 억제·문 잠금 (⚑CF)",
             patterns: RESTRAINT_PATTERNS,
+            except: RESTRAINT_EXCEPT_TERMS,
             fallbackOption: "몸으로 문을 막고 자동문을 잠급니다",
             gaugeDelta: 0,
             aiReaction: "놓으세요! 이거 왜 이래요!",

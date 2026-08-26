@@ -56,7 +56,7 @@ export function FirstVisitHint({ className }: FirstVisitHintProps) {
        사라진 날에도 그 자리에 간격이 남거나(또는 겹쳐서) 첫 화면 리듬이 방문마다 달라집니다.
        패딩도 같은 홈의 회색 카드들(「하던 훈련」·3계층 밴드 15/14px)과 한 단으로 맞췄습니다 —
        Card 기본값 p-5(20px)만 혼자 커서 카드 세 장이 서로 다른 폭의 여백을 갖고 있었습니다. */
-    <Card tone="quiet" padded={false} className={cx("px-[15px] py-[14px]", className)}>
+    <Card tone="paper-2" padded={false} className={cx("px-[15px] py-[14px]", className)}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           {/* 「마이크 없이 버튼만으로」는 각주가 아니라 이 앱을 처음 여는 사람을 붙잡아 두는

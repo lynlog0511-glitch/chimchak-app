@@ -40,6 +40,12 @@ import { getRubricItem } from "@/data/rubric";
 import { checkEvidence, type EvidenceGuard } from "@/engine/evidence";
 import { maskText } from "@/engine/masking";
 import type { CueDef, Scenario } from "@/types";
+import {
+  COACH_TOKEN_HEADER,
+  COACH_TOKEN_LENGTH,
+  COACH_TOKEN_META,
+  coachTokenWindow,
+} from "./coachLimits";
 import { getSettings, type OnlineCoachingSettings } from "./settings";
 
 /* ── 문구·상수 ─────────────────────────────────────────── */
@@ -461,6 +467,52 @@ function isAbortError(error: unknown): boolean {
   return error instanceof Error && error.name === "AbortError";
 }
 
+/* ── 요청 헤더 ─────────────────────────────────────────── */
+
+/**
+ * 서버 렌더가 문서에 심어 둔 **단기 토큰 표식**을 읽습니다 (없으면 `undefined`).
+ *
+ * 심는 쪽은 `src/app/layout.tsx`이고, 심는 조건은 배포에 `COACH_SHARED_SECRET`이 설정돼
+ * 있을 때뿐입니다. 비밀값이 없는 배포(기본 빌드·파일럿)에서는 meta 자체가 없으므로 이 함수는
+ * 언제나 `undefined`를 돌려주고, 요청은 예전과 **한 글자도 다르지 않게** 나갑니다.
+ *
+ * meta 값은 `창번호.토큰` 꼴입니다. 창 번호를 함께 읽는 이유는 **낡은 값을 스스로 걷어 내기
+ * 위해서**입니다 — 앱 안 이동은 서버 렌더를 다시 타지 않으므로 한 판을 길게 훈련하면 심어 둔
+ * 토큰이 창을 넘어섭니다. 그때 낡은 값을 그대로 보내면 서버가 403을 돌려주고 코칭이 조용히
+ * 접히는데, 아예 보내지 않으면 「토큰 없는 요청」으로 다뤄져 훈련이 이어집니다.
+ * 비밀값을 이 기기가 아는 일은 없습니다 — 읽는 것은 서버가 계산해 준 결과 한 줄뿐입니다.
+ */
+function readCoachToken(now: number): string | undefined {
+  if (typeof document === "undefined") return undefined;
+  const content = document
+    .querySelector(`meta[name="${COACH_TOKEN_META}"]`)
+    ?.getAttribute("content")
+    ?.trim();
+  if (!content) return undefined;
+
+  const dot = content.indexOf(".");
+  if (dot <= 0) return undefined;
+  const window = Number.parseInt(content.slice(0, dot), 10);
+  const token = content.slice(dot + 1);
+  if (!Number.isFinite(window) || token.length !== COACH_TOKEN_LENGTH) return undefined;
+  // 서버는 현재 창과 직전 창만 받습니다. 그보다 낡았으면 보내지 않습니다.
+  return coachTokenWindow(now) - window > 1 ? undefined : token;
+}
+
+/**
+ * `/api/coach`로 나가는 요청의 헤더 한 벌 — **세 호출자가 이 함수 하나를 나눠 씁니다**
+ * (코칭·대사 변주·자유 연습). 헤더를 세 곳에 손으로 적어 두면 어느 날 한 곳만 고쳐집니다.
+ *
+ * @example
+ * await fetch(COACH_ENDPOINT, { method: "POST", headers: coachRequestHeaders(), body });
+ */
+export function coachRequestHeaders(now: number = Date.now()): Record<string, string> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const token = readCoachToken(now);
+  if (token) headers[COACH_TOKEN_HEADER] = token;
+  return headers;
+}
+
 /** 중계 응답을 읽은 결과 — 원문 한 덩어리이거나, 조용히 되돌아갈 까닭이거나. */
 type RelayResult =
   | { status: "ok"; content: string }
@@ -507,7 +559,7 @@ export async function requestOnlineCoaching(
   try {
     const response = await doFetch(COACH_ENDPOINT, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: coachRequestHeaders(),
       signal: controller.signal,
       // 나가는 것은 이 다섯 칸뿐입니다 — 발화는 이미 가명처리를 지났습니다(buildCoachRequest).
       body: JSON.stringify(request),

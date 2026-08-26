@@ -85,8 +85,23 @@ export function ProtocolPlayer({ title, steps, backHref }: ProtocolPlayerProps) 
   return (
     <div>
       {/* 상단 — 「‹ 안내 종료」 + 「{프로토콜명} · N / M」 + danger 진행바 + 119 버튼.
-          스크롤해도 이 덩어리는 화면에 남습니다. */}
-      <div className="sticky top-0 z-30 -mx-[20px] bg-paper px-[20px] pt-[2px] pb-3">
+          스크롤해도 이 덩어리는 화면에 남습니다.
+
+          도킹 기준선은 0이 아니라 **안전 영역 아래**입니다(2026-08-26). `viewportFit: "cover"`
+          (layout.tsx)로 레이아웃 뷰포트가 노치 밑까지 확장되는데, sticky의 `top`은 스크롤포트
+          상단을 기준으로 하므로 조상(`.chim-screen`)의 `padding-top: var(--chim-safe-t)`이
+          이 기준선을 옮겨 주지 못합니다. `top-0`이던 동안에는 스크롤하는 순간 「{프로토콜명} ·
+          N / M」과 119 버튼이 상태바·다이내믹 아일랜드 아래로 들어갔습니다 — 아이폰 시연에서
+          가장 먼저 눈에 띄는 자리입니다(페르소나 FE, 1차·2차 연속 지적).
+          예전 해법이던 `.chim-topbar` 유틸리티는 「참조 0건」으로 지워졌으므로 변수를 직접 씁니다. */}
+      <div className="sticky top-[var(--chim-safe-t)] z-30 -mx-[20px] bg-paper px-[20px] pt-[2px] pb-3">
+        {/* 노치 띠 — 바 위로 지나가는 내용을 화면 색으로 덮습니다. 높이가 `--chim-safe-t`라
+            노치 없는 기기·데스크톱에서는 0px이고, 프레임 폭으로 잘라 두어 480px↑에서
+            지면(paper-out) 위로 흰 띠가 번지지 않습니다. */}
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-x-0 top-0 mx-auto h-[var(--chim-safe-t)] max-w-[var(--chim-frame-w)] bg-paper"
+        />
         <div className="flex items-center gap-3">
           <Link
             href={backHref}
@@ -181,7 +196,7 @@ export function ProtocolPlayer({ title, steps, backHref }: ProtocolPlayerProps) 
         {step?.address && <ProtocolAddressCard address={step.address} className="mt-4" />}
 
         {preview && (
-          <p className="mt-4 text-[0.8438rem] leading-[1.6] text-tertiary">다음 — {preview}</p>
+          <p className="mt-4 text-[0.8438rem] leading-[1.6] text-ink-faint">다음 — {preview}</p>
         )}
       </div>
 

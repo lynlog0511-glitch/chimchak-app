@@ -199,7 +199,7 @@ function LineBubble({
     return (
       <div className="animate-fade-up">
         {trigger}
-        <p className="text-center text-[0.7813rem] leading-[1.6] text-tertiary">{text}</p>
+        <p className="text-center text-[0.7813rem] leading-[1.6] text-ink-faint">{text}</p>
         {note && <p className="mt-1 text-center text-[0.7813rem] leading-[1.6] text-ink-faint">{note}</p>}
       </div>
     );
@@ -379,7 +379,7 @@ function LearnerBubble({ item }: { item: Extract<LogItem, { kind: "learner" }> }
     <div className="animate-fade-up flex justify-end">
       <div className="min-w-0 max-w-[85%]">
         <div
-          className="rounded-[18px_4px_18px_18px] bg-tint px-[15px] py-[12px] text-[1.0625rem] leading-[1.6] text-deep"
+          className="rounded-[18px_4px_18px_18px] bg-brand-tint px-[15px] py-[12px] text-[1.0625rem] leading-[1.6] text-brand-on-tint"
         >
           {item.text}
         </div>
@@ -583,9 +583,11 @@ export function DialogueLog({
   return (
     <div
       role="log"
-      /* 소리를 켜 두신 동안에는 리전을 읽지 않습니다 — role="log"만 남습니다.
-         「소리 끄기」를 누르셨을 때만 polite로 올려, 새 대사가 글로 전해집니다. */
-      aria-live={voiceOn ? "off" : "polite"}
+      /* 소리를 켜 두신 동안에는 리전을 읽지 않습니다 — `aria-live="off"`로 내립니다.
+         소리를 끄시면 **속성을 아예 걷습니다**: `role="log"`에는 `aria-live="polite"`가 이미
+         함축이라, 같은 뜻을 한 번 더 적는 것이 중복 지적으로 두 라운드 남아 있던 자리입니다
+         (페르소나 FE low). 동작은 예전과 같고, 화면당 라이브 리전 수만 줄어듭니다. */
+      aria-live={voiceOn ? "off" : undefined}
       aria-label="대화 기록"
       className={cx("space-y-[18px]", className)}
     >
@@ -634,7 +636,7 @@ export function DialogueLog({
                   "animate-fade-up rounded-card px-4 py-3 text-[0.8438rem] leading-[1.6] font-bold",
                   item.tone === "danger"
                     ? "bg-danger-soft text-danger-ink"
-                    : "bg-tint text-brand-800",
+                    : "bg-brand-tint text-brand-800",
                 )}
               >
                 {item.text}

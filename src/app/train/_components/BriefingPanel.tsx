@@ -7,12 +7,19 @@ import Link from "next/link";
 import { BackGlyph, BigButton, InlineDisclaimer, SourceChip } from "@/components";
 import { progressStepCount, type SessionProgress } from "@/lib/storage";
 import type { PersonaDef, Scenario, ScenarioType } from "@/types";
-import { FICTION_NOTICE, initialOf, PRACTICE_LINE, ROLE_LABEL } from "./constants";
+import {
+  FICTION_NOTICE,
+  initialOf,
+  MIC_CHECKING_LINE,
+  PRACTICE_LINE,
+  ROLE_LABEL,
+  type MicCheck,
+} from "./constants";
 
 export interface BriefingPanelProps {
   scenario: Scenario;
-  /** 마이크를 쓸 수 있는 환경인지 — 폴백 안내 문구를 바꿉니다 */
-  micSupported: boolean;
+  /** 마이크를 쓸 수 있는 환경인지 — 판정 전(`unknown`)에는 단정하지 않습니다 */
+  micCheck: MicCheck;
   onStart: () => void;
   /** 이 시나리오에 진행하던 훈련이 남아 있으면 맨 위에 「이어서 하기」 카드를 띄웁니다 */
   checkpoint?: SessionProgress | null;
@@ -51,6 +58,66 @@ function objectiveText(raw: string): string {
     .replace(/^LO-\d+\s*/, "")
     .replace(/\s*\([^()]*\)\s*$/, "")
     .trim();
+}
+
+/**
+ * 「오늘 연습할 것」에 실을 **사용자 말** — 시나리오 id + LO 번호로 찾습니다.
+ *
+ * 데이터의 학습목표는 교재 문장입니다(「대상자의 정서를 언어로 먼저 인정합니다」).
+ * 설계·감수가 읽는 자리에서는 그 문장이 옳고, 그래서 **데이터는 한 글자도 바꾸지 않습니다** —
+ * 「이 훈련의 설계 보기」 접힘 안에는 그 교재 문장이 그대로 남아 있습니다.
+ *
+ * 다만 시작 버튼 위 「오늘 연습할 것」은 훈련하러 오신 분이 **지금 무엇을 해 볼지** 고르는
+ * 자리입니다. 거기에서 「정서를 언어로 인정」을 읽으면, 목표가 아니라 시험 범위로 읽힙니다
+ * (2026-08-25 · 페르소나 현직 P2). 같은 목표를 그 자리에서 할 일의 말로 적습니다.
+ *
+ * 키는 `CHK-A01 LO-1` 꼴이고 원문 머리에서 그대로 만듭니다. 표에 없는 목표가 들어오면
+ * 조용히 원문(`objectiveText`)으로 물러섭니다 — 데이터가 늘어도 화면이 비지 않습니다.
+ */
+const OBJECTIVE_TODO: Record<string, string> = {
+  "CHK-A01 LO-1": "바로잡기 전에 마음부터 알아드리기",
+  "CHK-A01 LO-2": "왜 나가려 하시는지 여쭤보기 — 몸이 불편한지, 자리가 불편한지",
+  "CHK-A01 LO-3": "붙잡지 않고 안전하게 모시기",
+  "CHK-A01 LO-4": "적어 둘 일인지 가리고, 본 대로 보고하기",
+
+  "CHK-A02 LO-1": "막기 전에 마음부터 알아드리기",
+  "CHK-A02 LO-2": "아프신지, 화장실인지, 방이 불편한지 하나씩 여쭤보기",
+  "CHK-A02 LO-3": "아프다고 하시면 제 선을 지키고 당직 간호사께 넘기기",
+  "CHK-A02 LO-4": "붙잡지 않고 안전하게, 다른 분 앞에서 어르신 사정 말하지 않기",
+  "CHK-A02 LO-5": "밤에 있었던 일을 본 대로 일지와 보고에 남기기",
+
+  "CHK-B01 LO-1": "정신이 드시는지, 어디가 아프신지, 피가 나는지 보이는 대로 확인하기",
+  "CHK-B01 LO-2": "일으키지 않고, 왜 그대로 계셔야 하는지 말씀드리기",
+  "CHK-B01 LO-3": "혼자 판단하지 않고 119나 간호사께 연결하기",
+  "CHK-B01 LO-4": "보호자께는 확인된 것만 전하고, 기관에도 남기기",
+
+  "CHK-B02 LO-1": "기침이 나오는지 멎었는지 보고 1분 안에 가리기",
+  "CHK-B02 LO-2": "제가 해도 되는 것까지만 하기 — 살피기·자세 잡기·알리기·119",
+  "CHK-B02 LO-3": "숨이 막히면 곧바로 119, 그다음은 상황실이 하라는 대로",
+  "CHK-B02 LO-4": "구급대와 기관에 순서대로 인계하기 — 언제·무엇을·어떻게 했는지",
+
+  "CHK-C01 LO-1": "해 드릴 수 없는 일은 까닭을 대고 거절하기",
+  "CHK-C01 LO-2": "마음 알아드리고 · 안 되는 까닭 말하고 · 대신 할 일 드리기",
+  "CHK-C01 LO-3": "심한 말을 들어도 맞받지 않고, 멈춰 달라 청하고 자리를 떼고 보고하기",
+  "CHK-C01 LO-4": "어르신 앞에서 다투는 모습 보이지 않기",
+  "CHK-C01 LO-5": "속상한 마음은 빼고, 있었던 일만 적기",
+
+  "CHK-C02 LO-1": "본 것과 아직 모르는 것을 갈라서 말하기",
+  "CHK-C02 LO-2": "보고할 일인지 가리고, 어디로 올라가는지 말씀드리기",
+  "CHK-C02 LO-3": "묶어 달라는 요구는 근거를 대고 거절하고, 대신 할 일 드리기",
+  "CHK-C02 LO-4": "몰아세워도 말을 바꾸지 않고 절차와 인계로 옮기기",
+  "CHK-C02 LO-5": "어르신 앞에서 다투지 않고, 다른 분 이야기는 옮기지 않기",
+};
+
+/**
+ * 학습목표 한 줄을 「오늘 연습할 것」의 말로 바꿉니다.
+ *
+ * @example objectiveTodo("CHK-A01", "LO-1 사실을 정정하기 전에 …") // "바로잡기 전에 마음부터 알아드리기"
+ */
+function objectiveTodo(scenarioId: string, raw: string): string {
+  const code = /^(LO-\d+)/.exec(raw.trim())?.[1];
+  const mapped = code ? OBJECTIVE_TODO[`${scenarioId} ${code}`] : undefined;
+  return mapped ?? objectiveText(raw);
 }
 
 /**
@@ -194,7 +261,7 @@ function ResumeBlock({
  */
 export function BriefingPanel({
   scenario,
-  micSupported,
+  micCheck,
   onStart,
   checkpoint,
   onResume,
@@ -324,13 +391,15 @@ export function BriefingPanel({
 
       <div className="mt-4 border-b border-line">
         <Fold title={`오늘 연습할 것 ${scenario.objectives.length}가지`}>
+          {/* 교재 문장이 아니라 오늘 해 볼 일로 적습니다 — 교재 문장은 아래
+              「이 훈련의 설계 보기」에 그대로 있습니다(데이터 무변경). */}
           <ul className="space-y-2">
             {scenario.objectives.map((objective) => (
               <li key={objective} className="flex gap-2 text-[0.8438rem] leading-[1.6] text-ink-soft">
                 <span aria-hidden className="flex-none text-ink-ghost">
                   ·
                 </span>
-                <span>{objectiveText(objective)}</span>
+                <span>{objectiveTodo(scenario.id, objective)}</span>
               </li>
             ))}
           </ul>
@@ -369,11 +438,15 @@ export function BriefingPanel({
 
         <Fold title="응답 방법 · 마이크 권한 안내">
           <ul className="space-y-2.5 text-[0.8438rem] leading-[1.6] text-ink-soft">
+            {/* 아직 판정이 나지 않았으면 「쓸 수 없습니다」라고 단정하지 않습니다 —
+                되는 기기에서도 첫 프레임이 그 말을 하고 있었습니다(2026-08-25). */}
             <li>
               <span className="font-bold text-ink">말하기 — </span>
-              {micSupported
-                ? "마이크 버튼을 처음 누르면 브라우저가 마이크 허용을 물어봅니다. ‘허용’을 누르신 뒤, 버튼을 꾹 누른 채로 말씀하시고 다 말씀하시면 손을 떼세요. 허용하지 않으셔도 버튼과 직접 입력으로 끝까지 하실 수 있습니다."
-                : "이 기기에서는 음성 인식을 쓸 수 없습니다. 버튼과 직접 입력만으로 끝까지 진행하실 수 있습니다."}
+              {micCheck === "unknown"
+                ? `${MIC_CHECKING_LINE}. 버튼과 직접 입력은 지금도 그대로 쓰실 수 있습니다.`
+                : micCheck === "yes"
+                  ? "마이크 버튼을 처음 누르면 브라우저가 마이크 허용을 물어봅니다. ‘허용’을 누르신 뒤, 버튼을 꾹 누른 채로 말씀하시고 다 말씀하시면 손을 떼세요. 허용하지 않으셔도 버튼과 직접 입력으로 끝까지 하실 수 있습니다."
+                  : "이 기기에서는 음성 인식을 쓸 수 없습니다. 버튼과 직접 입력만으로 끝까지 진행하실 수 있습니다."}
             </li>
             <li>
               <span className="font-bold text-ink">고르기 — </span>

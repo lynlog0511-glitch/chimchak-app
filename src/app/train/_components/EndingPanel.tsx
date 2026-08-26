@@ -359,7 +359,7 @@ function CriticalSceneCard({
         <details className="group mt-1.5">
           <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-1.5 rounded-field text-[0.7813rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper-2 [&::-webkit-details-marker]:hidden">
             <span className="underline decoration-1 underline-offset-[3px]">근거 조문 보기</span>
-            <ChevronGlyph size="sm" className="text-faint group-open:rotate-180" />
+            <ChevronGlyph size="sm" className="text-ink-ghost group-open:rotate-180" />
           </summary>
           <p className="border-t border-line pt-2 pb-1 text-[0.8438rem] leading-[1.6] text-ink-soft">
             {law}
@@ -376,7 +376,7 @@ function CriticalSceneCard({
         <details className="group mt-1">
           <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-1.5 rounded-field text-[0.7813rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper-2 [&::-webkit-details-marker]:hidden">
             <span className="underline decoration-1 underline-offset-[3px]">대안 다시 보기</span>
-            <ChevronGlyph size="sm" className="text-faint group-open:rotate-180" />
+            <ChevronGlyph size="sm" className="text-ink-ghost group-open:rotate-180" />
           </summary>
           <ul className="pb-1">
             {alternatives.map((alternative) => (

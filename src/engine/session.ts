@@ -85,6 +85,11 @@ export interface FeedbackTrace {
   source: TraceSource;
   /** 분기 판정 신호 중 실제로 걸린 문자열 (예: "집에 가야") */
   matchedPattern?: string;
+  /**
+   * 요소 개수 판정(보고 CUE)에서 실제로 걸린 요소 이름 — 예: ["시각", "행위·조치", "현재 상태"].
+   * 이 값이 있으면 「무엇이 들어 있어서 이 판정이 나왔는가」를 화면이 그대로 말할 수 있다.
+   */
+  matchedElements?: string[];
   /** 규칙 사전에서 발동한 규칙 id (예: "CF-RESTRAINT") */
   ruleId?: string;
   /** 규칙 이름 (예: "신체 자유 제한") */
@@ -100,6 +105,11 @@ export interface FeedbackTrace {
   callDelaySec?: number;
   /** 근거 문서가 화이트리스트 밖이라 판정을 멈췄다 (evidence.ts) */
   evidenceBlocked?: boolean;
+  /**
+   * 선행 조건 게이트가 다른 분기로 옮겼을 때, **원래 걸렸던** 분기 id.
+   * 맞는 말이지만 순서가 일렀다는 뜻이다(BranchDef.requiresPriorBranchIds).
+   */
+  gatedFrom?: string;
 }
 
 /** 판정 근거를 함께 실어 나르는 TurnFeedback (계약은 그대로, 필드만 옵셔널로 확장) */
@@ -327,7 +337,7 @@ export function submitResponse(
       };
       // ⚑CF 점수는 scores에 병합하지 않는다. cfCount가 §4.6 규칙 1)로 이미 종합 판정을
       // '재훈련'으로 고정하므로, 여기서 항목 점수까지 1점으로 굳히면 인터럽트 화면의
-      // "같은 지점부터 다시 하실 수 있고 벌점은 없습니다"와 어긋난다.
+      // "같은 장면에서 다시 해 보기 / 점수는 매기지 않습니다"와 어긋난다.
       const nextState: SessionState = {
         ...state,
         status: "interrupted",
@@ -340,7 +350,30 @@ export function submitResponse(
 
   // 2) 분기 결정
   const classified = classifyInput(cue, { utterance, branchId: input.branchId });
-  const branch = classified.branch;
+  let branch = classified.branch;
+
+  /* 2.5) 선행 조건 게이트 — 「맞는 말인데 순서가 일렀다」를 가른다.
+     같은 말도 앞에 무엇이 있었느냐로 어르신의 반응이 달라진다. 감정을 먼저 알아드리지 않고
+     곧바로 배뇨를 확인하면 현장에서는 반발이 돌아온다(현직 검증).
+     조건은 데이터가 적고(requiresPriorBranchIds·unmetBranchId) 여기서는 세션 기록만 본다 —
+     SessionState에 새 필드를 두지 않는다.
+     버튼으로 고른 경우에도 똑같이 적용한다. 이것은 「버튼보다 앞서는 판정」이 아니라
+     그 분기 데이터 자신이 적어 둔 조건이다. */
+  const gate = branch.requiresPriorBranchIds;
+  let gatedFrom: string | undefined;
+  if (gate && gate.length > 0 && branch.unmetBranchId) {
+    const passed = new Set<string>();
+    for (const event of state.events) {
+      if (event.feedback && !event.feedback.criticalFail) passed.add(event.feedback.branchId);
+    }
+    if (!gate.some((id) => passed.has(id))) {
+      const unmet = findBranch(cue, branch.unmetBranchId);
+      if (unmet) {
+        gatedFrom = branch.id;
+        branch = unmet;
+      }
+    }
+  }
 
   // 3) 분기 자체가 ⚑CF
   if (branch.criticalFail) {
@@ -358,8 +391,10 @@ export function submitResponse(
       trace: {
         source: classified.source,
         matchedPattern: classified.matchedPattern,
+        matchedElements: classified.matchedElements,
         itemIds: uniqueItemIds(hits),
         evidenceBlocked: branchEvidence.allowed ? undefined : true,
+        gatedFrom,
       },
     };
     const event: SessionEvent = {
@@ -437,10 +472,12 @@ export function submitResponse(
     trace: {
       source: classified.source,
       matchedPattern: classified.matchedPattern,
+      matchedElements: classified.matchedElements,
       itemIds: uniqueItemIds(hits),
       advisoryLabels: advisoryLabels.length > 0 ? advisoryLabels : undefined,
       callDelaySec: callDelay?.elapsedSec,
       evidenceBlocked: evidence.allowed ? undefined : true,
+      gatedFrom,
     },
   };
 

@@ -75,7 +75,7 @@ function Field({
           autoComplete="off"
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="chim-num min-h-[48px] w-full min-w-0 rounded-card border border-line-strong bg-white px-[13px] text-[0.9375rem] leading-[1.6] font-bold text-ink focus:border-brand-400"
+          className="chim-num min-h-[48px] w-full min-w-0 rounded-card border border-line-strong bg-white px-[13px] text-[0.9375rem] leading-[1.6] font-bold text-ink"
         />
         <span className="flex-none text-[0.8438rem] leading-[1.45] text-ink-soft">{unit}</span>
       </div>
@@ -127,7 +127,10 @@ export function OrgScaleCalculator({ measuredSec }: OrgScaleCalculatorProps) {
         <b className="font-bold text-ink">저장되지 않습니다</b>. 화면을 닫으면 사라집니다.
       </p>
 
-      <div className="mt-[12px] flex flex-col gap-[12px] sm:flex-row sm:gap-[16px]">
+      {/* 뷰포트 분기(`sm:`)를 걷어냈습니다(2026-08-26) — 이 상자는 430px 프레임 안이라
+          브레이크포인트가 보는 창 폭과 내용 폭이 서로 다른 값이었습니다. 창을 넓히면 두 입력칸이
+          같은 자리에서 좁아지기만 했습니다(페르소나 디자이너 med). 한 줄에 하나로 고정합니다. */}
+      <div className="mt-[12px] flex flex-col gap-[12px]">
         <Field
           id={staffId}
           label="우리 기관 인원"

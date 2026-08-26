@@ -38,6 +38,16 @@ export function generateStaticParams(): { id: string }[] {
   return SCENARIOS.map((scenario) => ({ id: scenario.id.toLowerCase() }));
 }
 
+/**
+ * 목록에 없는 id는 404로 보냅니다 — 응급 상세(`emergency/[id]/page.tsx`)와 같은 규격입니다.
+ *
+ * 아래 `notFound()`가 이미 받아 주므로 화면 동작은 달라지지 않습니다. 달라지는 것은 **경로**입니다:
+ * 이 선언이 없으면 알 수 없는 id가 정적 라우트가 아니라 요청 시점 서버 렌더로 떨어져, 두 동적
+ * 라우트가 다른 규칙을 따르게 됩니다(페르소나 FE P2). 시나리오는 빌드 시점에 전부 아는 목록이라
+ * 열어 둘 이유가 없습니다.
+ */
+export const dynamicParams = false;
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
   const scenario = getScenario(id);

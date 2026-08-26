@@ -53,6 +53,7 @@ import {
   BANNED_PHRASES,
   COACH_ENDPOINT,
   citableDocRefs,
+  coachRequestHeaders,
   extractJson,
   findBannedExpression,
   type CoachDocRef,
@@ -213,7 +214,7 @@ export const FREE_FICTION_NOTICE =
  */
 export const FREE_CONSENT_LINES: readonly string[] = [
   "자유 연습에서는 대화가 외부 AI로 전송됩니다. 상황 훈련과 달리 기기 밖으로 나갑니다.",
-  "하신 말씀과 「상황 만들기」에 적어 주신 한 줄은 모두 기기 안 가림 처리를 지나서 나갑니다 — 성명·번호·이메일·주소 링크·기관명·주소·생년으로 보이는 표현을 규칙으로 찾아 가립니다. 다만 모든 표현을 빠짐없이 찾는다고 보증하지는 못합니다. 특히 로마자로 적은 이름(Mary Kim)·글자를 띄어 쓴 이름(김 민 수)·메신저 아이디처럼 생긴 말은 규칙이 닿지 않으니, 실제 인물의 정보는 적지도 말씀하지도 말아 주십시오.",
+  "하신 말씀과 「상황 만들기」에 적어 주신 한 줄은 모두 기기 안 가림 처리를 지나서 나갑니다 — 성명·번호·이메일·주소 링크·기관명·주소·생년으로 보이는 표현을 규칙으로 찾아 가립니다. 다만 모든 표현을 빠짐없이 찾는다고 보증하지는 못합니다. 특히 로마자로 적은 이름(Mary Kim)·글자를 띄어 쓴 이름(김 민 수)·메신저 아이디·차량번호처럼 생긴 말은 규칙이 닿지 않으니, 실제 인물의 정보는 적지도 말씀하지도 말아 주십시오.",
   "대화는 저장되지 않습니다. 화면을 벗어나면 사라지고, 기기에 남는 것은 연습 횟수 하나뿐입니다.",
   "채점하지 않습니다 — 판정도 게이지도 기록도 남기지 않고, 내 이력에도 올라가지 않습니다.",
   "마이크를 쓰시면 음성 인식은 브라우저 기능이라 제조사 서버를 경유할 수 있습니다. 타이핑만 쓰시면 이 구간이 없습니다.",
@@ -663,7 +664,8 @@ async function relayFree(
   try {
     const response = await doFetch(FREE_ENDPOINT, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      // 헤더 한 벌은 코칭·변주와 **같은 함수**가 만듭니다(`onlineCoach.ts`) — 단기 토큰 표식 포함.
+      headers: coachRequestHeaders(),
       signal: controller.signal,
       body: JSON.stringify({ task: "free", ...request }),
     });

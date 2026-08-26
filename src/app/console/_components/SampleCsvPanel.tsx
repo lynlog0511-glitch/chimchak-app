@@ -74,7 +74,11 @@ export function SampleCsvPanel() {
         올리시면 됩니다.
       </p>
 
-      <div className="mt-[12px] flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+      {/* 뷰포트 분기(`sm:`)를 걷어냈습니다(2026-08-26) — 화면은 어느 뷰포트에서도 430px 프레임
+          하나라, 여기 걸린 브레이크포인트는 **내용 폭이 아니라 창 폭**을 봤습니다. 그래서 창을
+          넓힐수록 같은 348px 자리의 버튼이 189px로 줄고 오른쪽에 누더기 여백이 남았습니다
+          (페르소나 디자이너 med 실측 — 심사는 노트북·프로젝터 폭에서 벌어집니다). */}
+      <div className="mt-[12px] flex flex-col gap-2">
         {SAMPLE_FILES.map((spec) => (
           <BigButton
             key={spec.key}

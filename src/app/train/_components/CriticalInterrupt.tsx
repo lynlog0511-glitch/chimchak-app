@@ -21,7 +21,7 @@ export interface CriticalInterruptProps {
  *
  * 치명적 실패는 생성 모델이 아니라 규칙 사전과 시나리오 데이터가 판정합니다.
  * 화면은 즉시 멈추고, 왜 멈췄는지·무엇을 할 수 있었는지만 보여 준 뒤 같은 지점으로 돌려보냅니다.
- * (점수·등급은 표시하지 않습니다. 재시도에 벌점도 없습니다.)
+ * (점수·등급은 표시하지 않습니다. 다시 하셔도 매기는 점수가 없습니다.)
  *
  * 빨강은 10px 점 하나뿐입니다 — 헤더 밴드도 좌측 액센트 바도 두지 않습니다.
  */
@@ -171,7 +171,7 @@ export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalI
         {/* 주 CTA — 내용이 아무리 길어도 여기 남습니다.
             경계는 헤어라인 한 줄로만 긋습니다(가이드 §7-4 그라데이션 0건). */}
         <div className="flex-none border-t border-line px-5 pt-3 pb-[calc(28px_+_var(--chim-safe-b))]">
-          {/* 제품 안전 서사의 착지점입니다 — 멈춰 세운 사람을 벌점 없이 되돌려 보내는 문.
+          {/* 제품 안전 서사의 착지점입니다 — 멈춰 세운 사람을 점수 없이 되돌려 보내는 문.
               한때 손으로 만든 54px/16px 버튼이었습니다. 공용 규격(56px/17px)과 비율 1.04·1.06이라
               「작은 버튼」으로 읽히지도 않는, 그냥 어긋난 값이었고 라벨은 코어 하한 17px에도
               못 미쳤습니다(디자이너 검증). 공용 컴포넌트로 되돌립니다.
@@ -183,9 +183,16 @@ export function CriticalInterrupt({ feedback, alternatives, onRetry }: CriticalI
             }}
           >
             <BigButton size="lg" block onClick={() => leave()} className="font-bold">
-              같은 장면에서 다시 해 보기 — 벌점 없음
+              같은 장면에서 다시 해 보기
             </BigButton>
           </div>
+
+          {/* 라벨에 감점 이야기를 붙여 두면, 멈춰 세운 화면에서 그 낱말이 가장 크게 읽힙니다.
+              라벨은 할 일만 적고, 점수를 매기지 않는다는 사실은 아래 한 줄로 내려
+              종료 화면의 안내와 같은 말을 씁니다. */}
+          <p className="mt-2 text-[0.8438rem] leading-[1.6] text-ink-muted">
+            점수는 매기지 않습니다. 이 회차는 기록에 다시 볼 지점으로 남습니다.
+          </p>
 
           {/* 이 시트가 입력 도크의 고지를 덮으므로, 고지 문구를 여기에도 그대로 둡니다 (안전 규칙 §3-2). */}
           <InlineDisclaimer tone="readable" className="mt-3" />

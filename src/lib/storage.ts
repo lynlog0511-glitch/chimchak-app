@@ -668,9 +668,30 @@ export function buildCompletionSummary(): CompletionSummary {
   };
 }
 
-/** CSV 한 칸 — 쉼표·따옴표·줄바꿈이 들어가면 따옴표로 감싼다. */
+/**
+ * 스프레드시트가 **수식으로 읽는** 첫 글자.
+ *
+ * `=`·`+`·`-`·`@`로 시작하는 칸을 엑셀·한셀은 값이 아니라 수식으로 해석한다(`=cmd|'…'!A1`
+ * 계열의 명령 실행까지 이어지는, 이름 붙은 공격 경로다). 탭·CR은 앞 글자를 밀어내 같은 자리를
+ * 만드는 변종이라 함께 본다.
+ */
+const CSV_FORMULA_LEAD = /^[=+\-@\t\r]/;
+
+/**
+ * CSV 한 칸 — 쉼표·따옴표·줄바꿈이 들어가면 따옴표로 감싸고, **수식 접두는 중화한다.**
+ *
+ * 중화는 값 앞에 작은따옴표 한 글자를 붙이는 것이다(스프레드시트가 「이 칸은 글자」로 읽는
+ * 표준 표기). 이 앱이 스스로 만드는 값은 어느 칸도 여기 걸리지 않는다 — 발급번호는 `CHK-`,
+ * 시각은 숫자, 횟수·시수는 음수가 없다. 걸리는 것은 **가져온 파일에서 되돌아 나오는 문자열
+ * 칸**(시나리오 제목·유형)뿐이고, 그 자리가 정확히 이 통제가 필요한 자리다.
+ *
+ * ※ **발급번호에는 영향이 없다.** 중화는 「파일에 쓰는 순간」에만 일어나고, 발급번호 시드
+ *   (`issueNumberFor`)는 시나리오 번호·횟수·분 단위 시수·분까지의 시각으로만 짜여 제목·유형을
+ *   보지 않는다. 이 함수를 고쳐도 옛 파일과 새 파일의 번호는 같은 값으로 계산된다.
+ */
 function csvCell(value: string | number): string {
-  const text = String(value);
+  const raw = String(value);
+  const text = CSV_FORMULA_LEAD.test(raw) ? `'${raw}` : raw;
   return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
@@ -838,6 +859,7 @@ export type CompletionImportError =
   | "scenario"
   | "limit"
   | "total"
+  | "text"
   | "mismatch"
   | "same-device"
   | "duplicate";
@@ -859,6 +881,8 @@ export function completionImportMessage(reason: CompletionImportError): string {
       return "이수 횟수나 이수 시수가 이 앱이 만들 수 있는 범위를 넘습니다. 한 회차는 30분까지만 셉니다.";
     case "total":
       return "파일 안의 합계가 줄 값과 맞지 않습니다. 고쳐 쓴 파일은 가져오지 않습니다.";
+    case "text":
+      return "시나리오·유형 칸에 이 앱이 만들지 않는 값이 들어 있습니다(너무 길거나 보이지 않는 문자가 섞였습니다).";
     case "mismatch":
       return "발급번호가 파일 내용과 맞지 않습니다. 값을 고쳐 쓴 파일이거나, 발급번호 계산이 달라진 옛 버전에서 내려받은 파일입니다.";
     case "same-device":
@@ -963,6 +987,24 @@ function parseWhole(text: string): number | undefined {
 }
 
 /**
+ * 파일에서 되받는 **문자열 칸**의 상한(자).
+ *
+ * 이 앱이 만드는 시나리오 제목·유형은 전부 이 길이 안이다. 상한을 두는 이유는 저장 공간이
+ * 아니라 되돌아 나가는 경로다 — 가져온 제목은 이수 누계에 들어가 확인서와 다음 CSV에 그대로
+ * 실린다. 「가져온 값이 검증 없이 다시 내보내진다」는 자리는 길이와 문자 종류를 여기서 끊는다.
+ */
+export const MAX_IMPORT_TEXT_LEN = 80;
+
+/** 보이지 않는 제어문자 — 탭·수직탭·NUL 계열은 표를 밀거나 값을 감춘다. */
+const CONTROL_CHARS = /[\u0000-\u001F\u007F\u200B-\u200F\u2028\u2029\uFEFF]/;
+
+/** 제목·유형 한 칸 — 상한을 넘거나 제어문자가 섞이면 `undefined`(= 파일 전체를 거부한다). */
+function readImportText(value: string): string | undefined {
+  if (value.length > MAX_IMPORT_TEXT_LEN) return undefined;
+  return CONTROL_CHARS.test(value) ? undefined : value;
+}
+
+/**
  * 이수 사실 파일을 읽어 검증한다. **저장은 하지 않는다.**
  *
  * 통과 조건: 머리글이 서식과 같고, 모든 행의 발급번호가 하나이며, 줄 값의 합이 파일에 적힌
@@ -1036,12 +1078,24 @@ export function parseCompletionCsv(text: string): CompletionParseResult {
       return { ok: false, reason: "total" };
     }
 
+    /*
+     * 문자열 두 칸은 **되돌아 나가는 값**이라 여기서 끊는다.
+     *
+     * 가져온 제목·유형은 이수 누계에 들어가(`addImportedLines`) 확인서와 다음 CSV에 그대로
+     * 실린다. 길이 상한과 제어문자 금지가 없으면 앱이 남의 문자열을 배달하는 통로가 된다.
+     * 수식 접두(`=`·`+`·`-`·`@`)는 내보내는 자리에서 중화한다(`csvCell`) — 읽는 자리에서
+     * 값을 고치면 발급번호 대조가 어긋나므로, 막는 자리를 쓰는 쪽에 둔다.
+     */
+    const title = readImportText(cells[3] as string);
+    const typeLabel = readImportText(cells[4] as string);
+    if (title === undefined || typeLabel === undefined) return { ok: false, reason: "text" };
+
     sumCount += count;
     sumMinutes += minutes;
     lines.push({
       scenarioId,
-      title: (cells[3] as string).length > 0 ? (cells[3] as string) : scenarioId,
-      typeLabel: cells[4] as string,
+      title: title.length > 0 ? title : scenarioId,
+      typeLabel,
       count,
       seconds: minutes * 60,
       lastEndedAt: csvDateTimeToIso(cells[7] as string),
@@ -1582,4 +1636,85 @@ export function progressStepCount(progress: SessionProgress): number {
     if (!seen.includes(key)) seen.push(key);
   }
   return seen.length > 0 ? seen.length : progress.decisions.length;
+}
+
+/* ── 방문지 주소 (응급 안내 주소 단계) ─────────────────────── */
+
+/**
+ * 방문지 주소가 사는 자리 — 이 키에 담기는 것은 `{ text: "…" }` **한 칸**뿐이다.
+ *
+ * 다른 저장 항목과 성격이 다르다. 훈련 이력·보고 기록은 「무엇을 했는가」이지만 이것은
+ * 「어디로 가는가」이고, 급할 때 119에 불러 줄 값이라 **사람이 직접 적어 넣는 유일한 주소**다.
+ * 그래서 취급을 여기 한 문단에 못박아 둔다.
+ *
+ * - 기기 안(localStorage)에만 남는다. 이 값을 실어 보내는 경로는 앱 어디에도 없다 —
+ *   보고 기록·이수 사실 파일(CSV)·온라인 모드 요청 어느 쪽에도 이 칸은 들어가지 않는다.
+ * - 화면에 그리는 곳도 응급 안내의 주소 단계 한 곳뿐이다(`ProtocolAddressCard`).
+ * - 「이 기기의 기록 지우기」로는 지워지지 않는다. 기록이 아니라 설정 성격이라 회차를 지우려다
+ *   방문지 주소까지 잃으면 다음 응급 때 화면이 다시 비어 있게 된다. 지우는 자리는 응급 화면의
+ *   「지우기」 하나이고, /legal의 저장 목록이 그 사실을 그대로 적는다.
+ */
+export const ADDRESS_KEY = "chimchak.address.v1";
+
+/**
+ * 주소 한 칸의 길이 상한.
+ *
+ * 도로명 주소에 동·호수까지 붙여도 넉넉히 들어가는 길이다. 상한을 두는 이유는 저장 공간이
+ * 아니라 화면이다 — 이 값은 응급 화면에서 가장 큰 글자로 서고, 길어질수록 급할 때 읽어야 할
+ * 줄 수가 늘어난다. 입력 칸도 같은 값을 `maxLength`로 쓴다.
+ */
+export const MAX_VISIT_ADDRESS_LEN = 120;
+
+/**
+ * 저장·표시 전에 주소를 한 줄로 다듬는다.
+ *
+ * 줄바꿈·탭은 공백으로 낮추고 연속 공백을 하나로 줄인 뒤 앞뒤를 떼고 상한까지만 남긴다.
+ * 붙여넣기로 여러 줄이 들어와도 화면에서는 언제나 한 칸이 된다.
+ *
+ * @example normalizeVisitAddress("  ○○구 ○○로 00\n 101동 202호 ") // "○○구 ○○로 00 101동 202호"
+ */
+export function normalizeVisitAddress(value: unknown): string {
+  if (typeof value !== "string") return "";
+  return value.replace(/\s+/g, " ").trim().slice(0, MAX_VISIT_ADDRESS_LEN);
+}
+
+/**
+ * 이 기기에 적어 둔 방문지 주소. 적어 두지 않았거나 값이 훼손되었으면 빈 문자열이다.
+ *
+ * @example
+ * const address = loadVisitAddress(); // "" 이면 아직 적어 두지 않으신 것이다
+ */
+export function loadVisitAddress(): string {
+  const raw = readValue(ADDRESS_KEY);
+  if (!raw || typeof raw !== "object") return "";
+  return normalizeVisitAddress((raw as Record<string, unknown>).text);
+}
+
+/**
+ * 방문지 주소를 저장하고 **실제로 남았는지 돌려준다**(이 파일의 다른 쓰기와 같은 규율이다).
+ *
+ * 다듬은 결과가 비면 지우기와 같게 다룬다 — 빈 칸을 저장해 두면 다음에 열었을 때 화면이
+ * 「적어 두셨는데 아무것도 없는」 상태가 된다.
+ *
+ * @example
+ * if (!saveVisitAddress(text)) notify(SAVE_FAILED_TITLE);
+ */
+export function saveVisitAddress(text: string): boolean {
+  const value = normalizeVisitAddress(text);
+  if (value.length === 0) {
+    clearVisitAddress();
+    return true;
+  }
+  return writeValue(ADDRESS_KEY, { text: value });
+}
+
+/** 방문지 주소를 지운다 — 지우는 자리는 응급 안내의 주소 단계 하나뿐이다. */
+export function clearVisitAddress(): void {
+  const storage = getStorage();
+  if (!storage) return;
+  try {
+    storage.removeItem(ADDRESS_KEY);
+  } catch {
+    /* 사생활 보호 모드 — 조용히 무시한다(애초에 남은 값이 없다) */
+  }
 }

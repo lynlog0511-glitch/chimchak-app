@@ -41,6 +41,7 @@ import {
   SESSION_STATUS_PROTOCOL,
   sessionSubtitle,
   TAIL_ANCHOR,
+  type MicCheck,
 } from "./constants";
 import { ruleDemoExamplesFor, RULE_DEMO_TITLE } from "./ruleDemoExamples";
 import { cueProgress } from "./sessionProgress";
@@ -205,7 +206,8 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   const [state, dispatch] = useReducer(reducer, scenario, initialTrainState);
 
   const [ttsOn, setTtsOn] = useState(true);
-  const [micSupported, setMicSupported] = useState(false);
+  /* 마이크 판정은 마운트 뒤에 납니다 — 그전까지는 「모른다」로 둡니다(constants.ts `MicCheck`). */
+  const [micCheck, setMicCheck] = useState<MicCheck>("unknown");
   /** 이 기기에 남아 있는 진행 체크포인트 — 브리핑에서 「이어서 하기」로 안내합니다 */
   const [checkpoint, setCheckpoint] = useState<SessionProgress | null>(null);
   /** ‹ 로 브리핑으로 되돌아가 있는 중인지 (세션 상태는 그대로 두고 화면만 바꿉니다) */
@@ -332,9 +334,13 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   const endingRef = useRef<HTMLDivElement | null>(null);
 
   /**
-   * 모바일 sticky 헤더의 실측 높이를 CSS 변수(--session-head-h)로 흘려 보냅니다.
-   * L3의 sticky 119 바가 이 값만큼 내려앉아 헤더와 겹치지 않습니다 —
-   * 부제 줄바꿈·글자 크기 설정으로 헤더 높이가 변하므로 고정값 대신 실측을 씁니다.
+   * sticky 헤더가 **실제로 가리는 높이**를 CSS 변수(--session-head-h)로 흘려 보냅니다.
+   * L3의 sticky 119 바가 이 값만큼 내려앉아 헤더와 겹치지 않고, 대사·엔딩의 `scroll-mt`도
+   * 같은 값을 씁니다 — 부제 줄바꿈·글자 크기 설정으로 헤더 높이가 변하므로 실측을 씁니다.
+   *
+   * 담기는 값은 **도킹 기준선 + 실측 높이**입니다. 헤더가 `top-[var(--chim-safe-t)]`에 붙게 된
+   * 뒤로는 높이만 담으면 노치 기기에서 그 기준선만큼 셋 다 어긋납니다(119 바가 헤더 밑단을
+   * 덮고, 대사가 헤더에 깔립니다). 노치가 없는 기기에서는 기준선이 0이라 예전 값 그대로입니다.
    */
   const sessionBoxRef = useRef<HTMLDivElement | null>(null);
   const headBoxRef = useRef<HTMLDivElement | null>(null);
@@ -352,7 +358,10 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     const head = headBoxRef.current;
     const box = sessionBoxRef.current;
     if (!head || !box || typeof ResizeObserver === "undefined") return undefined;
-    const apply = () => box.style.setProperty("--session-head-h", `${head.offsetHeight}px`);
+    const apply = () => {
+      const stickyTop = parseFloat(window.getComputedStyle(head).top) || 0;
+      box.style.setProperty("--session-head-h", `${stickyTop + head.offsetHeight}px`);
+    };
     apply();
     const ro = new ResizeObserver(apply);
     ro.observe(head);
@@ -412,7 +421,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   /* ── 음성 ─────────────────────────────────────────────── */
 
   useEffect(() => {
-    setMicSupported(isRecognitionSupported());
+    setMicCheck(isRecognitionSupported() ? "yes" : "no");
     primeVoices();
     return () => stopSpeaking();
   }, []);
@@ -746,7 +755,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     return (
       <BriefingPanel
         scenario={scenario}
-        micSupported={micSupported}
+        micCheck={micCheck}
         onStart={handleStart}
         checkpoint={checkpoint}
         onResume={handleResume}
@@ -796,8 +805,23 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
         )}
       >
         {/* 헤더를 상단에 도킹합니다 — 「종료」(이탈 경로)·진행바·계층 상태점은
-            스크롤 중에도 보여야 합니다. L3의 sticky 119 바는 이 아래(top-[3.25rem])에 겹겹이 섭니다. */}
-        <div ref={headBoxRef} className="sticky top-0 z-30 flex-none bg-paper px-[18px]">
+            스크롤 중에도 보여야 합니다. L3의 sticky 119 바는 이 아래(top-[3.25rem])에 겹겹이 섭니다.
+
+            도킹 기준선은 0이 아니라 안전 영역 아래입니다(2026-08-26) — `viewportFit: "cover"`
+            아래에서 조상의 `padding-top`은 sticky의 기준선을 옮기지 못하므로, `top-0`이면
+            세션 제목과 「종료」가 상태바·다이내믹 아일랜드 밑으로 들어갑니다(페르소나 FE). */}
+        <div
+          ref={headBoxRef}
+          className="sticky top-[var(--chim-safe-t)] z-30 flex-none bg-paper px-[18px]"
+        >
+          {/* 노치 띠 — 헤더 위로 지나가는 대화가 화면 색에 덮이게 합니다. 높이가 `--chim-safe-t`라
+              노치 없는 기기·데스크톱에서는 0px이고, 프레임 폭으로 잘라 두어 480px↑에서
+              지면(paper-out) 위로 흰 띠가 번지지 않습니다.
+              `fixed`라 헤더 실측 높이(--session-head-h)에는 들어가지 않습니다. */}
+          <div
+            aria-hidden
+            className="pointer-events-none fixed inset-x-0 top-0 mx-auto h-[var(--chim-safe-t)] max-w-[var(--chim-frame-w)] bg-paper"
+          />
           <SessionHeader
             title={scenario.title}
             status={statusText}
@@ -845,7 +869,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
             listening && "pointer-events-none opacity-45",
           )}
         >
-          <p className="text-center text-[0.7813rem] leading-[1.6] text-tertiary">
+          <p className="text-center text-[0.7813rem] leading-[1.6] text-ink-faint">
             {scenario.context}
           </p>
           {/* 가상 인물 고지 — 화면마다 한 번은 또렷하게 남습니다(말풍선의 「가상 인물」과 별도). */}
@@ -952,14 +976,14 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
               session={state.session}
               cue={cue}
               attempt={state.attempt}
-              micSupported={micSupported}
+              micCheck={micCheck}
               chosenAlternative={chosenAlternative || undefined}
               anchor={
                 tailOffscreen ? (
                   <button
                     type="button"
                     onClick={() => scrollToTailRef.current?.()}
-                    className="flex min-h-[48px] w-full items-center justify-center gap-1.5 border-b border-line bg-tint px-[18px] text-[0.8438rem] leading-[1.45] font-bold text-brand-800 transition-colors duration-150 active:bg-mint-200"
+                    className="flex min-h-[48px] w-full items-center justify-center gap-1.5 border-b border-line bg-brand-tint px-[18px] text-[0.8438rem] leading-[1.45] font-bold text-brand-800 transition-colors duration-150 active:bg-mint-200"
                   >
                     {TAIL_ANCHOR}
                     <span aria-hidden>↓</span>

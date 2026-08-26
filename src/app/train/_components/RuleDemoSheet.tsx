@@ -105,7 +105,7 @@ export function RuleDemoSheet({ prompt, examples, onFill, onClose }: RuleDemoShe
                 <button
                   type="button"
                   onClick={() => leave(example)}
-                  className="w-full rounded-card bg-paper-2 px-3.5 py-3 text-left transition-colors duration-150 hover:bg-tint active:bg-tint"
+                  className="w-full rounded-card bg-paper-2 px-3.5 py-3 text-left transition-colors duration-150 hover:bg-brand-tint active:bg-brand-tint"
                 >
                   <span className="block text-[0.7813rem] leading-[1.45] font-bold text-ink-muted">
                     {example.kind === "critical" ? "즉시 중단" : "코칭"} · {example.ruleId} ·{" "}
@@ -135,7 +135,7 @@ export function RuleDemoSheet({ prompt, examples, onFill, onClose }: RuleDemoShe
             type="button"
             ref={closeRef}
             onClick={dismiss}
-            className="min-h-[54px] w-full rounded-card bg-neutral-soft px-5 text-[1rem] font-bold text-ink transition-colors duration-150 hover:bg-neutral-line active:bg-neutral-line"
+            className="min-h-[54px] w-full rounded-card bg-paper-2 px-5 text-[1rem] font-bold text-ink transition-colors duration-150 hover:bg-neutral-line active:bg-neutral-line"
           >
             닫고 보기로 돌아가기
           </button>

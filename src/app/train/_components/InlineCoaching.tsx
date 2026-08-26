@@ -104,6 +104,12 @@ function pathQualifier(trace: FeedbackTrace): string | null {
  * 판정기의 계보가 아니라 **내 말의 어디가 걸렸는가**입니다.
  */
 function pathLabel(trace: FeedbackTrace): string {
+  // 보고 구간은 어떤 낱말이 걸렸는지가 아니라 **몇 가지가 담겼는지**로 갈립니다.
+  // 그 판정에 「말씀 속 …가 맞았습니다」를 쓰면 사실과 다르게 읽힙니다.
+  const elements = trace.matchedElements;
+  if (elements && elements.length > 0) {
+    return `말씀에 ${elements.join(", ")} ${elements.length}가지가 담겨 있어 그 개수로 갈렸습니다`;
+  }
   switch (trace.source) {
     case "rule":
       return "말씀 속 표현이 규칙 사전에 그대로 있었습니다";

@@ -7,7 +7,7 @@ const TONE: Record<StatusTone, string> = {
   ok: "bg-ok", // 「기기에 저장됨」
   warn: "bg-warn",
   danger: "bg-danger", // 「듣고 있어요」 녹음 점
-  neutral: "bg-faint",
+  neutral: "bg-ink-ghost",
 };
 
 export interface StatusDotProps {

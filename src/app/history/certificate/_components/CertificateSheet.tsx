@@ -36,10 +36,19 @@ const PRINT_CSS = `
     /* 표식을 감쌀 수 있는 overflow는 인쇄에서 풀어 둡니다(아래 fixed 표식이 잘리지 않게). */
     overflow: visible !important;
   }
-  /* 예시 표시는 종이에도 반드시 남아야 합니다 — 브라우저가 배경·연한 색을 지우지 못하게 못 박습니다.
-     position: fixed 로 두는 이유: 절대위치 상자는 페이지 나눔을 따라 복제되지 않아, 확인서가
-     두 쪽이 되는 순간 둘째 장에는 표식이 남지 않습니다. 페이지 미디어에서 fixed 상자는 매 쪽에
-     다시 그려지므로, 몇 쪽이 되든 모든 장에 같은 표식이 놓입니다. */
+  /* ── 예시 표식은 몇 쪽이 되든 남아야 합니다 — **세 겹**입니다 ───────────────
+     ① 첫 쪽 대형 워터마크(아래 [data-demo-watermark], position: fixed)
+     ② 첫 쪽 머리띠(아래 [data-demo-band], 같은 방식)
+     ③ 각 덩어리 머리에 복제한 인라인 한 줄([data-demo-band-inline])
+
+     ①②만 두었던 동안의 사실을 정정해 둡니다: CSS Paged Media 명세는 fixed 상자를 쪽마다 다시
+     그리라고 하지만 **크롬은 그 규정을 구현하지 않아 첫 쪽에만 찍힙니다**(페르소나 FE 실측).
+     이 앱의 인쇄·PDF 저장 경로는 사실상 크롬이라, 두 쪽짜리 확인서의 둘째 장은 표식 없이
+     나가고 있었습니다. 그래서 ③을 더했습니다 — 흐름 안에 놓인 줄이라 쪽이 늘어나면 함께 따라가고,
+     아래 break-inside: avoid 가 덩어리를 쪼개지 않으므로 **어느 쪽에도 최소 한 줄**이 놓입니다.
+     ①②는 그대로 둡니다: 첫 쪽에서 가장 크게 읽히는 표식이고, 자료철에 첫 장만 끼우는 일이
+     실제로 가장 흔합니다. 셋 중 하나가 사라져도 나머지가 남습니다.
+     (아래 색 규칙은 브라우저가 배경·연한 색을 지우지 못하게 못 박는 자리입니다.) */
   [data-demo-watermark] {
     display: flex !important;
     position: fixed !important;
@@ -74,6 +83,32 @@ const PRINT_CSS = `
     text-align: center;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+  /* 표식 셋째 겹 — 흐름 안에 복제한 한 줄(위 ③). break-after: avoid 로 뒤따르는 덩어리와
+     붙여 두어, 표식만 앞 쪽 끝에 홀로 남는 일이 없게 합니다. */
+  [data-demo-band-inline] {
+    display: block !important;
+    break-after: avoid;
+    margin-top: 4mm;
+    border-top: 0.4pt solid #000000;
+    border-bottom: 0.4pt solid #000000;
+    padding: 0.8mm 0;
+    color: #000000 !important;
+    font-size: 8pt;
+    font-weight: 700;
+    text-align: center;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* 본문 덩어리는 쪽 경계에서 쪼개지 않습니다 — 서명란이나 고지가 두 쪽에 걸쳐 잘리면
+     자료철에서 「잘린 서류」로 읽히고, 위 인라인 표식과 본문이 다른 쪽으로 갈라집니다. */
+  [data-print-section] { break-inside: avoid; }
+  [data-print-sheet] li { break-inside: avoid; }
+  /* 기입란 두 칸은 종이에서만 나란히 섭니다 — A4 폭(≈180mm)에 한 칸씩 쌓으면 서식이 세로로만
+     길어집니다. 화면 쪽은 뷰포트와 무관하게 한 줄에 하나입니다(430px 프레임 불변식). */
+  [data-print-row] {
+    flex-direction: row !important;
+    gap: 20px !important;
   }
 }
 `;
@@ -148,7 +183,7 @@ const CITABLE_DOCS = SOURCE_DOCS.filter((doc) => CITABLE_DOC_IDS.includes(doc.id
  */
 function SourceDocAppendix() {
   return (
-    <div className="mt-[16px] border-t border-line pt-[14px]">
+    <div data-print-section className="mt-[16px] border-t border-line pt-[14px]">
       <p className="text-[0.8125rem] leading-[1.45] font-bold text-ink">
         부록 · 판정 근거 문서 {CITABLE_DOCS.length}종
       </p>
@@ -165,6 +200,22 @@ function SourceDocAppendix() {
         ))}
       </ol>
     </div>
+  );
+}
+
+/**
+ * 예시 표식의 셋째 겹 — **각 덩어리 머리에 복제하는 한 줄**입니다(인쇄에서만 보입니다).
+ *
+ * 첫 쪽의 큰 워터마크와 머리띠는 `position: fixed`라 크롬에서 첫 쪽에만 찍힙니다
+ * (위 PRINT_CSS 머리 주석의 실측). 이 줄은 흐름 안에 있어 쪽이 늘어나면 함께 따라가므로,
+ * 둘째 장부터도 「예시」라는 사실이 종이에 남습니다.
+ * 화면에서는 `hidden`이라 그려지지 않습니다 — 화면 쪽 안내는 위 경고 문단이 이미 맡고 있습니다.
+ */
+function DemoBandInline() {
+  return (
+    <p aria-hidden data-demo-band-inline className="hidden">
+      예시 — 발급되지 않음 · 증빙으로 쓸 수 없습니다
+    </p>
   );
 }
 
@@ -187,7 +238,7 @@ function FillField({
       <span className="flex-none text-[0.75rem] leading-[1.45] font-bold text-ink-muted">{label}</span>
       {/* 빈 칸일 때 들어가는 것은 줄바꿈 없는 공백(U+00A0) 하나입니다 —
           밑줄의 높이를 잃지 않게 두는 자리이고, 손으로 적으실 칸입니다. */}
-      <span className="min-w-[80px] flex-1 border-b border-ink-muted pb-[3px] text-[0.875rem] leading-[1.45] font-bold text-ink">
+      <span className="min-w-[80px] flex-1 border-b border-ink-muted pb-[3px] text-[0.9375rem] leading-[1.45] font-bold text-ink">
         {filled.length > 0 ? filled : " "}
       </span>
     </span>
@@ -270,12 +321,50 @@ export function CertificateSheet() {
         /* 저장소는 마운트 뒤에 읽으므로 이 줄이 첫 화면입니다 — 화면을 못 보시는 분께도
            「비어 있다」가 아니라 「읽는 중」이라고 먼저 알려 드립니다.
            지금 화면에 있는 글자가 이것 하나뿐이라 13px에서 15px로 올렸고, 3초가 지나도
-           그대로면 무엇을 하실 수 있는지로 말을 바꿉니다(페르소나 UI/UX med). */
-        <p role="status" className="mt-4 text-[0.9375rem] leading-[1.6] text-ink-soft">
-          {stalled
-            ? "이 기기의 저장소를 읽지 못했습니다. 화면을 새로고침해 주세요."
-            : "이 기기에 저장된 이수 사실을 불러오는 중입니다."}
-        </p>
+           그대로면 무엇을 하실 수 있는지로 말을 바꿉니다(페르소나 UI/UX med).
+
+           함께 **시트 윤곽**을 그립니다(2026-08-26) — 값은 이 기기에만 있지만 서식의 모양은
+           늘 같습니다(테두리 한 장 · 제목 · 발급 정보 두 줄 · 기입란 · 목록 몇 줄 · 서명란).
+           그려 두면 「인쇄할 서류가 만들어지는 중」으로 읽히고, 비워 두면 「만들 것이 없다」로
+           읽힙니다(페르소나 UI/UX P1). 움직이지 않는 회색 면입니다 — 모션 최소 규율.
+           낭독에는 위 한 줄만 갑니다(윤곽은 `aria-hidden`). */
+        <div className="mt-4">
+          <p role="status" className="text-[0.9375rem] leading-[1.6] text-ink-soft">
+            {stalled
+              ? "이 기기의 저장소를 읽지 못했습니다. 화면을 새로고침해 주세요."
+              : "이 기기에 저장된 이수 사실을 불러오는 중입니다."}
+          </p>
+
+          <div
+            aria-hidden
+            data-noprint
+            className="mt-4 rounded-card border border-line-strong px-4 py-[18px]"
+          >
+            {/* 제목 줄 */}
+            <div className="h-[23px] w-[62%] rounded-field bg-paper-2" />
+            {/* 발급일 · 발급번호 두 줄 */}
+            <div className="mt-[10px] h-[13px] w-[80%] rounded-field bg-paper-2" />
+            <div className="mt-[6px] h-[13px] w-[46%] rounded-field bg-paper-2" />
+            {/* 성명 · 소속 기입란 */}
+            <div className="mt-[14px] border-t border-line pt-[14px]">
+              <div className="h-[30px] w-full rounded-field bg-paper-2" />
+              <div className="mt-[12px] h-[30px] w-full rounded-field bg-paper-2" />
+            </div>
+            {/* 이수 목록 세 줄 */}
+            <div className="chim-hairline mt-[14px] border-t border-line">
+              {[0, 1, 2].map((row) => (
+                <div key={row} className="py-[12px]">
+                  <div className="h-[12px] w-[34%] rounded-field bg-paper-2" />
+                  <div className="mt-[6px] h-[15px] w-[70%] rounded-field bg-paper-2" />
+                </div>
+              ))}
+            </div>
+            {/* 서명란 */}
+            <div className="mt-[16px] border-t border-line pt-[14px]">
+              <div className="h-[30px] w-full rounded-field bg-paper-2" />
+            </div>
+          </div>
+        </div>
       ) : lines.length === 0 ? (
         <div className="mt-4">
           <div className="rounded-card bg-paper-2 px-4 py-[14px]">
@@ -322,7 +411,11 @@ export function CertificateSheet() {
               손으로 적으실 수 있습니다.
             </p>
 
-            <div className="mt-[12px] flex flex-col gap-[12px] sm:flex-row">
+            {/* 뷰포트 분기(`sm:`)를 걷어냈습니다(2026-08-26) — 이 블록은 `data-noprint`라 종이에
+                나가지 않고, 화면은 어느 뷰포트에서도 430px 프레임 하나입니다. 브레이크포인트가
+                보던 것은 내용 폭이 아니라 창 폭이라, 창을 넓힐수록 두 칸이 좁아지기만 했습니다
+                (페르소나 디자이너 med). */}
+            <div className="mt-[12px] flex flex-col gap-[12px]">
               <div className="min-w-0 flex-1">
                 <label
                   htmlFor="certificate-name"
@@ -337,7 +430,7 @@ export function CertificateSheet() {
                   onChange={(event) => setLearnerName(event.target.value)}
                   autoComplete="off"
                   placeholder="이수하신 분 성함"
-                  className="mt-[6px] min-h-[48px] w-full rounded-card border border-line-strong bg-white px-[13px] text-[0.9375rem] leading-[1.6] text-ink placeholder:text-tertiary focus:border-brand-400"
+                  className="mt-[6px] min-h-[48px] w-full rounded-card border border-line-strong bg-white px-[13px] text-[0.9375rem] leading-[1.6] text-ink placeholder:text-ink-faint"
                 />
               </div>
               <div className="min-w-0 flex-1">
@@ -354,7 +447,7 @@ export function CertificateSheet() {
                   onChange={(event) => setLearnerOrg(event.target.value)}
                   autoComplete="off"
                   placeholder="예) ○○주야간보호센터"
-                  className="mt-[6px] min-h-[48px] w-full rounded-card border border-line-strong bg-white px-[13px] text-[0.9375rem] leading-[1.6] text-ink placeholder:text-tertiary focus:border-brand-400"
+                  className="mt-[6px] min-h-[48px] w-full rounded-card border border-line-strong bg-white px-[13px] text-[0.9375rem] leading-[1.6] text-ink placeholder:text-ink-faint"
                 />
               </div>
             </div>
@@ -389,14 +482,16 @@ export function CertificateSheet() {
             )}
 
             {isPreview && (
-              <p className="mb-[12px] rounded-field bg-warn-soft px-[12px] py-[10px] text-[0.875rem] leading-[1.6] font-bold text-warn-ink">
+              <p className="mb-[12px] rounded-field bg-warn-soft px-[12px] py-[10px] text-[0.9375rem] leading-[1.6] font-bold text-warn-ink">
                 예시 미리보기 — 체험용 예시 기록 {demoCount}회가 섞여 있습니다. 이 문서는 발급되지
                 않았으며 증빙으로 쓸 수 없습니다. 내 이력 위쪽 안내줄에서 예시를 지우시면 실제
                 이수 사실로 다시 만들어집니다.
               </p>
             )}
 
-            <h2 id="certificate-title" className="text-[1.125rem] leading-[1.3] font-extrabold text-ink">
+            {/* 확인서 제목 — 앱의 섹션 제목 눈금 19px입니다.
+                예전에는 18px이라 화면 열두 값 어디에도 없는 외래 눈금이었습니다(2026-08-25 교정). */}
+            <h2 id="certificate-title" className="text-[1.1875rem] leading-[1.3] font-extrabold text-ink">
               침착 훈련 이수 확인서
             </h2>
             <p className="mt-[3px] text-[0.7813rem] leading-[1.45] text-ink-soft">
@@ -426,7 +521,14 @@ export function CertificateSheet() {
             </p>
 
             {/* 누가 이수했는지 — 이 두 칸이 없으면 자료철에 끼울 수 없는 무기명 인쇄물이 됩니다. */}
-            <div className="mt-[14px] flex flex-col gap-[12px] border-t border-line pt-[14px] sm:flex-row sm:gap-[20px]">
+            {/* 화면에서는 한 줄에 하나(430px 프레임), 종이에서는 A4 폭을 살려 나란히 —
+                가르는 기준은 **창 폭이 아니라 매체**입니다. sm 접두 클래스가 그 둘을 한꺼번에 맡던
+                동안에는 창을 넓히면 화면 레이아웃까지 함께 바뀌었습니다(페르소나 디자이너 med).
+                위 워터마크 크기 규칙을 인쇄 규칙으로 옮긴 것과 같은 정리입니다. */}
+            <div
+              data-print-row
+              className="mt-[14px] flex flex-col gap-[12px] border-t border-line pt-[14px]"
+            >
               <FillField label="성명" value={learnerName} className="flex-1" />
               <FillField label="소속" value={learnerOrg} className="flex-1" />
             </div>
@@ -477,6 +579,8 @@ export function CertificateSheet() {
               </p>
             )}
 
+            {/* 표식 복제 — 목록이 길어 쪽이 넘어가는 자리라 여기서 한 번 더 박습니다. */}
+            {isPreview && <DemoBandInline />}
             <ul className="chim-hairline mt-[14px] border-t border-line">
               {lines.map((line) => {
                 const imported = line.importedCount ?? 0;
@@ -507,8 +611,10 @@ export function CertificateSheet() {
               })}
             </ul>
 
-            {/* 서명란 — 종이로 오가는 서식이라 확인자·일자 칸을 비워 인쇄합니다. */}
-            <div className="mt-[16px] border-t border-line pt-[14px]">
+            {isPreview && <DemoBandInline />}
+            {/* 서명란 — 종이로 오가는 서식이라 확인자·일자 칸을 비워 인쇄합니다.
+                `data-print-section`은 이 덩어리를 쪽 경계에서 쪼개지 않게 합니다(위 인쇄 규칙). */}
+            <div data-print-section className="mt-[16px] border-t border-line pt-[14px]">
               <p className="text-[0.8125rem] leading-[1.45] font-bold text-ink">
                 위 이수 사실을 확인합니다
               </p>
@@ -518,13 +624,15 @@ export function CertificateSheet() {
                 이 확인서는 이수자 본인 기기에 남은 기록으로 만들어졌으며, 기관 확인자의 서명으로
                 효력이 생깁니다.
               </p>
-              <div className="mt-[12px] flex flex-col gap-[14px] sm:flex-row sm:gap-[20px]">
+              {/* 위 기입란과 같은 규율 — 나란히 세우는 판단은 인쇄 규칙이 맡습니다. */}
+              <div data-print-row className="mt-[12px] flex flex-col gap-[14px]">
                 <FillField label="확인자 서명" className="flex-1" />
                 <FillField label="일자" className="flex-1" />
               </div>
             </div>
 
-            <div className="mt-[16px] border-t border-line pt-[12px]">
+            {isPreview && <DemoBandInline />}
+            <div data-print-section className="mt-[16px] border-t border-line pt-[12px]">
               <p className="text-[0.7813rem] leading-[1.6] font-bold text-ink">
                 본 확인서는 앱 기록 기반이며 법정 보수교육 이수 인정이 아닙니다 — 기관 자체
                 직무교육·정기평가 내부 증빙용입니다.
@@ -544,6 +652,7 @@ export function CertificateSheet() {
               <InlineDisclaimer size="md" tone="readable" className="mt-[10px]" />
             </div>
 
+            {isPreview && <DemoBandInline />}
             <SourceDocAppendix />
           </section>
 

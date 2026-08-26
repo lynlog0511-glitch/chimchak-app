@@ -54,7 +54,7 @@ export function PrivacyPath({ reached, className }: PrivacyPathProps) {
         <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 rounded-field px-[2px] text-[0.8438rem] leading-[1.45] font-bold text-ink-soft transition-colors duration-150 active:bg-paper-2 [&::-webkit-details-marker]:hidden">
           <span>내 말이 어디로 가는지 보기</span>
           {/* 동봉 Pretendard cmap에 U+2304 `⌄`가 없어 SVG 글리프를 씁니다(MaskReview와 같은 조각). */}
-          <ChevronGlyph className="text-faint group-open:rotate-180" />
+          <ChevronGlyph className="text-ink-ghost group-open:rotate-180" />
         </summary>
 
         <div className="pb-4">
@@ -83,7 +83,7 @@ export function PrivacyPath({ reached, className }: PrivacyPathProps) {
                   <p
                     className={cx(
                       "text-[0.8438rem] leading-[1.45] font-bold",
-                      active ? "text-brand-800" : done ? "text-ink" : "text-tertiary",
+                      active ? "text-brand-800" : done ? "text-ink" : "text-ink-faint",
                     )}
                   >
                     {step.title}
@@ -95,7 +95,7 @@ export function PrivacyPath({ reached, className }: PrivacyPathProps) {
                   <p
                     className={cx(
                       "mt-[2px] text-[0.7813rem] leading-[1.6]",
-                      reached >= step.from ? "text-ink-soft" : "text-tertiary",
+                      reached >= step.from ? "text-ink-soft" : "text-ink-faint",
                     )}
                   >
                     {step.desc}
@@ -112,9 +112,12 @@ export function PrivacyPath({ reached, className }: PrivacyPathProps) {
         <p className="text-[0.8438rem] leading-[1.6] font-bold text-warn-ink">
           지금은 기기 밖으로 나가는 것이 없습니다.
         </p>
+        {/* 사용자 말이 먼저이고, 법 개념은 그 뒤에 한 문장으로 붙입니다 — 「가명정보로 다룬다」는
+            사실은 지우면 안 되는 약속이라 낱말을 바꾸지 않고 자리만 뒤로 보냅니다
+            (2026-08-25 · 페르소나 현직 P1). */}
         <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
-          말한 음성과 원문은 이 기기 안에만 있고 저장하지 않습니다. 가명처리 대상은
-          성명·번호·기관명·주소·생년이며, 처리 후에도 가명정보로 다룹니다.
+          말한 음성과 원문은 이 기기 안에만 있고 저장하지 않습니다. 가리는 대상은
+          성명·번호·기관명·주소·생년입니다. 가린 뒤에도 법에서는 가명정보로 다룹니다.
         </p>
         {/* 기관 시스템 이야기는 확정 화면의 「계획」 한 곳에서만 합니다 —
             같은 고백을 두 화면에서 되풀이하면 보고를 쓰는 자리가 로드맵 설명으로 바뀝니다. */}

@@ -1,23 +1,19 @@
 import type { RecordDraft } from "@/types";
 import { cx } from "@/components";
-import { RECORD_SLOT_LABELS, type RecordSlot } from "@/engine/record";
+import { RECORD_SLOT_LABELS, RECORD_SLOT_QUESTIONS, type RecordSlot } from "@/engine/record";
 
 /** 급여제공기록지 5요소의 화면 순서 (설계서 CL-01·CL-03) */
 export const DRAFT_SLOT_ORDER: RecordSlot[] = ["time", "who", "what", "action", "status"];
 
 /**
- * 빈 칸에 붙는 짧은 되물음 — 시안 6e의 「채워 주세요 — 지금 어떠신가요?」 문법입니다.
+ * 빈 칸에 붙는 짧은 되물음 — 시안 6e의 「채워 주세요 — 지금은 어떠신가요?」 문법입니다.
  *
- * 엔진의 `RECORD_SLOT_HINTS`는 문장형 안내라 한 줄 행에 들어가지 않아, 표시용 짧은 형태만 여기에 둡니다.
- * (엔진은 건드리지 않습니다.)
+ * 문구는 엔진의 `RECORD_SLOT_QUESTIONS` **한 곳**에서 옵니다(2026-08-25).
+ * 예전에는 같은 뜻의 질문이 이 파일과 엔진에 따로 적혀 있어, 초안 화면(`DraftForm`)과
+ * 확정 화면(`DraftRows`)이 같은 칸을 조금씩 다른 말로 물었습니다. 이름만 여기 남깁니다 —
+ * 이 화면들이 부르는 이름이라 호출부를 흔들지 않습니다.
  */
-export const SLOT_PROMPTS: Record<RecordSlot, string> = {
-  time: "몇 시쯤이었나요?",
-  who: "누구에게 있었던 일인가요?",
-  what: "무슨 일이 있었나요?",
-  action: "그때 무엇을 하셨나요?",
-  status: "지금 어떠신가요?",
-};
+export const SLOT_PROMPTS: Record<RecordSlot, string> = RECORD_SLOT_QUESTIONS;
 
 /** 가명처리 토큰 한 개인지 판정 (g 플래그 없음 — lastIndex 상태를 만들지 않습니다) */
 const TOKEN_ONE = /^\[(?:대상자|번호|기관|주소|생년)\]$/;

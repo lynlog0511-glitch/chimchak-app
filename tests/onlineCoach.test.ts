@@ -17,7 +17,12 @@ import { NO_SOURCE_MESSAGE } from "@/data/docs";
 import { CHK_A01 } from "@/data/scenarios/chk-a01";
 import { getActiveScenarios } from "@/data/scenarios";
 import { POST } from "@/app/api/coach/route";
-import { COACH_RATE_LIMITS } from "@/lib/coachLimits";
+import {
+  COACH_RATE_LIMITS,
+  COACH_TOKEN_HEADER,
+  COACH_TOKEN_META,
+  coachTokenWindow,
+} from "@/lib/coachLimits";
 import {
   BANNED_PHRASES,
   COACHING_MAX_LENGTH,
@@ -27,6 +32,7 @@ import {
   buildCoachRequest,
   chatCompletionsUrl,
   citableDocRefs,
+  coachRequestHeaders,
   findBannedExpression,
   readChatCompletionContent,
   requestOnlineCoaching,
@@ -93,7 +99,19 @@ describe("chatCompletionsUrl", () => {
   });
 
   it("이미 전체 주소면 그대로 쓴다 (경로가 두 번 붙지 않는다)", () => {
+    /*
+     * `.env.example` ①이 안내하는 **두 입력형** 가운데 이쪽이다.
+     *
+     * 한때 이 분기의 대조 문자열에 이스케이프 오타가 있었다(`"\chat\completions"`는 JS에서
+     * `"chatcompletions"`로 평가된다). 그래서 분기가 영원히 거짓이었고, 안내대로 전체 주소를
+     * 넣은 운영자는 경로가 두 번 붙은 404를 받았다 — 라우트가 로그를 남기지 않으므로 화면에는
+     * 「온라인 모드를 켰는데 아무 일도 일어나지 않는다」로만 나타났다. 두 줄로 못 박아 둔다
+     * (`no-useless-escape`를 린트에 켠 사유도 이 자리다).
+     */
     expect(chatCompletionsUrl("https://coach.invalid/v1/chat/completions")).toBe(
+      "https://coach.invalid/v1/chat/completions",
+    );
+    expect(chatCompletionsUrl("https://coach.invalid/v1/chat/completions/")).toBe(
       "https://coach.invalid/v1/chat/completions",
     );
   });
@@ -667,5 +685,67 @@ describe("/api/coach", () => {
   it("어떤 경우에도 캐시하지 않는다", async () => {
     const response = await POST(coachRequest(validBody()));
     expect(response.headers.get("Cache-Control")).toBe("no-store");
+  });
+});
+
+/* ── 요청 헤더 (단기 토큰 표식) ────────────────────────── */
+
+describe("coachRequestHeaders", () => {
+  /**
+   * 세 호출자(코칭·대사 변주·자유 연습)가 이 함수 하나를 나눠 쓴다. 헤더를 세 곳에 손으로
+   * 적어 두면 어느 날 한 곳만 고쳐지고, 그 한 곳은 조용히 작은 예산 통으로 떨어진다.
+   *
+   * 읽는 값은 서버가 계산해 심어 준 결과 한 줄뿐이다 — 비밀값을 이 기기가 아는 일은 없다.
+   */
+  function stubMeta(content: string | undefined): void {
+    vi.stubGlobal("document", {
+      querySelector: (selector: string) =>
+        selector === `meta[name="${COACH_TOKEN_META}"]` && content !== undefined
+          ? { getAttribute: (name: string) => (name === "content" ? content : null) }
+          : null,
+    });
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("meta가 없으면 예전 헤더 그대로다 — 기본 빌드의 요청이 한 글자도 달라지지 않는다", () => {
+    stubMeta(undefined);
+    expect(coachRequestHeaders()).toEqual({ "Content-Type": "application/json" });
+  });
+
+  it("문서 자체가 없는 자리(서버·검사)에서도 안전하다", () => {
+    vi.stubGlobal("document", undefined);
+    expect(coachRequestHeaders()).toEqual({ "Content-Type": "application/json" });
+  });
+
+  it("현재 창의 표식이면 헤더로 실어 보낸다", () => {
+    const now = Date.now();
+    const token = "0123456789abcdef";
+    stubMeta(`${coachTokenWindow(now)}.${token}`);
+    expect(coachRequestHeaders(now)[COACH_TOKEN_HEADER]).toBe(token);
+  });
+
+  it("직전 창까지는 보낸다 (서버가 받는 범위와 같다)", () => {
+    const now = Date.now();
+    stubMeta(`${coachTokenWindow(now) - 1}.0123456789abcdef`);
+    expect(coachRequestHeaders(now)[COACH_TOKEN_HEADER]).toBe("0123456789abcdef");
+  });
+
+  it("그보다 낡은 표식은 **보내지 않는다** — 403 대신 작은 통으로 넘어가 훈련이 이어진다", () => {
+    /* 앱 안 이동은 서버 렌더를 다시 타지 않으므로, 한 판을 길게 훈련하면 심어 둔 값이 창을
+       넘어선다. 그때 낡은 값을 그대로 보내면 403을 받고 코칭이 조용히 접힌다. */
+    const now = Date.now();
+    stubMeta(`${coachTokenWindow(now) - 4}.0123456789abcdef`);
+    expect(coachRequestHeaders(now)[COACH_TOKEN_HEADER]).toBeUndefined();
+  });
+
+  it("모양이 깨진 meta는 무시한다", () => {
+    const now = Date.now();
+    for (const bad of ["", "토큰만있음", ".0123456789abcdef", `${coachTokenWindow(now)}.짧다`]) {
+      stubMeta(bad);
+      expect(coachRequestHeaders(now)[COACH_TOKEN_HEADER], bad).toBeUndefined();
+    }
   });
 });

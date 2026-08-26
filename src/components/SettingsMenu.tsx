@@ -56,7 +56,7 @@ function OptionButton({ label, selected, onSelect }: OptionButtonProps) {
         "transition-colors duration-150 ease-soft",
         selected
           ? "bg-brand-700 font-bold text-white active:bg-brand-800"
-          : "bg-neutral-soft text-ink hover:bg-neutral-line active:bg-neutral-line",
+          : "bg-paper-2 text-ink hover:bg-neutral-line active:bg-neutral-line",
       )}
     >
       {label}

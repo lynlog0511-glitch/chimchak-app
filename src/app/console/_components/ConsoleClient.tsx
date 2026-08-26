@@ -47,6 +47,12 @@ const PRINT_CSS = `
   [data-print-wide] { overflow: visible !important; }
   [data-print-wide] table { min-width: 0 !important; }
   tr { break-inside: avoid; }
+  /* 기입란 두 칸은 종이에서만 나란히 섭니다 — A4 폭(≈180mm)에 한 칸씩 쌓으면 서식이 세로로만
+     길어집니다. 화면 쪽은 뷰포트와 무관하게 한 줄에 하나입니다(430px 프레임 불변식). */
+  [data-print-row] {
+    flex-direction: row !important;
+    gap: 20px !important;
+  }
   /* 이 묶음이 무엇인지 매 쪽에 한 줄로 박습니다. position: fixed 상자는 페이지 미디어에서
      쪽마다 다시 그려지므로, 몇 쪽이 되든 같은 표식이 놓입니다(절대위치 상자는 복제되지 않습니다). */
   [data-preview-band] {
@@ -463,7 +469,7 @@ export function ConsoleClient() {
                 onChange={(event) => setOrgName(event.target.value)}
                 autoComplete="off"
                 placeholder="예) ○○주야간보호센터"
-                className="mt-[6px] min-h-[48px] w-full rounded-card border border-line-strong bg-white px-[13px] text-[0.9375rem] leading-[1.6] text-ink placeholder:text-tertiary focus:border-brand-400"
+                className="mt-[6px] min-h-[48px] w-full rounded-card border border-line-strong bg-white px-[13px] text-[0.9375rem] leading-[1.6] text-ink placeholder:text-ink-faint"
               />
             </div>
           </div>
@@ -478,9 +484,11 @@ export function ConsoleClient() {
               기관 콘솔 미리보기 — 이수 사실 파일을 이 기기에서 모아 만든 표 · 서버 서명 없음
             </p>
 
+            {/* 묶음 제목 — 앱의 섹션 제목 눈금 19px입니다.
+                예전에는 18px이라 화면 열두 값 어디에도 없는 외래 눈금이었습니다(2026-08-25 교정). */}
             <h2
               id="console-sheet-title"
-              className="text-[1.125rem] leading-[1.3] font-extrabold text-ink"
+              className="text-[1.1875rem] leading-[1.3] font-extrabold text-ink"
             >
               기관 이수 현황 묶음
             </h2>
@@ -489,7 +497,14 @@ export function ConsoleClient() {
               <span className="chim-num">{entries.length}</span>벌을 이 기기에서 모아 만든 표입니다
             </p>
 
-            <div className="mt-[14px] flex flex-col gap-[12px] border-t border-line pt-[14px] sm:flex-row sm:gap-[20px]">
+            {/* 화면에서는 한 줄에 하나(430px 프레임), 종이에서는 A4 폭을 살려 나란히 —
+                가르는 기준은 **창 폭이 아니라 매체**입니다. 예전에는 sm 접두 클래스가 그 둘을 한꺼번에
+                맡고 있어서, 창을 넓히면 화면 레이아웃까지 함께 바뀌었습니다(페르소나 디자이너 med).
+                같은 파일이 768px↑ 확대 변형을 인쇄 규칙으로 옮긴 것과 같은 정리입니다. */}
+            <div
+              data-print-row
+              className="mt-[14px] flex flex-col gap-[12px] border-t border-line pt-[14px]"
+            >
               <FillField label="기관명" value={orgName} className="flex-1" />
               <FillField label="작성자" className="flex-1" />
             </div>
@@ -631,7 +646,8 @@ export function ConsoleClient() {
                 이 묶음은 직원분들이 각자 기기에서 내려받은 이수 사실 파일을 담당자가 모아 만든
                 표이며, 기관 확인자의 서명으로 효력이 생깁니다.
               </p>
-              <div className="mt-[12px] flex flex-col gap-[14px] sm:flex-row sm:gap-[20px]">
+              {/* 위 기입란과 같은 규율 — 나란히 세우는 판단은 인쇄 규칙이 맡습니다. */}
+              <div data-print-row className="mt-[12px] flex flex-col gap-[14px]">
                 <FillField label="확인자 서명" className="flex-1" />
                 <FillField label="일자" className="flex-1" />
               </div>

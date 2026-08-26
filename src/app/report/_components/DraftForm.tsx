@@ -3,8 +3,12 @@
 import type { Ref } from "react";
 import type { RecordDraft } from "@/types";
 import { BigButton, SourceChip, cx } from "@/components";
-import { RECORD_SLOT_LABELS, recomputeMissing, type RecordSlot } from "@/engine/record";
-import { SLOT_PROMPTS } from "./DraftRows";
+import {
+  RECORD_SLOT_LABELS,
+  RECORD_SLOT_QUESTIONS,
+  recomputeMissing,
+  type RecordSlot,
+} from "@/engine/record";
 import { PrivacyPath } from "./PrivacyPath";
 import { StickyCtaBar, usePassedBlock } from "./StickyCtaBar";
 
@@ -71,7 +75,7 @@ export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: Dr
         급여제공기록지 초안을 확인하고 고쳐 주세요
       </h2>
       <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-muted">
-        가명처리를 마친 문장에서 5요소를 나눠 담았습니다. 기기 안의 규칙으로 나눈 초안이라 어색한
+        가린 문장에서 5요소를 나눠 담았습니다. 기기 안의 규칙으로 나눈 초안이라 어색한
         곳이 있을 수 있습니다. 사실과 다르면 바로 고쳐 주세요.
       </p>
       <div className="mt-[8px]">
@@ -100,7 +104,7 @@ export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: Dr
              `focus:border-brand-400`도 뗐습니다: 전역 포커스 outline(brand-600)과 겹쳐
              틸 두 겹이 번져 보였습니다. 「비어 있음」 경고 보더는 상태 표시라 그대로 둡니다. */
           const shared = cx(
-            "mt-[6px] w-full rounded-card border bg-paper-2 p-[13px] text-[1.0625rem] leading-[1.6] text-ink placeholder:text-tertiary",
+            "mt-[6px] w-full rounded-card border bg-paper-2 p-[13px] text-[1.0625rem] leading-[1.6] text-ink placeholder:text-ink-faint",
             empty ? "border-warn-line focus:border-warn-ink" : "border-line-strong",
           );
 
@@ -110,9 +114,12 @@ export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: Dr
                 <label htmlFor={fieldId} className="text-[0.8438rem] leading-[1.45] font-bold text-ink">
                   {label}
                 </label>
+                {/* 빈 칸에는 지시문이 아니라 **질문**을 답니다 — 「채워 주세요」가 다섯 번
+                    늘어서면 남은 것이 숙제로 읽히는데, 물어보면 대답이 곧 그 칸의 값입니다
+                    (2026-08-25 · 페르소나 PM P2). 문구는 엔진 상수 한 곳에서 옵니다. */}
                 {empty && (
                   <span id={hintId} className="text-[0.7813rem] leading-[1.45] font-bold text-warn-ink">
-                    채워 주세요 — {SLOT_PROMPTS[slot.key]}
+                    채워 주세요 — {RECORD_SLOT_QUESTIONS[slot.key]}
                   </span>
                 )}
               </div>
@@ -148,7 +155,7 @@ export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: Dr
           확정은 직접 누르셔야 저장됩니다
         </p>
         <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
-          확정 직전에 가명처리를 한 번 더 거치고, 이 기기의 저장소에만 남깁니다. 최종 기록의
+          확정 직전에 한 번 더 가리고, 이 기기의 저장소에만 남깁니다. 최종 기록의
           내용과 책임은 작성하신 분에게 있습니다.
         </p>
         {/* 기관 연동은 아직 없습니다 — /safety가 「계획」 배지로 구분하는 것과 같은 표기를 씁니다.

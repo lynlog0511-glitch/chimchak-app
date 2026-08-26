@@ -31,9 +31,13 @@ export default function ConsolePage() {
           title="기관 콘솔"
           subtitle="파일럿 뒤에 연결할 콘솔의 미리보기 · 이 기기 안에서만 동작합니다"
           action={
+            /* 48px은 높이만이 아니라 **폭**이기도 합니다 — min-h만 있던 동안 이 링크는
+               39×48px이었습니다(2차 페르소나 UI/UX 실측). 화면 우상단 모서리라 엄지가 닿기
+               가장 어려운 자리이고, TabBar가 「각 칸의 터치 영역은 48px 이상」이라고 적어 둔
+               규칙에서 이 한 곳만 폭이 빠져 있었습니다. */
             <Link
               href="/for-orgs"
-              className="flex min-h-[48px] items-center rounded-field px-1 text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper-2"
+              className="flex min-h-[48px] min-w-[48px] items-center justify-center rounded-field px-1 text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper-2"
             >
               닫기
             </Link>

@@ -65,9 +65,13 @@ const THINGS: readonly { title: string; subtitle: string; href: string }[] = [
   },
   {
     title: "성장하고 — 보고·기록 코칭",
-    /* 「가명처리」는 보고 화면 안에서 한 번도 쓰지 않는 말입니다 — 거기서는 「가리기」라고
-       적습니다. 첫 화면만 어려운 말을 쓰면, 그 말을 모르는 분이 이 줄에서 멈춥니다
-       (페르소나 현직 med). 앱 안에서 쓰는 말로 통일합니다. */
+    /* 첫 화면만 어려운 말을 쓰면, 그 말을 모르는 분이 이 줄에서 멈춥니다(페르소나 현직 med).
+       그래서 여기는 「이름·번호를 가려서」라고 적습니다.
+       — 이 주석은 예전에 「가명처리는 보고 화면 안에서 한 번도 쓰지 않는 말」이라고 적고 있었는데,
+       그때 정작 /report 본문·고지·초안 화면에는 그 말이 넷 남아 있었습니다. 2026-08-25에
+       보고 화면 쪽 사용자 문면을 「가리기」로 실제로 통일했고(페르소나 현직 P1), 이 주석도
+       사실대로 고칩니다. 법 개념이 필요한 자리(동의 문안·저장 항목 고지·/legal·/safety)는
+       「가명처리」를 그대로 씁니다 — 지운 것이 아니라 자리를 가른 것입니다. */
     subtitle: "말로 보고하면 이름·번호를 가려서 기록 초안까지",
     href: "/report",
   },
@@ -207,11 +211,15 @@ export default function Home() {
             3계층·앵커 60~160%·생성 호출 0건을 만나면 더 불안해집니다 — 그 화면은 기관 담당자와
             심사가 보는 화면이고, 사용자가 찾는 답(「제가 말한 내용은 어디로 가나요?」)은 이미
             /guide에 사용자 말로 적혀 있습니다(페르소나 현직 med). /safety로 곧장 가는 문은
-            아래 FOOT_LINKS 한 곳에만 둡니다. */}
+            아래 FOOT_LINKS 한 곳에만 둡니다.
+
+            색이 brand-800인 이유 — 이 카드는 paper-2 면이고, brand-700은 흰 지면에서만
+            AA(4.86:1)입니다. 같은 색이 paper-2 위에서는 4.49:1로 0.01 모자랍니다(2026-08-25 실측).
+            globals.css의 brand-700 주석에 같은 단서를 달아 두었습니다. */}
         <Link
           href={`/guide#${GUIDE_PRIVACY_FAQ_ID}`}
           prefetch={false}
-          className="-ml-2 inline-flex min-h-[48px] items-center gap-1 rounded-field px-2 text-[0.8438rem] leading-[1.45] font-semibold text-brand-700 underline underline-offset-4 transition-colors duration-150 ease-soft hover:text-brand-800 active:bg-white"
+          className="-ml-2 inline-flex min-h-[48px] items-center gap-1 rounded-field px-2 text-[0.8438rem] leading-[1.45] font-semibold text-brand-800 underline underline-offset-4 transition-colors duration-150 ease-soft hover:text-brand-900 active:bg-white"
         >
           안전 설계 보기
           <span aria-hidden>›</span>

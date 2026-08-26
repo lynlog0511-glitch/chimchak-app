@@ -37,9 +37,9 @@ export interface BigButtonProps {
 const VARIANT: Record<BigButtonVariant, string> = {
   primary: "bg-brand-700 text-white hover:bg-brand-800 active:bg-brand-900",
   // secondary = 회색 면. 틸 보더를 두르면 화면마다 선이 늘어나 서식처럼 보입니다.
-  secondary: "bg-neutral-soft text-ink hover:bg-neutral-line active:bg-neutral-line",
+  secondary: "bg-paper-2 text-ink hover:bg-neutral-line active:bg-neutral-line",
   danger: "bg-danger-ink text-white hover:brightness-110 active:brightness-95",
-  ghost: "bg-transparent text-ink-soft hover:bg-neutral-soft hover:text-ink active:bg-neutral-line",
+  ghost: "bg-transparent text-ink-soft hover:bg-paper-2 hover:text-ink active:bg-neutral-line",
 };
 
 /* 라벨은 코어 콘텐츠(§3)입니다 — 크롬을 16px로 내리는 작업에서도 17px을 지킵니다.

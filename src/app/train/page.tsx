@@ -19,6 +19,8 @@ import {
 } from "@/lib/onlineFree";
 import { FICTION_NOTICE, scenarioHref } from "./_components/constants";
 import { PracticeCount } from "./_components/PracticeCount";
+import { UnexploredCount } from "./_components/UnexploredCount";
+import { scenarioBranchPrints } from "./_components/unexplored";
 
 /* ── 훈련 목록 = 시안 7a ───────────────────────────────────────
    위에서부터: 헤더(훈련 + 한 줄) → 열린 시나리오 카드 → 「전체 12종 편성표 ⌄」 접힘 행
@@ -216,6 +218,14 @@ export default function TrainIndexPage() {
                     연습하기 ›
                   </span>
                 </span>
+                {/* 완주하신 적이 있는 카드에만 서는 한 줄 — 「같은 상황을 왜 또 하나」에 답합니다.
+                    갈래 수는 기기에 남은 회차 기록으로 브라우저가 세고(서버는 지문표만 넘깁니다),
+                    한 번도 안 하신 카드에는 아예 붙지 않습니다. */}
+                <UnexploredCount
+                  scenarioId={scenario.id}
+                  prints={scenarioBranchPrints(scenario)}
+                  className="mt-[6px]"
+                />
                 {/* 감수 대기 — 카드에서 가장 조용한 줄입니다. 연습을 막는 말이 아니라 사실 한 줄입니다. */}
                 {reviewPending && (
                   <span className="mt-[6px] block text-[0.7813rem] leading-[1.45] text-ink-faint">
@@ -263,8 +273,12 @@ export default function TrainIndexPage() {
                             데이터(`src/data/matrix.ts`)는 그대로이고, 지우는 것은 표시부뿐입니다. */}
                         {matrixTitle(cell.title)}
                       </span>
+                      {/* 「열림」은 **상태어**입니다 — 이 행은 <li>라 누를 수 없습니다.
+                          브랜드색으로 칠해 두면 목록에서 「여기가 열린 문」으로 읽혀 오조작을
+                          부릅니다(1차·2차 페르소나 UI/UX 지적). 위계는 색이 아니라 굵기와
+                          ink-soft ↔ ink-faint 두 단이 만듭니다. */}
                       <span
-                        className={`flex-none text-[0.7188rem] leading-[1.45] font-semibold ${open ? "text-brand-700" : "text-ink-faint"}`}
+                        className={`flex-none text-[0.7188rem] leading-[1.45] font-semibold ${open ? "text-ink-soft" : "text-ink-faint"}`}
                       >
                         {open ? "열림" : "준비 중"}
                       </span>
@@ -322,8 +336,24 @@ export default function TrainIndexPage() {
         </Link>
       </section>
 
-      {/* 가상 인물 고지 한 줄 — 대사가 없는 화면이라 목록 끝에 조용히 답니다. */}
-      <p className="mt-[10px] text-[0.7188rem] leading-[1.6] text-ink-faint">{FICTION_NOTICE}</p>
+      {/* 가상 인물 고지 한 줄 — 대사가 없는 화면이라 목록 끝에 조용히 답니다.
+
+          그 옆에 「처음 오신 분께」로 가는 문을 하나 답니다. 이 앱에서 그 문은 홈 맨 아래 링크
+          줄에만 있었는데, 처음 오신 분이 실제로 망설이는 자리는 홈이 아니라 **여섯 장 중 하나를
+          고르는 이 화면**입니다(2026-08-25 · 페르소나 교육생). 카드 위로 올리면 목록을 가리므로,
+          고지 줄과 같은 자리에서 한 줄로만 엽니다. */}
+      <div className="mt-[10px] flex flex-wrap items-center justify-between gap-x-3">
+        <p className="min-w-0 flex-1 text-[0.7188rem] leading-[1.6] text-ink-faint">
+          {FICTION_NOTICE}
+        </p>
+        <Link
+          href="/guide"
+          prefetch={false}
+          className="inline-flex min-h-[48px] flex-none items-center rounded-field text-[0.8438rem] leading-[1.45] font-bold text-brand-700 transition-colors duration-150 active:bg-paper-2"
+        >
+          처음 오신 분께 ›
+        </Link>
+      </div>
 
       <InlineDisclaimer size="md" tone="readable" className="mt-5 mb-6" />
     </PageShell>

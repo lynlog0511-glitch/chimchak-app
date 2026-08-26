@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ChevronGlyph } from "@/components/icons";
 import { BigButton } from "@/components";
 import { cx } from "@/components/utils";
@@ -50,6 +50,10 @@ const CALL_BAR_BASE =
 function SessionCall119({ className }: { className?: string }) {
   const [armed, setArmed] = useState(false);
   const confirmRef = useRef<HTMLAnchorElement | null>(null);
+  /* 이 조각은 화면당 한 번만 그려지지만(전환 화면과 재생 화면은 서로 배타적입니다),
+     안내줄을 id로 묶는 자리라 id를 손으로 적지 않습니다 — 언젠가 둘이 함께 서는 날
+     중복 id가 되고, 그때 증상은 「엉뚱한 문장이 읽힌다」입니다. */
+  const hintId = useId();
 
   useEffect(() => {
     if (!armed) return;
@@ -65,6 +69,11 @@ function SessionCall119({ className }: { className?: string }) {
           <a
             href="tel:119"
             ref={confirmRef}
+            /* 아래 안내줄을 이 링크의 설명으로 묶습니다 — 확인 단계로 넘어오면 초점이 이 링크에
+               놓이므로, 그 한 번에 「눌리면 무슨 일이 일어나는지」까지 함께 읽힙니다.
+               예전에는 같은 문장이 자기 `role="status"`를 들고 있어, 초점 이동과 리전 발화가
+               같은 사실을 두 번 말했습니다(라이브 리전은 화면당 하나 — 페르소나 FE low). */
+            aria-describedby={hintId}
             className={cx(CALL_BAR_BASE, "min-w-0 flex-1 bg-danger text-white active:bg-danger-ink")}
           >
             네, 지금 걸기
@@ -91,7 +100,7 @@ function SessionCall119({ className }: { className?: string }) {
       )}
       {armed && (
         <p
-          role="status"
+          id={hintId}
           className="mt-[6px] text-center text-[0.8438rem] leading-[1.45] font-semibold text-danger-ink"
         >
           「네, 지금 걸기」를 누르시면 전화 앱이 열립니다.
@@ -236,6 +245,8 @@ export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolI
           </div>
         )}
 
+        {/* 이 구간의 **유일한** 라이브 리전입니다 — 단계가 넘어갈 때마다 바뀌는 자막이라
+            여기 하나만 남기고, 119 확인 안내는 초점 이동과 `aria-describedby`가 맡습니다. */}
         <p
           aria-live="polite"
           className="mt-3 text-[1.8125rem] leading-[1.45] font-extrabold tracking-[-0.015em] text-ink"
@@ -248,10 +259,14 @@ export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolI
           <p className="mt-3 text-[0.9375rem] leading-[1.6] text-ink-soft">{step.screen}</p>
         )}
 
-        {step?.address && <ProtocolAddressCard address={step.address} className="mt-4" />}
+        {/* 주소 단계인지는 데이터의 `step.address`가 가르고, 화면에 서는 값은 이 기기에
+            적어 두신 주소입니다 — 연습용 예시 주소는 카드가 쓰지 않으므로 넘기지 않습니다.
+            훈련 안에서는 읽기 전용입니다: 적어 두신 것이 있으면 급할 때 무엇이 뜨는지 그대로
+            보여 드리고, 없으면 어디에서 적을 수 있는지 한 줄만 답니다(2026-08-25). */}
+        {step?.address && <ProtocolAddressCard readOnly className="mt-4" />}
 
         {preview && (
-          <p className="mt-4 text-[0.8438rem] leading-[1.6] text-tertiary">다음 — {preview}</p>
+          <p className="mt-4 text-[0.8438rem] leading-[1.6] text-ink-faint">다음 — {preview}</p>
         )}
       </div>
 
@@ -283,7 +298,7 @@ export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolI
       <details className="group mt-5 border-t border-line">
         <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 rounded-field text-[0.8438rem] font-semibold text-ink-soft transition-colors duration-150 active:bg-paper-2 [&::-webkit-details-marker]:hidden">
           <span>이 앱이 하지 않는 것</span>
-          <ChevronGlyph size="sm" className="text-faint group-open:rotate-180" />
+          <ChevronGlyph size="sm" className="text-ink-ghost group-open:rotate-180" />
         </summary>
         <ul className="chim-hairline pb-2">
           {protocol.notDoing.map((item) => (

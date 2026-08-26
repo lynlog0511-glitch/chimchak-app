@@ -13,6 +13,7 @@ import { PILOT_PREREGISTERED, PILOT_SCOPE } from "@/data/pilotResults";
 import { ONLINE_MODE_LABEL } from "@/lib/settings";
 import { MAX_ITEMS } from "@/lib/storage";
 import { DocCloseButton } from "../_components/DocCloseButton";
+import { SafetyToc, type TocItem } from "../safety/_components/SafetyToc";
 
 export const metadata: Metadata = {
   title: "약관·개인정보",
@@ -40,7 +41,7 @@ export const metadata: Metadata = {
 const DRAFT_NOTE = "시행일 2026. 8. 25.";
 
 /** 목차 칩 — 절 셋뿐이라 스크롤 추적 없이 앵커 링크만 둡니다. */
-const TOC: readonly { id: string; label: string }[] = [
+const TOC: readonly TocItem[] = [
   { id: "privacy", label: "개인정보" },
   { id: "terms", label: "이용약관" },
   { id: "pilot", label: "파일럿 동의" },
@@ -59,7 +60,31 @@ function DraftMark() {
   );
 }
 
-/** 문서 한 벌(절). 제목 22px + 검토 상태 표시 + 안내 한 문단. */
+/**
+ * 절 끝의 「맨 위로」.
+ *
+ * 이 화면은 글자를 「아주 크게」로 두시면 12,284px — 14.6화면입니다. 약관·개인정보는 읽는
+ * 문서가 아니라 **찾는** 문서라, 한 절을 다 본 사람이 다음 절로 가려면 지도(위 목차 칩)로
+ * 돌아갈 길이 있어야 합니다. 목차가 상단에 붙어 있어도 절 중간에서는 화면 밖입니다.
+ * 목적지는 셸의 본문 앵커(`#chim-content`)라 「본문으로 건너뛰기」와 같은 자리로 갑니다.
+ */
+function BackToTop() {
+  return (
+    <p className="mt-6">
+      <a
+        href="#chim-content"
+        className="-ml-2 inline-flex min-h-[48px] items-center gap-[6px] rounded-field px-2 text-[0.8438rem] leading-[1.45] font-semibold text-ink-muted transition-colors duration-150 ease-soft active:bg-paper-2"
+      >
+        <span aria-hidden className="text-ink-ghost">
+          ↑
+        </span>
+        맨 위로
+      </a>
+    </p>
+  );
+}
+
+/** 문서 한 벌(절). 제목 19px + 검토 상태 표시 + 안내 한 문단 + 절 끝 「맨 위로」. */
 function Doc({
   id,
   num,
@@ -86,6 +111,7 @@ function Doc({
       </p>
       <p className="mt-[10px] text-[0.9375rem] leading-[1.6] text-ink-soft">{lead}</p>
       {children}
+      <BackToTop />
     </section>
   );
 }
@@ -173,6 +199,10 @@ const STORED_ITEMS: readonly { t: string; d: string }[] = [
     d: `글자 크기·음성 빠르기, 그리고 「${ONLINE_MODE_LABEL}」 스위치 한 칸입니다. 예전에는 여기에 주소·키가 함께 담겼지만 지금은 서버로 옮겼고, 이 기기에는 어떤 키도 두지 않습니다.`,
   },
   {
+    t: "방문지 주소",
+    d: "응급 안내 주소 단계에서 보여 드릴 방문지 주소 한 칸입니다. 이 기기에만 저장되고 어디로도 전송되지 않습니다. 응급 안내 화면에서 언제든 고치거나 지우실 수 있습니다.",
+  },
+  {
     t: "체험용 예시 표시",
     d: "화면 확인을 위해 예시 기록을 심었는지 여부만 담는 쪽지입니다.",
   },
@@ -230,17 +260,11 @@ export default function LegalPage() {
         없는 기능은 없다고 적었습니다. 앱이 바뀌면 이 문서도 같은 날 함께 바뀝니다.
       </p>
 
-      <nav aria-label="문서 바로가기" className="mt-4 flex flex-wrap gap-2">
-        {TOC.map((item) => (
-          <a
-            key={item.id}
-            href={`#${item.id}`}
-            className="inline-flex min-h-[48px] items-center rounded-chip border border-line-strong px-4 text-[0.9375rem] font-bold text-ink-soft transition-colors duration-150 active:bg-paper-2"
-          >
-            {item.label}
-          </a>
-        ))}
-      </nav>
+      {/* 목차는 /safety와 **같은 조각**입니다(2026-08-25).
+          예전에는 이 화면만 손수 만든 칩 줄을 썼고, 그래서 읽는 중 위에 붙지도, 지금 어느 절을
+          보고 있는지 표시하지도 못했습니다. /safety를 68% 줄인 처방(목차 + 접기)이 이미 앱 안에
+          있었으므로 새 설계가 아니라 적용 범위 문제였습니다(2차 페르소나 UI/UX P1). */}
+      <SafetyToc items={TOC} label="약관·개인정보 목차" className="mt-4" />
 
       {/* ── ① 개인정보 처리방침 ───────────────────────────── */}
       <Doc
@@ -280,7 +304,8 @@ export default function LegalPage() {
                 를 누르시면 훈련 이력·확정 기록·이수 누계, 그리고 이수 파일 가져오기 기록이
                 지워집니다. 되돌릴 수 없습니다.
               </>,
-              "이어서 하기 표시·설정값·자유 연습 횟수·주간 목표·안내 표시·체험용 예시 표시·시연 표시는 그 버튼으로 지워지지 않습니다. 전부 지우시려면 브라우저의 사이트 데이터 삭제를 쓰십시오.",
+              "이어서 하기 표시·설정값·방문지 주소·자유 연습 횟수·주간 목표·안내 표시·체험용 예시 표시·시연 표시는 그 버튼으로 지워지지 않습니다. 전부 지우시려면 브라우저의 사이트 데이터 삭제를 쓰십시오.",
+              "방문지 주소는 응급 안내 화면에서 따로 고치거나 지웁니다.",
               "지운 기록은 되살릴 수 없습니다. 남기실 이수 사실이 있으면 먼저 이수 확인서를 인쇄하거나 파일로 내려받아 두십시오.",
             ]}
           />

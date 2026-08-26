@@ -12,6 +12,22 @@
  *          → S3 안전확보·대체행동(T3/CUE-3) → S4 보고·기록(CUE-4~6)
  *          (초조도 5 도달 시 위기 엔딩 → 재시도 1회 무벌점)
  *
+ * 2026-08-25 수정 — 현직 감수 재확인 대기
+ *  (1) ⚑CF 억제 분기 4곳(D1-b-CF·TA-b·TB-b·D3-d)에 규칙 사전의 예외어(RESTRAINT_EXCEPT_TERMS)를
+ *      연결했습니다. "어머님, 제 팔 붙잡으세요. 같이 나가요"(앱이 권하는 대안)가 홑 어간 「붙잡」에
+ *      걸려 ⚑CF가 되던 자리입니다.
+ *  (2) 빈 조각 표지 제거 — D1-c의 「마음이」·「얼마나」, D2-c의 「아니면」.
+ *      한 조각만으로 충족 판정이 되던 자리이며, 뒤 절반의 잘못된 말을 삼켰습니다.
+ *  (3) CUE-4(보고)를 **요소 개수 판정**(elementJudge)으로 바꿨습니다. 표지 목록(시각·대상·행위·현재 상태)
+ *      자체가 감수 대상입니다. R1-a의 표지는 비웠습니다.
+ *  (4) 미분류 분기 D1-n·D2-n의 next를 같은 CUE(T1·T2)로 돌려, 말이 닿지 않은 회차가
+ *      다음 장면으로 떠밀리지 않게 했습니다.
+ *  (5) CUE-2 D2-a에 선행 조건(D1-c 감정 인정)을 걸고, 미충족 시 D2-a-x(어르신 반발)로 받습니다.
+ *      D2-a-x는 게이지 +1이라 반복하면 위기 엔딩까지 갈 수 있습니다 — 의도한 현실성입니다.
+ *  (6) CUE-T2에 P-e(센터 보고 + 지시 요청)를 신설했습니다. 대사 2건이 새로 들어갑니다.
+ *  (7) R1-c 보기 문구에서 호칭을 뺐습니다("어르신이 고집을 부리셔서…" → "고집이 세셔서…").
+ *      요소 판정이 호칭 하나를 「대상」 요소로 세는 바람에 감정 위주 보고가 부분 보고로 올라갔습니다.
+ *
  * 판정 공정성 (8/6 감사 기준을 전 CUE로 소급)
  *  - 모든 CUE에 **중립 미분류 분기**(…-n)를 두고 defaultBranchId를 그리로 돌렸습니다.
  *    말이 신호에 걸리지 않았다는 것과 잘못 대응했다는 것은 다른 사실입니다. 감점 분기는
@@ -21,6 +37,7 @@
  */
 
 import type { Scenario } from "@/types";
+import { RESTRAINT_EXCEPT_TERMS } from "@/engine/rules";
 
 /**
  * 중립 미분류 분기의 코칭 문구 — 감점이 아니라 **다시 말할 기회**입니다.
@@ -144,6 +161,9 @@ export const CHK_A01: Scenario = {
           {
             id: "D1-c",
             label: "감정 인정형",
+            // 「마음이」·「얼마나」는 뺐습니다 — 조각 하나로 충족이 되던 자리입니다.
+            // "마음이 급하신 건 알지만 여기가 어머님 댁이에요"가 감정 인정으로 칭찬을 받고,
+            // 정작 이 시나리오가 잡으려는 사실 반박은 뒤 절반에 그대로 남아 있었습니다.
             patterns: [
               "마음이 급하",
               "급하시",
@@ -157,8 +177,6 @@ export const CHK_A01: Scenario = {
               "그러시구나",
               "그러셨구나",
               "그러시겠어요",
-              "마음이",
-              "얼마나",
               "많이 기다리",
               "생각이 나시",
               "싶으시",
@@ -256,6 +274,7 @@ export const CHK_A01: Scenario = {
             label: "지시·제지형 — 신체 접촉·문 잠금 (⚑CF)",
             // 잠그다의 활용형(잠급니다·잠갔습니다·잠금)을 놓치지 않도록 어간까지만 둡니다.
             patterns: RESTRAINT_PATTERNS,
+            except: RESTRAINT_EXCEPT_TERMS,
             gaugeDelta: 0,
             aiReaction: "놔! 놓으라고!",
             aiReactionNote: "손을 뿌리치며 몸을 뒤로 빼십니다.",
@@ -286,6 +305,8 @@ export const CHK_A01: Scenario = {
           },
           {
             // 미분류(음성 인식 실패 포함) 전용 중립 분기 — 게이지 변동 0, 루브릭 반영 없음.
+            // next는 **같은 CUE**입니다. 말이 닿지 않았다는 이유로 다음 장면으로 떠밀면,
+            // 하시려던 말을 할 자리가 사라집니다. 버튼 보기는 그대로 열려 있습니다.
             id: "D1-n",
             label: "무응답·미분류",
             patterns: [],
@@ -295,7 +316,7 @@ export const CHK_A01: Scenario = {
             rubricHits: [],
             coaching: UNCLEAR_COACHING,
             docId: "DOC-GUIDE-001",
-            next: "T-1",
+            next: "T1",
           },
         ],
       },
@@ -377,6 +398,7 @@ export const CHK_A01: Scenario = {
             id: "TA-b",
             label: "신체 억제·문 잠금 (⚑CF)",
             patterns: RESTRAINT_PATTERNS,
+            except: RESTRAINT_EXCEPT_TERMS,
             fallbackOption: "몸으로 문을 막고 도어락을 잠급니다",
             gaugeDelta: 0,
             aiReaction: "이거 놔! 사람 살려!",
@@ -449,6 +471,12 @@ export const CHK_A01: Scenario = {
           {
             id: "D2-a",
             label: "미충족 욕구 탐색",
+            /* 감정을 먼저 알아드린 뒤에야 열립니다.
+               같은 확인도 앞에 무엇이 있었느냐로 어르신의 반응이 달라집니다. 마음을 지나치고
+               곧바로 배뇨를 물으면 현장에서는 반발이 돌아옵니다(현직 검증).
+               선행이 없으면 아래 D2-a-x로 받고, 같은 자리에서 다시 여쭐 수 있습니다. */
+            requiresPriorBranchIds: ["D1-c"],
+            unmetBranchId: "D2-a-x",
             // 조사가 끼어도 걸리도록 어간까지만 둡니다("배가 고프신", "시장하세요?").
             patterns: [
               "화장실",
@@ -484,6 +512,24 @@ export const CHK_A01: Scenario = {
             next: "T-3",
           },
           {
+            /* 선행 조건 게이트 전용 분기 — 패턴도 보기 버튼도 없습니다.
+               D2-a로 분류된 발화가 감정 인정(D1-c)을 지나오지 않았을 때 대신 적용됩니다.
+               게이지 +1이 쌓여 위기 엔딩까지 갈 수 있습니다. 순서를 지나친 확인이 상황을
+               나쁘게 만드는 것은 현장에서 실제로 일어나는 일이고, 되돌릴 자리(같은 CUE)를
+               열어 두는 것으로 균형을 잡습니다. */
+            id: "D2-a-x",
+            label: "선행 없는 직접 확인 — 어르신 반발",
+            patterns: [],
+            gaugeDelta: 1,
+            aiReaction: "내가 왜 화장실을 가! 나 지금 가야 된다니까.",
+            aiReactionNote: "언성이 높아지십니다.",
+            rubricHits: [],
+            coaching:
+              "맞는 확인인데 순서가 빨랐어요. \"많이 급하시죠\" 하고 마음을 먼저 알아드린 뒤에 다시 여쭤 보세요.",
+            docId: "DOC-GUIDE-001",
+            next: "T2",
+          },
+          {
             id: "D2-b",
             label: "환경 요인 확인",
             patterns: [
@@ -509,8 +555,9 @@ export const CHK_A01: Scenario = {
           {
             id: "D2-c",
             label: "선택권 제공",
+            // 홑 「아니면」은 뺐습니다 — 선택지를 드리지 않은 문장("아니면 그냥 계세요")까지
+            // 삼켜서, 접속어 하나로 충족 판정이 났습니다.
             patterns: [
-              "아니면",
               "둘 중에",
               "어떤 게 좋으",
               "고르시",
@@ -552,6 +599,7 @@ export const CHK_A01: Scenario = {
           },
           {
             // 미분류(음성 인식 실패 포함) 전용 중립 분기 — 게이지 변동 0, 루브릭 반영 없음.
+            // D1-n과 같은 규약입니다 — 같은 CUE에 머무릅니다.
             id: "D2-n",
             label: "무응답·미분류",
             patterns: [],
@@ -560,7 +608,7 @@ export const CHK_A01: Scenario = {
             rubricHits: [],
             coaching: UNCLEAR_COACHING,
             docId: "DOC-GUIDE-001",
-            next: "T-2",
+            next: "T2",
           },
         ],
       },
@@ -594,6 +642,40 @@ export const CHK_A01: Scenario = {
         // 미분류를 감점 분기(P-c)에 매핑하지 않습니다 — 중립 분기로 받습니다.
         defaultBranchId: "P-n",
         branches: [
+          {
+            /* 2026-08-25 신설 — 기관 보고 체계를 먼저 세우는 갈래입니다.
+               보호자에게 곧바로 답하는 것만이 정답인 자리가 아닙니다. 시설·재가를 막론하고
+               먼저 알릴 곳은 센터이고, 현직에서 실제로 그렇게 배웁니다.
+               P-a와 같은 무게로 두고, 동률일 때 배열 순서가 이 분기를 먼저 잡도록 앞에 놓았습니다.
+               3초 국면(CUE-T1·CUE-T1B)에는 두지 않았습니다 — 그 자리는 어르신 곁을 떠날 수 없는
+               순간이라 보고를 선택지로 놓으면 판정선이 흐려집니다. */
+            id: "P-e",
+            label: "센터 보고 + 지시 요청",
+            patterns: [
+              "센터에",
+              "센터로",
+              "관리책임자",
+              "시설장",
+              "사회복지사",
+              "사무실에 알리",
+              "지시 받",
+              "지시를 받",
+              "보고하고 지시",
+            ],
+            fallbackOption:
+              "따님, 지금 어머님이 현관에 계셔서요. 센터에 먼저 알리고 지시를 받은 뒤 전화드릴게요",
+            gaugeDelta: 0,
+            aiReaction: "네, 그럼 센터에서 연락받고 다시 걸게요.",
+            aiReactionNote: "전화가 끊어지고, 어르신은 아직 현관 근처에 계십니다.",
+            rubricHits: [
+              { itemId: "SA-04", score: 4 },
+              { itemId: "CL-02", score: 4 },
+            ],
+            praise:
+              "어르신 곁을 지키면서 센터에 먼저 알리는 순서를 잡으셨습니다. 기관 보고 체계가 그대로 지켜졌습니다.",
+            docId: "DOC-NOTI-002",
+            next: "T3",
+          },
           {
             id: "P-a",
             label: "안전 우선 + 재연락 약속",
@@ -764,6 +846,7 @@ export const CHK_A01: Scenario = {
             label: "신체 억제·문 잠금 (⚑CF)",
             // TA-b와 같은 집합입니다 — 두 트리거 CUE의 판정이 어긋나지 않게 합니다.
             patterns: RESTRAINT_PATTERNS,
+            except: RESTRAINT_EXCEPT_TERMS,
             fallbackOption: "몸으로 문을 막고 도어락을 잠급니다",
             gaugeDelta: 0,
             aiReaction: "이거 놔!",
@@ -913,6 +996,7 @@ export const CHK_A01: Scenario = {
               "억지로 옮",
               "안아서 옮",
             ],
+            except: RESTRAINT_EXCEPT_TERMS,
             fallbackOption: "팔을 잡아 거실 쪽으로 끌어당깁니다",
             gaugeDelta: 0,
             aiReaction: "왜 이래! 놔!",
@@ -950,23 +1034,49 @@ export const CHK_A01: Scenario = {
         waitSec: 8,
         // 상식적인 보고 문장이 신호에 걸리지 않았다고 「미보고」(R1-d)로 찍지 않습니다.
         defaultBranchId: "R1-n",
+        /* 보고는 **몇 가지가 들어 있는가**로 가릅니다.
+           표지 하나로 가르던 시절에는 「귀가 요구」 한 마디가 5요소 보고가 되고, 다 갖춘 보고가
+           「나가시려고」 한 조각 때문에 부분 보고로 내려갔습니다.
+           2026-08-25 신설 — 아래 표지 목록 자체가 현직 감수 재확인 대상입니다. */
+        elementJudge: {
+          groups: [
+            { id: "time", label: "시각", patterns: ["16시", "4시 4", "오후 4시", "40분"] },
+            { id: "who", label: "대상", patterns: ["어르신", "어머님", "대상자"] },
+            {
+              id: "what",
+              label: "행위·조치",
+              patterns: [
+                "귀가 요구",
+                "귀가를 요구",
+                "나가시려",
+                "현관",
+                "문고리",
+                "화장실",
+                "안내",
+                "진정",
+                "젖은 옷",
+                "갈아입",
+                "확인했",
+                "안내드렸",
+              ],
+            },
+            {
+              id: "status",
+              label: "현재 상태",
+              patterns: ["현재", "지금은", "소파에 앉", "앉아 계", "안정"],
+            },
+          ],
+          tiers: [
+            { minCount: 3, branchId: "R1-a" },
+            { minCount: 1, branchId: "R1-b" },
+          ],
+        },
         branches: [
           {
             id: "R1-a",
             label: "5요소 사실 보고",
-            // 시각·행위·조치처럼 5요소를 실제로 담은 표지만 남깁니다.
-            // ("현재", "지금은", "거실"처럼 한 단어로 4점이 되던 범용 토큰은 뺐습니다.)
-            patterns: [
-              "16시",
-              "4시 4",
-              "오후 4시",
-              "귀가 요구",
-              "귀가를 요구",
-              "확인했습니다",
-              "안내드렸습니다",
-              "보고드립니다",
-              "보고드리겠습니다",
-            ],
+            // 표지는 비웠습니다 — 이 분기는 위 elementJudge(요소 3개 이상)와 버튼으로만 열립니다.
+            patterns: [],
             fallbackOption:
               "16시 40분 어르신이 현관에서 귀가를 요구하셨고, 화장실 안내 후 젖은 옷을 갈아입으시도록 도왔습니다. 현재는 거실 소파에 앉아 계십니다.",
             gaugeDelta: 0,
@@ -1015,7 +1125,9 @@ export const CHK_A01: Scenario = {
               "고집이 세셔서",
               "일부러",
             ],
-            fallbackOption: "어르신이 고집을 부리셔서 정말 힘들었습니다",
+            // 호칭("어르신이")을 뺐습니다 — 요소 판정이 그것 하나를 「대상」 요소로 세어
+            // 감정 위주 보고가 부분 보고로 올라갔습니다. 보기가 가리키는 실수는 그대로입니다.
+            fallbackOption: "고집이 세셔서 정말 힘들었습니다",
             gaugeDelta: 0,
             aiReaction: "보고가 접수되었습니다.",
             rubricHits: [

@@ -7,7 +7,13 @@ import { cueOptions } from "@/engine";
 import { getSettings, subscribeSettings, type FontScale } from "@/lib/settings";
 import { createRecognizer, stopSpeaking, type Recognizer } from "@/lib/speech";
 import type { CueDef, Scenario, SessionState } from "@/types";
-import { WAIT_NO_AUTO_ADVANCE, WAIT_WORD, waitLevel } from "./constants";
+import {
+  MIC_CHECKING_LINE,
+  WAIT_NO_AUTO_ADVANCE,
+  WAIT_WORD,
+  waitLevel,
+  type MicCheck,
+} from "./constants";
 import { RecordDraftPreview } from "./RecordDraftPreview";
 import { RuleDemoSheet } from "./RuleDemoSheet";
 import type { RuleDemoExample } from "./ruleDemoExamples";
@@ -19,8 +25,8 @@ export interface CueResponderProps {
   cue: CueDef;
   /** CUE 시도 횟수 — 값이 바뀌면 입력창과 대기 타이머를 초기화합니다 */
   attempt: number;
-  /** 음성 인식 가능 여부 (마운트 후 판정된 값) */
-  micSupported: boolean;
+  /** 음성 인식 가능 여부 — 마운트 전에는 `unknown`이고, 그동안에는 단정하지 않습니다 */
+  micCheck: MicCheck;
   /**
    * ⚑CF 시트에서 고르신 대안 문장.
    * 같은 CUE로 돌아왔을 때 **보기 목록 맨 위에 그대로** 다시 세워, 버튼만으로도 이어가실 수 있게 합니다.
@@ -168,7 +174,7 @@ export function CueResponder({
   session,
   cue,
   attempt,
-  micSupported,
+  micCheck,
   chosenAlternative,
   anchor,
   demoExamples,
@@ -238,7 +244,8 @@ export function CueResponder({
      그 사실도 모릅니다(현직 검증). 세 번째 턴에 한 번만 조용히 알려 드립니다. */
   const buttonTurns = session.events.filter((event) => event.viaButton).length;
   const spokenTurns = session.events.filter((event) => !event.viaButton && event.utterance).length;
-  const showButtonOnlyHint = micSupported && spokenTurns === 0 && buttonTurns === BUTTON_ONLY_HINT_AT;
+  const showButtonOnlyHint =
+    micCheck === "yes" && spokenTurns === 0 && buttonTurns === BUTTON_ONLY_HINT_AT;
   /** 입력창이 열려 있는 상태 — 인식 결과가 들어오면 저절로 열립니다(전송 전 확인). */
   const composing = expanded || text.trim().length > 0;
   /** 보기 목록이 스냅해도 되는 상태 — 목록 안에 보기 말고 다른 것이 없을 때뿐입니다. */
@@ -303,14 +310,14 @@ export function CueResponder({
   }, [micIntroOpen]);
 
   useEffect(() => {
-    if (!micSupported) return;
+    if (micCheck !== "yes") return;
     try {
       micIntroSeenRef.current = window.localStorage.getItem(MIC_INTRO_KEY) === "1";
     } catch {
       // 저장소를 쓸 수 없는 환경에서는 누르실 때 한 번 더 안내해 드립니다(안내가 없는 것보다 안전합니다).
       micIntroSeenRef.current = false;
     }
-  }, [micSupported]);
+  }, [micCheck]);
 
   const closeMicIntro = useCallback(() => {
     setMicIntroOpen(false);
@@ -605,12 +612,12 @@ export function CueResponder({
                 <>
                   <span aria-hidden>“</span>
                   {text}
-                  <span className="text-tertiary" aria-hidden>
+                  <span className="text-ink-faint" aria-hidden>
                     …”
                   </span>
                 </>
               ) : (
-                <span className="text-tertiary">말씀을 기다리고 있어요</span>
+                <span className="text-ink-faint">말씀을 기다리고 있어요</span>
               )}
               <span
                 aria-hidden
@@ -641,7 +648,7 @@ export function CueResponder({
           <p className="text-center text-[0.8438rem] leading-[1.45] font-semibold text-ink-soft">
             손을 떼면 확인 화면으로 넘어가요
           </p>
-          <p className="mt-1 text-center text-[0.7813rem] leading-[1.45] text-tertiary">
+          <p className="mt-1 text-center text-[0.7813rem] leading-[1.45] text-ink-faint">
             잘못 들렸다면 보내기 전에 고칠 수 있어요
           </p>
 
@@ -715,8 +722,10 @@ export function CueResponder({
           {/* 마이크 첫 사용 안내 — 세션 진입이 아니라 **마이크 버튼을 처음 누르시는 순간**에 열립니다.
               열리면 도크가 상한에 걸려 있어도 이 카드가 보이도록 스스로 화면 안으로 들어옵니다.
               읽어야 하는 문장이라 15px 아래로 내리지 않습니다(가이드 §7-8). */}
-          {micSupported && micIntroOpen && (
-            <div ref={micIntroRef} role="status" className="mb-2.5 rounded-panel bg-tint px-4 py-3.5">
+          {/* 이 카드는 더 이상 자기 리전이 아닙니다 — 도크의 알림은 아래 sr-only 리전 하나로
+              모았습니다(같은 화면에 리전이 넷이면 TTS와 겹쳐 두 목소리가 엇갈립니다). */}
+          {micCheck === "yes" && micIntroOpen && (
+            <div ref={micIntroRef} className="mb-2.5 rounded-panel bg-brand-tint px-4 py-3.5">
               <h3 className="text-[1rem] leading-[1.45] font-bold text-brand-800">
                 마이크를 처음 쓰실 때
               </h3>
@@ -736,11 +745,9 @@ export function CueResponder({
             </div>
           )}
 
+          {/* 경고 줄도 자기 리전을 갖지 않습니다 — 문장은 아래 공용 리전이 전합니다. */}
           {notice && (
-            <p
-              role="status"
-              className="mb-2.5 rounded-card bg-warn-soft px-3.5 py-2.5 text-[0.7813rem] leading-[1.6] font-semibold text-warn-ink"
-            >
+            <p className="mb-2.5 rounded-card bg-warn-soft px-3.5 py-2.5 text-[0.7813rem] leading-[1.6] font-semibold text-warn-ink">
               {notice}
             </p>
           )}
@@ -814,7 +821,7 @@ export function CueResponder({
                 }}
                 rows={3}
                 placeholder="여기에 하실 말씀을 적으시거나, 말씀하신 내용을 확인해 주세요."
-                className="mt-1 w-full rounded-card border border-line-strong bg-paper-2 px-3.5 py-3 text-[1.0625rem] leading-[1.6] text-ink placeholder:text-tertiary"
+                className="mt-1 w-full rounded-card border border-line-strong bg-paper-2 px-3.5 py-3 text-[1.0625rem] leading-[1.6] text-ink placeholder:text-ink-faint"
               />
 
               {reportMode && text.trim().length > 0 && (
@@ -854,11 +861,17 @@ export function CueResponder({
 
           {/* 마이크를 못 쓰는 기기에서는 비활성 마이크 버튼의 까닭을 그 자리에서 적어 둡니다.
               (쓸 수 있는 기기의 조작 설명은 첫 회 안내 카드에만 둡니다 — 도크에 상주시키면
-               상시 안내문이 도크 141px을 먹고 로그를 몰아냅니다. 평가 UI/UX m1.) */}
-          {!micSupported && (
+               상시 안내문이 도크 141px을 먹고 로그를 몰아냅니다. 평가 UI/UX m1.)
+
+              판정이 나기 전(`unknown`)에도 마이크 버튼은 잠겨 있습니다 — 그 짧은 사이에
+              「쓸 수 없습니다」라고 단정하면 되는 기기에서도 거짓말이 됩니다. 모르는 동안에는
+              모른다고 적고, 대신 지금 쓸 수 있는 길을 같은 줄에서 알려 드립니다
+              (2026-08-25 · /report 음성 입력과 같은 문법). */}
+          {micCheck !== "yes" && (
             <p className="mt-2 text-[0.8438rem] leading-[1.6] text-ink-muted">
-              이 기기에서는 음성 인식을 쓸 수 없습니다. 위 버튼과 직접 입력만으로 끝까지 진행하실 수
-              있습니다.
+              {micCheck === "unknown"
+                ? `${MIC_CHECKING_LINE}. 위 버튼과 직접 입력은 지금도 그대로 쓰실 수 있습니다.`
+                : "이 기기에서는 음성 인식을 쓸 수 없습니다. 위 버튼과 직접 입력만으로 끝까지 진행하실 수 있습니다."}
             </p>
           )}
 
@@ -866,15 +879,27 @@ export function CueResponder({
               도크 안에서는 제안 버튼 셋보다 아래라 어느 글자 크기에서도 접힘선 밑이었습니다(노출 0px).
               시트는 body로 포털되므로 여는 자리와 상관없이 같은 자리에 뜹니다. */}
 
+          {/* ── 이 도크의 **유일한** 라이브 리전 ─────────────────────────
+              예전에는 마이크 첫 사용 안내 카드·경고 줄·이 문장이 각자 `role="status"`를 달고
+              있었습니다. 세션 화면에는 대화 로그(`role="log"`)도 함께 살아 있어, TTS가 어르신
+              대사를 읽는 동안 리전 넷이 번갈아 발화했습니다 — 보조기기 사용자에게는 두 목소리가
+              엇갈립니다(페르소나 FE low, 1차 지적 후 오히려 늘었던 자리).
+              지금은 화면에 보이는 세 조각이 각자 그려지고, **읽어 주는 일은 이 상자 하나**가
+              맡습니다. 빈 문자열일 때도 상자는 남겨 둬야 다음 문장이 바뀐 줄로 읽힙니다.
+              먼저 알려야 하는 것부터 고릅니다 — 방금 일어난 일(예시 채움) → 막아선 일(경고) →
+              열린 안내(마이크 첫 사용). */}
           <p role="status" className="sr-only">
             {filledExample
               ? `${filledExample.ruleLabel} 예시 문장을 입력창에 채웠습니다. 보내시려면 이 내용으로 답하기 버튼을 눌러 주세요.`
-              : ""}
+              : (notice ??
+                (micCheck === "yes" && micIntroOpen
+                  ? "마이크를 처음 쓰실 때 안내가 열렸습니다. 마이크 버튼을 꾹 누른 채로 말씀하시고, 다 말씀하시면 손을 떼세요. 마이크 없이 아래 버튼만으로도 끝까지 진행됩니다."
+                  : ""))}
           </p>
           {filledExample && (
             <p
               aria-hidden
-              className="mt-2 rounded-card bg-tint px-3.5 py-2.5 text-[0.8438rem] leading-[1.6] font-semibold text-brand-800"
+              className="mt-2 rounded-card bg-brand-tint px-3.5 py-2.5 text-[0.8438rem] leading-[1.6] font-semibold text-brand-800"
             >
               입력창에 채워 드렸습니다. 아직 보내지 않았습니다. 아래 「이 내용으로 답하기」를
               누르시면 규칙 엔진이 판정합니다.
@@ -922,7 +947,7 @@ export function CueResponder({
           <div ref={micWrapRef} className="flex-none">
             <MicButton
               label="누르고 있는 동안 말하기"
-              disabled={!micSupported}
+              disabled={micCheck !== "yes"}
               onPointerDown={(event) => {
                 event.preventDefault();
                 beginPress();

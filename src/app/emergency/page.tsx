@@ -12,6 +12,7 @@ import { AudioUnlock } from "./_components/AudioUnlock";
 import { Call119Bar } from "./_components/Call119Bar";
 import { InstallHint } from "./_components/InstallHint";
 import { OfflineStatus } from "./_components/OfflineStatus";
+import { ProtocolAddressHint } from "./_components/ProtocolAddressCard";
 
 export const metadata: Metadata = {
   title: "응급 안내",
@@ -85,7 +86,18 @@ export default function EmergencyPage() {
           바닥에 헤어라인 1px을 답니다: 지금까지는 `bg-paper`만 있어 경계가 없었고, 목록을 내리면
           아래 글자가 캡션 8px 밑으로 아무 구분 없이 파고들었습니다(페르소나 디자이너 med).
           좌우 음수 여백 덕에 이 선은 화면 폭 끝까지 그어집니다. */}
-      <div className="sticky top-0 z-30 -mx-[20px] border-b border-line bg-paper px-[20px] pt-[14px] pb-2">
+      {/* 도킹 기준선은 0이 아니라 안전 영역 아래입니다(2026-08-26).
+          `viewportFit: "cover"`(layout.tsx)라 레이아웃 뷰포트가 노치 밑까지 확장되고,
+          조상의 `padding-top`은 sticky의 기준선을 옮기지 못합니다 — `top-0`이면 스크롤하는 순간
+          119 버튼이 상태바·다이내믹 아일랜드 밑으로 들어갑니다(페르소나 FE, 1차·2차 연속 지적). */}
+      <div className="sticky top-[var(--chim-safe-t)] z-30 -mx-[20px] border-b border-line bg-paper px-[20px] pt-[14px] pb-2">
+        {/* 노치 띠 — 바 위로 지나가는 내용을 화면 색으로 덮습니다. 높이가 `--chim-safe-t`라
+            노치 없는 기기·데스크톱에서는 0px이고, 프레임 폭으로 잘라 두어 480px↑에서
+            지면(paper-out) 위로 흰 띠가 번지지 않습니다. */}
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-x-0 top-0 mx-auto h-[var(--chim-safe-t)] max-w-[var(--chim-frame-w)] bg-paper"
+        />
         <Call119Bar />
       </div>
 
@@ -94,6 +106,10 @@ export default function EmergencyPage() {
           그 다섯 개에 닿기 전에 경고가 네 겹 쌓여 있었고 그중 둘은 같은 말을 두 번 하고
           있었습니다(페르소나 디자이너 med). 위에 남는 것은 119 버튼 캡션 한 줄뿐이라,
           가장 중요한 경고가 오히려 더 잘 읽힙니다. 문장은 한 글자도 지우지 않고 자리만 옮겼습니다. */}
+
+      {/* 방문지 주소를 아직 적어 두지 않으셨을 때만 뜨는 한 줄입니다. 적어 두신 분께는 아예
+          그려지지 않아, 위에서 정리한 4겹 구조가 그대로 남습니다. */}
+      <ProtocolAddressHint className="mt-[14px]" />
 
       {/* 5종 — 카드가 아니라 선으로 나눈 목록입니다. 마커 한 글자로 눈이 먼저 찾습니다. */}
       <ListRows className="mt-[14px]">
@@ -132,7 +148,7 @@ export default function EmergencyPage() {
         이 안내는 119 신고를 대체하지 않습니다. 신고 후 구급대가 도착할 때까지 관찰·확인·119
         이양만 안내합니다. 위 빨간 버튼을 누르면 전화 앱이 열립니다.
       </p>
-      <p className="mt-[6px] text-center text-[0.7813rem] leading-[1.6] text-tertiary">
+      <p className="mt-[6px] text-center text-[0.7813rem] leading-[1.6] text-ink-faint">
         {PROTOCOL_NOTICE}
         <br />
         신체 술기는 119 상황실이 목소리로 직접 지도합니다

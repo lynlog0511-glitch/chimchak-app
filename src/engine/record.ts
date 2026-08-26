@@ -28,6 +28,25 @@ export const RECORD_SLOT_HINTS: Record<RecordSlot, string> = {
   status: "지금은 어떤 상태인지 채워 주세요.",
 };
 
+/**
+ * 비었을 때 그 자리에서 되묻는 한마디 — **질문 그대로**다.
+ *
+ * `RECORD_SLOT_HINTS`가 「…채워 주세요」로 끝나는 지시문이라면, 이쪽은 사람이 옆에서 물어보는
+ * 말이다. 빈 칸이 셋일 때 「채워 주세요」가 셋 늘어서면 남은 것이 숙제로 읽히는데, 질문이
+ * 셋이면 그냥 대답하게 된다 — 실제로 대답이 곧 그 칸의 값이다(페르소나 PM P2).
+ *
+ * 여기 있는 것은 **표시 문구뿐**이고, 판정·추출 로직은 이 상수를 읽지 않는다.
+ *
+ * @example RECORD_SLOT_QUESTIONS.time; // "몇 시쯤이었나요?"
+ */
+export const RECORD_SLOT_QUESTIONS: Record<RecordSlot, string> = {
+  time: "몇 시쯤이었나요?",
+  who: "어느 분 이야기인가요?",
+  what: "무슨 일이 있었나요?",
+  action: "어떻게 하셨나요?",
+  status: "지금은 어떠신가요?",
+};
+
 const SLOT_ORDER: RecordSlot[] = ["time", "who", "what", "action", "status"];
 
 /* ── 사전 ──────────────────────────────────────────────── */

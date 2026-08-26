@@ -525,3 +525,108 @@ describe("시연용 예시는 파일로도 새어 나가지 않는다", () => {
     expect(loadSessions().every((row) => row.id.startsWith("demo-"))).toBe(true);
   });
 });
+
+/* ── 수식 주입 중화 ────────────────────────────────────── */
+
+describe("내보내는 파일이 스프레드시트 수식을 만들지 않는다", () => {
+  /**
+   * 이 파일의 소비자가 엑셀·한셀이라고 화면이 직접 밝히고 있고, 담당자가 25명분을 모아 여는
+   * 흐름을 제품이 권한다. `=`·`+`·`-`·`@`로 시작하는 칸을 그대로 내보내면 그 자리가 값이
+   * 아니라 **수식**으로 읽힌다. 가져온 제목이 검증 없이 되돌아 나가던 경로를 여기서 끊는다.
+   */
+  it("수식 접두로 시작하는 제목은 작은따옴표를 달고 나간다", () => {
+    saveSession(makeRecord({ scenarioTitle: "=cmd|'/c calc'!A1" }));
+    const rows = rowsOf(exportCsv());
+    expect(rows[1]?.[3]).toBe("'=cmd|'/c calc'!A1");
+    // 원문 그대로는 어디에도 나가지 않는다 — 「값이 =로 시작하는 칸」이 파일에 없다.
+    expect(rows.slice(1).every((row) => row.every((cell) => !/^[=+\-@\t\r]/.test(cell)))).toBe(true);
+  });
+
+  it("네 접두를 하나씩 다 막는다", () => {
+    for (const lead of ["=", "+", "-", "@"]) {
+      useDevice();
+      saveSession(makeRecord({ scenarioTitle: `${lead}HYPERLINK("http://x")` }));
+      expect(rowsOf(exportCsv())[1]?.[3]).toBe(`'${lead}HYPERLINK("http://x")`);
+    }
+  });
+
+  it("멀쩡한 값은 한 글자도 건드리지 않는다 — 왕복하면 그대로 돌아온다", () => {
+    seedRealDevice();
+    const csv = exportCsv();
+    const read = parseCompletionCsv(csv);
+    expect(read.ok).toBe(true);
+    if (!read.ok) return;
+    expect(read.file.lines.map((line) => line.title).sort()).toEqual(
+      ["온 김에 반찬 좀", "점심 식사 중 사레", "현관 앞, 집에 가야 해요"].sort(),
+    );
+    expect(read.file.numberMatches).toBe(true);
+  });
+
+  it("**발급번호는 중화의 영향을 받지 않는다** — 시드에 제목이 들어 있지 않다", () => {
+    /* 중화는 「파일에 쓰는 순간」에만 일어난다. 발급번호 시드는 시나리오 번호·횟수·분 단위
+       시수·분까지의 시각으로만 짜이므로, 제목이 어떻게 적히든 번호는 같은 값이 나온다.
+       (여기가 어긋나면 기존 파일 대조가 통째로 깨진다.) */
+    saveSession(makeRecord({ scenarioTitle: "현관 앞, 집에 가야 해요" }));
+    const plain = buildCompletionSummary();
+    const plainNumber = plain.number;
+
+    useDevice();
+    saveSession(makeRecord({ scenarioTitle: "=cmd|'/c calc'!A1" }));
+    const injected = buildCompletionSummary();
+    expect(injected.number).toBe(plainNumber);
+    expect(
+      completionIssueNumber(injected.lines, injected.totalCount, Math.round(injected.totalSec / 60)),
+    ).toBe(plainNumber);
+  });
+});
+
+/* ── 되받는 문자열 칸의 검증 ───────────────────────────── */
+
+describe("가져온 파일의 제목·유형 칸", () => {
+  /** 정상 파일 한 판을 만들어 두고, 칸 하나만 바꿔 넣어 본다. */
+  function csvWithCell(index: number, value: string): string {
+    seedRealDevice();
+    const rows = rowsOf(exportCsv());
+    const body = rows
+      .map((row, rowIndex) =>
+        (rowIndex === 1 ? row.map((cell, i) => (i === index ? value : cell)) : row)
+          .map((cell) => (/[",\n\r]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell))
+          .join(","),
+      )
+      .join("\r\n");
+    useDevice();
+    return `\uFEFF${body}\r\n`;
+  }
+
+  it("80자를 넘는 제목은 파일 전체를 거부한다", () => {
+    const read = parseCompletionCsv(csvWithCell(3, "가".repeat(81)));
+    expect(read.ok).toBe(false);
+    if (read.ok) return;
+    expect(read.reason).toBe("text");
+  });
+
+  it("80자까지는 받는다 (경계에서 조용히 막지 않는다)", () => {
+    const read = parseCompletionCsv(csvWithCell(3, "가".repeat(80)));
+    expect(read.ok).toBe(true);
+  });
+
+  it("제어문자가 섞인 유형 칸은 거부한다", () => {
+    const read = parseCompletionCsv(csvWithCell(4, "치매\u0007행동"));
+    expect(read.ok).toBe(false);
+    if (read.ok) return;
+    expect(read.reason).toBe("text");
+  });
+
+  it("탭·보이지 않는 문자도 같은 자리에서 걸린다", () => {
+    expect(parseCompletionCsv(csvWithCell(3, "제목\t가리기")).ok).toBe(false);
+    expect(parseCompletionCsv(csvWithCell(3, "제목\u200b가리기")).ok).toBe(false);
+  });
+
+  it("거부 사유에는 화면에 그대로 쓸 문장이 붙는다", () => {
+    const merged = importCompletionCsv(csvWithCell(3, "가".repeat(200)));
+    expect(merged.ok).toBe(false);
+    if (merged.ok) return;
+    expect(merged.reason).toBe("text");
+    expect(merged.message.length).toBeGreaterThan(0);
+  });
+});

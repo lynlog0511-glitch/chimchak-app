@@ -50,7 +50,7 @@ function OptionButton({
         "transition-colors duration-150 ease-soft",
         selected
           ? "bg-brand-700 text-white active:bg-brand-800"
-          : "bg-neutral-soft text-ink hover:bg-neutral-line active:bg-neutral-line",
+          : "bg-paper-2 text-ink hover:bg-neutral-line active:bg-neutral-line",
       )}
     >
       <span className="block text-[0.9375rem] leading-[1.45] font-bold">{label}</span>

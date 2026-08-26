@@ -43,6 +43,19 @@ const config = [
        * 방향입니다. 실제 이미지 자산도 public/icon.svg 하나뿐입니다.
        */
       "@next/next/no-img-element": "off",
+
+      /**
+       * on ① `no-useless-escape`
+       *
+       * 「지금 코드가 에러 0으로 통과하는 선에서 출발한다」는 이 파일의 규율을 지키면서 딱
+       * 하나를 더 켭니다. 사유가 실측입니다 — `onlineCoach.ts`의 `chatCompletionsUrl`에
+       * `"\chat\completions"`가 적혀 있었고, 그 문자열은 JS에서 `"chatcompletions"`로 평가돼
+       * 「이미 전체 주소면 그대로 쓴다」는 분기가 **영원히 거짓**이었습니다. 결과는 상류 404였고,
+       * 라우트가 일부러 로그를 남기지 않으므로 화면에는 「온라인 모드를 켰는데 아무 일도 일어나지
+       * 않는다」로만 나타났습니다. 타입 검사도 회귀 검사도 볼 수 없는 계열이고, 이 규칙 한 줄이
+       * 정확히 그 자리를 봅니다.
+       */
+      "no-useless-escape": "error",
     },
   },
 

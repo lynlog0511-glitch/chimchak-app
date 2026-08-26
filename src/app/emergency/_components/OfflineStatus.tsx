@@ -121,8 +121,13 @@ export function OfflineStatus() {
     }
   }
 
+  /* 13.5px입니다 — 12.5px에서 한 단 올렸습니다(2026-08-25).
+     「이 기기에 저장돼 있어 연결이 끊겨도 열립니다」는 응급 탭이 파는 **약속 그 자체**인데,
+     화면에서 가장 작은 단에 있었습니다. /report 과업 지시문을 같은 논리로 12.5→15px 올린
+     선례가 있고(1차 페르소나), 여기는 부제 자리라 13.5px로 위계를 지키며 올립니다
+     (2차 페르소나 UI/UX P2). */
   return (
-    <span role="status" className={cx("flex items-start gap-[4px] text-[0.7813rem] leading-[1.45]", color)}>
+    <span role="status" className={cx("flex items-start gap-[4px] text-[0.8438rem] leading-[1.45]", color)}>
       <StatusDot tone={tone} className="mt-[6px]" />
       <span>{text}</span>
     </span>

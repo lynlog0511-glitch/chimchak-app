@@ -12,6 +12,7 @@ import {
   MASK_KIND_REASONS,
   MASK_TOKENS,
   countByKind,
+  hasPartialMask,
   hasSensitive,
   maskSpansOnOriginal,
   maskText,
@@ -284,5 +285,99 @@ describe("2026-08-25 페르소나 검증 — 규칙이 없던 범주", () => {
       // 마지막 문장은 옛 「생년」 규칙이 잡아야 정상이므로 링크·이메일 규칙만 본다.
       expect(result.spans.every((span) => span.kind !== "번호"), input).toBe(true);
     }
+  });
+});
+
+/* ── 맨이름 경계 (종결·구두점) ─────────────────────────── */
+
+describe("호칭도 조사도 없는 맨이름", () => {
+  /**
+   * 조사 규칙은 조사를, 호칭 규칙은 호칭을 요구했다. 그래서 실무 표기의 상당수 — 문장 끝·
+   * 쉼표·콜론·괄호 앞, 그리고 「~입니다」 앞 — 가 통째로 새고 있었다. 이 경로(/practice
+   * 자유 연습)에는 사람이 검토하는 단계가 없어 자동 체가 마지막이다.
+   */
+  const LEAKED: [string, string, string][] = [
+    ["「~입니다」 앞", "성함은 김영수입니다", "성함은 [대상자]입니다"],
+    ["「~이십니다」 앞", "보호자는 이순자이십니다", "보호자는 [대상자]이십니다"],
+    ["콜론 뒤 문장 끝", "대상자: 김영수", "대상자: [대상자]"],
+    ["마침표 앞", "김영수. 오늘 아침에 넘어지셨습니다", "[대상자]. 오늘 아침에 넘어지셨습니다"],
+    ["여는 괄호 앞", "김영수 (85세)", "[대상자] (85세)"],
+    ["슬래시 목록", "보고 대상 김영수 / 이순자", "보고 대상 [대상자] / [대상자]"],
+    ["「~이라고」 앞", "김영수이라고 하십니다", "[대상자]이라고 하십니다"],
+  ];
+
+  for (const [label, input, expected] of LEAKED) {
+    it(label, () => {
+      const result = maskText(input);
+      expect(result.masked).toBe(expected);
+      expect(result.spans.every((span) => span.kind === "성명")).toBe(true);
+    });
+  }
+
+  it("쉼표로 늘어놓은 이름은 **뒤엣것까지** 가린다", () => {
+    /* 경계를 전방탐색으로 둔 이유가 이 줄이다 — 쉼표를 삼키지 않으므로 다음 탐색이 쉼표 바로
+       뒤에서 다시 시작한다. 예전에는 조사를 삼켜 뒤 이름이 밀려났다("[대상자]와 이순자"). */
+    expect(maskText("김영수, 이순자").masked).toBe("[대상자], [대상자]");
+    expect(maskText("어르신 성함은 김영수, 보호자는 이순자입니다").masked).toBe(
+      "어르신 성함은 [대상자], 보호자는 [대상자]입니다",
+    );
+    expect(maskText("김영수와 이순자").masked).toBe("[대상자]와 [대상자]");
+  });
+
+  it("호칭·조사가 붙은 옛 경로는 그대로다", () => {
+    expect(maskText("김영수 님이 오셨습니다").masked).toBe("[대상자] 님이 오셨습니다");
+    expect(maskText("김영수는 저녁을 거부하셨습니다").masked).toBe("[대상자]는 저녁을 거부하셨습니다");
+  });
+
+  it("공백 하나만으로는 이름 경계로 치지 않는다", () => {
+    /* 여기를 넓게 잡으면 한국어 산문이 통째로 걸린다. 실측으로 확인한 문장들이다 —
+       공백을 경계에 넣었을 때 아래 다섯이 전부 이름으로 읽혔다. */
+    const CLEAN = [
+      "마무리 및 피드백을 했습니다",
+      "배우자 분이 오셨습니다",
+      "넘어지셨는데 정신은 있으실 때",
+      "휠체어 이동은 예외로 봅니다",
+      "조용한 데서 말씀드렸습니다",
+    ];
+    for (const input of CLEAN) {
+      expect(maskText(input).masked, input).toBe(input);
+    }
+  });
+
+  it("이름 음절이 아닌 글자가 섞이면 발동하지 않는다", () => {
+    // 조사 규칙과 **같은 사전**을 본다 — 두 규칙이 갈라지지 않게 검사도 같은 자리에 둔다.
+    expect(maskText("최선을 다했습니다.").masked).toBe("최선을 다했습니다.");
+    expect(maskText("서서히 좋아지셨습니다.").masked).toBe("서서히 좋아지셨습니다.");
+  });
+
+  it("앞 글자가 한글이면 맨이름으로 보지 않는다", () => {
+    expect(maskText("담당자김영수").masked).toBe("담당자김영수");
+  });
+});
+
+/* ── 부분 가림 감지 ────────────────────────────────────── */
+
+describe("hasPartialMask", () => {
+  it("토큰에 숫자·붙임표 조각이 맞붙어 남으면 참이다", () => {
+    // 「N곳 가렸습니다」가 완전 처리 신호로 읽히는 자리 — 남은 조각을 화면이 밝힐 수 있게 한다.
+    expect(hasPartialMask(maskText("어르신 계좌 110-123-456789 국민은행"))).toBe(true);
+    expect(hasPartialMask(maskText("인정번호 L0123456789"))).toBe(true);
+  });
+
+  it("토큰 뒤에 번지 꼴이 남아도 참이다", () => {
+    const result = maskText("어르신 댁은 역삼동 12-3 입니다");
+    expect(result.masked).toContain("12-3");
+    expect(hasPartialMask(result)).toBe(true);
+  });
+
+  it("깨끗하게 가려진 문장은 거짓이다", () => {
+    expect(hasPartialMask(maskText("박 어르신께 전해 드렸습니다"))).toBe(false);
+    expect(hasPartialMask(maskText("010-1234-5678로 연락 주세요"))).toBe(false);
+    expect(hasPartialMask(maskText("행복요양원에서 지냅니다"))).toBe(false);
+  });
+
+  it("가릴 것이 없으면 거짓이다", () => {
+    expect(hasPartialMask(maskText("오늘 기분이 좋으셨습니다"))).toBe(false);
+    expect(hasPartialMask(maskText(""))).toBe(false);
   });
 });

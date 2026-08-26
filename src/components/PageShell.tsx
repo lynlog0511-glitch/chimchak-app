@@ -39,7 +39,8 @@ export interface PageShellProps {
   className?: string;
 
   /* ── 하위 호환 (v3 화면이 아직 넘기는 props) ─────────────────
-     새 화면에서는 쓰지 마세요. 상단 바는 화면이 직접 `ScreenHeader`·`SessionTopBar`로 그립니다. */
+     새 화면에서는 쓰지 마세요. 상단 바는 화면이 직접 `ScreenHeader`로 그립니다
+     (세션만 자기 `SessionHeader`를 씁니다). */
   /** @deprecated `ScreenHeader`를 화면에서 직접 쓰세요. 주면 최소한의 제목만 그립니다. */
   title?: string;
   /** @deprecated `EyebrowLabel`을 쓰세요. */
@@ -63,7 +64,7 @@ export interface PageShellProps {
  *   그림자·베젤·폰 목업은 없습니다. 탭바는 그대로 섭니다 — 접히는 뷰포트가 없습니다.
  * 폭은 프레임이 잡으므로 화면 안에서는 뷰포트 분기(읽기 폭·2단)를 쓰지 않습니다.
  *
- * 전역 헤더·전역 고정 고지 바는 여전히 없습니다 — 각 화면이 `ScreenHeader`/`SessionTopBar`와
+ * 전역 헤더·전역 고정 고지 바는 여전히 없습니다 — 각 화면이 `ScreenHeader`(세션은 `SessionHeader`)와
  * `InlineDisclaimer`를 **반드시 한 번** 직접 넣습니다.
  *
  * @example 목록 화면 (기본값)

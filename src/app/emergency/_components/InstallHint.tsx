@@ -100,7 +100,7 @@ export function InstallHint({ className }: { className?: string }) {
           <button
             type="button"
             onClick={() => void install()}
-            className="mt-3 flex min-h-[48px] w-full items-center justify-center rounded-card bg-neutral-soft px-5 text-[1.0625rem] font-semibold text-ink transition-colors duration-150 active:bg-neutral-line"
+            className="mt-3 flex min-h-[48px] w-full items-center justify-center rounded-card bg-paper-2 px-5 text-[1.0625rem] font-semibold text-ink transition-colors duration-150 active:bg-neutral-line"
           >
             홈 화면에 추가
           </button>

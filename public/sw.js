@@ -109,8 +109,13 @@ function installRequest(url) {
  * 요청한 화면이 저장되어 있지 않을 때 마지막으로 보여 줄 화면입니다.
  *
  * 위 목록에 있는 주소는 자기 화면이 그대로 열리므로 여기까지 오지 않습니다.
- * 여기 걸리는 것은 목록 밖 화면(/safety·/for-orgs 등)을 오프라인에서 처음 여는 경우뿐이고,
- * 그때는 주소와 다른 화면이 뜹니다 — 그래도 응급 안내로 가는 길이 막히는 것보다 낫습니다.
+ * 여기 걸리는 것은 **목록 밖 화면**(`/check`·`/practice/…` 상세처럼 목록에 올리지 않은 주소,
+ * 그리고 앞으로 새로 생길 화면)을 오프라인에서 처음 여는 경우뿐이고, 그때는 주소와 다른 화면이
+ * 뜹니다 — 그래도 응급 안내로 가는 길이 막히는 것보다 낫습니다.
+ *
+ * ※ 예시를 갱신했습니다: `/safety`·`/for-orgs`·`/legal`·`/history/certificate`는 위 목록에
+ *   들어왔으므로 더는 「목록 밖」의 예가 아닙니다(페르소나 PM low — 목록을 늘리며 이 주석만
+ *   낡아 있었습니다).
  */
 const OFFLINE_FALLBACK_URL = "/emergency";
 
@@ -134,6 +139,26 @@ function collectStaticAssets(html) {
   }
   return [...found];
 }
+
+/**
+ * 이번 설치가 실제로 참조한 `/_next/static/...` 목록을 캐시 안에 적어 두는 자리입니다.
+ *
+ * 화면이 요청하는 주소가 아니라 **서비스워커가 자기에게 남기는 쪽지**입니다(그래서 이름 앞에
+ * `__`를 붙여 앱 라우트와 겹치지 않게 했습니다). activate 단계의 청소가 이 목록을 기준으로
+ * 「지금 빌드가 참조하지 않는 청크」를 가려냅니다.
+ */
+const ASSET_INDEX_URL = "/__chimchak-assets.json";
+
+/**
+ * 한 번의 청소에서 지우는 항목 수 상한.
+ *
+ * 정상 흐름에서는 빌드마다 캐시 이름이 통째로 바뀌어(prebuild 해시) 낡은 캐시가 한 번에
+ * 사라지므로 여기까지 올 일이 거의 없습니다. 여기가 필요해지는 것은 **캐시 이름이 어긋난**
+ * 상황입니다 — 그때는 한 캐시 안에 여러 빌드의 청크가 겹겹이 쌓입니다(페르소나 FE P2).
+ * 상한을 두는 이유는 activate가 길어지면 그동안 화면이 옛 워커에 붙어 있기 때문입니다.
+ * 다 못 지운 나머지는 다음 활성화에서 이어서 지웁니다.
+ */
+const PRUNE_LIMIT = 200;
 
 const OFFLINE_MESSAGE =
   "네트워크가 끊겨 있고 이 화면은 아직 저장되지 않았습니다. 응급 안내 화면(/emergency)은 그대로 열립니다.";
@@ -226,6 +251,23 @@ self.addEventListener("install", (event) => {
         }),
       );
 
+      /* 이번 빌드가 참조하는 자산 목록을 캐시에 적어 둡니다 — activate의 청소가 이것만 봅니다.
+         **한 건도 못 모았으면 적지 않습니다**: 회선이 끊긴 채 설치되면 목록이 비는데, 그 빈
+         목록을 적어 두면 다음 청소가 「아무것도 참조하지 않는다」고 읽고 멀쩡한 청크를 전부
+         지웁니다. 못 적으면 청소만 건너뛸 뿐 설치는 그대로 성공합니다. */
+      if (assets.size > 0) {
+        try {
+          await cache.put(
+            ASSET_INDEX_URL,
+            new Response(JSON.stringify([...assets]), {
+              headers: { "content-type": "application/json" },
+            }),
+          );
+        } catch {
+          /* 쪽지를 못 남겨도 설치는 계속합니다. */
+        }
+      }
+
       // 응급 프로토콜 음성 — 실패해도 설치는 계속됩니다.
       await precacheEmergencyAudio(cache);
 
@@ -236,11 +278,49 @@ self.addEventListener("install", (event) => {
 
 /* ── 활성화 ───────────────────────────────────────────────── */
 
+/**
+ * 지금 캐시 **안에서** 이번 빌드가 참조하지 않는 `/_next/static/...`을 지웁니다.
+ *
+ * 이름이 다른 캐시는 아래 activate가 통째로 지우므로 보통은 이 함수가 할 일이 없습니다.
+ * 할 일이 생기는 것은 **캐시 이름이 어긋난 채 새 워커가 올라온 경우**입니다 — 그때는 한 캐시
+ * 안에 지난 빌드의 죽은 청크와 이번 빌드의 청크가 함께 쌓이고, 상한이 없으면 배포마다 자랍니다
+ * (페르소나 FE P2 — 1차 지적 13의 후반부).
+ *
+ * 기준은 설치 단계가 남긴 쪽지(`ASSET_INDEX_URL`) 하나뿐입니다. 쪽지가 없거나 비어 있으면
+ * **아무것도 지우지 않습니다** — 판단할 근거가 없을 때는 남겨 두는 쪽이 안전합니다.
+ * 실수로 지워도 온라인이면 fetch 핸들러가 다시 채우지만, 오프라인 시연 중이면 되돌릴 길이 없습니다.
+ */
+async function pruneStaleAssets() {
+  try {
+    const cache = await caches.open(CACHE_NAME);
+    const indexed = await cache.match(ASSET_INDEX_URL);
+    if (!indexed) return;
+    const list = await indexed.json();
+    if (!Array.isArray(list) || list.length === 0) return;
+
+    const keep = new Set(list);
+    const requests = await cache.keys();
+    let removed = 0;
+    for (const request of requests) {
+      if (removed >= PRUNE_LIMIT) break;
+      const path = new URL(request.url).pathname;
+      if (!path.startsWith("/_next/static/")) continue;
+      if (keep.has(path)) continue;
+      await cache.delete(request);
+      removed += 1;
+    }
+  } catch {
+    /* 청소는 부가 작업입니다 — 실패해도 화면은 그대로 열립니다. */
+  }
+}
+
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
       const keys = await caches.keys();
       await Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)));
+      // 같은 이름의 캐시 안에 남은 지난 빌드 청크까지 거둡니다(위 함수 주석).
+      await pruneStaleAssets();
       await self.clients.claim();
     })(),
   );

@@ -20,6 +20,8 @@ import { describe, expect, it } from "vitest";
 import { SCENARIO_MATRIX } from "@/data/matrix";
 import { PROTOCOLS } from "@/data/protocols";
 import { SCENARIOS } from "@/data/scenarios";
+// postbuild 게이트의 판정 함수 — 산출물 없이 가짜 원문으로 시험한다(아래 마지막 블록).
+import { PLACEHOLDER, stampProblem } from "../scripts/verify-sw-stamp.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const PUBLIC_DIR = join(ROOT, "public");
@@ -138,10 +140,53 @@ describe("네트워크 우선 전략의 상한", () => {
 });
 
 describe("빌드 도구와의 약속", () => {
+  /*
+   * 역할 분담을 명시해 둔다 — 이 두 검사는 **보는 대상이 다르다**.
+   *
+   * · 여기(소스 형식): 커밋된 public/sw.js의 캐시 이름 줄이 stamp-sw.mjs가 찾는 모양인지만 본다.
+   *   플레이스홀더도 통과한다 — 통과해야 한다. 커밋된 소스의 정상 상태가 그것이기 때문이다.
+   * · postbuild(scripts/verify-sw-stamp.mjs, 아래 블록에서 함께 검사): **산출물의 값**을 본다.
+   *   빌드가 끝난 시점에 실제로 서빙될 파일에 해시가 박혔는지 확인하고, 플레이스홀더가 남아
+   *   있으면 빌드를 실패시킨다.
+   * 어느 한쪽이 다른 쪽을 대신하지 못한다. 형식만 보던 시절에는 빌드 뒤 되돌려진 플레이스홀더가
+   * 그대로 통과해 저장소에 남아 있었다(페르소나 FE med).
+   */
   it("캐시 이름 자리는 stamp-sw.mjs가 찾는 형식 그대로다", () => {
     // prebuild(scripts/stamp-sw.mjs)가 이 정규식으로 해시를 갈아 끼운다.
     // 형식이 바뀌면 캐시 이름이 빌드마다 고정되어, 새 빌드에서도 죽은 청크가 기기에 남는다.
     expect(SW_SOURCE).toMatch(/const CACHE_NAME = "chimchak-[^"]*";/);
+  });
+});
+
+describe("postbuild 스탬프 검증(scripts/verify-sw-stamp.mjs)", () => {
+  /* 산출물을 만들지 않고 **가짜 원문**으로 판정 함수만 시험한다 — 빌드는 이 러너의 몫이 아니다. */
+  it("해시가 박힌 원문은 통과한다", () => {
+    expect(stampProblem('const CACHE_NAME = "chimchak-bd6e1c635e38";')).toBeNull();
+  });
+
+  it("치환되지 않은 플레이스홀더는 걸린다", () => {
+    const problem = stampProblem(`const CACHE_NAME = "chimchak-${PLACEHOLDER}";`);
+    expect(problem).toContain("플레이스홀더");
+  });
+
+  it("빈 값도 걸린다", () => {
+    expect(stampProblem('const CACHE_NAME = "chimchak-";')).toContain("비어 있");
+  });
+
+  it("캐시 이름 줄 자체가 없으면 걸린다", () => {
+    expect(stampProblem("const CACHE = 'chimchak-x';")).toContain("찾지 못했");
+  });
+
+  it("주석이 플레이스홀더를 설명하는 것만으로는 걸리지 않는다", () => {
+    /* sw.js 머리 주석은 「`__CHIMCHAK_BUILD__` 자리는 …」이라고 그 이름을 문자열로 적어 둔다.
+       파일 전체를 훑는 방식이었다면 정상 빌드가 언제나 실패했을 자리다. */
+    const source = `/* ${PLACEHOLDER} 자리는 prebuild가 채웁니다. */\nconst CACHE_NAME = "chimchak-abc123";`;
+    expect(stampProblem(source)).toBeNull();
+  });
+
+  it("지금 커밋된 public/sw.js도 같은 검사에 걸리지 않는다", () => {
+    /* 커밋된 파일은 이미 해시가 박힌 상태다(2026-08-25 이후). 되돌려지면 여기서 먼저 붉어진다. */
+    expect(stampProblem(SW_SOURCE)).toBeNull();
   });
 });
 

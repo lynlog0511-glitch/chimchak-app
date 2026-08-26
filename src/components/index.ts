@@ -34,9 +34,6 @@ export type { ScreenHeaderProps } from "./ScreenHeader";
 export { BackGlyph } from "./BackGlyph";
 export type { BackGlyphProps, BackGlyphSize } from "./BackGlyph";
 
-export { SessionTopBar } from "./SessionTopBar";
-export type { SessionTopBarProps } from "./SessionTopBar";
-
 export { InlineDisclaimer, INLINE_DISCLAIMER_TEXT } from "./InlineDisclaimer";
 export type { InlineDisclaimerProps } from "./InlineDisclaimer";
 
@@ -66,9 +63,6 @@ export type { BigButtonProps, BigButtonVariant, BigButtonSize } from "./BigButto
 export { Card } from "./Card";
 export type { CardProps, CardTone } from "./Card";
 
-export { Badge } from "./Badge";
-export type { BadgeProps, BadgeTone } from "./Badge";
-
 export { SourceChip } from "./SourceChip";
 export type { SourceChipProps } from "./SourceChip";
 
@@ -84,7 +78,7 @@ export { cx } from "./utils";
 /*
  * v3에서 넘어온 조각 여섯은 **파일째 지웠습니다**(2026-08-06).
  *   AppHeader · DisclaimerBar — v4에서 전역 헤더와 전역 고정 고지 바를 없앴습니다.
- *     상단 바는 `ScreenHeader`/`SessionTopBar`가, 고지는 `InlineDisclaimer`가 대신합니다.
+ *     상단 바는 `ScreenHeader`가(세션은 `SessionHeader`), 고지는 `InlineDisclaimer`가 대신합니다.
  *   Gauge — 세션 우측 레일이 자체 구현을 쓰고 있었습니다(그 레일도 2026-08-25에 사라졌습니다 —
  *     전 뷰포트 앱 프레임에서는 둘째 칸이 설 자리가 없습니다).
  *   FeedbackCard — 세션 안에서는 `InlineCoaching`이, 이력 화면에서는 각 행이 직접 그립니다.
@@ -101,6 +95,16 @@ export { cx } from "./utils";
  * 이 조각은 어디서도 렌더되지 않은 채 캡션 상수만 내주고 있었습니다.
  * 캡션 문구·크기(`CALL_119_CAPTION`·`CALL_119_CAPTION_CLASS`)와 그 역사 기록은
  * 실제로 쓰는 쪽인 `Call119Bar.tsx`로 그대로 옮겼습니다.
+ *
+ * 2026-08-25에 `Badge`(64줄)·`SessionTopBar`(88줄)도 같은 이유로 **파일째 지웠습니다**.
+ *   Badge — 렌더 0건. 세션 계층 칩은 `TierIndicator`, 유형 라벨은 각 목록이 직접 그리고,
+ *     이력의 판정 표기는 `TrainingRow`가 텍스트로 씁니다. 배지에만 쓰이던
+ *     `TIER_TONE`·`TYPE_TONE`·`VERDICT_TONE`(train/constants.ts)·`verdictTone`
+ *     (history/format.ts)도 소비처가 0이라 함께 지웠습니다.
+ *   SessionTopBar — 세션은 `train/_components/SessionHeader`가 직접 그립니다(상태 점·「소리 끄기」·
+ *     「종료」가 붙는 자리라 공용 조각으로는 담기지 않았습니다). 문서 화면은 `ScreenHeader`를 씁니다.
+ * 배럴에서 export만 빼는 것으로는 부족합니다 — 파일이 남아 있으면 다음 사람이 여전히
+ * 「여기 규격이 있다」고 읽습니다(2차 페르소나 디자이너 P2).
  */
 
 /**

@@ -58,7 +58,7 @@ export function RecordDraftPreview({
   if (masked.trim().length === 0) return null;
 
   /* 도크(회색 면 위)에서는 흰 안쪽 면, 대화 흐름에서는 옅은 틸 면 위에 흰 안쪽 면을 씁니다. */
-  const outer = variant === "live" ? "bg-paper-2" : "bg-tint";
+  const outer = variant === "live" ? "bg-paper-2" : "bg-brand-tint";
 
   return (
     <div className={cx("rounded-card p-4", outer, className)}>

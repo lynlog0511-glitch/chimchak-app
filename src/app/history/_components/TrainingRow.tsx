@@ -79,7 +79,7 @@ export function TrainingRow({ record, typeLabel }: TrainingRowProps) {
           aria-controls={panelId}
           className="min-h-[48px] min-w-0 flex-1 rounded-field py-2 text-left transition-colors duration-150 active:bg-paper-2"
         >
-          <span className="block text-[0.7813rem] leading-[1.45] text-tertiary">
+          <span className="block text-[0.7813rem] leading-[1.45] text-ink-faint">
             {isExample && <span className="font-bold text-warn-ink">예시 · </span>}
             {formatShortDate(record.startedAt)} · {typeLabel}
           </span>
@@ -95,7 +95,7 @@ export function TrainingRow({ record, typeLabel }: TrainingRowProps) {
             )}
             {coaching > 0 && ` · 다시 볼 것 ${coaching}`} — {summaryTail(record)}
           </span>
-          <span className="mt-[3px] block text-[0.7813rem] leading-[1.45] text-tertiary">
+          <span className="mt-[3px] block text-[0.7813rem] leading-[1.45] text-ink-faint">
             {open ? "접기" : "자세히 보기"}
           </span>
         </button>
@@ -142,12 +142,12 @@ export function TrainingRow({ record, typeLabel }: TrainingRowProps) {
             </p>
           )}
 
-          <p className="mt-[12px] text-[0.7813rem] leading-[1.45] text-tertiary">
+          <p className="mt-[12px] text-[0.7813rem] leading-[1.45] text-ink-faint">
             주고받은 대화 <span className="chim-num">{record.turnCount}</span>번
             {record.retriesUsed > 0 && " · 다시 해 보기 사용"} · 마친 시각{" "}
             {formatDateTime(record.endedAt)}
           </p>
-          {/* 안심 문구 — 캡션 등급(11.5px tertiary)에서 읽히는 등급으로 올려 둡니다. */}
+          {/* 안심 문구 — 캡션 등급(11.5px ink-faint)에서 읽히는 등급으로 올려 둡니다. */}
           <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
             훈련 속 인물은 전원 가상이며, 대사는 검수된 문장을 바탕으로 합니다. 하신 말씀 원문은
             저장하지 않습니다.
@@ -182,7 +182,7 @@ function RowList({
           ))}
         </ul>
       ) : (
-        <p className="mt-[4px] text-[0.7813rem] leading-[1.6] text-tertiary">{empty}</p>
+        <p className="mt-[4px] text-[0.7813rem] leading-[1.6] text-ink-faint">{empty}</p>
       )}
     </div>
   );

@@ -14,7 +14,7 @@ export interface InlineDisclaimerProps {
   /** sm 11px(세션 도크) · md 11.5px(목록 화면 하단) — 가이드 §2 「하단 고지 10.5~11px」 위의 두 단 */
   size?: "sm" | "md";
   /**
-   * readable = `ink-muted`(2.54:1이던 시안 톤을 6.27:1로 올린 값) · faint = `extra-faint`(2.54:1).
+   * readable = `ink-muted`(2.54:1이던 시안 톤을 6.27:1로 올린 값) · faint = `ink-disabled`(2.54:1).
    * 고지는 "읽어야 하는 문장"이라 기본값이 readable입니다.
    * faint는 같은 뜻의 고지가 그 화면에 이미 읽히는 크기로 한 번 더 있을 때만 쓰세요.
    */
@@ -42,7 +42,7 @@ export function InlineDisclaimer({
       className={cx(
         "text-center leading-[1.6]",
         size === "sm" ? "text-[0.6875rem]" : "text-[0.7188rem]",
-        tone === "faint" ? "text-extra-faint" : "text-ink-muted",
+        tone === "faint" ? "text-ink-disabled" : "text-ink-muted",
         className,
       )}
     >

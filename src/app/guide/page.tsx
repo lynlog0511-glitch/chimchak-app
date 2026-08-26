@@ -292,9 +292,12 @@ export default function GuidePage() {
               <h3 className="text-[0.9375rem] leading-[1.45] font-bold text-ink">{item.q}</h3>
               <p className="mt-[6px] text-[0.8438rem] leading-[1.6] text-ink-soft">{item.a}</p>
               <p className="mt-[2px]">
+                {/* 링크 색이 brand-800인 이유 — 이 카드는 paper-2 면이고, brand-700은 흰 지면에서만
+                    AA(4.86:1)입니다. paper-2 위에서는 4.49:1로 0.01 모자랍니다(2026-08-25 실측).
+                    globals.css의 brand-700 주석에 같은 단서를 달아 두었습니다. */}
                 <Link
                   href={item.href}
-                  className="inline-flex min-h-[48px] items-center rounded-field text-[0.8438rem] font-bold text-brand-700 transition-colors duration-150 hover:text-brand-800"
+                  className="inline-flex min-h-[48px] items-center rounded-field text-[0.8438rem] font-bold text-brand-800 transition-colors duration-150 hover:text-brand-900"
                 >
                   {item.linkLabel} ›
                 </Link>

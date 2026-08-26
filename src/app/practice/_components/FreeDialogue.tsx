@@ -143,7 +143,7 @@ export function FreeDialogue({
           ) : (
             <div key={item.id} className="animate-fade-up flex justify-end">
               <div className="min-w-0 max-w-[85%]">
-                <div className="rounded-[18px_4px_18px_18px] bg-tint px-[15px] py-[12px] text-[1.0625rem] leading-[1.6] text-deep">
+                <div className="rounded-[18px_4px_18px_18px] bg-brand-tint px-[15px] py-[12px] text-[1.0625rem] leading-[1.6] text-brand-on-tint">
                   {item.text}
                 </div>
                 <p className="mt-1 text-right text-[0.6875rem] leading-[1.45] text-ink-faint">

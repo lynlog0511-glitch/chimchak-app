@@ -219,6 +219,10 @@ function buildDemoRecord(spec: DemoSessionSpec, now: Date): SessionRecord {
     typeLabel: spec.typeLabel,
     startedAt: started.toISOString(),
     endedAt: ended.toISOString(),
+    /* 예시도 **실주행과 같은 모양**으로 둡니다 — 실주행 기록은 진행 시간(`activeSec`)을 싣고
+       나가므로, 예시만 그 칸이 비면 확인서 미리보기가 옛 기록 경로로 계산됩니다.
+       자리를 비우지 않고 마친 회차를 흉내 내는 예시라 벽시계와 같은 값을 넣습니다. */
+    activeSec: spec.durationSec,
     verdict: spec.verdict,
     endingTitle: spec.endingTitle,
     greenChecks: [...spec.greenChecks],

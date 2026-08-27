@@ -193,6 +193,18 @@ function asCount(value: unknown): number {
   return Math.floor(value);
 }
 
+/**
+ * **있으면** 0 이상 정수 초, 없거나 모양이 어긋나면 `undefined`.
+ *
+ * `asCount`와 갈라 둔 이유는 하나뿐이다 — 이 자리는 **0과 「없음」을 구분해야 한다.**
+ * `asCount`는 둘 다 0으로 낮추는데, 그러면 `activeSec`이 없는 옛 기록이 「진행 시간 0초」로
+ * 읽혀 이수 시수가 통째로 사라진다(벽시계 폴백에 닿지 못한다).
+ */
+function asOptionalSeconds(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return undefined;
+  return Math.round(value);
+}
+
 /** 문구 목록 자리 — 배열이 아니거나 문자열이 아닌 항목은 버린다. */
 function asTextList(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
@@ -232,6 +244,8 @@ function sanitizeSessionRecord(value: unknown): SessionRecord | undefined {
     typeLabel: asText(row.typeLabel),
     startedAt: asText(row.startedAt),
     endedAt: asText(row.endedAt),
+    // 없으면 없는 채로 둔다 — 0으로 낮추면 옛 기록의 이수 시수가 0이 된다(`asOptionalSeconds`).
+    activeSec: asOptionalSeconds(row.activeSec),
     verdict,
     endingTitle: asText(row.endingTitle),
     greenChecks: asTextList(row.greenChecks),
@@ -301,7 +315,11 @@ export function clearSessions(): void {
 /* ── 이수 누계 (확인서 증빙용) ─────────────────────────────── */
 
 /**
- * 한 회차를 이수 시간으로 셀 때의 상한 — 자리를 비우고 방치한 회차가 시수를 부풀리지 않게 한다.
+ * 한 회차를 이수 시간으로 셀 때의 **바깥 상한**.
+ *
+ * 자리를 비운 회차를 실제로 깎는 것은 이제 턴당 상한이다(`engine/timing.ts`의
+ * `TURN_IDLE_CAP_SEC`) — 이 값은 그 위에 한 겹 더 두는 회차 전체의 천장이고, **이수 사실 파일이
+ * 실어 오는 값을 거르는 눈금**이기도 하다(`parseCompletionCsv`의 ②: 한 줄의 시수 ≤ 횟수 × 30분).
  * 확인서 각주가 이 값을 「30분」이라고 문장으로 적고 있으므로 함께 고친다.
  */
 export const MAX_SESSION_SEC = 30 * 60;
@@ -334,12 +352,27 @@ const MAX_IMPORT_COUNT_PER_LINE = MAX_COUNTED_IDS;
 /**
  * 회차 하나의 이수 시간(초).
  *
- * `endedAt − startedAt`이고, 회차당 30분을 넘으면 30분까지만 센다.
- * 시각이 없거나 거꾸로면 0으로 둔다.
+ * **진행 시간(`activeSec`)이 있으면 그것을 쓴다** — 턴 사이 구간의 합이고 정지 구간은 턴당
+ * 상한까지만 들어간 값이다(`engine/timing.ts`). 벽시계로 세던 예전 방식은 4분짜리 시나리오를
+ * 열어 둔 채 자리를 비우면 그 시간이 그대로 시수로 찍혔고, 그 종이에 서명하는 사람은 기관장이다.
  *
- * @example sessionSeconds({ startedAt: "...T10:00:00Z", endedAt: "...T10:04:00Z" }) // 240
+ * **옛 기록은 다시 계산하지 않는다.** 이 규칙이 서기 전에 저장된 기록에는 `activeSec`이 없고,
+ * 그때는 예전 방식(벽시계 + 회차당 30분 상한)으로 센다. 이미 인쇄돼 자료철에 들어간 확인서의
+ * 숫자를 앱이 뒤에서 바꾸면 같은 발급번호의 종이 두 장이 다른 시수를 말하게 되기 때문이다.
+ * 새 규칙은 **새 회차부터** 적용된다.
+ *
+ * 어느 쪽이든 회차당 30분(`MAX_SESSION_SEC`) 천장은 그대로 건다.
+ *
+ * @example sessionSeconds({ startedAt: "...T10:00:00Z", endedAt: "...T10:25:00Z", activeSec: 240 }) // 240
+ * @example sessionSeconds({ startedAt: "...T10:00:00Z", endedAt: "...T10:04:00Z" }) // 240 (옛 기록)
  */
-export function sessionSeconds(record: Pick<SessionRecord, "startedAt" | "endedAt">): number {
+export function sessionSeconds(
+  record: Pick<SessionRecord, "startedAt" | "endedAt" | "activeSec">,
+): number {
+  const active = record.activeSec;
+  if (typeof active === "number" && Number.isFinite(active) && active >= 0) {
+    return Math.min(Math.round(active), MAX_SESSION_SEC);
+  }
   const start = new Date(record.startedAt).getTime();
   const end = new Date(record.endedAt).getTime();
   if (Number.isNaN(start) || Number.isNaN(end)) return 0;
@@ -507,7 +540,8 @@ export interface CompletionLine {
   typeLabel: string;
   count: number;
   /**
-   * 이 시나리오로 쌓인 이수 시수(초). 회차당 30분 상한을 적용한 값의 합이다.
+   * 이 시나리오로 쌓인 이수 시수(초). 회차마다 `sessionSeconds`가 낸 값의 합이다
+   * (진행 시간 · 턴당 정지 상한 · 회차당 30분 천장).
    * 이수 사실 파일이 한 행에 실어 나르는 값이라, 행 단위로 합칠 수 있으려면 줄마다 있어야 한다.
    */
   seconds: number;

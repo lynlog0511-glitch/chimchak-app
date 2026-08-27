@@ -165,6 +165,87 @@ function rowsOf(csv: string): string[][] {
 
 /* ── 검사 ─────────────────────────────────────────────── */
 
+/**
+ * 확인서에 실리는 **시수 그 자체**를 못 박는다.
+ *
+ * 위 블록들이 「파일이 왕복하는가」를 지킨다면 여기는 「그 파일에 적히는 숫자가 사실인가」를
+ * 지킨다. 실사에서 문제가 되는 것은 서식이 아니라 숫자다(9차 임원평가 구매자 high).
+ */
+describe("이수 시수 — 벽시계가 아니라 진행 시간을 센다", () => {
+  /** 벽시계로 25분 30초, 진행 시간으로 3분 30초인 회차 — 자리를 비운 회차다. */
+  function awayRecord(): SessionRecord {
+    return makeRecord({
+      id: "CHK-A01-away-0",
+      startedAt: "2026-08-05T00:00:00.000Z",
+      endedAt: "2026-08-05T00:25:30.000Z",
+      activeSec: 210,
+    });
+  }
+
+  it("자리를 비운 회차는 진행 시간만 실린다 — 벽시계 25분이 확인서에 오르지 않는다", () => {
+    saveSession(awayRecord());
+    const summary = buildCompletionSummary();
+    expect(summary.totalCount).toBe(1);
+    expect(summary.totalSec).toBe(210);
+    // 벽시계였다면 1530초였다. 그 값이 어디에도 남아 있지 않아야 한다.
+    expect(summary.totalSec).not.toBe(25 * 60 + 30);
+    expect(summary.lines[0]?.seconds).toBe(210);
+    // 누계(확인서가 상세 50건 상한 뒤에도 쓰는 값)도 같은 숫자여야 한다.
+    expect(loadCompletionTally().seconds).toBe(210);
+  });
+
+  it("정상 진행 회차는 값이 달라지지 않는다", () => {
+    // 진행 시간과 벽시계가 같은 회차(5분 12초) — 규칙이 바뀌어도 이 숫자는 그대로다.
+    saveSession(makeRecord({ activeSec: 312 }));
+    expect(buildCompletionSummary().totalSec).toBe(312);
+    expect(buildCompletionSummary().totalSec).toBe(
+      Math.round(
+        (Date.parse("2026-08-05T00:05:12.000Z") - Date.parse("2026-08-05T00:00:00.000Z")) / 1000,
+      ),
+    );
+  });
+
+  it("옛 기록은 다시 계산하지 않는다 — 진행 시간이 없으면 벽시계 그대로다", () => {
+    /* 이 규칙이 서기 전에 저장된 기록에는 activeSec이 없다. 이미 인쇄돼 자료철에 들어간
+       확인서의 숫자를 앱이 뒤에서 바꾸면, 같은 발급번호의 종이 두 장이 다른 시수를 말한다. */
+    const legacy = makeRecord();
+    delete (legacy as Partial<SessionRecord>).activeSec;
+    saveSession(legacy);
+    expect(buildCompletionSummary().totalSec).toBe(5 * 60 + 12);
+  });
+
+  it("진행 시간 0초는 「없음」과 다르다 — 0으로 세고 벽시계로 되돌아가지 않는다", () => {
+    saveSession(makeRecord({ activeSec: 0 }));
+    expect(buildCompletionSummary().totalSec).toBe(0);
+  });
+
+  it("회차당 30분 천장은 진행 시간에도 그대로 걸린다", () => {
+    saveSession(makeRecord({ activeSec: 99 * 60 }));
+    expect(buildCompletionSummary().totalSec).toBe(30 * 60);
+  });
+
+  it("발급번호는 시수가 달라진 만큼 달라지고, 파일에서 다시 계산해도 맞는다", () => {
+    /* 발급번호 시드의 **짜임새**는 바뀌지 않았다(시나리오·횟수·분 시수·완료 시각·합계 둘).
+       바뀐 것은 그 시드에 들어가는 시수 값뿐이라, 파일을 읽는 쪽의 대조는 그대로 선다. */
+    saveSession(awayRecord());
+    const awayNumber = buildCompletionSummary().number;
+    const awayCsv = exportCsv();
+
+    clearSessions();
+    // 시각 두 칸은 그대로 두고 **시수만** 벽시계 값으로 되돌린다 — 번호가 달라지는 이유를 하나로 묶는다.
+    saveSession({ ...awayRecord(), activeSec: 25 * 60 + 30 });
+    expect(buildCompletionSummary().number).not.toBe(awayNumber);
+
+    // 자리 비움 회차로 내보낸 파일은 그 자신의 번호와 여전히 맞아떨어진다.
+    const read = parseCompletionCsv(awayCsv);
+    expect(read.ok).toBe(true);
+    if (read.ok) {
+      expect(read.file.number).toBe(awayNumber);
+      expect(read.file.numberMatches).toBe(true);
+    }
+  });
+});
+
 describe("내보내기 서식 — 병합 가능한 직사각형 표", () => {
   it("머리글 한 줄 + 시나리오당 한 행이고, 모든 행의 열 수가 같다", () => {
     seedRealDevice();

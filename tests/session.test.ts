@@ -26,6 +26,7 @@ import {
   submitResponse,
   type TracedFeedback,
 } from "@/engine/session";
+import { TURN_IDLE_CAP_SEC, activeSeconds } from "@/engine/timing";
 import type { SessionState } from "@/types";
 import { CF_MESSAGE, makeScenario } from "./_fixtures";
 
@@ -200,6 +201,88 @@ describe("판정 우선순위 — buildRecord", () => {
   it("기록에는 발화 원문이 담기지 않는다", () => {
     const ended = runToEnd("마음이 급하시겠어요");
     expect(JSON.stringify(buildRecord(scenario, ended))).not.toContain("마음이 급하시겠어요");
+  });
+
+  it("기록에 진행 시간(activeSec)을 싣는다", () => {
+    const ended = runToEnd("마음이 급하시겠어요");
+    const record = buildRecord(scenario, ended);
+    expect(typeof record.activeSec).toBe("number");
+    // 검사 안에서 순식간에 끝나는 회차라 값 자체는 0초에 가깝다. 여기서 못 박는 것은
+    // 「이 칸이 채워져 나간다」는 사실이다 — 비어 나가면 storage가 벽시계로 되돌아간다.
+    expect(record.activeSec).toBeGreaterThanOrEqual(0);
+    expect(record.activeSec).toBeLessThan(TURN_IDLE_CAP_SEC);
+  });
+});
+
+/**
+ * 이수 시수 산정 — 벽시계가 아니라 **진행 시간**을 센다.
+ *
+ * 이 블록이 지키는 것은 기관장이 서명하는 종이의 숫자다. 4분짜리 시나리오를 열어 둔 채
+ * 자리를 비운 회차가 25분으로 확인서에 실리면, 실사에서 그 종이를 들고 서 있는 사람이
+ * 답할 문장이 없다(9차 임원평가 구매자 high).
+ */
+describe("이수 시수 — 진행 시간 산정(activeSeconds)", () => {
+  const MIN = 60_000;
+  /** 시각만 있으면 되는 자리라 판정·분기는 넣지 않는다(이 함수가 보는 것은 `at`뿐이다). */
+  const tick = (turnId: string, at: number) => ({ turnId, viaButton: true, at });
+
+  it("정상 진행은 벽시계와 같은 값이다 — 깎지 않는다", () => {
+    // 40초씩 여섯 턴 = 240초, 시나리오 설계 소요(4~6분)와 같은 결이다.
+    const events = [0, 1, 2, 3, 4, 5].map((i) => tick(`T${i + 1}`, (i + 1) * 40_000));
+    const endedAt = 6 * 40_000;
+    expect(activeSeconds(events, 0, endedAt)).toBe(240);
+    // 같은 회차의 벽시계 값과 한 초도 다르지 않다.
+    expect(activeSeconds(events, 0, endedAt)).toBe(Math.round(endedAt / 1000));
+  });
+
+  it("자리 비움 — 마지막 턴 전 25분 정지는 턴당 상한까지만 센다", () => {
+    /* A01(설계 소요 4분)을 열어 두고 자리를 비운 회차:
+       30초 진행 → 25분 정지 → 마지막 턴 응답 → 곧바로 종료. */
+    const away = [tick("T1", 30_000), tick("T2", 30_000 + 25 * MIN)];
+    const endedAt = 30_000 + 25 * MIN;
+
+    // 벽시계로 세면 25분 30초가 그대로 시수가 된다 — 이것이 닫으려는 상태다.
+    expect(Math.round(endedAt / 1000)).toBe(25 * 60 + 30);
+    // 진행 시간으로 세면 30초 + 상한 3분.
+    expect(activeSeconds(away, 0, endedAt)).toBe(30 + TURN_IDLE_CAP_SEC);
+  });
+
+  it("정지가 여러 번이어도 턴마다 따로 깎는다", () => {
+    const away = [
+      tick("T1", 10 * MIN), // 10분 정지 → 3분
+      tick("T2", 20 * MIN), // 10분 정지 → 3분
+      tick("T3", 20 * MIN + 20_000), // 20초 → 20초
+    ];
+    expect(activeSeconds(away, 0, 20 * MIN + 20_000)).toBe(TURN_IDLE_CAP_SEC * 2 + 20);
+  });
+
+  it("마지막 응답 뒤 종료까지의 구간에도 같은 상한이 걸린다", () => {
+    // 끝 화면이 뜬 뒤 기록이 만들어지기까지가 길어져도 그 구간이 시수를 밀어 올리지 못한다.
+    expect(activeSeconds([tick("T1", 20_000)], 0, 20_000 + 40 * MIN)).toBe(20 + TURN_IDLE_CAP_SEC);
+  });
+
+  it("이벤트가 없으면 시작~종료 한 구간이고, 그 구간도 상한을 받는다", () => {
+    expect(activeSeconds([], 0, 30_000)).toBe(30);
+    expect(activeSeconds([], 0, 40 * MIN)).toBe(TURN_IDLE_CAP_SEC);
+  });
+
+  it("시계가 거꾸로 간 이벤트는 구간을 만들지 못한다 — 음수로 깎지 않는다", () => {
+    const skewed = [tick("T1", 30_000), tick("T2", 10_000), tick("T3", 50_000)];
+    // 30초 + (되감긴 이벤트 무시) + 20초.
+    expect(activeSeconds(skewed, 0, 50_000)).toBe(50);
+    expect(activeSeconds(skewed, 0, 50_000)).toBeGreaterThanOrEqual(0);
+  });
+
+  it("읽을 수 없는 시각에는 0을 돌려준다", () => {
+    expect(activeSeconds([], Number.NaN, 1000)).toBe(0);
+    expect(activeSeconds([], 0, Number.NaN)).toBe(0);
+  });
+
+  it("상한은 시나리오 설계 예산보다 넉넉하다 — 느린 진행을 깎지 않는다", () => {
+    /* 가장 넉넉한 설계 예산이 한 턴 42.9초(C01: 5분 ÷ 7턴)다. 상한이 그보다 작아지면
+       천천히 진행하시는 분의 시수가 깎이기 시작하므로, 그 방향의 변경을 여기서 막는다. */
+    const WIDEST_DESIGNED_TURN_SEC = (5 * 60) / 7;
+    expect(TURN_IDLE_CAP_SEC).toBeGreaterThan(WIDEST_DESIGNED_TURN_SEC * 4);
   });
 });
 

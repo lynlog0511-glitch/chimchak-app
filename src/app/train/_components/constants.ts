@@ -585,21 +585,8 @@ export function splitLawSentences(message: string): { lead: string; law: string 
   return { lead: lead.join(" "), law: law.join(" ") };
 }
 
-/* ── 소요 시간 (시안 6a 「약 4분 12초」) ────────────────────── */
-
-/**
- * 두 시각 사이를 사람이 읽는 어림 문구로 바꿉니다.
- * 기록에는 초 단위까지 남지만, 화면에는 「약」을 붙여 계측값이 아님을 밝힙니다.
- *
- * @example durationText("2026-08-05T09:00:00.000Z", "2026-08-05T09:04:12.000Z") // "약 4분 12초"
- */
-export function durationText(startedAt: string | number, endedAt: string | number): string {
-  const start = typeof startedAt === "number" ? startedAt : Date.parse(startedAt);
-  const end = typeof endedAt === "number" ? endedAt : Date.parse(endedAt);
-  if (!Number.isFinite(start) || !Number.isFinite(end)) return "";
-  const seconds = Math.max(0, Math.round((end - start) / 1000));
-  if (seconds < 60) return `약 ${Math.max(1, seconds)}초`;
-  const minutes = Math.floor(seconds / 60);
-  const rest = seconds % 60;
-  return rest === 0 ? `약 ${minutes}분` : `약 ${minutes}분 ${rest}초`;
-}
+/* ── 소요 시간 (시안 6a 「약 4분 12초」) ──────────────────────
+   여기 있던 `durationText` 사본을 지웠습니다 — 정본은 `src/lib/duration.ts` 한 곳입니다.
+   그 파일이 스스로 「같은 값을 두 화면이 각자 그리면 같은 자료철의 두 장이 다른 숫자를 말한다」고
+   적어 둔 자리이고, 실제로 이 사본과 정본이 나란히 살아 있었습니다. 마침 화면이 회차의
+   **진행 시간**을 적게 되면서(`durationTextFromSeconds`) 사본을 유지할 이유도 사라졌습니다. */

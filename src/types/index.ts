@@ -234,6 +234,18 @@ export interface SessionRecord {
   typeLabel: string;
   startedAt: string; // ISO
   endedAt: string; // ISO
+  /**
+   * 이 회차의 **진행 시간(초)** — 이수 시수로 세는 값이다(`engine/timing.ts`의 `activeSeconds`).
+   *
+   * 턴 사이 구간의 합이고 정지 구간은 턴당 상한까지만 들어간다. 벽시계(`endedAt − startedAt`)와
+   * 다른 값이며, **다른 값인 것이 이 칸을 둔 이유다** — 자리를 비운 시간이 증빙에 실리지 않게 한다.
+   *
+   * **선택 칸인 이유**: 이 규칙이 서기 전에 저장된 기록에는 이 값이 없다. 그 기록들은 다시
+   * 계산하지 않는다 — 이미 인쇄돼 자료철에 들어간 확인서의 숫자를 앱이 뒤에서 바꾸면, 같은
+   * 발급번호의 종이 두 장이 다른 시수를 말하게 된다. 없으면 `lib/storage.ts`의 `sessionSeconds`가
+   * 예전 방식(벽시계 + 회차당 30분 상한)으로 세고, 새 회차부터 이 값이 쓰인다.
+   */
+  activeSec?: number;
   verdict: EndingDef["verdict"];
   endingTitle: string;
   greenChecks: string[]; // 🟢 충족 문구 목록

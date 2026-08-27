@@ -36,7 +36,7 @@ import { classifyInput, defaultBranch, findBranch, type ClassifySource } from ".
 import { checkEvidence, type EvidenceGuard } from "./evidence";
 import { advisoryHits, checkAdvisory, checkCritical, getRule } from "./rules";
 import { collectCoaching, collectGreenChecks, judgeInternal, lowestScore, mergeHits, isMet } from "./scoring";
-import { currentTurnEnteredAt, isCallHandoff, judgeCallDelay } from "./timing";
+import { activeSeconds, currentTurnEnteredAt, isCallHandoff, judgeCallDelay } from "./timing";
 
 const END_PREFIX = "end:";
 const PROTOCOL_PREFIX = "protocol:";
@@ -651,6 +651,9 @@ export function buildRecord(s: Scenario, state: SessionState): SessionRecord {
     typeLabel: s.typeLabel,
     startedAt: new Date(state.startedAt).toISOString(),
     endedAt: endedAt.toISOString(),
+    // 이수 시수로 세는 값은 벽시계가 아니라 **진행 시간**이다 — 사유 전문은 timing.ts.
+    // 버튼으로만 완주한 회차도 턴마다 이벤트를 남기므로 같은 방식으로 세어진다.
+    activeSec: activeSeconds(state.events, state.startedAt, endedAt.getTime()),
     verdict,
     endingTitle: ending?.title ?? "훈련 종료",
     greenChecks: collectGreenChecks(state.events),

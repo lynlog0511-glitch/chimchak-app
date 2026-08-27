@@ -7,6 +7,7 @@ import { BigButton, EyebrowLabel, useSourceDoc } from "@/components";
 import { BreathMark } from "@/components/BreathMark";
 import { cx } from "@/components/utils";
 import { unexploredBranches, type TracedFeedback } from "@/engine";
+import { durationText, durationTextFromSeconds } from "@/lib/duration";
 import { loadSessions } from "@/lib/storage";
 import type { EndingDef, Scenario, SessionEvent, SessionRecord, SessionState } from "@/types";
 import {
@@ -18,7 +19,6 @@ import { stripInternalIds } from "./DialogueLog";
 import {
   branchLabelInWords,
   cfVerdictSourceLine,
-  durationText,
   scenarioHref,
   situationOrdinal,
   splitLawSentences,
@@ -430,7 +430,14 @@ export function EndingPanel({
   const shape = VERDICT_SHAPE[verdict];
   const mark = VERDICT_MARK[verdict];
   const coachings = record.coachingPoints;
-  const spent = durationText(record.startedAt, record.endedAt);
+  /* 이 자리의 숫자는 **확인서에 실릴 값과 같아야** 합니다 — 마침 화면이 「약 29분」이라 하고
+     확인서가 「약 4분」이라 하면, 어느 쪽이 맞느냐를 기관이 실사에서 묻게 됩니다.
+     그래서 진행 시간(`activeSec`)이 있으면 그것을 씁니다. 없는 것은 이 규칙이 서기 전의
+     기록뿐이고, 그때는 예전처럼 시작·종료 시각으로 적습니다(`lib/storage.ts` 참조). */
+  const spent =
+    record.activeSec === undefined
+      ? durationText(record.startedAt, record.endedAt)
+      : durationTextFromSeconds(record.activeSec);
 
   /* 이번 회차의 흐름과 가장 잘한 순간 — 둘 다 엔진이 남긴 이벤트를 옮기기만 합니다. */
   const timeline = useMemo(() => buildTimeline(session.events), [session.events]);

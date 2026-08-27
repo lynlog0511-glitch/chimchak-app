@@ -6,7 +6,13 @@ import Link from "next/link";
 import { BigButton, InlineDisclaimer, cx } from "@/components";
 import { CITABLE_DOC_IDS, SOURCE_DOCS } from "@/data/docs";
 import { countDemoRecords } from "@/lib/demoSeed";
-import { buildCompletionCsv, buildCompletionSummary, type CompletionSummary } from "@/lib/storage";
+import { TURN_IDLE_CAP_SEC } from "@/engine/timing";
+import {
+  MAX_SESSION_SEC,
+  buildCompletionCsv,
+  buildCompletionSummary,
+  type CompletionSummary,
+} from "@/lib/storage";
 import { formatDate, formatDateTime } from "../../_components/format";
 import { CompletionImportPanel } from "./CompletionImportPanel";
 
@@ -644,9 +650,22 @@ export function CertificateSheet() {
                 본 확인서는 앱 기록 기반이며 법정 보수교육 이수 인정이 아닙니다 — 기관 자체
                 직무교육·정기평가 내부 증빙용입니다.
               </p>
+              {/* 산정 규칙을 문서 스스로 적어 둡니다 — 실사에서 「4분짜리가 왜 25분입니까」를
+                  받는 자리이고, 그때 서명한 기관장이 인용할 문장이 이 종이 안에 있어야 합니다.
+                  **두 수치는 상수에서 뽑습니다.** 이 문장에 3과 30을 손으로 적어 두면, 상한을
+                  고치는 다음 사람이 종이만 옛 값을 말하게 됩니다 — 이 저장소가 「보안 통제 수치의
+                  문서 드리프트는 사고 났을 때 돌아온다」며 닫은 결함이 증빙 서식에서 되살아납니다. */}
               <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
-                총 이수 시수는 이 기기에 남은 시작·종료 시각으로 계산한 실측치이며, 한 회차가 30분을
-                넘으면 30분까지만 셉니다.
+                총 이수 시수는 이 기기에 남은 기록으로 계산한 실측치이며, 문항을{" "}
+                <span className="font-bold text-ink">진행한 시간</span>만 셉니다 — 조작이 없는 정지
+                구간은 한 문항당{" "}
+                <span className="chim-num font-bold">{TURN_IDLE_CAP_SEC / 60}</span>분까지만 세고, 한
+                회차는 <span className="chim-num font-bold">{MAX_SESSION_SEC / 60}</span>분을 넘겨
+                세지 않습니다.
+              </p>
+              <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
+                이 산정 규칙이 서기 전에 마치신 회차는 시작·종료 시각으로 셈한 값 그대로 남습니다 —
+                이미 발급된 확인서의 숫자를 나중에 바꾸지 않기 위해서입니다.
               </p>
               <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
                 이 확인서에는 이수 사실만 담습니다 — 판정 결과와 대화 내용은 포함하지 않으며,

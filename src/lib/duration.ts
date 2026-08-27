@@ -71,7 +71,22 @@ export function durationText(startedAt: string | number, endedAt: string | numbe
   const start = typeof startedAt === "number" ? startedAt : Date.parse(startedAt);
   const end = typeof endedAt === "number" ? endedAt : Date.parse(endedAt);
   if (!Number.isFinite(start) || !Number.isFinite(end)) return "";
-  const seconds = Math.max(0, Math.round((end - start) / 1000));
+  return durationTextFromSeconds(Math.round((end - start) / 1000));
+}
+
+/**
+ * 이미 초로 잰 소요를 같은 어림 문구로 — 「약 4분 12초」.
+ *
+ * 두 시각을 빼는 대신 **셈이 끝난 값**을 받는 자리다. 회차의 진행 시간(`SessionRecord.activeSec`)
+ * 처럼 벽시계 차이로 되돌릴 수 없는 값이 여기로 온다. 표기 규칙은 `durationText`와 한 글자도
+ * 다르지 않다 — 같은 함수를 부르므로 갈라질 자리가 없다.
+ *
+ * @example durationTextFromSeconds(252) // "약 4분 12초"
+ * @example durationTextFromSeconds(0)   // "약 1초"
+ */
+export function durationTextFromSeconds(totalSec: number): string {
+  if (!Number.isFinite(totalSec)) return "";
+  const seconds = Math.max(0, Math.round(totalSec));
   if (seconds < 60) return `약 ${Math.max(1, seconds)}초`;
   const minutes = Math.floor(seconds / 60);
   const rest = seconds % 60;

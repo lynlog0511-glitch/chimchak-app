@@ -150,9 +150,15 @@ export const BRANCH_LABEL_IN_WORDS: Record<string, string> = {
  * 요소 이름을 다 채웠거나 셀 것이 없으면 `undefined`를 돌려주고, 화면은 데이터의 coaching을
  * 그대로 씁니다(폴백).
  *
+ * 나열은 **쉼표**로 합니다 (2026-08-27 · 현직·교육생 7차). 요소 이름 자체에 가운뎃점이 든 것이
+ * 있어(「행위·조치」·「관찰·요구」), 가운뎃점으로 이으면 남은 것이 둘인데 셋으로 읽힙니다 —
+ * 「시각·행위·조치까지」. 분류기는 같은 이유로 이미 쉼표를 쓰고 그 사유를 적어 두었고
+ * (classify.ts:354), 같은 화면의 접힘도 쉼표에 「N가지」입니다(InlineCoaching.tsx:111).
+ * 한 화면에 서는 같은 목록이 두 벌의 기호로 갈리지 않게 규약을 하나로 둡니다.
+ *
  * @example
  * // groups = 시각·대상·행위·조치·현재 상태, matched = ["현재 상태"]
- * // → "말씀에 담긴 것은 현재 상태입니다. 시각·대상·행위·조치까지 함께 적으시면 …"
+ * // → "말씀에 담긴 것은 현재 상태입니다. 시각, 대상, 행위·조치까지 함께 적으시면 …"
  */
 export function partialReportCoaching(
   cue: CueDef,
@@ -163,7 +169,7 @@ export function partialReportCoaching(
   if (!matchedElements || matchedElements.length === 0) return undefined;
   const missing = groups.map((g) => g.label).filter((label) => !matchedElements.includes(label));
   if (missing.length === 0) return undefined;
-  return `말씀에 담긴 것은 ${matchedElements.join("·")}입니다. ${missing.join("·")}까지 함께 적으시면 그대로 기록에 옮겨집니다.`;
+  return `말씀에 담긴 것은 ${matchedElements.join(", ")}입니다. ${missing.join(", ")}까지 함께 적으시면 그대로 기록에 옮겨집니다.`;
 }
 
 /**

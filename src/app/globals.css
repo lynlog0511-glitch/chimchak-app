@@ -93,7 +93,10 @@
 
   /* 브랜드 틸 — 채움 600(#17948a) · 링크·강조 700(#157f75) · 활성 딥 800(#14665f) */
   --color-brand-50: #f3faf8; /* 마이크 바깥 링 */
-  --color-brand-200: #ade1da;
+  /* ※ 2026-08-27에 `brand-200`(#ade1da)을 지웠습니다 — 등장이 `components/Card.tsx`의 보더 표
+       한 줄뿐이었고, 그 표를 읽는 `border` prop을 넘기는 호출자가 0이라 **화면에 닿을 수 없는**
+       규격이었습니다. 「참조 0건」이 아니라 「도달 0건」이라 8/26 스윕의 grep을 통과했습니다
+       (7차 페르소나 디자이너 low — 5차의 `TierIndicator`와 같은 종류의 착시). */
   --color-brand-400: #4bb2a6; /* 파형 보조 막대 */
   --color-brand-600: #17948a; /* CTA 채움·마이크·상태 점 */
   /* 흰 지면 위 링크·흰 글자 얹는 채움.
@@ -128,11 +131,26 @@
        (`bg-brand-700`은 이 규칙의 대상이 아닙니다 — 대상은 `text-brand-700`뿐입니다). */
   --color-brand-700: #157f75;
   --color-brand-800: #14665f; /* 활성 딥 — 로고·탭 활성·숫자 · 면 카드 위 링크(흰 6.78 · paper-2 6.27) */
-  --color-brand-900: #0f3f3a; /* 딥 텍스트 — 학습자 말풍선 글자 */
+
+  /* ── #0f3f3a도 이름이 하나입니다 (2026-08-27) ───────────────
+     `white`를 별칭으로 승격시켜 60곳을 정본화하고 게이트에 낱말을 더한 것과 **같은 방식**입니다.
+     #0f3f3a에는 `brand-900`과 `brand-on-tint` 두 이름이 붙어 있었고, 정의 주석이 스스로
+     「(= brand-900)」이라고 적고 있었습니다(7차 페르소나 디자이너 P0). 값이 같아 화면 결함은
+     없었지만, `--color-brand-on-tint`를 조정하는 날 `::selection`과 /history 가림 칩이 따라오지
+     않습니다 — 별칭 정리의 명분이 그대로 적용되는 마지막 자리였습니다.
+
+     그런데 `brand-900`이 하던 일은 **둘**이었습니다. 하나는 「틸 면 위 딥 텍스트」(= brand-on-tint,
+     아래 ★)이고, 다른 하나는 「brand-800의 눌림 단」입니다 — 링크 hover 둘과 채움 버튼의
+     `active:` 둘. 뒤엣것은 역할이 달라 정본에 합치면 뜻이 흐려지므로, **역할 이름**으로 다시
+     세웁니다(`--color-brand-press`). 지금처럼 「딥 텍스트」와 「눌림」이 한 이름을 나눠 쓰던 것이
+     문제였습니다. 두 이름은 값이 같지만 **다른 것을 가리키므로** 별칭이 아닙니다 —
+     한쪽을 조정하는 날 다른 쪽이 따라오면 안 되는 관계입니다.
+     `brand-900`이라는 이름은 게이트의 별칭 목록에 올려 두었습니다(⑧). */
+  --color-brand-press: #0f3f3a; /* brand-800의 눌림 단 — 링크 hover·채움 버튼 active */
 
   /* 가이드 v4 §1의 ★ 이름 — 값은 위 스케일과 같고, **역할**을 이름에 박아 둔 정본입니다. */
   --color-brand-tint: #e7f4f2; /* ★ 학습자 말풍선·마이크 링·틸 면 */
-  --color-brand-on-tint: #0f3f3a; /* ★ 틸 면 위 텍스트 (= brand-900) */
+  --color-brand-on-tint: #0f3f3a; /* ★ 틸 면 위 텍스트 — 딥 텍스트의 정본 이름입니다 */
 
   /* 민트 — 배경 강조용 저채도 */
   --color-mint-200: #d2ede7;
@@ -199,7 +217,8 @@
   --color-ok: #1e9e6a; /* 저장됨 점·✓ 원 */
   --color-ok-ink: #14764f; /* 「충족」·「잘한 것 N」 */
   --color-ok-soft: #eaf7f1; /* 델타 칩 바탕 */
-  --color-ok-line: #b9e3cf;
+  /* ※ 2026-08-27에 `ok-line`(#b9e3cf)을 지웠습니다 — `brand-200`과 **같은 자리·같은 사유**입니다
+       (`Card.tsx`의 보더 표 한 줄 · 호출자 0). 두 토큰이 죽은 방식이 같아 함께 적어 둡니다. */
 
   --color-warn: #f08c2e;
   --color-warn-ink: #b45309; /* 「조금 불안」 */
@@ -340,6 +359,21 @@
     -webkit-text-size-adjust: auto;
     scroll-behavior: smooth;
 
+    /* ── 초점이 고정 바 밑으로 들어가지 않게 (WCAG 2.2 SC 2.4.11 · AA) ──
+       브라우저는 Tab으로 초점이 옮겨질 때 그 요소를 **스크롤포트 가장자리에 겨우 걸치게** 밀어
+       넣습니다. 가장자리에 붙어 있는 바가 있으면 방금 초점을 받은 요소가 그 밑으로 들어갑니다.
+       이 저장소가 이미 쓰는 `scroll-mt`는 **앵커 이동 전용**이라 이 자리를 대신하지 못합니다 —
+       그래서 목차 칩으로 뛰면 절이 바르게 서는데 같은 화면을 Tab으로 훑으면 초점 받은 링크가
+       목차 바 밑에 깔렸습니다(전 소스 `scroll-padding` 0건 — 7차 페르소나 UI/UX med).
+       막는 표준 수단은 **스크롤러의** `scroll-padding`이고, 문서 화면의 스크롤러는 html입니다.
+
+       값은 화면이 알려 줍니다 — `--chim-toc-h`는 `SafetyToc`이 자기 높이를 실측해 적고, 목차가
+       없는 화면에서는 선언 자체가 없어 폴백 0px이 섭니다. `--chim-safe-t`를 함께 더하는 이유는
+       그 바의 도킹 기준선이 0이 아니라 안전 영역 아래이기 때문입니다.
+       (세션처럼 본문만 스크롤하는 화면은 스크롤러가 html이 아니라 `main`이라, 아래
+        `.chim-screen--fill main`이 같은 일을 헤더·도크 양쪽에 대해 합니다.) */
+    scroll-padding-top: calc(var(--chim-safe-t) + var(--chim-toc-h, 0px));
+
     /* 탭 하이라이트는 OS가 아니라 앱이 그립니다.
        모바일 브라우저 기본 하이라이트는 모양·색이 안드로이드/iOS마다 달라 무대에서 통제할 수 없는
        변수가 됩니다(가이드가 셰브론에서 경계한 것과 같은 성격). 눌림 표현은 각 컨트롤의
@@ -393,7 +427,9 @@
 
   ::selection {
     background: var(--color-brand-tint);
-    color: var(--color-brand-900);
+    /* 틸 면 위 글자라 정본 이름은 `brand-on-tint`입니다 — 이 자리가 「한 값에 이름 둘」의
+       마지막 잔여였습니다(2026-08-27 · 7차 페르소나 디자이너 P0). */
+    color: var(--color-brand-on-tint);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -428,12 +464,43 @@
     margin-inline: auto;
     background: var(--color-paper);
     padding-top: var(--chim-safe-t);
+    /* 화면 기둥이 **위치 기준선**입니다 (2026-08-27).
+       이 한 줄이 필요한 자리는 지금 하나입니다 — 스킵 링크(`PageShell`). 그 링크는 초점을 받을 때만
+       나타나는데, 조상에 위치 지정 요소가 없던 동안 `absolute`의 기준이 뷰포트(초기 컨테이닝 블록)가
+       되어 480px↑에서 앱 밖 회색 지면 위에 떴습니다. 그래서 6차에 `absolute`를 걷었더니 이번에는
+       링크가 **정상 흐름의 첫 flex 자식**이 되어, 어느 화면에서든 첫 Tab에 본문이 통째로 40~56px
+       내려앉았습니다(7차 페르소나 FE low — 프레임 탈주를 닫으면서 레이아웃 시프트를 들였습니다).
+       기준선을 여기 세우면 둘 다 사라집니다.
+
+       6차가 이 길을 고르지 않은 사유(「조상에 `position`을 새로 주면 sticky·fixed 전부의 기준선이
+       옮겨진다」)는 **CSS 명세와 다릅니다.** `position: relative`는 `fixed` 자손의 컨테이닝 블록을
+       바꾸지 않습니다 — 그 일을 하는 것은 `transform`·`filter`·`perspective`·`will-change`·
+       `contain`·`backdrop-filter`이고, 이 요소는 어느 것도 걸지 않습니다. `sticky`의 제약 사각형은
+       **스크롤 조상**이 정하므로 이 선언과 무관합니다. 그래서 이 앱의 `fixed` 사용처 전부
+       (안전영역 캡 넷 · 전체 뷰포트 오버레이 넷 · 설정 팝오버 · 인쇄용 워터마크·머리띠)와
+       `.chim-tabbar`(sticky)는 그대로입니다.
+       기존 `absolute` 자손들도 영향이 없습니다 — 전수 확인 결과 전부 이미 `relative` 부모나
+       `fixed` 오버레이 안에 있어, 이 요소를 기준으로 삼는 자손은 스킵 링크 하나뿐입니다. */
+    position: relative;
   }
 
   .chim-screen--fill {
     height: 100dvh;
     min-height: 0;
     overflow: hidden;
+  }
+
+  /* 세션처럼 본문만 스크롤하는 화면의 **스크롤러**입니다(`PageShell`이 `fill`일 때 `main`에
+     `overflow-y-auto`를 겁니다). 위·아래 양쪽에 고정 바가 있는 유일한 화면이라, 위 html과 같은
+     이유로 여기에도 `scroll-padding`을 둡니다 — 위는 세션 헤더(sticky), 아래는 입력 도크(sticky).
+     Shift+Tab으로 엔딩 패널을 거슬러 올라갈 때 초점이 헤더 밑에 깔리던 자리입니다
+     (WCAG 2.2 SC 2.4.11 · 7차 페르소나 UI/UX med).
+     두 값 다 화면이 실측해 적습니다(`TrainSession`) — 헤더는 부제 줄바꿈과 글자 크기 3단으로,
+     도크는 보기 개수와 앵커 유무로 높이가 바뀌므로 계산으로는 알 수 없습니다.
+     선언이 없는 화면에서는 폴백 0px이라 아무 일도 하지 않습니다. */
+  .chim-screen--fill main {
+    scroll-padding-top: var(--session-head-h, 0px);
+    scroll-padding-bottom: var(--chim-dock-h, 0px);
   }
 
   /* 화면 좌우 여백 — 시안 20px. 전 뷰포트 한 값입니다(프레임이 이미 430px이라 읽기 폭이 따로 없습니다). */

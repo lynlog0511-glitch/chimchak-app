@@ -1,5 +1,5 @@
 import type { RecordDraft } from "@/types";
-import { cx } from "@/components";
+import { MASK_CHIP_CLASS, cx } from "@/components";
 import { RECORD_SLOT_LABELS, RECORD_SLOT_QUESTIONS, type RecordSlot } from "@/engine/record";
 
 /** 급여제공기록지 5요소의 화면 순서 (설계서 CL-01·CL-03) */
@@ -22,6 +22,7 @@ const TOKEN_SPLIT = /(\[(?:대상자|번호|기관|주소|생년)\])/g;
 
 /**
  * 가명처리 토큰을 시안 6e의 **인라인 칩**(brand-tint 면 · r6 · 700)으로 보여 줍니다.
+ * 규격은 `components/maskChip.ts`의 `MASK_CHIP_CLASS` 한 곳에서 옵니다(2026-08-27).
  *
  * 대괄호는 화면에서만 벗깁니다 — 저장되는 문자열은 `[대상자]` 그대로입니다.
  *
@@ -32,10 +33,7 @@ export function TokenText({ text }: { text: string }) {
     <>
       {text.split(TOKEN_SPLIT).map((part, index) =>
         TOKEN_ONE.test(part) ? (
-          <strong
-            key={index}
-            className="mx-[1px] rounded-[6px] bg-brand-tint px-[7px] py-[1px] font-bold text-brand-on-tint"
-          >
+          <strong key={index} className={MASK_CHIP_CLASS}>
             {part.slice(1, -1)}
           </strong>
         ) : (

@@ -15,6 +15,7 @@ import {
 import { subscribeSettings } from "@/lib/settings";
 import { getStageMode, subscribeStageMode } from "@/lib/stageMode";
 import { isRecognitionSupported, primeVoices, speak, stopSpeaking } from "@/lib/speech";
+import { useVoicePresence } from "@/app/emergency/_components/useProtocolPlayback";
 import { useWakeLock } from "@/lib/wakeLock";
 import {
   clearProgress,
@@ -219,6 +220,18 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
 
   const [ttsOn, setTtsOn] = useState(true);
   /**
+   * 「소리가 실제로 나는가」 — 정의는 응급 두 화면과 **같은 한 벌**에서 옵니다
+   * (`useVoicePresence`). 이 화면이 쓰는 값은 `spokenAloud` 하나입니다.
+   *
+   * 예전에는 이 화면만 사용자 스위치(`ttsOn`) 그 자체를 리전 게이트로 넘겼습니다. 그런데 이
+   * 세션에는 자동재생 가드가 아예 없었고 `ttsOn`은 지원·차단 판정 없이 `useState(true)`로
+   * 시작했으므로, 「소리가 난다」를 세 자리가 세 가지로 세고 있었습니다 — 하필 이 화면의 대사는
+   * **변주된 문장**이라 동봉 음성 매니페스트에 없고, `speechSynthesis`가 없는 기기에서는
+   * `speak()`가 소리 없이 즉시 끝납니다(`lib/speech.ts`). 그 순간 로그는 `aria-live="off"`라
+   * 앱 목소리도 리더 목소리도 없는 구간이 생겼습니다(7차 페르소나 UI/UX P0).
+   */
+  const { spokenAloud } = useVoicePresence(ttsOn);
+  /**
    * 이 세션 화면이 **사용자가 버튼을 눌러** 열렸는지 (「시작하기」·「이어서 하기」).
    *
    * 브리핑에서 그 버튼을 누르면 `BriefingPanel`이 통째로 언마운트되므로 눌린 버튼이 사라지고
@@ -324,14 +337,22 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   const anchorShownRef = useRef(false);
 
   useEffect(() => {
+    const root = document.documentElement;
     if (!dockNode) {
       setDockHeight(0);
       setDockLimit(0);
+      /* 도크가 없는 구간(브리핑·엔딩)에서는 변수도 거둡니다 — 남겨 두면 스크롤러가 있지도 않은
+         도크만큼 아래 여백을 잡습니다. */
+      root.style.removeProperty("--chim-dock-h");
       return undefined;
     }
     const measure = () => {
       const height = Math.round(dockNode.getBoundingClientRect().height);
       setDockHeight(height);
+      /* 실측 높이를 스크롤러도 보게 합니다 — `.chim-screen--fill main`의 `scroll-padding-bottom`이
+         이 값을 읽어, Tab으로 옮긴 초점이 입력 도크 밑으로 들어가지 않습니다
+         (WCAG 2.2 SC 2.4.11). 스크롤러가 `main`이므로 변수는 그보다 위(html)에 있어야 합니다. */
+      root.style.setProperty("--chim-dock-h", `${height}px`);
       if (anchorShownRef.current) return;
       /* 도크는 CSS로도 45dvh를 넘지 않지만, 관찰자 쪽 상한을 한 번 더 걸어 둡니다 —
          이 값이 커질수록 「가려졌다」고 보는 띠가 넓어집니다. */
@@ -345,6 +366,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     return () => {
       observer?.disconnect();
       window.removeEventListener("resize", measure);
+      root.style.removeProperty("--chim-dock-h");
     };
   }, [dockNode]);
 
@@ -368,8 +390,12 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
    * 담기는 값은 **도킹 기준선 + 실측 높이**입니다. 헤더가 `top-[var(--chim-safe-t)]`에 붙게 된
    * 뒤로는 높이만 담으면 노치 기기에서 그 기준선만큼 셋 다 어긋납니다(119 바가 헤더 밑단을
    * 덮고, 대사가 헤더에 깔립니다). 노치가 없는 기기에서는 기준선이 0이라 예전 값 그대로입니다.
+   *
+   * 2026-08-27: 적는 자리를 세션 상자에서 **html**로 옮겼습니다. 네 번째 소비자가 생겼는데
+   * 그것이 `.chim-screen--fill main`의 `scroll-padding-top`이고, 그 `main`은 세션 상자의
+   * **부모**라 상자에 적은 변수를 볼 수 없기 때문입니다(사용자 지정 속성은 아래로만 상속됩니다).
+   * 세션을 벗어나면 아래 정리에서 거둡니다 — 탭바가 `--chim-tabbar-h`에 쓰는 규율과 같습니다.
    */
-  const sessionBoxRef = useRef<HTMLDivElement | null>(null);
   const headBoxRef = useRef<HTMLDivElement | null>(null);
   /* 마운트 시점에는 브리핑 화면이라 두 ref가 비어 있습니다 — []로 걸면 영영 실행되지 않습니다.
      세션 화면이 실제로 렌더된 뒤(atBriefing false) 다시 시도하도록 화면 상태를 의존성에 둡니다. */
@@ -394,29 +420,50 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
    * 반환. 결과는 세션 내내 빈 상자이고, 프로덕션에서만 도는 코드는 다음 사람이 죽은 줄로 읽고
    * 지우기 좋습니다(페르소나 FE low). 안으로 옮기면 dev·prod가 같은 결과를 냅니다 —
    * 실제로 발화한 프레임만 표식을 남기고, 취소된 프레임은 아무것도 남기지 않습니다.
+   *
+   * ── 채우는 자리와 **비우는 자리**가 한 곳입니다 (2026-08-27) ──
+   * 예전에는 채우기만 하고 비우지 않아, 소리를 끄신 뒤에도 이 줄이 「…읽어 드리고 있습니다.
+   * 화면 위 「소리 끄기」를 누르시면…」으로 남았습니다. 그 순간 헤더 버튼은 「소리 켜기」라,
+   * 순서대로 훑는 낭독에서 두 줄이 서로 다른 사실을 말했습니다(7차 페르소나 FE low).
+   *
+   * 조건도 `ttsOn`에서 `spokenAloud`로 옮겼습니다. 그래야 아래 대화 로그 리전과 **조건이 정확히
+   * 정반대**가 되어 「둘이 같은 순간에 말하지 않는다」가 참으로 남습니다 — `ttsOn`인데 기기가
+   * 자동재생을 막았거나 낭독을 못 하는 경우, 예전 조건에서는 이 줄이 「소리로 읽어 드리고
+   * 있습니다」라고 말하는 동안 로그도 `polite`로 함께 말했습니다.
    */
   useEffect(() => {
-    if (!inSessionView || !ttsOn || voiceNoticeSentRef.current) return undefined;
+    if (!inSessionView) return undefined;
+    if (!spokenAloud) {
+      /* 소리가 나지 않게 된 순간 이 줄은 사실이 아닙니다 — 비우고, 다시 소리가 나면 한 번 더
+         안내하도록 표식도 풉니다(사용자가 상태를 바꾼 자리라 「턴마다 되풀이」가 아닙니다). */
+      setVoiceNotice("");
+      voiceNoticeSentRef.current = false;
+      return undefined;
+    }
+    if (voiceNoticeSentRef.current) return undefined;
     const frame = window.requestAnimationFrame(() => {
       voiceNoticeSentRef.current = true;
       setVoiceNotice(VOICE_ON_NOTICE);
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [inSessionView, ttsOn]);
+  }, [inSessionView, spokenAloud]);
 
   useEffect(() => {
     if (!inSessionView) return undefined;
     const head = headBoxRef.current;
-    const box = sessionBoxRef.current;
-    if (!head || !box || typeof ResizeObserver === "undefined") return undefined;
+    const root = document.documentElement;
+    if (!head || typeof ResizeObserver === "undefined") return undefined;
     const apply = () => {
       const stickyTop = parseFloat(window.getComputedStyle(head).top) || 0;
-      box.style.setProperty("--session-head-h", `${stickyTop + head.offsetHeight}px`);
+      root.style.setProperty("--session-head-h", `${stickyTop + head.offsetHeight}px`);
     };
     apply();
     const ro = new ResizeObserver(apply);
     ro.observe(head);
-    return () => ro.disconnect();
+    return () => {
+      ro.disconnect();
+      root.style.removeProperty("--session-head-h");
+    };
   }, [inSessionView]);
 
   const turn = currentTurn(scenario, state.session);
@@ -586,6 +633,14 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     };
   }, [state.log, ttsOn, pendingLineKey]);
 
+  /**
+   * 소리 스위치 — 낭독 안내 줄(sr-only)은 **여기서 손대지 않습니다.**
+   *
+   * 그 줄의 주인은 위 `spokenAloud` 효과 하나입니다. 스위치를 끄면 `spokenAloud`가 거짓이 되어
+   * 그 효과가 줄을 비우므로, 안내와 버튼 라벨(「소리 끄기」/「소리 켜기」)이 저절로 같은 사실을
+   * 말합니다. 여기서도 비우면 같은 값을 두 곳이 쓰게 되고, 그것이 이 라운드에 고친 종류의
+   * 어긋남을 다시 만드는 길입니다.
+   */
   const toggleTts = useCallback(() => {
     setTtsOn((value) => {
       if (value) {
@@ -847,7 +902,6 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
           (2026-08-25: md↑ 뷰포트 고정 2단(시안 7d — 대화 + 우측 레일)을 걷어냈습니다.
            앱 프레임이 어느 폭에서도 430px이라 둘째 칸이 설 자리가 없습니다.) */}
       <div
-        ref={sessionBoxRef}
         aria-hidden={behindModal || undefined}
         className={cx(
           "flex min-h-[calc(100dvh_-_var(--chim-safe-t))] flex-col",
@@ -921,9 +975,10 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
         </div>
 
         {/* 낭독 사용자를 위한 한 줄 — 화면에는 나오지 않습니다(`VOICE_ON_NOTICE` 주석 참고).
-            **소리가 켜져 있을 때만** 말하는 리전이라, 소리를 끄셨을 때만 말하는 대화 로그
-            리전(`DialogueLog`의 `aria-live`)과 같은 순간에 겹치지 않습니다 — 이 화면의
-            「동시에 발화 가능한 리전 수」는 이 줄이 생겨도 늘지 않습니다.
+            **소리가 실제로 날 때만** 말하는 리전이라, 소리가 나지 않을 때만 말하는 대화 로그
+            리전(`DialogueLog`의 `aria-live`)과 같은 순간에 겹치지 않습니다 — 두 자리가 `spokenAloud`
+            **한 값**의 참·거짓으로 갈리므로 이 「겹치지 않는다」는 주장이 사실입니다(2026-08-27).
+            이 화면의 「동시에 발화 가능한 리전 수」는 이 줄이 생겨도 늘지 않습니다.
 
             상자와 내용이 함께 생기지 않게 합니다 — 알림과 함께 리전이 생기면 읽지 않는 리더가
             있어서, 빈 상자가 먼저 서 있어야 다음 문장이 「바뀐 줄」로 읽힙니다. 그래서 여기에는
@@ -964,7 +1019,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
             gaugeLabel={scenario.gauge.label}
             emotion={emotion}
             speaking={speakingKey.length > 0}
-            voiceOn={ttsOn}
+            spokenAloud={spokenAloud}
             bottomInset={dockHeight}
             tailInset={dockLimit}
             autoScroll={!ended}

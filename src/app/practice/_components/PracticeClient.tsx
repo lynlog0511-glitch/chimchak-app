@@ -28,6 +28,7 @@ import {
   subscribeSettings,
 } from "@/lib/settings";
 import { speak, stopSpeaking } from "@/lib/speech";
+import { useVoicePresence } from "@/app/emergency/_components/useProtocolPlayback";
 import {
   GATE_ENABLE_CTA,
   GATE_ENABLE_HINT,
@@ -143,6 +144,16 @@ export function PracticeClient() {
   const [summary, setSummary] = useState<FreeSummaryOutcome | null>(null);
   const [practiceCount, setPracticeCount] = useState(0);
   const [ttsOn, setTtsOn] = useState(true);
+  /**
+   * 「소리가 실제로 나는가」 — 훈련 세션·응급 두 화면과 **같은 한 벌**에서 옵니다.
+   *
+   * 이 값이 필요한 이유는 아래 대화 로그의 리전 하나입니다. 자유 연습은 훈련 세션의 형제
+   * 화면인데 대화 컨테이너에 `role`도 `aria-live`도 없어, 소리를 끄신 낭독 사용자에게는 방금
+   * 도착한 어르신 대사가 **어떤 경로로도 닿지 않았습니다**(7차 페르소나 UI/UX P0).
+   * 하필 이 화면의 응답은 비동기로 늦게 도착해, 눈으로 보시는 분에게는 말풍선이 붙는 것이
+   * 신호지만 그 밖에는 화면이 조용한 채로 바뀝니다.
+   */
+  const { spokenAloud } = useVoicePresence(ttsOn);
   const [speaking, setSpeaking] = useState(false);
 
   /** 말풍선 열쇠 — 화면 안에서만 쓰는 번호입니다(저장되지 않습니다). */
@@ -396,6 +407,7 @@ export function PracticeClient() {
           items={items}
           pending={busy}
           speaking={speaking}
+          spokenAloud={spokenAloud}
         />
         <FreeComposer
           value={draft}
@@ -420,10 +432,14 @@ export function PracticeClient() {
   return (
     <div className="mt-4">
       <SeedForm busy={busy} onStart={start} />
+      {/* 리전은 **늘 그려 둡니다** — 알림과 함께 리전이 생기면 읽지 않는 리더가 있습니다.
+          말은 처음부터 비어 있는 이 sr-only 상자가 맡고, 보이는 상자는 화면 전용으로 둡니다
+          (`ProtocolAddressCard`가 쓰는 그 문법 · 7차 페르소나 UI/UX low). */}
+      <p role="status" className="sr-only">
+        {notice ?? ""}
+      </p>
       {notice && (
-        <p role="status" className="mt-3 text-[0.9375rem] leading-[1.6] text-warn-ink">
-          {notice}
-        </p>
+        <p className="mt-3 text-[0.9375rem] leading-[1.6] text-warn-ink">{notice}</p>
       )}
     </div>
   );

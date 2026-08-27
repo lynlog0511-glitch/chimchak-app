@@ -86,7 +86,7 @@ export function CountedFacts({ className }: CountedFactsProps) {
         ))}
       </dl>
 
-      <EyebrowLabel className="mt-4 text-brand-800">
+      <EyebrowLabel tone="brand" className="mt-4">
         지금 이 화면이 세는 값
       </EyebrowLabel>
       <dl className="chim-hairline mt-1 border-y border-line">

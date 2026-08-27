@@ -82,7 +82,13 @@ export function DemoSeedPanel() {
           시연용 예시 기록
         </h2>
 
-        <p aria-live="polite" className="mt-[5px] text-[0.7813rem] leading-[1.6] text-ink-soft">
+        {/* 이 줄은 **상태 서술**이고 리전이 아닙니다 (2026-08-27).
+            예전에는 여기도 `aria-live="polite"`였는데, 심기·지우기를 누르면 이 줄과 아래
+            `role="status"` 안내가 **같은 순간에** 함께 바뀌어 두 리전이 겹쳤습니다. 말로 전할 것은
+            아래 한 줄이 이미 다 담고 있으므로(「예시 기록을 심었습니다…」·「예시 기록을 지웠습니다…」)
+            그쪽에 맡기고, 이 줄은 눈으로 확인하는 자리로 둡니다 — 「세는 단위는 동시에 발화할 수
+            있는 리전의 수」(`DialogueLog`의 정의 · 7차 페르소나 UI/UX low). */}
+        <p className="mt-[5px] text-[0.7813rem] leading-[1.6] text-ink-soft">
           {!mounted
             ? "이 기기의 상태를 확인하는 중입니다…"
             : seeded

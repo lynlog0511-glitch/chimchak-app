@@ -82,8 +82,18 @@ export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: Dr
         <SourceChip docId="DOC-NOTI-002" />
       </div>
 
+      {/* 리전은 **늘 그려 둡니다** — 알림과 함께 리전이 생기면 읽지 않는 리더가 있습니다.
+          그래서 말은 처음부터 비어 있는 이 sr-only 상자 하나가 맡고, 보이는 상자는 화면 전용으로
+          둡니다(`ProtocolAddressCard`·`ProtocolPlayer`가 쓰는 그 문법입니다).
+          5차에 파일·행까지 이름이 오른 조건부 리전 넷 중 하나였고, 6차가 새 자리 둘에서 이 규칙을
+          지키는 동안 이름을 댄 넷은 그대로였습니다(7차 페르소나 UI/UX low). */}
+      <p role="status" className="sr-only">
+        {missingCount > 0
+          ? `비어 있는 칸이 ${missingCount}곳 있습니다 — ${draft.missing.join(" · ")}. 아래에서 채워 주세요.`
+          : ""}
+      </p>
       {missingCount > 0 && (
-        <p role="status" className="mt-4 text-[0.8438rem] leading-[1.6] font-bold text-warn-ink">
+        <p className="mt-4 text-[0.8438rem] leading-[1.6] font-bold text-warn-ink">
           비어 있는 칸이 <span className="chim-num">{missingCount}</span>곳 있습니다 —{" "}
           {draft.missing.join(" · ")}. 아래에서 채워 주세요.
         </p>

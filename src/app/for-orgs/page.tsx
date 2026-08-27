@@ -7,6 +7,7 @@ import { SCENARIO_MATRIX } from "@/data/matrix";
 import { PROTOCOLS } from "@/data/protocols";
 import { SCENARIOS } from "@/data/scenarios";
 import { PILOT_SCOPE, VERIFICATION_LADDER } from "@/data/pilotResults";
+import { DocCloseButton } from "../_components/DocCloseButton";
 import { OrgLiveNumbers } from "./_components/OrgLiveNumbers";
 
 export const metadata: Metadata = {
@@ -88,13 +89,19 @@ export default function ForOrgsPage() {
         action={
           /* 48px은 높이만이 아니라 **폭**이기도 합니다 — `min-w`가 없던 동안 이 링크는
              39×48px이었습니다. 화면 우상단 모서리라 엄지가 닿기 가장 어려운 자리이고,
-             이 화면은 탭바가 없어 이 링크가 유일한 출구입니다(3차 페르소나 UI/UX low). */
-          <Link
-            href="/safety"
+             이 화면은 탭바가 없어 이 버튼이 유일한 출구입니다(3차 페르소나 UI/UX low).
+
+             「닫기」는 **왔던 곳으로** 돌아갑니다(2026-08-27). 6차가 만든 `DocCloseButton`이
+             /guide·/legal 둘에만 갔는데, 이 화면은 **이 앱에서 유입 경로가 가장 많은 문서**
+             입니다 — 홈·/guide·/safety·/history·이수 확인서·/console 여섯 곳에서 들어오는데
+             하드코딩된 `/safety`로 보내면 여섯 중 다섯은 가 본 적 없는 화면에 떨어졌습니다.
+             특히 이수 확인서에서 「기관 담당자용 안내 보기」로 들어오신 분은 인쇄하던 서류를
+             잃었습니다(7차 페르소나 UI/UX med). 한 앱 안에서 같은 낱말이 두 가지로 동작하던
+             자리이기도 합니다. 폴백은 지금까지의 목적지 그대로입니다. */
+          <DocCloseButton
+            fallbackHref="/safety"
             className="flex min-h-[48px] min-w-[48px] items-center justify-center rounded-field px-1 text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper-2"
-          >
-            닫기
-          </Link>
+          />
         }
       />
 

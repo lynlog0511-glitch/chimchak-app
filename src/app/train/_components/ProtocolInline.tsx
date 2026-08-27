@@ -17,12 +17,16 @@ import {
   nextStepPreview,
   type ReadingState,
 } from "@/app/emergency/_components/PlayerParts";
-import { ProtocolAddressCard } from "@/app/emergency/_components/ProtocolAddressCard";
 import {
-  useAutoplayGuard,
+  ProtocolAddressCard,
+  useSavedVisitAddress,
+} from "@/app/emergency/_components/ProtocolAddressCard";
+import {
+  liveRegionMode,
   useProtocolPlayback,
+  useVoicePresence,
 } from "@/app/emergency/_components/useProtocolPlayback";
-import { isSpeechPlaybackSupported, unlockAudio } from "@/lib/speech";
+import { unlockAudio } from "@/lib/speech";
 import type { EmergencyProtocol } from "@/types";
 import { PROTOCOL_HANDOFF_BODY, PROTOCOL_HANDOFF_TITLE } from "./constants";
 
@@ -132,18 +136,17 @@ export interface ProtocolInlineProps {
  */
 export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolInlineProps) {
   const [started, setStarted] = useState(false);
-  const [ttsSupported, setTtsSupported] = useState(true);
-  /** 자동재생 정책은 단독 화면(`/emergency/[id]`)과 **같은 가드**에서 옵니다. */
-  const { soundBlocked, unblock } = useAutoplayGuard();
+  /* 「소리가 난다」의 정의는 단독 화면(`/emergency/[id]`)과 **같은 한 벌**에서 옵니다.
+     `voiceActive`는 「시도해도 되는가」(차단된 동안에는 시도하지 않습니다 — 소리를 내지 못하는
+     낭독을 기다리다 자막 진행까지 멈추면 안내 자체가 죽습니다), `spokenAloud`는 「실제로 소리가
+     나는가」이고 아래 리전 게이트가 그 값을 봅니다. */
+  const { soundBlocked, ttsSupported, voiceActive, spokenAloud, unblock } = useVoicePresence(ttsOn);
 
-  useEffect(() => {
-    setTtsSupported(isSpeechPlaybackSupported());
-  }, []);
+  /* 주소 단계의 화면 보조 문구를 세울지 가리는 값 — 카드와 **같은 한 벌**로 읽습니다.
+     (단독 재생 화면이 6차에 세운 조건과 같은 조건입니다. 자세한 사유는 아래 그 자리 주석.) */
+  const { saved: addressSaved } = useSavedVisitAddress();
 
   const steps = protocol.steps;
-  /* 차단된 동안에는 낭독을 시도하지 않습니다 — 소리를 내지 못하는 낭독을 기다리다
-     자막 진행까지 멈추면 안내 자체가 죽습니다. 자막은 같은 속도로 계속 넘어갑니다. */
-  const voiceActive = ttsOn && !soundBlocked;
   const playback = useProtocolPlayback({ steps, voiceOn: voiceActive, enabled: started });
   const { index, step, total, silent, isFirst, isLast, playing } = playback;
   const preview = nextStepPreview(steps, index);
@@ -151,7 +154,7 @@ export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolI
   if (!started) {
     return (
       <div className={cx("animate-fade-up rounded-card bg-danger-soft p-4", className)}>
-        <EyebrowLabel className="text-danger-ink">
+        <EyebrowLabel tone="danger">
           전환
         </EyebrowLabel>
         <h2 className="mt-1 text-[1.1875rem] leading-[1.3] font-extrabold text-danger-ink">
@@ -183,12 +186,13 @@ export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolI
     );
   }
 
-  /* 상태줄은 지금 실제로 일어나는 일만 말합니다 — 소리가 없는데 「읽어 주는 중」이라고 하지 않습니다. */
+  /* 상태줄은 지금 실제로 일어나는 일만 말합니다 — 소리가 없는데 「읽어 주는 중」이라고 하지
+     않습니다. 아래 리전 게이트와 **같은 값**을 봅니다. */
   const readingState: ReadingState = silent
     ? "done"
     : !playing
       ? "paused"
-      : voiceActive && ttsSupported
+      : spokenAloud
         ? "reading"
         : "caption";
 
@@ -205,7 +209,7 @@ export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolI
         style={{ top: "var(--session-head-h, 0px)" }}
       >
         <div className="flex items-center gap-3">
-          <EyebrowLabel className="flex-none text-danger-ink">
+          <EyebrowLabel tone="danger" className="flex-none">
             실전 응급 · 생성 0건
           </EyebrowLabel>
           {/* 제목이 길어도 「N / M」은 잘리지 않습니다 — 잘리는 쪽은 언제나 제목입니다. */}
@@ -248,21 +252,32 @@ export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolI
         {/* 이 구간의 **유일한** 라이브 리전입니다 — 단계가 넘어갈 때마다 바뀌는 자막이라
             여기 하나만 남기고, 119 확인 안내는 초점 이동과 `aria-describedby`가 맡습니다. */}
         <p
-          /* 소리를 켜 두신 동안에는 이 리전을 읽지 않습니다 — 앱이 **같은 문장을 소리로 읽는**
-             자리이기 때문입니다(`voiceActive`가 곧 `useProtocolPlayback`에 넘어가는 값입니다).
-             앱 목소리와 리더 목소리가 같은 문장을 겹쳐 말하면 iOS에서는 둘이 같은 오디오 채널을
-             다투어 어느 쪽도 온전히 안 들립니다. 소리를 끄셨거나 기기가 자동재생을 막았을
-             때에만 자막이 유일한 경로가 되므로, 그때만 `polite`로 말합니다.
-             단독 화면(`ProtocolPlayer`)과 대화 로그(`DialogueLog`)가 같은 판단을 합니다 —
-             세 자리가 같은 규칙을 쓰도록 5차에 함께 맞췄습니다(페르소나 UI/UX med). */
-          aria-live={voiceActive ? "off" : "polite"}
+          /* 소리가 **실제로 나는 동안**에는 이 리전을 읽지 않습니다 — 앱이 같은 문장을 소리로
+             읽는 자리이기 때문입니다. 앱 목소리와 리더 목소리가 같은 문장을 겹쳐 말하면 iOS에서는
+             둘이 같은 오디오 채널을 다투어 어느 쪽도 온전히 안 들립니다. 소리를 끄셨거나 기기가
+             자동재생을 막았거나 낭독을 지원하지 않으면 자막이 유일한 경로가 되므로, 그때만
+             `polite`로 말합니다.
+             값은 `useVoicePresence`의 `spokenAloud` 하나이고, 단독 화면(`ProtocolPlayer`)과
+             대화 로그(`DialogueLog`)가 **같은 값**을 씁니다(2026-08-27 · 7차 페르소나 UI/UX P0 —
+             그 전까지 세 자리는 두 값으로 갈려 있었고 셋 다 `ttsSupported`를 빠뜨렸습니다). */
+          aria-live={liveRegionMode(spokenAloud)}
           className="mt-3 text-[1.8125rem] leading-[1.45] font-extrabold tracking-[-0.015em] text-ink"
         >
           {silent ? "안내를 마쳤습니다. 지금은 말을 걸지 않겠습니다." : step?.voice}
         </p>
 
-        {/* 화면 보조 문구 — 데이터의 `screen`은 사용자가 그대로 읽는 문장입니다(레이아웃 지시문 아님). */}
-        {step?.screen && (
+        {/* 화면 보조 문구 — 데이터의 `screen`은 사용자가 그대로 읽는 문장입니다(레이아웃 지시문 아님).
+
+            주소 단계에서만 조건이 하나 붙습니다. 그 단계의 `screen`은 「적어 두신 방문지 주소가
+            **있으면** 소리 내어 그대로 읽어 주세요」인데, 적어 두지 않으신 기기에서는 바로 아래
+            카드가 「응급 안내 첫 화면에서 미리 적어 두실 수 있어요」를 세웁니다 — 29px 자막 아래에
+            죽은 조건절과 또 하나의 조건절이 나란히 섭니다.
+            6차가 단독 재생 화면(`ProtocolPlayer`)에서 정확히 이 자리를 닫았는데 여기는 조건이 붙지
+            않아, **훈련에서 본 화면이 실전에서 본 화면과 달랐습니다**(7차 페르소나 현직 low).
+            훈련에서 주소를 적어 두신 분이 거의 없으므로 대부분의 회차가 그 상태였습니다.
+            데이터(`protocols.ts`)는 건드리지 않습니다 — 감수를 지난 문구 파일이라 조건은 화면이
+            답니다. 두 화면이 같은 조건을 쓰므로 다음에 문구를 손볼 때 또 갈리지 않습니다. */}
+        {step?.screen && (!step.address || addressSaved.length > 0) && (
           <p className="mt-3 text-[0.9375rem] leading-[1.6] text-ink-soft">{step.screen}</p>
         )}
 

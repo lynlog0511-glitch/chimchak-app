@@ -23,7 +23,7 @@ import { PlanTag } from "./_components/PlanTag";
 import { ReviewLedger } from "./_components/ReviewLedger";
 import { RubricAllList } from "./_components/RubricAllList";
 import { RuleEngineProof } from "./_components/RuleEngineProof";
-import { SafetyToc, type TocItem } from "./_components/SafetyToc";
+import { SafetyToc, TOC_SECTION_SCROLL_MT, type TocItem } from "./_components/SafetyToc";
 import { TierShareDiagram } from "./_components/TierShareDiagram";
 import { VerificationLadder } from "./_components/VerificationLadder";
 
@@ -118,15 +118,12 @@ function Section({
 }) {
   return (
     /* 목차 칩이 위에 붙어 있으므로, 앵커로 뛰었을 때 제목이 칩 아래에 놓이도록 여백을 둡니다.
-       값은 바의 도킹 기준선과 **같은 변수로 합산**합니다 — `SafetyToc`이
-       `sticky top-[var(--chim-safe-t)]`이라 바가 차지하는 구간이 [safe-t, safe-t+65]인데,
-       상수 68px만 두면 노치 기기에서 절이 (safe-t − 3)px만큼 바 밑에 깔립니다
-       (5차 페르소나 UI/UX med). 계산 근거는 /legal의 같은 자리에 적어 두었습니다 —
-       두 화면이 같은 컴포넌트를 쓰므로 값도 함께 옮기십시오. */
-    <section
-      id={id}
-      className="scroll-mt-[calc(var(--chim-safe-t)_+_68px)] border-t border-line pt-8"
-    >
+       2026-08-27: 그 값이 여기와 /legal 두 파일의 리터럴 68이었는데, 이제 바 자신이 자기 높이를
+       실측해 `--chim-toc-h`에 적고 두 화면은 `TOC_SECTION_SCROLL_MT` 한 낱말만 씁니다 —
+       숫자를 아는 곳이 하나가 됐습니다(7차 페르소나 FE low). 계산 근거는 /legal의 같은 자리에
+       그대로 있습니다.
+       `tabIndex={-1}`은 목차 칩으로 뛴 목적지가 **초점을 받게** 합니다(사유는 /legal의 같은 줄). */
+    <section id={id} tabIndex={-1} className={cx(TOC_SECTION_SCROLL_MT, "border-t border-line pt-8")}>
       <MobileFold
         id={id}
         alwaysOpen={alwaysOpen}

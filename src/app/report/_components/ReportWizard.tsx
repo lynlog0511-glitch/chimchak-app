@@ -431,7 +431,7 @@ export function ReportWizard() {
           >
             {saved && !saved.persisted ? SAVE_FAILED_TITLE : "확정했습니다"}
           </h2>
-          <EyebrowLabel className="mt-[3px] text-ok-ink">
+          <EyebrowLabel tone="ok" className="mt-[3px]">
             {saved && !saved.persisted ? "저장되지 않음" : "이 기기에만 저장"}
           </EyebrowLabel>
           {saved && !saved.persisted && (

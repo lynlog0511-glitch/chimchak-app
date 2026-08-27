@@ -44,7 +44,10 @@ export { MarkerSquare } from "./MarkerSquare";
 export type { MarkerSquareProps, MarkerTone } from "./MarkerSquare";
 
 export { EyebrowLabel } from "./EyebrowLabel";
-export type { EyebrowLabelProps } from "./EyebrowLabel";
+export type { EyebrowLabelProps, EyebrowTone } from "./EyebrowLabel";
+
+/** 가림 인라인 칩 규격 한 벌 — /report와 /history가 같은 값을 봅니다. */
+export { MASK_CHIP_CLASS } from "./maskChip";
 
 export { MicButton } from "./MicButton";
 export type { MicButtonProps, MicButtonSize } from "./MicButton";

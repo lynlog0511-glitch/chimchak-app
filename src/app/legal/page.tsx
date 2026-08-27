@@ -14,7 +14,7 @@ import { PILOT_PREREGISTERED, PILOT_SCOPE } from "@/data/pilotResults";
 import { ONLINE_MODE_LABEL } from "@/lib/settings";
 import { MAX_ITEMS } from "@/lib/storage";
 import { DocCloseButton } from "../_components/DocCloseButton";
-import { SafetyToc, type TocItem } from "../safety/_components/SafetyToc";
+import { SafetyToc, TOC_SECTION_SCROLL_MT, type TocItem } from "../safety/_components/SafetyToc";
 
 export const metadata: Metadata = {
   title: "약관·개인정보",
@@ -111,14 +111,22 @@ function Doc({
        `var(--chim-safe-t)`이기 때문입니다. 그래서 상수 68px은 노치 없는 기기·데스크톱에서만
        맞고, 이 앱이 주 배포 형태라고 적어 둔 노치 iOS PWA(세로 47~59px)에서는 절이
        (safe-t − 3)px만큼 바 밑으로 들어갑니다 — 절 번호가 통째로 가려집니다
-       (5차 페르소나 UI/UX med). 값을 바의 기준선과 **같은 변수로 합산**해 그 자리를 닫습니다:
-       기준선(safe-t) + 바 높이(65) + 여유(3). 노치가 없으면 변수가 0px이라 예전 값 그대로입니다.
-       같은 컴포넌트를 쓰는 /safety가 같은 계산으로 같은 값을 씁니다(safety/page.tsx) —
-       목차를 세 번째 화면에 붙이는 날에도 이 값을 함께 옮기십시오. */
-    <section
-      id={id}
-      className="scroll-mt-[calc(var(--chim-safe-t)_+_68px)] border-t border-line pt-7"
-    >
+       (5차 페르소나 UI/UX med). 값을 바의 기준선과 **같은 변수로 합산**해 그 자리를 닫았습니다:
+       기준선(safe-t) + 바 높이 + 여유(3).
+
+       2026-08-27: 그 값이 여기와 /safety 두 파일의 **리터럴 68**이었고, 두 주석이 나란히
+       「세 번째 화면에 붙이는 날 함께 옮기십시오」라고 사람에게 부탁하고 있었습니다
+       (7차 페르소나 FE low). 이제 숫자를 아는 곳은 바 자신입니다 —
+       `SafetyToc`이 자기 높이를 실측해 `--chim-toc-h`에 적고, 여기는 그 바가 export하는
+       `TOC_SECTION_SCROLL_MT` 한 낱말만 씁니다.
+
+       `tabIndex={-1}`은 **목적지가 초점을 받게** 합니다. `href="#…"`는 스크롤과 순차 초점
+       시작점만 옮기고 초점 자체는 옮기지 않으며, Safari는 이 자리에서 시작점도 옮기지 않습니다 —
+       이 앱의 주 배포 형태가 iOS PWA입니다(사유 전문은 `PageShell`의 `#chim-content`).
+       5차에 그 한 곳에만 갔던 처방이라, 정작 이 앱이 프래그먼트 링크를 가장 많이 쓰는 자리
+       (목차 칩 /legal 12 · /safety 15)는 칩을 눌러도 초점이 칩에 남아 있었습니다
+       (7차 페르소나 UI/UX med). `-1`이라 Tab 순서에는 끼지 않습니다. */
+    <section id={id} tabIndex={-1} className={`${TOC_SECTION_SCROLL_MT} border-t border-line pt-7`}>
       <EyebrowLabel className="chim-num">
         {num}
       </EyebrowLabel>
@@ -205,7 +213,7 @@ const STORED_ITEMS: readonly { t: string; d: string }[] = [
        (지금 적는 글 · 맡아 둔 지난 글). 성격이 같은 한 가지 글이라 목록에서는 한 줄로 적되,
        두 칸이라는 사실과 지워지는 때가 서로 다르다는 것은 문장 안에 적어 둡니다. */
     t: "적으시던 보고 (임시)",
-    d: "확정하기 전에 적거나 말씀하신 보고 원문을, 실수로 화면을 벗어나셨을 때 되찾아 드리려고 브라우저의 임시 보관함(세션 저장소)에 둡니다. 칸은 둘입니다 — 지금 적고 계신 글 한 칸, 화면을 벗어나실 때 맡아 둔 지난 글 한 칸입니다(나눠 두어야 한쪽이 다른 쪽을 덮지 않습니다). 확정하시면 두 칸이 함께 즉시 지워지고, 「새로 적기」를 고르시면 맡아 둔 글이 지워집니다. 탭을 닫으셔도 사라집니다. 침착 서버로 올라가는 경로는 없습니다.",
+    d: "확정하기 전에 적거나 말씀하신 보고 원문을, 실수로 화면을 벗어나셨을 때 되찾아 드리려고 브라우저의 임시 보관함(세션 저장소)에 둡니다. 칸은 둘입니다 — 지금 적고 계신 글 한 칸, 화면을 벗어나실 때 맡아 둔 지난 글 한 칸입니다(나눠 두어야 한쪽이 다른 쪽을 덮지 않습니다). 확정하시면 두 칸이 함께 즉시 지워지고, 「새로 적기」를 고르시면 맡아 둔 글이 지워집니다. 이 칸은 탭이 살아 있는 동안만 남고 탭을 닫으면 사라집니다 — 공용 기기를 다른 분께 넘기실 때는 앱을 완전히 종료하시거나, 다음 분이 「적으시던 보고가 있습니다」 카드에서 「새로 적기」를 눌러 주세요(아래 「지우는 방법」의 「이 기기의 기록 지우기」는 이 칸에 닿지 않습니다). 침착 서버로 올라가는 경로는 없습니다.",
   },
   {
     t: "이어서 하기",
@@ -331,6 +339,7 @@ export default function LegalPage() {
               </>,
               "이어서 하기 표시·설정값·방문지 주소·자유 연습 횟수·주간 목표·안내 표시·체험용 예시 표시·시연 표시는 그 버튼으로 지워지지 않습니다. 전부 지우시려면 브라우저의 사이트 데이터 삭제를 쓰십시오.",
               "방문지 주소는 응급 안내 화면에서 따로 고치거나 지웁니다.",
+              "확정 전 보고 원문(임시 보관)도 그 버튼으로 지워지지 않습니다 — 탭이 살아 있는 동안만 남는 칸이라, 공용 기기를 넘기실 때는 앱을 완전히 종료하시거나 다음 분이 「새로 적기」를 누르시면 됩니다.",
               "지운 기록은 되살릴 수 없습니다. 남기실 이수 사실이 있으면 먼저 이수 확인서를 인쇄하거나 파일로 내려받아 두십시오.",
             ]}
           />

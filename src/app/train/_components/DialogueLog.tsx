@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, type RefObject } from "react";
 import { WaveBars } from "@/components";
 import { cx } from "@/components/utils";
+import { liveRegionMode } from "@/app/emergency/_components/useProtocolPlayback";
 import { VARIED_LINE_LABEL, VARIED_LINE_NOTE } from "@/lib/onlineVary";
 import {
   EMOTION_RING,
@@ -36,14 +37,20 @@ export interface DialogueLogProps {
   /** 마지막 대사를 지금 읽어 주고 있는지 (TTS) */
   speaking?: boolean;
   /**
-   * 소리가 켜져 있는지 — 로그 리전을 읽어 줄지 말지를 가릅니다.
+   * **소리가 실제로 나는지** — 로그 리전을 읽어 줄지 말지를 가릅니다.
    *
    * 이 앱은 같은 대사를 **소리로도** 읽습니다. `role="log"`에 `aria-live="polite"`까지 걸면
    * 스크린리더를 쓰시는 분은 어르신 대사 한 줄을 두 번 듣습니다 — 앱이 한 번, 스크린리더가
    * 한 번. 게다가 한 턴에 「말하는 중」 빈 말풍선 → 실제 대사 → 코칭 카드로 리전이 세 번
    * 발화합니다(FE 검증). 소리와 낭독 중 **하나만** 말하게 합니다.
+   *
+   * 2026-08-27에 이름과 값을 함께 고쳤습니다. 예전 이름은 `voiceOn`, 값은 **사용자 스위치 그
+   * 자체**였습니다 — 스위치가 켜져 있어도 기기가 자동재생을 막았거나 낭독을 지원하지 않으면
+   * 소리는 나지 않는데, 그때도 이 리전은 입을 닫았습니다(앱 목소리도 리더 목소리도 없는 구간).
+   * 지금은 응급 두 화면과 **같은 값**입니다 —
+   * `useVoicePresence`의 `spokenAloud`(사유 전문은 그 훅의 주석 · 7차 페르소나 UI/UX P0).
    */
-  voiceOn?: boolean;
+  spokenAloud?: boolean;
   /**
    * 로그 바닥을 가리는 하단 도킹 높이(px).
    * 모바일에서는 컴포저가 화면 아래에 붙어 있으므로, 그 높이만큼 여백을 두고 스크롤합니다.
@@ -445,7 +452,7 @@ export function DialogueLog({
   gaugeLabel,
   emotion,
   speaking = false,
-  voiceOn = false,
+  spokenAloud = false,
   bottomInset = 0,
   tailInset = 0,
   autoScroll = true,
@@ -583,8 +590,8 @@ export function DialogueLog({
   return (
     <div
       role="log"
-      /* 소리를 켜 두신 동안에는 리전을 읽지 않습니다 — `aria-live="off"`로 내립니다.
-         소리를 끄시면 `aria-live="polite"`를 **명시**합니다.
+      /* 소리가 **실제로 나는 동안**에는 리전을 읽지 않습니다 — `aria-live="off"`로 내립니다.
+         소리가 나지 않으면 `aria-live="polite"`를 **명시**합니다.
 
          ## 「리전을 줄인다」의 정의 (2026-08-26에 다시 적습니다)
          한 라운드 동안 이 속성을 걷어 두었습니다 — `role="log"`에 `polite`가 함축이니 같은
@@ -600,14 +607,25 @@ export function DialogueLog({
          줄지 않고, 반대로 리전이 여럿이어도 **같은 순간에 말할 수 있는 것이 하나뿐이면**
          화면은 조용합니다.
 
+         ## 「소리가 난다」의 값은 하나입니다 (2026-08-27)
+         이 로그와 응급 자막 둘, 그리고 세션 헤더의 낭독 안내가 **같은 값**을 봅니다 —
+         `useVoicePresence`의 `spokenAloud`(= 스위치 && 자동재생 안 막힘 && 낭독 지원).
+         6차에는 세 곳에 「같은 판단을 한다」고 적혀 있었지만 실제로는 두 값(`voiceOn`/`voiceActive`)
+         으로 갈려 있었고, 셋 다 같은 파일이 다섯 줄 위에서 쓰는 `ttsSupported`를 빠뜨렸습니다
+         (7차 페르소나 UI/UX P0). 특히 이 로그의 대사는 **변주된 문장**이라 동봉 음성 매니페스트에
+         없고, `speechSynthesis`가 없는 기기에서는 `speak()`가 소리 없이 즉시 끝납니다 —
+         그 순간 이 리전이 `off`였습니다. 아래 목록의 「조건이 정반대라 겹치지 않는다」도
+         두 자리가 한 값의 참·거짓으로 갈리는 지금에야 참입니다.
+
          ## 이 화면의 리전 목록 (2026-08-26 다시 셈 — 전에는 셋만 적혀 있었습니다)
          정의를 세워 놓고 그 정의로 화면을 다시 세지 않아, 목록이 **실제보다 둘 적었습니다**.
          빠진 둘이 하필 정의가 겨냥한 종류였고, 그 목록이 다음 사람에게 「여기는 이미
          정리됐다」는 잘못된 근거가 됐습니다(5차 페르소나 UI/UX med). 세션 화면 트리에
          `aria-live`·`role="status"`·`role="log"`를 들 수 있는 자리는 **다섯**입니다 —
-           · 이 로그: 소리 켜짐이면 `off`, 꺼짐이면 `polite`.
-           · 세션 헤더의 낭독 안내(`TrainSession`): **소리 켜짐일 때만** 한 번 발화합니다.
-           위 둘은 조건이 정반대라 같은 순간에 겹치지 않습니다.
+           · 이 로그: 소리가 나면 `off`, 안 나면 `polite`.
+           · 세션 헤더의 낭독 안내(`TrainSession`): **소리가 날 때만** 한 번 발화하고, 나지 않게
+             되는 순간 비워집니다.
+           위 둘은 `spokenAloud` 한 값의 참·거짓으로 갈리므로 같은 순간에 겹치지 않습니다.
            · 입력 도크의 우선순위 상자(`CueResponder`): 예시 채움 → 경고 → 마이크 안내를
              하나로 삼킨 자리라, 그 자체가 이미 「여럿이 하나로」의 결과입니다.
            · 녹음 뷰의 실시간 자막(`CueResponder`): 인식 **중간 결과**가 글자마다 다시 얹히는
@@ -615,7 +633,7 @@ export function DialogueLog({
              /report의 같은 자리(`VoiceInput`)에서 `aria-live`를 걷어 낸 사유와 같고, 말로
              전할 것은 바로 위 우선순위 상자가 맡습니다.
            · 인라인 응급 자막(`ProtocolInline`): 앱이 **같은 문장을 소리로 읽는** 자리라
-             이 로그와 똑같이 `voiceActive ? "off" : "polite"`로 갈립니다. 소리가 나면 리더는
+             이 로그와 똑같이 `liveRegionMode(spokenAloud)`로 갈립니다. 소리가 나면 리더는
              말하지 않고, 소리가 없을 때만 자막이 유일한 경로가 됩니다.
              단독 응급 화면(`ProtocolPlayer`)도 같은 규칙을 씁니다 — 그 화면의 목록은 그 파일에
              따로 적어 두었습니다.
@@ -624,7 +642,7 @@ export function DialogueLog({
          구간이 도는 동안 로그에는 줄이 붙지 않고, 붙는 것은 안내가 끝나는 순간의 「고정 안내가
          끝났습니다」 한 줄뿐인데(`sessionMachine`의 `protocolDone`) 그때 자막은 이미
          언마운트됩니다. 새 리전을 들일 때는 속성 수가 아니라 이 목록을 보고 판단하십시오. */
-      aria-live={voiceOn ? "off" : "polite"}
+      aria-live={liveRegionMode(spokenAloud)}
       aria-label="대화 기록"
       className={cx("space-y-[18px]", className)}
     >

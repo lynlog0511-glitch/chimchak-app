@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import { EyebrowLabel, cx } from "@/components";
+import { EyebrowLabel, MASK_CHIP_CLASS, cx } from "@/components";
 import { RECORD_SLOT_LABELS, type RecordSlot } from "@/engine/record";
 import { isDemoRecord } from "@/lib/demoSeed";
 import type { StoredReport } from "@/lib/storage";
@@ -22,6 +22,10 @@ const SLOT_ORDER: RecordSlot[] = ["time", "who", "what", "action", "status"];
 /**
  * 가린 자리 토큰만 강조합니다 — 무엇이 가려졌는지가 한눈에 보여야 하므로
  * 성장 기록에서도 이 표시는 그대로 유지합니다. 채움만 쓰고 보더는 두지 않습니다.
+ *
+ * 칩 규격은 `components/maskChip.ts` 한 곳에서 옵니다(2026-08-27) — /report에서 본 칩과
+ * /history에서 본 칩이 같은 것임을 눈이 한 번에 이어야 하는데, 굵기·좌우 여백·잉크 이름
+ * 세 축이 갈려 있었습니다(7차 페르소나 디자이너 P1).
  */
 function TokenText({ text }: { text: string }) {
   const parts = text.split(MASK_TOKEN_SPLIT);
@@ -29,10 +33,7 @@ function TokenText({ text }: { text: string }) {
     <>
       {parts.map((part, index) =>
         isMaskToken(part) ? (
-          <strong
-            key={index}
-            className="mx-[2px] rounded-[6px] bg-brand-tint px-[5px] py-[1px] font-extrabold text-brand-900"
-          >
+          <strong key={index} className={MASK_CHIP_CLASS}>
             {part}
           </strong>
         ) : (

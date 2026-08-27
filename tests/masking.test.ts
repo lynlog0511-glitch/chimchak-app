@@ -600,12 +600,20 @@ describe("직함 호칭은 성명이 아니다", () => {
     });
   }
 
-  it("판정 규칙의 직함 호칭 패턴은 하나도 성명으로 가려지지 않는다", () => {
+  it("학습자가 말하게 되는 직함 문구는 하나도 성명으로 가려지지 않는다", () => {
     /*
      * 두 사전(마스킹의 NAME_STOPWORDS와 시나리오의 판정 패턴)이 갈라지는 자리를 사람 기억 대신
      * 여기서 지킨다. 새 호칭을 판정 규칙에 넣고 예외어에 안 넣으면 이 줄이 먼저 말해 준다.
+     *
+     * ── 세는 칸을 셋으로 넓힌다 (2026-08-27) ──────────────────
+     * 6차에는 `patterns` 한 칸만 읽었다. 그런데 **학습자의 입에 오르는 문자열**은 그것만이
+     * 아니다 — `fallbackOption`은 보기 버튼으로 눌러 그대로 발화가 되고, `cfAlternatives`는
+     * ⚑CF 인터럽트에서 골라 입력 칸에 그대로 들어간다. 두 경로 다 결국 `maskText`를 지난다
+     * (`RecordDraftPreview`의 기록 초안 · `onlineFree`의 자유 연습 전송 직전).
+     * 지금 데이터에는 그 두 칸에 직함이 0건이라 **잠재적**이지만, 이 검사는 애초에 미래의 추가를
+     * 잡으려고 세운 것이므로 지금 넓혀 두는 편이 값싸다(7차 페르소나 백엔드 low).
      */
-    const patterns: string[] = [];
+    const spoken: string[] = [];
     const walk = (node: unknown): void => {
       if (Array.isArray(node)) {
         for (const item of node) walk(item);
@@ -613,19 +621,37 @@ describe("직함 호칭은 성명이 아니다", () => {
       }
       if (typeof node !== "object" || node === null) return;
       for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
-        if (key === "patterns" && Array.isArray(value)) {
-          for (const p of value) if (typeof p === "string") patterns.push(p);
+        if ((key === "patterns" || key === "cfAlternatives") && Array.isArray(value)) {
+          for (const p of value) if (typeof p === "string") spoken.push(p);
+        } else if (key === "fallbackOption" && typeof value === "string") {
+          spoken.push(value);
         } else walk(value);
       }
     };
     walk(SCENARIOS);
 
-    const 직함 = /소장|센터장|시설장|원장|팀장|과장|실장|주임|관리책임자|간호사|사회복지사/;
-    const 대상 = [...new Set(patterns)].filter((p) => 직함.test(p));
-    expect(대상.length).toBeGreaterThan(10);
-    for (const pattern of 대상) {
-      const spans = maskSpansOnOriginal(pattern).filter((s) => s.kind === "성명");
-      expect(spans, pattern).toHaveLength(0);
+    const 직함 = /소장|센터장|시설장|원장|팀장|과장|실장|주임|관리책임자|간호사|사회복지사/g;
+    const 대상 = [...new Set(spoken)].filter((p) => new RegExp(직함.source).test(p));
+    /* 하한은 **실측에 가깝게** 둔다 — `> 10`이던 동안에는 데이터가 절반으로 줄어도 통과해,
+       「두 사전이 갈라지는 자리를 사람 기억 대신 CI가 지킨다」는 이 검사의 목적이 절반만
+       지켜졌다. 늘어나는 것은 정상이므로 상한은 두지 않는다. */
+    const 직함_대상_하한 = 25; // 2026-08-27 실측 29 — 데이터 손질 여유 넷만 둔다
+    expect(대상.length).toBeGreaterThanOrEqual(직함_대상_하한);
+
+    /* 보는 것은 **직함 낱말이 선 자리**다 — 문자열 전체에 성명 span이 하나도 없어야 한다고
+       보면 안 된다. `fallbackOption`은 판정 패턴 같은 짧은 조각이 아니라 **보기 버튼에 그대로
+       실리는 한 문장**이라, 그 안에 가상 인물의 성명이 들어 있는 것이 정상이고 그 성명은
+       가려지는 것이 맞다(실측: 「…최 어르신이 … 당직 간호사께 알리고…」).
+       그래서 성명 span이 직함 낱말과 **겹치는지**만 본다 — 그것이 이 검사가 애초에 지키려던
+       사실이다: 두 사전이 갈라져 직함이 성명으로 읽히는 일. */
+    for (const text of 대상) {
+      const spans = maskSpansOnOriginal(text).filter((s) => s.kind === "성명");
+      for (const match of text.matchAll(직함)) {
+        const start = match.index;
+        const end = start + match[0].length;
+        const overlap = spans.find((span) => span.start < end && span.end > start);
+        expect(overlap, `${text} — 「${match[0]}」이 성명으로 가려집니다`).toBeUndefined();
+      }
     }
   });
 });

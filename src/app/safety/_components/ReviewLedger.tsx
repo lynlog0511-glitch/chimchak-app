@@ -34,6 +34,26 @@ function isReviewed(reviewed: string): boolean {
  */
 const REVISED_ON = "2026. 8. 25.";
 
+/**
+ * 루브릭 완료본을 고친 날 — `src/data/rubric.ts`의 CL-01 교체 사유 주석과 같은 날짜입니다.
+ *
+ * 이 줄이 왜 있는가: 이 카드는 머리말에 「감수 **완료본을 고친 사실**도 여기 적습니다」라고
+ * 자기 규칙을 세워 두었고, 응급 안내 쪽에는 그 규칙대로 「수정 뒤 재확인」 행이 있습니다.
+ * 그런데 2026-08-26에 **1차 감수 완료본인 루브릭 30항목 중 CL-01의 지표와 앵커 넷을 전면
+ * 개정**하고도 그 사실이 이 원장에 없었습니다 — 화면이 「1차 감수 완료 · 7. 25.」만 말하는
+ * 동안, 그 완료본의 한 항목은 개정된 채 재확인을 기다리는 상태였습니다.
+ * 심사위원이 「감수는 어떻게 관리합니까」에 이 팀이 내미는 물건이 하필 이 목록입니다
+ * (7차 페르소나 PM med).
+ *
+ * 고친 내용 자체는 옳은 교정입니다 — 채택선이 3요소인데 지표가 「5요소를 모두」라고 적어
+ * 한 화면이 세 말을 하던 자리를 없앴습니다(사유 전문은 `rubric.ts`의 CL-01 주석).
+ * 여기 적는 것은 그 판단이 아니라 **재확인이 아직 안 끝났다는 사실**입니다.
+ */
+const RUBRIC_REVISED_ON = "2026. 8. 26.";
+
+/** 개정된 루브릭 항목 — 늘면 이 배열에 더하고, 재확인이 끝나면 비웁니다(빈 배열이면 줄이 사라집니다). */
+const RUBRIC_REVISED_IDS: readonly string[] = ["CL-01"];
+
 export function ReviewLedger({ className }: ReviewLedgerProps) {
   const done = PROTOCOLS.filter((p) => isReviewed(p.reviewed));
   const pending = PROTOCOLS.length - done.length;
@@ -43,12 +63,27 @@ export function ReviewLedger({ className }: ReviewLedgerProps) {
     (sum, p) => sum + p.steps.filter((step) => typeof step.address === "string").length,
     0,
   );
+  /* 개정 항목도 **데이터에 실제로 있는 것만** 셉니다 — 루브릭에서 사라진 id를 화면이 계속
+     부르지 않게(응급 안내 줄이 `reviewed`를 세는 것과 같은 규율입니다). */
+  const revisedRubricIds = RUBRIC_REVISED_IDS.filter((id) =>
+    RUBRIC.some((item) => item.id === id),
+  );
 
   const rows: readonly { k: string; v: string }[] = [
     {
       k: `루브릭 ${RUBRIC.length}항목`,
       v: "1차 감수 완료 — 현직 요양보호사(경력 5년) · 2026. 7. 25.",
     },
+    /* 개정된 항목이 없어지면(재확인이 끝나면) 이 줄도 함께 사라집니다 — 응급 안내 쪽 「수정 뒤
+       재확인」 행과 같은 문법입니다. 항목 수도 데이터가 아니라 위 목록에서 셉니다. */
+    ...(revisedRubricIds.length > 0
+      ? [
+          {
+            k: "루브릭 수정 뒤 재확인",
+            v: `${RUBRIC_REVISED_ON} 1차 감수 완료본 가운데 ${revisedRubricIds.length}항목(${revisedRubricIds.join(" · ")})의 지표와 앵커를 고쳤습니다. 채택선이 3요소인데 지표가 「5요소를 모두」라고 적어 한 화면이 세 말을 하던 자리를 없앤 교정이며, 고친 항목은 현직 재확인을 기다립니다.`,
+          },
+        ]
+      : []),
     {
       k: "시나리오 대사",
       v: "먼저 연 3종은 2차 교차 감수가 진행 중이며, 아직 끝나지 않았습니다. 뒤에 더한 3종(CHK-A02·CHK-B01·CHK-C02)은 초안으로, 현직 감수 대기 상태임을 훈련 카드에도 그대로 적었습니다.",

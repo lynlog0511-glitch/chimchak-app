@@ -173,7 +173,7 @@ export function RuleEngineProof({ className }: RuleEngineProofProps) {
 
       {result && latency && (
         <>
-          <EyebrowLabel className="mt-5 text-brand-800">
+          <EyebrowLabel tone="brand" className="mt-5">
             방금 이 기기에서 잰 값
           </EyebrowLabel>
           <div className="mt-2 grid gap-2">

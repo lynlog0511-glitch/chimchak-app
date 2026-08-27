@@ -418,10 +418,18 @@ export function VoiceInput({
           어느 쪽이든 말씀하신 원문은 이 기기 안에서만 다루고 저장하지 않습니다. 다음 화면에서
           무엇을 왜 가리는지 먼저 확인하신 뒤에 넘어갑니다.
         </p>
+        {/* 눌림 색은 **부모 면**(`bg-paper-2`)입니다 — 흰 버튼이 회색 카드에 잠기는 형태로,
+            이 앱의 다른 「흰 면 위 버튼」과 같은 값입니다(`PlayerParts`의 재생기 컨트롤).
+            2026-08-27 교정: `bg-paper … active:bg-paper`라 누르는 동안 배경이 한 픽셀도 바뀌지
+            않았습니다. #ffffff→paper 치환 전에는 `active:bg-white`였고 두 값이 같은 흰색이라
+            결과는 그때도 같았습니다 — **치환이 죽은 코드를 살리지 않고 이름만 바꾼** 자리입니다.
+            하필 globals.css:86이 「한 className 문자열 안에 `bg-paper … active:bg-white`가 함께
+            선 자리도 있었습니다」라고 이 자리를 직접 지목해 두고도 지나갔습니다
+            (7차 페르소나 FE low). */}
         <button
           type="button"
           onClick={focusTextarea}
-          className="mt-[8px] flex min-h-[48px] w-full items-center justify-center rounded-card border border-line-strong bg-paper text-[0.9375rem] font-bold text-ink transition-colors duration-150 active:bg-paper"
+          className="mt-[8px] flex min-h-[48px] w-full items-center justify-center rounded-card border border-line-strong bg-paper text-[0.9375rem] font-bold text-ink transition-colors duration-150 active:bg-paper-2"
         >
           글자로 적기
         </button>

@@ -407,12 +407,23 @@ export function makeTrainReducer(scenario: Scenario) {
            고정 문장이 방금 말한 요소를 「덧붙이라」고 돌려주던 자리입니다. 분류기가 이미 센
            요소를 그대로 쓰므로 새로 재는 것은 없고, 기록에 남는 문구는 데이터의 것입니다.
            근거 가드가 판정을 멈춘 턴(evidenceBlocked)은 건드리지 않습니다 — 그 자리에 서는
-           것은 코칭이 아니라 고정 고지문입니다. */
+           것은 코칭이 아니라 고정 고지문입니다.
+
+           **규칙 사전 경고가 걸린 턴도 건드리지 않습니다**(2026-08-27 · 교육생 7차 high).
+           같은 이유입니다 — 그 자리에 서는 것은 「요소가 덜 담겼다」가 아니라 **하지 말아야 할 것을
+           했다**는 말입니다. 최고 갈래(R1-a·V-a)에는 coaching이 없어, 그 갈래를 받은 턴에 규칙
+           경고가 하나 걸리면 엔진이 규칙의 문구를 화면 문장으로 내보냅니다(session.ts의
+           `branch.coaching ?? callDelay ?? advisoryMessage`). 6차가 그 위에 조립 코칭을 얹으면서
+           요소가 하나라도 빠져 있으면 그 문구가 통째로 「…까지 함께 적으시면」으로 바뀌었습니다 —
+           "여기가 어머님 댁이라고 말씀드렸습니다"(현실 직면 강요)·전화번호를 그대로 부른 보고
+           (개인정보 노출)에서 이 앱이 처음부터 가르치는 두 가지가 화면에서 사라지고, 남는 흔적은
+           기본이 닫힘인 접힘 안의 라벨 한 줄뿐이었습니다. */
         const composedCoaching =
           !repeatedUnclear &&
           !result.feedback.criticalFail &&
           !result.feedback.ok &&
-          !result.feedback.trace?.evidenceBlocked
+          !result.feedback.trace?.evidenceBlocked &&
+          !result.feedback.trace?.advisoryLabels?.length
             ? partialReportCoaching(cue, result.feedback.trace?.matchedElements)
             : undefined;
 

@@ -28,7 +28,10 @@ export function DocWhitelist() {
       <ul className="chim-hairline mt-1 border-y border-line">
         {citable.map((doc) => (
           <li key={doc.id} className="py-4">
-            <EyebrowLabel className="text-brand-700">
+            {/* 색 아이브로는 `tone="brand"`(=brand-800) 한 값입니다 — 700은 globals.css가
+                「흰 지면 위 **링크**」로 역할을 못 박은 단이라, 누를 수 없는 이름표에 서면
+                같은 화면에서 색이 뜻을 잃습니다(7차 페르소나 디자이너 low · §9-15). */}
+            <EyebrowLabel tone="brand">
               {doc.kind}
             </EyebrowLabel>
             <p className="mt-1 text-[1.0625rem] leading-[1.45] font-extrabold text-ink">

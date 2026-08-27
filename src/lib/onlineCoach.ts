@@ -548,6 +548,15 @@ export function rememberCoachToken(response: { headers?: { get(name: string): st
  * 서버는 이 범위의 낡은 표식을 403으로 끊지 않고 작은 통 + 갱신으로 받으므로, 낡은 값을 보내는
  * 편이 훈련을 살립니다(사유 전문은 `coachLimits.ts`의 `COACH_TOKEN_STALE_WINDOWS`).
  * 그보다 낡은 값은 403이 되므로 여전히 보내지 않습니다.
+ *
+ * **이 줄이 `undefined`를 돌려주는 순간부터는 회복 경로가 없습니다** — 사실을 그대로 적어 둡니다
+ * (2026-08-27 · 7차 페르소나 백엔드 med). 무표식 요청에는 갱신 헤더가 붙지 않고(`route.ts`의
+ * `refreshHeader`), 여기서 보는 두 후보는 **둘 다 더 낡아질 뿐**이라 다시 유효해지지 않습니다 —
+ * `refreshed`는 이 모듈이 사는 동안 남고 `<meta>`는 그보다 더 낡은 값입니다. 이 앱은 앱 안
+ * 라우팅만 하므로 문서가 다시 그려지는 일은 사용자가 새로고침할 때뿐입니다.
+ * 그래서 이 자리에서 할 수 있는 일은 「그 순간을 무대 하루 밖으로 밀어내는 것」뿐이고,
+ * 그 판단이 `COACH_TOKEN_STALE_WINDOWS`(36창 = 6시간)입니다. 창 수를 다시 줄이시려면
+ * **그 절벽이 무대 안으로 들어온다는 뜻**임을 함께 보십시오.
  */
 function readCoachToken(now: number): string | undefined {
   const stamp = refreshed ?? readMetaToken();

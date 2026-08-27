@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import type { Ref } from "react";
 import type { MaskResult, MaskSpan } from "@/types";
-import { BigButton, ChevronGlyph, EyebrowLabel, cx } from "@/components";
+import { BigButton, ChevronGlyph, EyebrowLabel, MASK_CHIP_CLASS, cx } from "@/components";
 import {
   MASK_KIND_LABELS,
   MASK_KIND_REASONS,
@@ -186,8 +186,10 @@ function splitOriginal(text: string, spans: MergedSpan[]): OriginalPart[] {
   return parts;
 }
 
-const CHIP_CLASS =
-  "mx-[1px] rounded-[6px] bg-brand-tint px-[7px] py-[1px] font-bold text-brand-on-tint";
+/* 이 화면의 가림 칩 — 규격은 `components/maskChip.ts` 한 곳에서 옵니다(2026-08-27).
+   같은 마스킹 토큰을 그리는 네 자리가 굵기·좌우 여백·잉크 이름 세 축으로 갈려 있던 자리입니다
+   (7차 페르소나 디자이너 P1). 이름은 이 파일이 쓰던 것을 그대로 둡니다. */
+const CHIP_CLASS = MASK_CHIP_CLASS;
 
 /**
  * 2단계 「가리기」 화면 — 시안 6e.
@@ -436,7 +438,12 @@ export function MaskReview({
                 part.kind ? (
                   <mark
                     key={index}
-                    className="mx-[2px] inline-flex flex-wrap items-baseline gap-[4px] rounded-[6px] bg-brand-tint px-[6px] py-[1px] align-baseline text-brand-on-tint"
+                    /* 이 칩만 한 칩 안에 두 조각(원문 취소선 + 치환어)을 담으므로 레이아웃이
+                       한 겹 더 붙습니다 — 면·반지름·굵기·잉크는 그대로 정본입니다. */
+                    className={cx(
+                      CHIP_CLASS,
+                      "inline-flex flex-wrap items-baseline gap-[4px] align-baseline",
+                    )}
                   >
                     <span className="line-through decoration-1">{part.text}</span>
                     <span className="text-[0.8em] font-bold whitespace-nowrap">

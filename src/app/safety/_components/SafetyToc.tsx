@@ -40,6 +40,24 @@ export interface SafetyTocProps {
   className?: string;
 }
 
+/**
+ * 목차 칩으로 뛴 절이 바 밑에 깔리지 않게 두는 여백 — **이 상수가 그 값의 주인**입니다.
+ *
+ * 왜 여기인가. 값을 정하는 것은 이 바의 타이포와 패딩이므로, 그 값을 아는 곳도 이 파일이어야
+ * 합니다. 예전에는 `scroll-mt-[calc(var(--chim-safe-t)_+_68px)]`가 `/legal`과 `/safety` 두 파일에
+ * **리터럴로 복제**돼 있었고, 두 주석이 나란히 「세 번째 화면에 붙이는 날 이 값을 함께 옮기십시오」
+ * 라고 사람에게 부탁하고 있었습니다(7차 페르소나 FE low · UI/UX P1 잔여 · 디자이너 P2).
+ * 하필 6차가 이 바 안 칩의 자간을 실제로 바꾼 라운드였습니다.
+ *
+ * 지금 숫자를 아는 곳은 둘로 줄고, 둘 다 이 파일입니다 —
+ *   · 바 높이: 아래 `useEffect`가 **실측해** `--chim-toc-h`에 적습니다(탭바가 `--chim-tabbar-h`에
+ *     쓰는 것과 같은 문법입니다). 「아주 크게」에서 바가 자라도 절이 함께 내려갑니다.
+ *   · 여유 3px과 실측 전 폴백 65px: 이 문자열 한 줄.
+ * `--chim-safe-t`를 함께 더하는 이유는 바의 도킹 기준선이 0이 아니라 안전 영역 아래이기 때문입니다.
+ */
+export const TOC_SECTION_SCROLL_MT =
+  "scroll-mt-[calc(var(--chim-safe-t)_+_var(--chim-toc-h,65px)_+_3px)]";
+
 export function SafetyToc({ items, label = "목차", className }: SafetyTocProps) {
   const [active, setActive] = useState<string>(items[0]?.id ?? "");
   const [stuck, setStuck] = useState(false);
@@ -130,6 +148,38 @@ export function SafetyToc({ items, label = "목차", className }: SafetyTocProps
       ro?.disconnect();
     };
   }, [items]);
+
+  /**
+   * 이 바가 **자기 높이를 스스로 말합니다** — `--chim-toc-h` (2026-08-27).
+   *
+   * 읽는 자리는 둘입니다: 위 `TOC_SECTION_SCROLL_MT`(절의 앵커 착지 여백)와 `globals.css`의
+   * `html { scroll-padding-top }`(Tab 초점이 이 바 밑으로 들어가지 않게 — WCAG 2.2 SC 2.4.11).
+   * 계산이 아니라 **관측**인 이유는 탭바와 같습니다 — `py-2`는 rem이라 「아주 크게」(125%)에서
+   * 바가 통째로 자랍니다.
+   *
+   * 목차가 없는 화면으로 넘어가면 변수를 거둡니다. 남겨 두면 그 화면의 스크롤 여백이 있지도 않은
+   * 바만큼 벌어집니다(`--chim-toc-h`가 없으면 globals의 폴백 0px이 섭니다).
+   */
+  useEffect(() => {
+    const bar = barRef.current;
+    const root = document.documentElement;
+    if (!bar) return undefined;
+
+    const write = (): void => {
+      root.style.setProperty("--chim-toc-h", `${Math.round(bar.offsetHeight)}px`);
+    };
+    write();
+
+    if (typeof ResizeObserver === "undefined") {
+      return () => root.style.removeProperty("--chim-toc-h");
+    }
+    const ro = new ResizeObserver(write);
+    ro.observe(bar);
+    return () => {
+      ro.disconnect();
+      root.style.removeProperty("--chim-toc-h");
+    };
+  }, []);
 
   const handleClick = useCallback((id: string): void => {
     // 눌린 즉시 활성 표시를 옮깁니다 — 스크롤이 끝나기를 기다리지 않게.

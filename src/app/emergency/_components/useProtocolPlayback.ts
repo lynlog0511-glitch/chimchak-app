@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isSilentStep } from "@/data/protocols";
-import { canPlayWithoutGesture, speak, stopSpeaking, unlockAudio } from "@/lib/speech";
+import {
+  canPlayWithoutGesture,
+  isSpeechPlaybackSupported,
+  speak,
+  stopSpeaking,
+  unlockAudio,
+} from "@/lib/speech";
 import { useWakeLock } from "@/lib/wakeLock";
 import type { ProtocolStep } from "@/types";
 
@@ -116,6 +122,79 @@ export function useAutoplayGuard(): AutoplayGuard {
   }, []);
 
   return { soundBlocked, unblock };
+}
+
+/**
+ * 「소리가 난다」를 답하는 한 벌 — **이 앱에서 그 질문의 정의는 여기 하나입니다.**
+ *
+ * ## 왜 하나여야 하는가
+ * 이 앱에는 「앱이 소리로 읽는 문장」을 화면에도 적는 자리가 넷입니다(훈련 대화 로그 · 훈련 안
+ * 응급 자막 · 단독 응급 자막 · 세션 헤더의 낭독 안내). 그 자리들의 라이브 리전은 **소리가 나면
+ * 입을 닫아야** 합니다 — 앱 목소리와 리더 목소리가 같은 문장을 겹쳐 말하면 iOS에서는 둘이 같은
+ * 오디오 채널을 다투어 어느 쪽도 온전히 안 들립니다.
+ *
+ * 6차가 그 규칙을 세 자리에 맞췄다고 세 곳에 적었는데, 실제로는 **값이 갈려 있었습니다** —
+ * 응급 둘은 `voiceActive`(= 스위치 && 자동재생 안 막힘), 훈련 로그는 사용자 스위치 그 자체.
+ * 게다가 응급 둘은 화면에 「읽어 주는 중 / 자막」을 가르는 값을 `voiceActive && ttsSupported`로
+ * 계산해 놓고 **다섯 줄 아래 리전 게이트에서는 `ttsSupported`를 뺐습니다.** 그래서 낭독을 못 하는
+ * 기기에서는 한 컴포넌트 안에서 화면은 「지금은 자막입니다」라고 정직하게 적고 리전은 「소리가
+ * 나니 나는 조용히 있겠다」로 입을 닫았습니다(7차 페르소나 UI/UX P0 · FE low).
+ *
+ * 그래서 정의를 값 하나로 모읍니다. 이 훅을 쓰는 자리는 **자기 판단을 하지 않습니다.**
+ *
+ * ## 두 값을 가르는 이유
+ * - `voiceActive` — 낭독을 **시도해도 되는가**. `useProtocolPlayback`에 넘기는 값이고,
+ *   자동재생이 막혔으면 시도 자체를 하지 않아 자막 진행이 낭독을 기다리다 멈추지 않게 합니다.
+ * - `spokenAloud` — **소리가 실제로 나는가**. 리전이 입을 닫아도 되는 유일한 조건입니다.
+ *   `isSpeechPlaybackSupported()`가 거짓인 기기에서는 시도해도 소리가 나지 않으므로
+ *   `voiceActive`만으로는 이 질문에 답할 수 없습니다.
+ *
+ * @example
+ * const { voiceActive, spokenAloud, ttsSupported, unblock } = useVoicePresence(voiceOn);
+ * const playback = useProtocolPlayback({ steps, voiceOn: voiceActive });
+ * <p aria-live={liveRegionMode(spokenAloud)}>{step?.voice}</p>
+ */
+export interface VoicePresence {
+  /** 이 기기가 지금 자동으로 소리를 내지 못하는 상태인지(자동재생 차단) */
+  soundBlocked: boolean;
+  /** 이 기기가 낭독을 재생할 수 있는지(`isSpeechPlaybackSupported`) — 마운트 뒤에 확정됩니다 */
+  ttsSupported: boolean;
+  /** 낭독을 **시도해도 되는가** */
+  voiceActive: boolean;
+  /** **소리가 실제로 나는가** — 리전 게이트가 보는 값 */
+  spokenAloud: boolean;
+  /** 사용자가 직접 눌러 소리를 시작하는 지점 */
+  unblock: () => void;
+}
+
+export function useVoicePresence(voiceOn: boolean): VoicePresence {
+  /* 서버 렌더와 첫 페인트에서는 잴 수 없으므로 「된다」로 시작합니다 — 「안 된다」로 시작하면
+     지원하는 기기에서도 첫 프레임에 자막 안내가 번쩍입니다. */
+  const [ttsSupported, setTtsSupported] = useState(true);
+  const { soundBlocked, unblock } = useAutoplayGuard();
+
+  useEffect(() => {
+    setTtsSupported(isSpeechPlaybackSupported());
+  }, []);
+
+  const voiceActive = voiceOn && !soundBlocked;
+  return {
+    soundBlocked,
+    ttsSupported,
+    voiceActive,
+    spokenAloud: voiceActive && ttsSupported,
+    unblock,
+  };
+}
+
+/**
+ * 라이브 리전의 발화 여부 — **삼항을 손으로 적지 않습니다.**
+ *
+ * 조건을 각자 적으면 그 조건이 다시 갈립니다(위 주석의 사고가 정확히 그렇게 났습니다).
+ * 값이 하나로 모인 뒤에도 「무엇을 넣을지」는 사람이 고르므로, 넣을 것 자체를 함수 인자로 좁힙니다.
+ */
+export function liveRegionMode(spokenAloud: boolean): "off" | "polite" {
+  return spokenAloud ? "off" : "polite";
 }
 
 export interface UseProtocolPlaybackOptions {

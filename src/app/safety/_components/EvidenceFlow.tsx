@@ -368,7 +368,7 @@ function FlowDiagram() {
         textAnchor="middle"
         fontSize={19}
         fontWeight={800}
-        className="fill-brand-900"
+        className="fill-brand-on-tint"
       >
         {L3_TITLE}
       </text>
@@ -476,7 +476,7 @@ function FlowSteps() {
       {/* 예전에는 brand-tint 틸 면이었습니다 — 같은 구역 안 색 면을 하나로 배급하면서
           무채 면으로 내렸습니다. 제목의 딥 틸 한 단은 남깁니다(면이 아니라 글자입니다). */}
       <div className="mt-5 rounded-card bg-paper-2 p-4">
-        <p className="text-[1.0625rem] leading-[1.45] font-extrabold text-brand-900">{L3_TITLE}</p>
+        <p className="text-[1.0625rem] leading-[1.45] font-extrabold text-brand-on-tint">{L3_TITLE}</p>
         <p className="mt-1 text-[0.9375rem] leading-[1.6] text-ink-soft">{L3_SUB}</p>
       </div>
     </div>

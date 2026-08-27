@@ -111,7 +111,12 @@ export function ProtocolAddressCard({ session = false, className }: ProtocolAddr
 
   return (
     <div className={cx(SHELL, className)}>
-      <p className="text-[0.7813rem] leading-[1.45] text-ink-faint">방문지 주소</p>
+      {/* 아래 목록 화면(`ProtocolAddressPanel`)의 같은 이름표와 **한 벌**입니다 — 사용자가
+          오가며 같은 넉 자를 보는 두 화면이라, 한 파일 안에서 두 벌로 적지 않습니다.
+          (2026-08-27: 여기만 400/자간 0/ink-faint 손수 사본이었습니다 — 5차에 「먼저 이것부터」로
+           이름까지 댄 자리인데, 게이트 ⑮가 자간을 키로 삼아 이 형태를 못 세고 있었습니다.
+           게이트도 함께 넓혔습니다 — 7차 페르소나 디자이너 P0.) */}
+      <EyebrowLabel>방문지 주소</EyebrowLabel>
       {saved.length > 0 ? (
         /* 카드에서 가장 큰 글자 — 자막(29px) 다음으로 눈이 가는 자리입니다. */
         <p className="mt-[4px] text-[1.375rem] leading-[1.3] font-extrabold text-ink">{saved}</p>

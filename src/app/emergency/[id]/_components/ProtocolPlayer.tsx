@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { ProtocolStep } from "@/types";
 import { BackGlyph, EyebrowLabel, cx } from "@/components";
-import { isSpeechPlaybackSupported, primeVoices, stopSpeaking } from "@/lib/speech";
+import { primeVoices, stopSpeaking } from "@/lib/speech";
 import { Call119Bar } from "../../_components/Call119Bar";
 import {
   CONTROL_OUTLINE,
@@ -20,7 +20,11 @@ import {
   ProtocolAddressCard,
   useSavedVisitAddress,
 } from "../../_components/ProtocolAddressCard";
-import { useAutoplayGuard, useProtocolPlayback } from "../../_components/useProtocolPlayback";
+import {
+  liveRegionMode,
+  useProtocolPlayback,
+  useVoicePresence,
+} from "../../_components/useProtocolPlayback";
 
 export interface ProtocolPlayerProps {
   title: string;
@@ -45,13 +49,12 @@ export interface ProtocolPlayerProps {
  */
 export function ProtocolPlayer({ title, steps, backHref }: ProtocolPlayerProps) {
   const [voiceOn, setVoiceOn] = useState(true);
-  const [ttsSupported, setTtsSupported] = useState(true);
-  /** 자동재생 정책은 훈련 세션 안 L3 구간과 **같은 가드**에서 옵니다. */
-  const { soundBlocked, unblock } = useAutoplayGuard();
-
-  /* 차단된 동안에는 낭독을 시도하지 않습니다 — 소리를 내지 못하는 낭독을 기다리다
-     자막 진행까지 멈추면 안내 자체가 죽습니다. 자막은 같은 속도로 계속 넘어갑니다. */
-  const voiceActive = voiceOn && !soundBlocked;
+  /* 「소리가 난다」의 정의는 `useVoicePresence` 한 곳에서 옵니다 — 훈련 세션 안 L3 구간과
+     대화 로그가 **같은 값**을 봅니다. `voiceActive`는 「시도해도 되는가」(차단된 동안에는 시도하지
+     않습니다 — 소리를 내지 못하는 낭독을 기다리다 자막 진행까지 멈추면 안내 자체가 죽습니다),
+     `spokenAloud`는 「실제로 소리가 나는가」입니다. */
+  const { soundBlocked, ttsSupported, voiceActive, spokenAloud, unblock } =
+    useVoicePresence(voiceOn);
   const playback = useProtocolPlayback({ steps, voiceOn: voiceActive });
   const {
     index,
@@ -73,15 +76,16 @@ export function ProtocolPlayer({ title, steps, backHref }: ProtocolPlayerProps) 
 
   useEffect(() => {
     primeVoices();
-    setTtsSupported(isSpeechPlaybackSupported());
   }, []);
 
-  /* 상태줄은 지금 실제로 일어나는 일만 말합니다 — 소리가 없는데 「읽어 주는 중」이라고 하지 않습니다. */
+  /* 상태줄은 지금 실제로 일어나는 일만 말합니다 — 소리가 없는데 「읽어 주는 중」이라고 하지
+     않습니다. 아래 리전 게이트와 **같은 값**을 봅니다(예전에는 이 줄만 `ttsSupported`를 보고
+     리전은 빼먹어, 다섯 줄 간격으로 두 문장이 서로를 부정했습니다). */
   const readingState: ReadingState = silent
     ? "done"
     : !playing
       ? "paused"
-      : voiceActive && ttsSupported
+      : spokenAloud
         ? "reading"
         : "caption";
 
@@ -197,14 +201,18 @@ export function ProtocolPlayer({ title, steps, backHref }: ProtocolPlayerProps) 
         )}
 
         <p
-          /* 소리를 켜 두신 동안에는 이 리전을 읽지 않습니다 — 앱이 **같은 문장을 소리로 읽는**
-             자리이기 때문입니다(`voiceActive`가 곧 `useProtocolPlayback`에 넘어가는 값입니다).
-             단계가 넘어갈 때마다 앱 목소리와 리더 목소리가 같은 문장을 겹쳐 말하면, iOS에서는
-             두 발화가 같은 오디오 채널을 다투어 어느 쪽도 온전히 안 들리는 구간이 생깁니다 —
-             119 안내 화면에서 가장 비싼 실패입니다(5차 페르소나 UI/UX med).
-             소리를 끄셨거나 기기가 자동재생을 막았으면 자막이 **유일한 경로**가 되므로 그때만
-             `polite`로 말합니다. 훈련 대화 로그가 `voiceOn`으로 같은 판단을 하는 자리와
-             한 문장도 다르지 않습니다(`DialogueLog`의 「리전을 줄인다」 절).
+          /* 소리가 **실제로 나는 동안**에는 이 리전을 읽지 않습니다 — 앱이 같은 문장을 소리로
+             읽는 자리이기 때문입니다. 단계가 넘어갈 때마다 앱 목소리와 리더 목소리가 같은 문장을
+             겹쳐 말하면, iOS에서는 두 발화가 같은 오디오 채널을 다투어 어느 쪽도 온전히 안 들리는
+             구간이 생깁니다 — 119 안내 화면에서 가장 비싼 실패입니다(5차 페르소나 UI/UX med).
+             소리를 끄셨거나 기기가 자동재생을 막았거나 **낭독을 지원하지 않으면** 자막이
+             유일한 경로가 되므로 그때만 `polite`로 말합니다.
+
+             값은 `useVoicePresence`의 `spokenAloud` 하나이고, 훈련 안 응급 자막(`ProtocolInline`)과
+             훈련 대화 로그(`DialogueLog`)가 **같은 값**을 씁니다 — 세 자리가 같은 판단을 한다는
+             이 문장은 2026-08-27에야 사실이 됐습니다. 6차에는 세 곳에 그렇게 적혀 있었는데 실제로는
+             두 값(`voiceOn`/`voiceActive`)으로 갈려 있었고, 셋 다 같은 파일이 다섯 줄 위에서 쓰는
+             `ttsSupported`를 빠뜨렸습니다(7차 페르소나 UI/UX P0).
 
              ## 이 화면에서 동시에 발화할 수 있는 리전 (2026-08-26 다시 셈)
              세는 단위는 `aria-live` 속성의 개수가 아니라 **같은 순간에 말할 수 있는 리전의
@@ -215,7 +223,7 @@ export function ProtocolPlayer({ title, steps, backHref }: ProtocolPlayerProps) 
              주소 카드는 표시 전용이라 리전이 아닙니다(적어 두는 자리는 `/emergency` 목록의
              `ProtocolAddressPanel`이고, 그 리전은 그 화면의 것입니다).
              새 리전을 들일 때는 속성 수가 아니라 이 목록을 보고 판단하십시오. */
-          aria-live={voiceActive ? "off" : "polite"}
+          aria-live={liveRegionMode(spokenAloud)}
           className="mt-3 text-[1.8125rem] leading-[1.45] font-extrabold tracking-[-0.015em] text-ink"
         >
           {silent ? "안내 음성을 여기서 멈춥니다." : voiceText}

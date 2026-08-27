@@ -135,8 +135,29 @@ export function FreeComposer({
     return text.length > 0 && hasPartialMask(maskText(text));
   }, [value]);
 
+  /**
+   * 이 컴포저가 **말로 전하는 한 줄** — 우선순위 상자 하나입니다.
+   *
+   * 2026-08-27에 조건부 리전 둘을 이 상자 하나로 합쳤습니다. 두 가지가 함께 걸려 있던 자리입니다.
+   * ① 「리전은 늘 그려 둔다」 — 알림과 함께 리전이 생기면 읽지 않는 리더가 있는데, 두 줄 다
+   *    `{조건 && <p role="status">}` 꼴이라 문장이 생기는 순간 상자도 함께 태어났습니다.
+   *    하필 그중 하나(부분 가림 경고)는 **문자열이 기기 밖으로 나가는 유일한 경로**에서 보내기
+   *    전에 알리려고 만든 줄이라, 낭독에 닿지 않으면 만든 이유가 사라집니다.
+   * ② 「세는 단위는 동시에 발화할 수 있는 리전의 수」 — 이 화면에는 대화 로그 리전이 새로
+   *    생겼으므로(`FreeDialogue`), 컴포저가 리전 둘을 더 들면 셋이 됩니다.
+   * (5차에 파일·행까지 이름이 오른 넷 중 둘 · 7차 페르소나 UI/UX P0·low)
+   *
+   * 순서는 **급한 것부터**입니다 — 서버가 못 받은 사정(`notice`) → 마이크(`micNotice`) →
+   * 보내기 전 경고(`partialMask`). 보이는 줄은 아래 두 자리가 그대로 맡습니다(화면 전용).
+   */
+  const liveNotice = notice ?? micNotice ?? (!closed && partialMask ? MASK_PARTIAL_NOTICE : "");
+
   return (
     <section className="mt-5 border-t border-line pt-3">
+      {/* 처음부터 빈 상자로 서 있어야 다음 문장이 「바뀐 줄」로 읽힙니다 — 서버 렌더부터 섭니다. */}
+      <p role="status" className="sr-only">
+        {liveNotice}
+      </p>
       <div className="flex items-baseline justify-between gap-3">
         <p className="text-[0.8438rem] leading-[1.45] font-semibold text-ink-muted">
           {busy ? COMPOSER_WAITING : closed ? COMPOSER_TURNS_DONE : COMPOSER_TURNS_LEFT(turnsLeft)}
@@ -216,9 +237,10 @@ export function FreeComposer({
             </p>
           )}
 
-          {/* 부분 가림 경고 — /report 2단계와 **같은 문장**입니다(engine/masking.ts). */}
+          {/* 부분 가림 경고 — /report 2단계와 **같은 문장**입니다(engine/masking.ts).
+              말은 위 우선순위 상자가 맡으므로 여기에는 `role`을 달지 않습니다. */}
           {partialMask && (
-            <p role="status" className="mt-2 text-[0.8438rem] leading-[1.6] font-semibold text-warn-ink">
+            <p className="mt-2 text-[0.8438rem] leading-[1.6] font-semibold text-warn-ink">
               {MASK_PARTIAL_NOTICE}
             </p>
           )}
@@ -229,8 +251,9 @@ export function FreeComposer({
         </>
       )}
 
+      {/* 화면 전용 — 말은 위 우선순위 상자 하나가 맡습니다. */}
       {(micNotice || notice) && (
-        <p role="status" className="mt-2.5 text-[0.9375rem] leading-[1.6] text-warn-ink">
+        <p className="mt-2.5 text-[0.9375rem] leading-[1.6] text-warn-ink">
           {notice ?? micNotice}
         </p>
       )}

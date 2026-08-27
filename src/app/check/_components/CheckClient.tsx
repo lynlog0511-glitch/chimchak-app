@@ -133,19 +133,34 @@ export function CheckClient() {
       </div>
 
       <div className="mt-[16px] flex items-center gap-3">
+        {/* 이 화면에서 **말하는 리전은 이 한 줄**입니다 (2026-08-27).
+            예전에는 아래 항목 표(`<ul>`)도 `aria-live="polite"`였습니다. 「다시 검사」를 누르면
+            진행 문장이 바뀌는 동안 표의 열다섯 항목이 한꺼번에 갈려, 낭독기에는 두 리전이 같은
+            순간에 말했습니다 — 「세는 단위는 동시에 발화할 수 있는 리전의 수」라는 이 저장소의
+            정의를 6차가 세션·응급 두 화면에는 적용하면서 같은 커밋이 만진 이 화면에는 적용하지
+            않은 자리입니다(7차 페르소나 UI/UX low).
+            그래서 표에서 속성을 걷고, 끝난 사실을 이 줄이 **항목 수까지 담아** 한 번에 전합니다.
+            항목 하나하나의 내용은 표를 훑어 읽으실 수 있습니다(정적 목록으로 남습니다).
+
+            ## 이 화면에서 동시에 발화할 수 있는 리전 (2026-08-27 실측)
+            **둘**입니다 — 이 진행 문장과, 아래 시연 씨앗 패널의 `role="status"` 한 줄
+            (`DemoSeedPanel`). 그 둘은 서로 다른 버튼이 만드는 사건이라 같은 순간에 바뀌지
+            않습니다(「다시 검사」와 「예시 기록 심기/지우기」). 넷이던 것을 둘로 줄인 자리이고,
+            줄인 방법은 두 번 다 「말로 전할 것을 한 줄에 맡기고 나머지는 눈으로 보는 자리로
+            두기」입니다. 새 리전을 들일 때는 속성 수가 아니라 이 목록을 보고 판단하십시오. */}
         <p aria-live="polite" className="min-w-0 flex-1 text-[0.8438rem] leading-[1.45] text-ink">
           {!mounted || checking
             ? "확인하는 중입니다…"
             : allOk
-              ? "모든 항목이 정상입니다."
-              : `확인이 필요한 항목이 ${failCount}개 있습니다.`}
+              ? `${results.length}개 항목 확인 완료 — 모든 항목이 정상입니다.`
+              : `${results.length}개 항목 확인 완료 — 확인이 필요한 항목이 ${failCount}개 있습니다.`}
         </p>
         <BigButton onClick={runChecks} variant="secondary" disabled={checking}>
           {checking ? "검사 중…" : "다시 검사"}
         </BigButton>
       </div>
 
-      <ul aria-live="polite" className="chim-hairline mt-[10px] border-y border-line">
+      <ul className="chim-hairline mt-[10px] border-y border-line">
         {results.map((result) => (
           <CheckRow
             key={result.id}

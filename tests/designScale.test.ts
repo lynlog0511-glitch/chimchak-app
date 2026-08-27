@@ -11,9 +11,17 @@
  * 「아는 값을 막는」 거부 목록은 아직 모르는 값을 통과시킨다. 실제로 사다리 게이트가
  * 거부 목록이던 동안 18px·28px이 그대로 지나갔다. 그래서 사다리·브레이크포인트·leading-none·
  * brand-700을 차례로 뒤집었고, 마지막까지 거부 목록이던 **반지름·행간 임의값 둘**도
- * 2026-08-26에 뒤집었다(5차 페르소나 디자이너 low·P2). 지금 이 파일이 세는 **열다섯 규칙**
- * (검사는 열여섯이다 — 브레이크포인트만 예외 파일의 개수를 따로 한 번 더 센다) 중
- * 「모르는 값이 통과할 수 있는」 것은 없다.
+ * 2026-08-26에 뒤집었다(5차 페르소나 디자이너 low·P2). 마지막 한 통로였던 **글자 크기 프리셋**은
+ * 2026-08-27에 닫았다(⑰ — 행간이 ③으로 이미 닫아 둔 것과 같은 모양이다. 7차 페르소나 디자이너 low).
+ * 지금 이 파일이 세는 **열일곱 규칙**(검사는 열여덟이다 — 브레이크포인트만 예외 파일의 개수를
+ * 따로 한 번 더 센다) 중 「모르는 값이 통과할 수 있는」 것은 없다.
+ *
+ * ── 소스 문자열만 본다 (한계를 적어 둔다) ────────────────────
+ * 이 파일의 모든 검사는 src 아래 소스를 읽어 문자열을 셀 뿐이고, **생성된 CSS의 규칙 순서**는
+ * 보지 못한다. 6차의 아이브로 색 결함이 정확히 거기서만 갈렸다 — 소스로는 완전히 정상인데
+ * `.text-ink-muted`가 알파벳 순으로 뒤에 나와 색 오버라이드 다섯이 무효였다(7차 페르소나 FE med).
+ * 그 종류의 결함은 「같은 속성을 두 번 붙일 길」을 컴포넌트에서 막는 쪽으로 닫는다 —
+ * ⑯이 그 규율을 지킨다.
  *
  * ── 미결 목록 (PENDING) ──────────────────────────────────────
  * 아래 몇몇 검사에는 `PENDING_*`이라는 별도 목록이 있다. 「사유가 있어 열어 둔 예외」가 아니라
@@ -266,7 +274,9 @@ describe("디자인 눈금 게이트", () => {
       "rounded-[18px_4px_18px_18px]": 2, // 학습자 말풍선 — 같은 규칙의 좌우 대칭
       "rounded-[10px]": 1, // /check 실패 마크 — 한 글자 사각 마커의 작은 변형
       "rounded-[9px]": 1, // 응급 재생기 단계 번호 — 7×7 정사각 안 글리프
-      "rounded-[6px]": 5, // 가림 인라인 칩(가이드 §4.9가 6px으로 지정) — /report 넷 · /history 하나
+      // 가림 인라인 칩(가이드 §4.9가 6px으로 지정) — 2026-08-27에 네 자리를 상수 하나로 모았다
+      // (`components/maskChip.ts`). 남은 둘은 그 상수와, /report의 「눌러서 가리기」 터치 영역이다.
+      "rounded-[6px]": 2,
       "rounded-[5px]": 2, // 코칭 델타 칩 — 11px 글자에 6px은 과해 한 단 아래
       "rounded-[2px]": 1, // 세션 진행 막대(3px 높이) — 토큰은 전부 이보다 크다
       "rounded-[1px]": 2, // 파형 막대(3px 폭) — 끝을 죽이지 않을 만큼만
@@ -394,8 +404,15 @@ describe("디자인 눈금 게이트", () => {
        `white`는 지운 토큰이 아니라 **Tailwind 내장 이름**이라 「지웠으니 안 쓴다」가 통하지
        않는다 — 그래서 규칙을 목록에 넣어 여기서 센다. 값이 같아 시각 결과는 0이다. */
     const PREFIX = "text|bg|border|fill|stroke|ring|outline|divide|placeholder|from|via|to|shadow";
+    /* ── `brand-900`이 여기 있는 이유 (2026-08-27) ──────────────
+       `white`를 넣은 것과 **같은 방식**이다. #0f3f3a에 이름이 둘이었고(`brand-900`·`brand-on-tint`),
+       정의 주석이 스스로 「(= brand-900)」이라고 적고 있었다 — 흰색이 게이트로 닫힌 뒤
+       이 저장소에서 「한 값에 이름 하나」를 어기는 마지막 자리였다(7차 페르소나 디자이너 P0).
+       그 이름이 하던 일 둘 중 「틸 면 위 딥 텍스트」는 정본 `brand-on-tint`로 옮겼고,
+       「brand-800의 눌림 단」은 값이 같아도 **가리키는 것이 달라** 역할 이름으로 다시 세웠다
+       (`--color-brand-press` — 한쪽을 조정하는 날 다른 쪽이 따라오면 안 되는 관계다). */
     const ALIAS =
-      "tertiary|extra-faint|faint|tint|deep|neutral-soft|paper-rail|mint-100|brand-100|white";
+      "tertiary|extra-faint|faint|tint|deep|neutral-soft|paper-rail|mint-100|brand-100|white|brand-900";
     const aliasRe = new RegExp(`\\b(?:${PREFIX})-(?:${ALIAS})\\b`);
 
     /**
@@ -653,6 +670,39 @@ describe("디자인 눈금 게이트", () => {
     /* 6차 리드 정리로 응급 상세 `<dt>` 두 자리를 .06em+행간으로 통일 — 비어 있어야 한다. */
     const PENDING_TRACKING_04: Record<string, number> = {};
     expect(countByFile(/tracking-\[0\.04em\]/)).toEqual(PENDING_TRACKING_04);
+
+    /**
+     * ── 자간 없는 사본도 센다 (2026-08-27) ──────────────────────
+     * 위 정규식은 **자간을 키로** 삼는다. 그래서 자간을 빼고 굵기·색까지 다르게 적은 사본은
+     * 「아이브로가 아닌 12.5px 문장」으로 통과했다 — 하필 5차에 「먼저 이것부터」로 이름까지 댄
+     * 자리가 정확히 그 형태였고(`ProtocolAddressCard`의 400/자간 0/ink-faint 「방문지 주소」),
+     * 그 파일 다른 줄이 `<EyebrowLabel>`을 쓰는 채로 살아남았다(7차 페르소나 디자이너 P0).
+     * 규칙은 넓혔는데 대표 사례가 그물의 눈보다 작았던 셈이다.
+     *
+     * 그래서 자간이 아니라 **자리와 길이**로 한 겹 더 본다:
+     *   `<p>`이고 · 12.5px이고 · 내용이 통째로 짧은 문자열 리터럴이고 ·
+     *   그 파일이 이미 `EyebrowLabel`을 쓰고 있으면 → 손수 아이브로다.
+     * `<p>`로 한정하는 것이 이 규칙의 핵심이다 — 남은 예외 아홉이 전부 `<span>`·`<dt>`·`<th>`인
+     * 이유가 「문단을 넣을 수 없는 자리」이므로, **`<p>`가 서는 자리에는 `EyebrowLabel`이 선다.**
+     * 12자 상한은 라벨과 문장을 가르는 선이다(실측: 지금 남은 `<p>` 리터럴의 최단은 30자).
+     *
+     * 못 세는 자리도 적어 둔다 — `EyebrowLabel`을 아직 한 번도 쓰지 않은 파일에 새 손수 사본이
+     * 처음 생기는 경우는 여기서 안 걸린다. 그 자리는 위 자간 검사가 받는다(자간을 적으면 걸리고,
+     * 안 적으면 정본과 눈에 띄게 다른 글자가 되어 리뷰에서 보인다).
+     */
+    const handmade: string[] = [];
+    for (const file of FILES) {
+      if (!file.rel.endsWith(".tsx") || !file.code.includes("EyebrowLabel")) continue;
+      for (const match of file.code.matchAll(
+        /<p\b[^<>]*text-\[0\.7813rem\][^<>]*>([^<>{}]*)<\/p>/g,
+      )) {
+        const label = match[1]!.replace(/\s+/g, " ").trim();
+        if (label.length === 0 || label.length > 12) continue;
+        const line = file.code.slice(0, match.index).split("\n").length;
+        handmade.push(`${file.rel}:${line} 「${label}」`);
+      }
+    }
+    expect(handmade).toEqual([]);
   });
 
   it("짧은 라벨 액션은 높이만이 아니라 48px 폭도 갖는다", () => {
@@ -673,11 +723,18 @@ describe("디자인 눈금 게이트", () => {
        48px에 못 미치면 `min-w-[48px]`가 있거나, 폭이 부모에 의해 늘어나는 것이
        클래스에 적혀 있어야 한다(`w-full`·`flex-1`·`flex-[…]`·`grow`·`self-stretch`).
 
-       ── 못 세는 자리 ─────────────────────────────────────────
-       이 검사는 **여는 태그 바로 뒤에 글자가 오는 경우**만 읽는다. 라벨이 표현식이면
-       그 안의 문자열 리터럴 중 가장 짧은 것을 라벨로 보고, 리터럴이 없으면(변수·함수 호출)
-       건너뛴다. 클래스가 공용 상수로 빠져 있는 자리도 라벨이 쓰는 쪽에 있어 여기서는 못 센다 —
-       아래 `UNREADABLE`에 그 자리를 적어 두어, 「못 세는 자리」가 조용히 늘어나면 알게 한다. */
+       ── 못 세는 자리 (2026-08-27: 장부를 세 갈래로 넓혔다) ────
+       이 검사는 **여는 태그 바로 뒤에 글자가 오는 경우**만 읽는다. 못 세는 갈래가 셋이고,
+       셋 다 아래 세 장부에 파일·개수로 적힌다.
+         ⓐ 클래스가 공용 상수로 빠져 라벨이 쓰는 쪽에 있는 자리 → `UNREADABLE`
+         ⓑ 라벨이 표현식인데 그 안에 문자열 리터럴이 없는 자리(변수·함수 호출) → `EXPR_LABEL`
+         ⓒ 여는 태그 뒤가 곧바로 다른 요소인 자리(아이콘·중첩 span) → `ELEMENT_LABEL`
+       7차 실측에서 `min-h-[48px]` 104자리 중 폭을 실제로 어림하는 것은 38자리이고, 늘어남 면제가
+       9자리, **나머지 53자리는 아무 기록 없이 지나갔다**(ⓑ 20 · ⓒ 33 — 8/27 커밋 뒤로는 총수
+       104는 그대로이고 갈래가 37·8·22·33으로 옮겼다). 그런데 이 주석은
+       「못 세는 자리를 적어 두어 조용히 늘어나면 알게 한다」고 단언하고 있었고, 그 단언이 참인
+       갈래는 ⓐ 하나뿐이었다(7차 페르소나 UI/UX low). 53자리를 손으로 열어 보니 지금 폭이 모자란
+       곳은 0건이라, 장부에 넣는 지금이 가장 싼 때다. */
     const CJK = /[ᄀ-ᇿ㄰-㆏가-힣　-〿㐀-鿿＀-￯]/g;
     const STRETCH = ["min-w-[48px]", "w-full", "flex-1", "flex-[", "flex-auto", "grow", "self-stretch"];
 
@@ -707,7 +764,7 @@ describe("디자인 눈금 게이트", () => {
     const PENDING_NARROW: Record<string, number> = {};
 
     /**
-     * 클래스가 공용 상수로 빠져 라벨을 못 읽는 자리 — **늘어나면 알아야 한다.**
+     * ⓐ 클래스가 공용 상수로 빠져 라벨을 못 읽는 자리 — **늘어나면 알아야 한다.**
      * (라벨이 쓰는 쪽에 있어 이 검사로는 폭을 어림할 수 없다.)
      */
     const UNREADABLE: Record<string, number> = {
@@ -717,9 +774,62 @@ describe("디자인 눈금 게이트", () => {
       "src/components/ListRow.tsx": 1, // 행 공통 클래스
     };
 
+    /** ⓑ 라벨이 표현식인데 문자열 리터럴이 없는 자리(변수·함수 호출) — 폭을 어림할 근거가 없다. */
+    const EXPR_LABEL: Record<string, number> = {
+      "src/app/emergency/_components/ProtocolAddressCard.tsx": 4,
+      "src/app/for-orgs/page.tsx": 1,
+      "src/app/guide/page.tsx": 2,
+      "src/app/legal/page.tsx": 1,
+      "src/app/page.tsx": 1,
+      "src/app/practice/_components/FreeComposer.tsx": 1,
+      "src/app/practice/_components/FreeInterrupt.tsx": 1,
+      "src/app/report/_components/DraftForm.tsx": 1,
+      "src/app/report/_components/MaskReview.tsx": 1,
+      "src/app/train/_components/CriticalInterrupt.tsx": 1,
+      "src/app/train/_components/CueResponder.tsx": 2,
+      "src/app/train/_components/InlineCoaching.tsx": 1,
+      "src/app/train/_components/TrainSession.tsx": 1,
+      "src/app/_components/FirstVisitHint.tsx": 1,
+      "src/app/_components/WeeklyGoalCard.tsx": 1,
+      "src/components/SettingsMenu.tsx": 2,
+    };
+
+    /** ⓒ 여는 태그 뒤가 곧바로 다른 요소인 자리(아이콘·중첩 span) — 읽을 글자가 그 자리에 없다. */
+    const ELEMENT_LABEL: Record<string, number> = {
+      "src/app/check/_components/DemoJumpPanel.tsx": 1,
+      "src/app/check/_components/DemoSeedPanel.tsx": 2,
+      "src/app/console/_components/ConsoleClient.tsx": 1,
+      "src/app/emergency/[id]/_components/ProtocolPlayer.tsx": 2,
+      "src/app/for-orgs/_components/OrgScaleCalculator.tsx": 1,
+      "src/app/history/certificate/_components/CertificateSheet.tsx": 2,
+      "src/app/history/_components/HistoryBoard.tsx": 1,
+      "src/app/history/_components/ReportList.tsx": 1,
+      "src/app/history/_components/TrainingRow.tsx": 1,
+      "src/app/legal/page.tsx": 1,
+      "src/app/practice/_components/FreeInterrupt.tsx": 1,
+      "src/app/practice/_components/SeedForm.tsx": 1,
+      "src/app/report/page.tsx": 1,
+      "src/app/report/_components/MaskReview.tsx": 1,
+      "src/app/report/_components/PrivacyPath.tsx": 1,
+      "src/app/safety/page.tsx": 1,
+      "src/app/safety/_components/EvidenceFlow.tsx": 1,
+      "src/app/safety/_components/RubricAllList.tsx": 1,
+      "src/app/safety/_components/SafetyToc.tsx": 1,
+      "src/app/train/page.tsx": 1,
+      "src/app/train/_components/BriefingPanel.tsx": 2,
+      "src/app/train/_components/CriticalInterrupt.tsx": 1,
+      "src/app/train/_components/EndingPanel.tsx": 3,
+      "src/app/train/_components/ProtocolInline.tsx": 1,
+      "src/app/train/_components/TrainSession.tsx": 1,
+      "src/app/_components/ResumeCard.tsx": 1,
+      "src/components/SourceChip.tsx": 1,
+    };
+
     const narrow: string[] = [];
     const pending: Record<string, number> = {};
     const unreadable: Record<string, number> = {};
+    const exprLabel: Record<string, number> = {};
+    const elementLabel: Record<string, number> = {};
 
     for (const file of FILES) {
       if (!file.rel.endsWith(".tsx")) continue;
@@ -742,10 +852,18 @@ describe("디자인 눈금 게이트", () => {
           const literals = [...label.matchAll(/"([^"\n]*)"/g)]
             .map((m) => m[1]!.trim())
             .filter(Boolean);
-          if (literals.length === 0) continue; // 변수·함수 라벨 — 여기서는 못 센다
+          if (literals.length === 0) {
+            // 변수·함수 라벨 — 여기서는 못 센다. 장부 ⓑ에 남긴다.
+            exprLabel[file.rel] = (exprLabel[file.rel] ?? 0) + 1;
+            continue;
+          }
           label = literals.reduce((a, b) => (a.length <= b.length ? a : b));
         }
-        if (!label) continue;
+        if (!label) {
+          // 여는 태그 뒤가 곧바로 다른 요소 — 읽을 글자가 없다. 장부 ⓒ에 남긴다.
+          elementLabel[file.rel] = (elementLabel[file.rel] ?? 0) + 1;
+          continue;
+        }
 
         const cls = code.slice(code.lastIndexOf("<", at), cursor);
         const cjk = label.match(CJK)?.length ?? 0;
@@ -764,5 +882,54 @@ describe("디자인 눈금 게이트", () => {
     expect(narrow).toEqual([]);
     expect(pending).toEqual(PENDING_NARROW);
     expect(unreadable).toEqual(UNREADABLE);
+    expect(exprLabel).toEqual(EXPR_LABEL);
+    expect(elementLabel).toEqual(ELEMENT_LABEL);
+  });
+
+  it("아이브로 색은 `tone`으로만 고른다 — `className`으로 넘긴 색은 무효다", () => {
+    /* ⑯ (2026-08-27 신설). `<EyebrowLabel>`은 자기 잉크 클래스를 들고 있고 `cx`는 merge가 아니라
+       **이어붙이기**다(`components/utils.ts` — tailwind-merge는 의존성에 없다). 그래서 색을
+       `className`으로 넘기면 결과 class가 `… text-ink-muted text-brand-800` 꼴이 되고, 두 규칙은
+       같은 레이어·같은 명시도(0,1,0)라 **생성된 CSS에서 뒤에 나오는 쪽**이 이긴다. Tailwind는
+       유틸리티를 알파벳 순으로 내보내므로 `.text-ink-muted`가 `.text-brand-700`·`.text-brand-800`·
+       `.text-danger-ink`보다 뒤에 서고, 6차가 새로 만든 색 변형 여섯 중 **다섯이 무효**였다
+       (7차 페르소나 FE med — 빌드 산출물 CSS의 바이트 위치로 확인된 자리다).
+
+       하필 소스 문자열로는 완전히 정상으로 보이는 결함이라, 이 파일의 다른 검사가 한 줄도 볼 수
+       없었다. 그래서 **결함이 난 방향으로** 그물을 하나 더 건다 — 색을 넘길 길 자체를 막고
+       (`EyebrowLabel`의 `tone` prop), 넘기는 문법이 다시 들어오면 여기서 걸리게 한다.
+       여백·레이아웃 클래스(`mt-4`·`flex-none`)는 그대로 `className`으로 넘긴다. */
+    const found: string[] = [];
+    for (const file of FILES) {
+      for (const match of file.code.matchAll(/<EyebrowLabel\b[^>]*>/g)) {
+        const tag = match[0];
+        const cls = /className=\{?["`]([^"`]*)["`]/.exec(tag)?.[1] ?? "";
+        /* 잉크 클래스만 본다 — `text-[0.7813rem]`(크기)·`text-center`(정렬)는 색이 아니다.
+           색 토큰은 전부 `text-<이름>-<단>` 꼴이거나 `text-paper`처럼 한 낱말 토큰이다. */
+        const ink = cls.match(/\btext-(?:ink|brand|danger|warn|ok|paper|mic)(?:-[a-z0-9]+)*\b/g);
+        if (ink) {
+          found.push(`${file.rel}:${file.code.slice(0, match.index).split("\n").length} ${ink.join(" ")}`);
+        }
+      }
+    }
+    expect(found).toEqual([]);
+  });
+
+  it("글자 크기는 Tailwind 프리셋으로도, px·pt로도 적지 않는다", () => {
+    /* ⑰ (2026-08-27 신설). 사다리는 임의값(⑥)·CSS 선언(⑨)·SVG 속성(⑬) 세 통로를 막아 두었는데
+       **Tailwind 크기 프리셋**만 대칭이 없었다 — 행간은 임의값(②)과 프리셋(③) 두 통로를 다 막았고,
+       그 ③이 존재하는 이유를 게이트 자신이 「임의값만 세니 같은 값을 프리셋으로 적으면 그물을
+       통과했다」로 적어 두었다. 그 사이 가이드 §9-11은 「지금 이 파일의 검사 중 모르는 값이 통과할
+       수 있는 것은 없다」고 단언하고 있었다(7차 페르소나 디자이너 low).
+       `text-sm`(14)·`text-lg`(18)은 사다리 밖이고, `text-base`(16)는 사다리 값을 다른 이름으로
+       적는 것이다. 실측 위반이 0건이라 지금이 뒤집는 비용이 가장 싸다.
+
+       px·pt를 함께 막는 이유는 ⑨가 CSS 선언에 대해 이미 세운 것과 같다 — **rem만 받는다.**
+       px로 적으면 앱의 「글자 크기」 3단(루트 100/112.5/125%)이 그 글자만 비껴간다.
+       ※ `em`은 이 목록에 없다. 부모 크기에 곱해지는 상대 단위라 3단을 그대로 따라가기 때문이고,
+         저장소의 유일한 사용처도 그런 자리다(`MaskReview`의 가림 칩 안 `text-[0.8em]` —
+         16px 문단 안에서 「→ 치환어」만 한 단 작게). 단위가 아니라 **비례하는가**가 규칙이다. */
+    expect(hits(/\btext-(?:xs|sm|base|lg|xl|[2-9]xl)\b/)).toEqual([]);
+    expect(hits(/text-\[[0-9.]+(?:px|pt)\]/)).toEqual([]);
   });
 });

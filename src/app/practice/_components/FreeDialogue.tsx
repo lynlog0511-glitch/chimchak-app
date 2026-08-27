@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { WaveBars } from "@/components";
 import { cx } from "@/components/utils";
 import { FREE_FALLBACK_NOTE } from "@/lib/onlineFree";
+import { liveRegionMode } from "@/app/emergency/_components/useProtocolPlayback";
 import { SCENE_FIRST_MOVE, SCENE_PERSONA_LABEL, SCENE_SITUATION_LABEL } from "./constants";
 
 /** 화면이 들고 있는 대화 한 줄 — 저장되지 않고, 화면을 벗어나면 사라집니다. */
@@ -23,6 +24,13 @@ export interface FreeDialogueProps {
   pending: boolean;
   /** 지금 대사를 읽어 주고 있는지 (마지막 인물 대사에만 붙습니다) */
   speaking: boolean;
+  /**
+   * **소리가 실제로 나는지** — 아래 대화 로그 리전을 읽어 줄지 말지를 가릅니다.
+   *
+   * 값의 정의는 훈련 세션·응급 두 화면과 같은 한 벌입니다(`useVoicePresence`의 `spokenAloud`).
+   * 이 화면만 다른 판단을 하면, 같은 앱 안에서 「소리가 난다」가 또 두 가지가 됩니다.
+   */
+  spokenAloud: boolean;
   className?: string;
 }
 
@@ -67,6 +75,7 @@ export function FreeDialogue({
   items,
   pending,
   speaking,
+  spokenAloud,
   className,
 }: FreeDialogueProps) {
   const tailRef = useRef<HTMLDivElement | null>(null);
@@ -110,7 +119,19 @@ export function FreeDialogue({
         </p>
       )}
 
-      <div className="mt-4 flex flex-col gap-4">
+      {/* 훈련 세션의 대화 로그(`DialogueLog`)와 **같은 한 줄**입니다 — `role="log"`에 이름을 달고,
+          소리가 실제로 나는 동안에는 입을 닫습니다(같은 문장을 앱이 소리로 읽는 자리입니다).
+          이 화면에 리전이 하나도 없던 동안, 소리를 끄신 낭독 사용자에게는 방금 도착한 어르신
+          대사가 어떤 경로로도 닿지 않았습니다 — 눈으로 보시는 분에게는 말풍선이 스르르 붙는 것이
+          신호지만, 그 밖에는 화면이 조용한 채로 바뀌고 직접 훑어 내려가 찾아야 했습니다
+          (7차 페르소나 UI/UX P0). 하필 이 화면의 대사는 **비동기로 늦게** 도착합니다.
+          값의 정의는 세션·응급과 같은 한 벌입니다(`useVoicePresence`). */}
+      <div
+        role="log"
+        aria-live={liveRegionMode(spokenAloud)}
+        aria-label="대화 기록"
+        className="mt-4 flex flex-col gap-4"
+      >
         {items.map((item) =>
           item.speaker === "character" ? (
             <div key={item.id} className="animate-fade-up flex gap-2.5">

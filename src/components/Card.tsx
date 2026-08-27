@@ -14,8 +14,15 @@ export interface CardProps {
    * 카드 면 — 기본은 흰 카드(`paper`)입니다.
    *
    * **면 카드는 `tone="paper-2"` 한 줄로 씁니다.** 손으로 `rounded-card bg-paper-2`를 적지 마세요 —
-   * 그렇게 만든 면 카드가 지금 77곳이고, 값이 맞는 이유가 컴포넌트가 아니라 사람의 주의라
-   * 다음 리디자인 때 눈금 통일 작업을 처음부터 다시 해야 합니다(2차 페르소나 디자이너 P2).
+   * 그렇게 만든 면 카드가 **2026-08-27 실측 83곳**이고, 값이 맞는 이유가 컴포넌트가 아니라
+   * 사람의 주의라 다음 리디자인 때 눈금 통일 작업을 처음부터 다시 해야 합니다
+   * (2차 페르소나 디자이너 P2).
+   *
+   * ※ 이 숫자는 세 라운드(3차 77 · 5차 84 · 7차 83) 동안 문서 쪽만 77에 멈춰 있었습니다 —
+   *   「문서만으로는 세지 못한다」의 증거라, 고칠 때는 세는 방법도 함께 적어 둡니다:
+   *   src 아래 `.tsx`·`.ts`·`.css`에서 **주석을 지운 뒤** 같은 줄에 `rounded-card`와
+   *   `bg-paper-2`가 함께 오는 줄 수입니다(게이트의 `stripComments`와 같은 기준).
+   *   본선 전에 83줄을 채택 작업으로 바꾸지는 않습니다 — 시각 이득이 0이고 회귀 위험만 있습니다.
    */
   tone?: CardTone;
   /** 내부 여백을 끄고 직접 채우고 싶을 때 false */
@@ -40,12 +47,24 @@ const TONE: Record<CardTone, string> = {
   danger: "bg-danger-soft",
 };
 
-/** 보더는 옵트인일 때만 — 톤에 맞는 선 하나로 끝냅니다. */
+/**
+ * 보더는 옵트인일 때만 — 톤에 맞는 선 하나로 끝냅니다.
+ *
+ * 2026-08-27: `brand`·`ok` 두 줄이 `brand-200`·`ok-line`을 쓰고 있었는데, 그 두 토큰의 **유일한**
+ * 등장이 이 표였습니다. 그런데 이 표를 읽는 길은 `border && TONE_BORDER[tone]` 하나이고 `border`의
+ * 기본값은 `false`이며, `<Card>`의 실사용 두 곳(`FirstVisitHint`·`WeeklyGoalCard`)은 둘 다
+ * `tone="paper-2"`에 `border`를 넘기지 않습니다 — 즉 **호출자가 0이라 화면에 닿을 수 없는 토큰**
+ * 이었습니다. 죽은 표면 판정을 「grep 참조 0건」으로만 하면 이런 자리가 그물을 통과합니다
+ * (5차의 `TierIndicator`와 같은 착시 — 7차 페르소나 디자이너 low. 다음 스윕에서는 **조회표의 키가
+ * 호출자에게서 실제로 오는지**를 한 칸 더 봅니다).
+ * 그래서 토큰 둘을 globals.css에서 지우고, 이 두 톤의 보더는 중성 선으로 둡니다 —
+ * 「그 면의 선」이 정말 필요해지는 날 **쓰는 자리와 함께** 다시 그립니다(§9-9).
+ */
 const TONE_BORDER: Record<CardTone, string> = {
   paper: "border border-line",
   "paper-2": "border border-line",
-  brand: "border border-brand-200",
-  ok: "border border-ok-line",
+  brand: "border border-line",
+  ok: "border border-line",
   warn: "border border-warn-line",
   danger: "border border-danger-line",
 };

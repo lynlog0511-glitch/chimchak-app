@@ -302,7 +302,7 @@ export default function GuidePage() {
                     globals.css의 brand-700 주석에 같은 단서를 달아 두었습니다. */}
                 <Link
                   href={item.href}
-                  className="inline-flex min-h-[48px] items-center rounded-field text-[0.8438rem] font-bold text-brand-800 transition-colors duration-150 hover:text-brand-900"
+                  className="inline-flex min-h-[48px] items-center rounded-field text-[0.8438rem] font-bold text-brand-800 transition-colors duration-150 hover:text-brand-press"
                 >
                   {item.linkLabel} ›
                 </Link>

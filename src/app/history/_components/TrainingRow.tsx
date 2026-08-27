@@ -3,7 +3,7 @@
 import { useId, useState } from "react";
 import Link from "next/link";
 import type { EndingDef, SessionRecord } from "@/types";
-import { EyebrowLabel } from "@/components";
+import { EyebrowLabel, type EyebrowTone } from "@/components";
 import { isDemoRecord } from "@/lib/demoSeed";
 import { formatDateTime, formatShortDate, verdictNote } from "./format";
 import { trainHref } from "./nextTraining";
@@ -127,13 +127,13 @@ export function TrainingRow({ record, typeLabel }: TrainingRowProps) {
 
           <RowList
             label="잘한 것"
-            labelClass="text-ok-ink"
+            labelTone="ok"
             items={record.greenChecks}
             empty="이번 회차에는 기록된 항목이 없습니다."
           />
           <RowList
             label="다시 볼 것"
-            labelClass="text-ink-soft"
+            labelTone="soft"
             items={record.coachingPoints}
             empty="따로 남은 것이 없습니다. 흐름을 잘 지키셨습니다."
           />
@@ -163,19 +163,20 @@ export function TrainingRow({ record, typeLabel }: TrainingRowProps) {
 
 function RowList({
   label,
-  labelClass,
+  labelTone,
   items,
   empty,
 }: {
   label: string;
-  labelClass: string;
+  labelTone: EyebrowTone;
   items: string[];
   empty: string;
 }) {
   return (
     <div className="mt-[14px]">
-      {/* 아이브로는 손으로 짓지 않고 규격 컴포넌트를 씁니다 — 색만 className으로 덮습니다. */}
-      <EyebrowLabel className={labelClass}>{label}</EyebrowLabel>
+      {/* 아이브로는 손으로 짓지 않고 규격 컴포넌트를 씁니다 — 색은 `tone` 한 칸으로 고릅니다
+          (className으로 색을 넘기면 기본 잉크와 이어붙어 CSS 출력 순서가 승자를 정합니다). */}
+      <EyebrowLabel tone={labelTone}>{label}</EyebrowLabel>
       {items.length > 0 ? (
         <ul className="chim-hairline mt-[4px] border-t border-line">
           {items.map((item, index) => (

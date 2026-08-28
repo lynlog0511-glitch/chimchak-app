@@ -11,7 +11,12 @@ import {
   ScreenHeader,
 } from "@/components";
 import { PILOT_PREREGISTERED, PILOT_SCOPE } from "@/data/pilotResults";
-import { AI_DIALOGUE_LABEL, ONLINE_MODE_LABEL } from "@/lib/settings";
+import {
+  AI_DIALOGUE_FIXED_LABEL,
+  AI_DIALOGUE_LABEL,
+  AI_DIALOGUE_VARIED_LABEL,
+  ONLINE_MODE_LABEL,
+} from "@/lib/settings";
 import { MAX_ITEMS } from "@/lib/storage";
 import { DocCloseButton } from "../_components/DocCloseButton";
 import { SafetyToc, TOC_SECTION_SCROLL_MT, type TocItem } from "../safety/_components/SafetyToc";
@@ -39,7 +44,7 @@ export const metadata: Metadata = {
    다른 화면과 같은 목소리로, 짧은 문장에 사실만 적습니다. */
 
 /** 절마다 맨 위에 붙는 시행일 — 문구의 단일 원천, 문서를 고친 날 함께 올립니다. */
-const DRAFT_NOTE = "시행일 2026. 8. 25.";
+const DRAFT_NOTE = "시행일 2026. 8. 28.";
 
 /** 목차 칩 — 절 셋뿐이라 스크롤 추적 없이 앵커 링크만 둡니다. */
 const TOC: readonly TocItem[] = [
@@ -225,7 +230,7 @@ const STORED_ITEMS: readonly { t: string; d: string }[] = [
   },
   {
     t: "설정",
-    d: `글자 크기·음성 빠르기, 그리고 AI 스위치 두 칸입니다 — 「${AI_DIALOGUE_LABEL}」(기본 켜짐)과 「${ONLINE_MODE_LABEL}」(기본 꺼짐). 예전에는 여기에 주소·키가 함께 담겼지만 지금은 서버로 옮겼고, 이 기기에는 어떤 키도 두지 않습니다.`,
+    d: `글자 크기·음성 빠르기, 그리고 AI가 닿는 칸 둘입니다 — 「${AI_DIALOGUE_LABEL}」(기본 「${AI_DIALOGUE_VARIED_LABEL}」)와 「${ONLINE_MODE_LABEL}」(기본 꺼짐). 예전에는 여기에 주소·키가 함께 담겼지만 지금은 서버로 옮겼고, 이 기기에는 어떤 키도 두지 않습니다.`,
   },
   {
     t: "방문지 주소",
@@ -371,9 +376,10 @@ export default function LegalPage() {
             (2) 어르신·보호자 대사 변주 — 하신 말씀은 나가지 않습니다
           </p>
           <P className="mt-2">
-            설정 메뉴의 「{AI_DIALOGUE_LABEL}」 스위치이고{" "}
-            <b className="font-bold">기본은 켜짐</b>입니다. 언제든 끄실 수 있습니다. 검수해 둔
-            어르신·보호자 대사를 같은 뜻으로 다시 쓰기 위한 전송이고,{" "}
+            설정 메뉴의 「{AI_DIALOGUE_LABEL}」 항목이고, 기본값은{" "}
+            <b className="font-bold">「{AI_DIALOGUE_VARIED_LABEL}」</b>입니다. 언제든 「
+            {AI_DIALOGUE_FIXED_LABEL}」로 바꾸실 수 있습니다. 검수해 둔 어르신·보호자 대사를 같은
+            뜻으로 다시 쓰기 위한 전송이고,{" "}
             <b className="font-bold">여기에는 하신 말씀이 실리지 않습니다.</b>
           </P>
           <Bullets
@@ -384,9 +390,10 @@ export default function LegalPage() {
               </>,
               <>
                 <b className="font-bold text-ink">나가지 않는 것</b> — 학습자의 말입니다. 요청 형식에
-                그 칸 자체가 없고, 서버도 위 네 칸만 받아 그 밖의 값이 붙은 요청은 거절합니다.
+                그 칸 자체가 없고, 서버도 아는 네 칸만 새로 조립해 보내므로 그 밖의 값은 외부
+                제공사에 닿지 않습니다.
               </>,
-              "개인정보가 나가지 않는 자리라 이 항목에는 동의를 받지 않습니다. 대신 끄는 자리를 설정에 두고, 무엇이 나가는지를 그 자리에서 밝힙니다.",
+              `개인정보가 나가지 않는 자리라 이 항목에는 동의를 받지 않습니다. 대신 말투를 고르는 자리를 설정에 두고, 무엇이 나가는지를 그 자리에서 밝힙니다 — 「${AI_DIALOGUE_FIXED_LABEL}」를 고르시면 이 전송 자체가 일어나지 않습니다.`,
               "응급 상황 훈련은 이 기능에서 통째로 빠집니다. 서버에 연결이 준비돼 있지 않거나 회선이 없으면 검수해 둔 대사가 그대로 나옵니다.",
             ]}
           />

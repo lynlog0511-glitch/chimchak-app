@@ -248,14 +248,30 @@ export function useModalDismiss({
       if (event.key !== "Tab") return;
       const panel = panelRef.current;
       if (!panel) return;
-      const focusables = panel.querySelectorAll<HTMLElement>(FOCUSABLE);
+      const focusables = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE));
       const first = focusables[0];
       const last = focusables[focusables.length - 1];
       if (!first || !last) return;
-      if (event.shiftKey && document.activeElement === first) {
+      const active = document.activeElement;
+      const at = active instanceof HTMLElement ? focusables.indexOf(active) : -1;
+      /* 초점이 이 목록 **밖**에 있는 경우가 열린 직후의 정상 상태입니다 — 두 오버레이 모두
+         `initialFocusRef`로 `tabIndex={-1}` 요소를 주기 때문입니다(설정 팝오버는 「글자 크기」
+         문단, 종료 확인은 제목 `<h2>`). 그 둘은 `FOCUSABLE`에 잡히지 않으므로 `focusables[0]`이
+         아니고, 예전 코드는 「첫 칸인가·끝 칸인가」만 보아 **연 직후 첫 Shift+Tab에 아무 개입도
+         하지 않았습니다** — 브라우저 기본 동작이 초점을 패널 밖(팝오버는 「설정」 트리거,
+         종료 확인은 패널 밖 전면 「닫기」 버튼)으로 내보내고, 한 번 더 누르면 배경 문서로
+         샙니다(15차 a11y med). 이 앱이 스스로 「Tab이 팝오버 밖으로 빠지지 않는다」고 적어 둔
+         자리입니다. 목록 밖이면 표준 수법대로 양 끝으로 돌려보냅니다 — Shift+Tab은 끝,
+         Tab은 처음. (제목·패널 자체에서 그냥 Tab을 누른 경우와 결과가 같으므로 손해가 없습니다.) */
+      if (at === -1) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+        return;
+      }
+      if (event.shiftKey && at === 0) {
         event.preventDefault();
         last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
+      } else if (!event.shiftKey && at === focusables.length - 1) {
         event.preventDefault();
         first.focus();
       }

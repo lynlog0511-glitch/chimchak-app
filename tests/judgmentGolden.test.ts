@@ -91,7 +91,10 @@ function judge(entry: GoldenCase): { branch: string; source: string; rule: strin
   }
   const result = classifyInput(cue, { utterance: entry.utterance });
   const opts = {
+    // 세션이 넘기는 것과 **같은 문맥**을 넘깁니다 — 시나리오 id가 빠지면 보고 자리의
+    // 과거 완료형 면제(rules.ts pastReportCues)가 그물 밖에 남습니다.
     scenarioType: scenario.type,
+    scenarioId: scenario.id,
     cueId: cue.id,
     appliedRubric: scenario.appliedRubric,
   };

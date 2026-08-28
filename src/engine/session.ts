@@ -292,6 +292,9 @@ export function submitResponse(
   if (utterance.length > 0 && !input.branchId) {
     const critical = checkCritical(utterance, {
       scenarioType: s.type,
+      // 시나리오 id를 함께 넘긴다 — cue id는 시나리오끼리 겹쳐서(A01 CUE-4는 기관 보고,
+      // A02 CUE-4는 실시간 대체 행동 유도) 자리를 특정하려면 짝이 필요하다.
+      scenarioId: s.id,
       cueId: cue.id,
       appliedRubric: s.appliedRubric,
     });
@@ -423,6 +426,7 @@ export function submitResponse(
     utterance.length > 0 && !input.branchId
       ? checkAdvisory(utterance, {
           scenarioType: s.type,
+          scenarioId: s.id,
           cueId: cue.id,
           appliedRubric: s.appliedRubric,
         })

@@ -200,11 +200,31 @@ function matchPatternList(
   return undefined;
 }
 
+/**
+ * 분기 대조 — **부재 조건**(unlessPatterns)을 먼저 본다.
+ *
+ * `except`가 매치 주변 창(앞뒤 6글자)을 보는 것과 달리, 부재 조건은 **발화 전체**를 본다.
+ * 창으로는 닿지 않는 자리가 있기 때문이다(15차 감사 실측):
+ *
+ *   "119에 신고하고 계속 기침하시도록 말을 걸겠습니다"
+ *
+ * 여기서 「말을 걸」과 「119」는 열여섯 글자 떨어져 있어 어떤 창으로도 만나지 않는다.
+ * 그런데 이 문장은 119를 부른 **모범 답안**이고, B02 D3-b「말 걸기만」이 재려던 실수와는
+ * 정반대다. D3-b가 감점(gaugeDelta > 0)이라 심각도 순위에서 D3-a를 이기고,
+ * CO-03이 4점 대신 2점으로 적립되며 SA-06·SA-07 4점이 통째로 사라졌다.
+ *
+ * 부재 조건도 부정 문맥을 본다("119는 부르지 않겠습니다"의 「119」는 부재 조건을 켜지 못한다) —
+ * 켜면 그 문장이 감점 갈래를 빠져나간다.
+ */
 function matchPattern(
   normalizedUtterance: string,
   branch: BranchDef,
   mode: "none" | "direct" | "full" = "none",
 ): string | undefined {
+  const unless = branch.unlessPatterns;
+  if (unless && unless.length > 0 && matchPatternList(normalizedUtterance, unless, "full")) {
+    return undefined;
+  }
   return matchPatternList(normalizedUtterance, branch.patterns, mode, branch.except);
 }
 

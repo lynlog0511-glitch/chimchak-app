@@ -53,9 +53,10 @@ import type { AiDialogueSettings } from "@/lib/settings";
 
 /* ── 도구 ──────────────────────────────────────────────── */
 
-/* 이 칸은 **어르신 연기** 스위치다(`settings.aiDialogue`) — 발화 전송 동의가 아니다.
+/* 이 칸은 **「어르신 말투」**다(`settings.aiDialogue`) — 발화 전송 동의가 아니다.
    2026-08-28에 갈렸고, 이 파일이 재는 기능은 학습자 발화를 싣지 않으므로 그쪽으로 갔다.
-   기본값이 켬이라는 사실과 마이그레이션 표는 tests/settings.test.ts가 맡는다. */
+   `true`가 「매번 조금씩 다르게」이고 그것이 기본값이다. 그 사실과 마이그레이션 표는
+   tests/settings.test.ts가 맡는다. */
 const ON: AiDialogueSettings = { enabled: true };
 const OFF: AiDialogueSettings = { enabled: false };
 
@@ -583,27 +584,29 @@ describe("요청 경로 (재생 상태와 분리)", () => {
     expect(target?.key).toBe(tail?.kind === "line" ? tail.key : "");
     expect(target?.anchor).toBe(tail?.kind === "line" ? tail.text : "");
 
-    /* 붙드는 박자: 소리 끔은 **변주가 도는 동안만** 짧게 붙든다(무대 음소거 시연에서
-       첫 대사에 변주가 서게 — 13차 ai_cto 2안, 14차 리더 채택). 움직임 줄임·시연
-       빨리감기는 「기다리지 않겠다」는 명시적 선택이라 변주 대기보다 우선한다. */
+    /* 붙드는 박자: 소리가 나지 않는 화면은 **변주가 도는 동안만** 짧게 붙든다(무대 음소거
+       시연에서 첫 대사에 변주가 서게 — 13차 ai_cto 2안, 14차 리더 채택). 움직임 줄임·시연
+       빨리감기는 「기다리지 않겠다」는 명시적 선택이라 변주 대기보다 우선한다.
+       재생 상태 칸의 이름이 `ttsOn`(헤더 스위치)이 아니라 `spokenAloud`(소리가 실제로
+       나는가)라는 사실 자체가 15차 a11y med에서 고친 우회다 — 이 검사가 그 이름을 붙든다. */
     expect(
-      lineHoldMs({ ttsOn: false, reducedMotion: false, demoMode: false, varying: true }),
+      lineHoldMs({ spokenAloud: false, reducedMotion: false, demoMode: false, varying: true }),
     ).toBe(MUTED_VARY_HOLD_MS);
     expect(
-      lineHoldMs({ ttsOn: false, reducedMotion: false, demoMode: false, varying: false }),
+      lineHoldMs({ spokenAloud: false, reducedMotion: false, demoMode: false, varying: false }),
     ).toBe(0);
     for (const playback of [
-      { ttsOn: true, reducedMotion: true, demoMode: false, varying: true },
-      { ttsOn: true, reducedMotion: false, demoMode: true, varying: true },
-      { ttsOn: false, reducedMotion: true, demoMode: false, varying: true },
-      { ttsOn: false, reducedMotion: false, demoMode: true, varying: true },
+      { spokenAloud: true, reducedMotion: true, demoMode: false, varying: true },
+      { spokenAloud: true, reducedMotion: false, demoMode: true, varying: true },
+      { spokenAloud: false, reducedMotion: true, demoMode: false, varying: true },
+      { spokenAloud: false, reducedMotion: false, demoMode: true, varying: true },
     ]) {
       expect(lineHoldMs(playback)).toBe(0);
     }
   });
 
   it("붙들 시간은 재생 상태만 본다 (상한 1200ms는 그대로)", () => {
-    const on = { ttsOn: true, reducedMotion: false, demoMode: false };
+    const on = { spokenAloud: true, reducedMotion: false, demoMode: false };
     expect(lineHoldMs({ ...on, varying: true })).toBe(VARY_LINE_HOLD_MS);
     expect(lineHoldMs({ ...on, varying: false })).toBe(SPEAKING_HOLD_MS);
     expect(VARY_LINE_HOLD_MS).toBe(1200);
@@ -625,7 +628,7 @@ describe("요청 경로 (재생 상태와 분리)", () => {
 });
 
 /**
- * 무전송 경계 — 「어르신 연기 기본 켬 = 동의 불요」의 근거가 통째로 얹혀 있는 자리다.
+ * 무전송 경계 — 「「매번 조금씩 다르게」가 기본값 = 동의 불요」의 근거가 통째로 얹혀 있는 자리다.
  *
  * 그 근거는 하나뿐이다: **변주 요청에 학습자 발화가 실리지 않는다.** 그 사실을 실제로 만드는
  * 것은 `recentContextLines`의 `kind !== "line"` 한 줄이고, 서버는 이 값을 개수·길이로만 보고

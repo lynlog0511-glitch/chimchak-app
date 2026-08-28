@@ -7,7 +7,7 @@
  *    코칭 보조와 대사 변주를 함께 받는다.
  *  ② 켜지 않은 사람에게 **발화 전송이 새로 켜지지 않는다** — `onlineCoaching`이 참이 되는 길은
  *    저장된 `true` 하나뿐이다. 이 앱에서 사용자의 말이 기기 밖으로 나가는 문이라 가장 무거운 줄이다.
- *  ③ 사용자가 **직접 끈 어르신 연기**를 새 기본값이 다시 켜 주지 않는다.
+ *  ③ 사용자가 **직접 고른 「검수 문장 그대로」**를 새 기본값이 되돌려 주지 않는다.
  *
  * 마이그레이션 코드가 따로 없는 것이 이 설계의 요점이다 — 읽는 잣대 둘(`!== false` / `=== true`)이
  * 갈라져 있고, 옛 값과 새 값이 같은 함수를 지나 각자 옳은 자리에 떨어진다. 그래서 검사도
@@ -68,7 +68,7 @@ async function withStored(raw: unknown) {
 /* ── 기본값 ────────────────────────────────────────────── */
 
 describe("기본값 — 두 스위치는 서로 다른 곳에서 출발한다", () => {
-  it("저장된 값이 없으면 어르신 연기는 켜짐, 발화 전송은 꺼짐이다", async () => {
+  it("저장된 값이 없으면 어르신 말투는 「매번 조금씩 다르게」, 발화 전송은 꺼짐이다", async () => {
     const settings = await withStored(undefined);
     const loaded = settings.loadSettings();
 
@@ -123,7 +123,7 @@ describe("마이그레이션 — 저장된 네 상태가 각자 옳은 자리로
       onlineCoaching: false,
     },
     {
-      name: "④ 새 값 — 사용자가 끈 어르신 연기는 꺼진 채로 남는다",
+      name: "④ 새 값 — 사용자가 고른 「검수 문장 그대로」는 그대로 남는다",
       stored: { aiDialogue: { enabled: false }, onlineCoaching: { enabled: true } },
       aiDialogue: false,
       onlineCoaching: true,
@@ -194,7 +194,7 @@ describe("동의 불변식 — 발화 전송은 저장된 true에서만 참이�
     expect(settings.loadSettings().aiDialogue.enabled).toBe(true);
   });
 
-  it("어르신 연기를 켜는 것이 발화 전송을 켜지 않는다", async () => {
+  it("말투를 「매번 조금씩 다르게」로 두는 것이 발화 전송을 켜지 않는다", async () => {
     const settings = await withStored({ onlineCoaching: { enabled: false } });
     const next = settings.setAiDialogue({ enabled: true });
 
@@ -203,7 +203,7 @@ describe("동의 불변식 — 발화 전송은 저장된 true에서만 참이�
     expect(settings.loadSettings().onlineCoaching.enabled).toBe(false);
   });
 
-  it("발화 전송을 끄는 것이 어르신 연기를 끄지 않는다", async () => {
+  it("발화 전송을 끄는 것이 말투를 「검수 문장 그대로」로 바꾸지 않는다", async () => {
     const settings = await withStored({ onlineCoaching: { enabled: true } });
     const next = settings.setOnlineCoaching({ enabled: false });
 
@@ -214,8 +214,8 @@ describe("동의 불변식 — 발화 전송은 저장된 true에서만 참이�
 
 /* ── 사용자가 끈 값은 남는다 ───────────────────────────── */
 
-describe("끈 값의 왕복 — 새 기본값이 사용자의 선택을 덮지 않는다", () => {
-  it("어르신 연기를 끄면 저장되고, 다시 읽어도 꺼짐이다", async () => {
+describe("고른 값의 왕복 — 새 기본값이 사용자의 선택을 덮지 않는다", () => {
+  it("「검수 문장 그대로」를 고르면 저장되고, 다시 읽어도 그대로다", async () => {
     const settings = await withStored(undefined);
     settings.setAiDialogue({ enabled: false });
 
@@ -227,7 +227,7 @@ describe("끈 값의 왕복 — 새 기본값이 사용자의 선택을 덮지 �
     expect(reloaded.loadSettings().aiDialogue.enabled).toBe(false);
   });
 
-  it("끈 뒤 다시 켜면 켜진 채로 남는다", async () => {
+  it("바꾼 뒤 「매번 조금씩 다르게」로 되돌리면 그 값이 남는다", async () => {
     const settings = await withStored(undefined);
     settings.setAiDialogue({ enabled: false });
     settings.setAiDialogue({ enabled: true });
@@ -247,10 +247,56 @@ describe("라벨 — 이름이 성질을 적는다", () => {
     expect(settings.ONLINE_MODE_LABEL).toContain("하신 말씀");
   });
 
-  it("어르신 연기 고지는 발화가 나가지 않는다고 적는다", async () => {
+  it("어르신 말투 절 이름에는 AI도 켜기/끄기도 없다", async () => {
     const settings = await withStored(undefined);
 
+    expect(settings.AI_DIALOGUE_LABEL).toBe("어르신 말투");
+    expect(settings.AI_DIALOGUE_LABEL).not.toContain("AI");
+    expect(settings.AI_DIALOGUE_LABEL).not.toContain("연기");
+  });
+
+  /**
+   * 2택은 **기본값이 앞**이다(글자 크기·음성 빠르기와 같은 차례). 차례가 뒤집히면 처음 여신
+   * 분이 왼쪽 보기를 기본으로 읽는데, 왼쪽에 서 있는 것은 고르지 않은 갈래가 된다.
+   */
+  it("어르신 말투는 말투 이름 2택이고, 기본값(true)이 앞에 선다", async () => {
+    const settings = await withStored(undefined);
+
+    expect(settings.AI_DIALOGUE_OPTIONS.map((option) => option.label)).toEqual([
+      "매번 조금씩 다르게",
+      "검수 문장 그대로",
+    ]);
+    expect(settings.AI_DIALOGUE_OPTIONS[0].value).toBe(true);
+    expect(settings.AI_DIALOGUE_OPTIONS[1].value).toBe(false);
+    expect(settings.AI_DIALOGUE_OPTIONS.map((option) => option.label)).not.toContain("켜기");
+    expect(settings.AI_DIALOGUE_OPTIONS.map((option) => option.label)).not.toContain("끄기");
+  });
+
+  /**
+   * **이름에서 AI를 뺀 대신 고지가 받는다**는 약속이 이 검사다.
+   * 항목 이름을 「어르신 말투」로 바꾼 것은 「꺼도 되는 기능」 프레임을 지우려는 것이지
+   * 사실을 지우려는 것이 아니므로, AI라는 낱말이 고지에서까지 사라지면 개명이 은폐가 된다.
+   */
+  it("어르신 말투 고지는 AI라는 사실과 발화가 나가지 않는다는 사실을 함께 적는다", async () => {
+    const settings = await withStored(undefined);
+
+    expect(settings.AI_DIALOGUE_NOTICE).toContain("AI");
     expect(settings.AI_DIALOGUE_NOTICE).toContain("하신 말씀은 나가지 않습니다");
+    expect(settings.AI_DIALOGUE_NOTICE).toContain("매번 조금씩 다르게");
+    expect(settings.AI_DIALOGUE_NOTICE).toContain("응급 상황 훈련은 제외");
+  });
+
+  /**
+   * 나가는 것은 **넷**이다 — /safety(§04 훈련 경로)·/legal(대사 변주 절)과 같은 수.
+   * 한동안 이 고지만 「직전 인물 대사」를 빼고 「뿐입니다」로 닫아, 세 화면이 같은 목록을
+   * 다르게 세고 있었다. 셋으로 줄면 여기서 걸린다.
+   */
+  it("어르신 말투 고지가 세는 「나가는 것」은 넷이다", async () => {
+    const settings = await withStored(undefined);
+
+    for (const item of ["대사 원문", "인물·상황 소개", "직전 인물 대사"]) {
+      expect(settings.AI_DIALOGUE_NOTICE).toContain(item);
+    }
   });
 
   it("발화 전송 고지는 전송 범위 셋(가명처리·상황 훈련 한 문장·자유 연습)을 그대로 들고 있다", async () => {
@@ -261,16 +307,39 @@ describe("라벨 — 이름이 성질을 적는다", () => {
     expect(settings.ONLINE_COACHING_NOTICE).toContain("자유 연습");
   });
 
-  it("두 스위치가 같은 켜기·끄기 두 낱말을 쓴다", async () => {
+  /**
+   * 켜기/끄기가 남은 칸은 **정말로 동의를 켜고 끄는 칸 하나**뿐이다.
+   * 한때는 두 칸이 이 두 낱말을 함께 썼는데, 위 칸이 말투 2택이 되면서 형식이 갈렸고
+   * 그 갈림이 지금은 사실을 적는다(무게가 다른 물음은 다른 형식으로 묻는다).
+   */
+  it("켜기·끄기 두 낱말은 발화 전송 칸에만 남았다", async () => {
     const settings = await withStored(undefined);
 
     expect(settings.SWITCH_OPTIONS.map((option) => option.label)).toEqual(["끄기", "켜기"]);
+  });
+
+  /**
+   * 낫표 인용은 축자여야 한다 — /guide와 자유 연습 문 앞이 낫표 안에 넣는 앞머리가
+   * 전체 이름 안에 **그대로** 들어 있는지 잰다(15차 copy low).
+   */
+  it("발화 전송 절 이름의 앞머리는 전체 이름이 그대로 품는다", async () => {
+    const settings = await withStored(undefined);
+
+    expect(settings.ONLINE_MODE_LABEL.startsWith(settings.ONLINE_MODE_SHORT_LABEL)).toBe(true);
+    expect(settings.ONLINE_MODE_SHORT_LABEL).toBe("AI 코칭·자유 연습");
+  });
+
+  /** 개명은 **문면·표시 계층에서만** 일어난다 — 저장 열쇠는 그대로다. */
+  it("이름이 바뀌어도 저장 열쇠는 그대로다", async () => {
+    const settings = await withStored(undefined);
+
+    expect(settings.SETTINGS_KEY).toBe("chimchak.settings.v1");
   });
 });
 
 /* ── 변주가 보는 칸 ────────────────────────────────────── */
 
-describe("isLineVaryActive — 보는 칸은 어르신 연기 하나다", () => {
+describe("isLineVaryActive — 보는 칸은 「어르신 말투」 하나다", () => {
   it("저장된 값이 없으면(기본 상태) 비응급 시나리오에서 돈다", async () => {
     await withStored(undefined);
     const { isLineVaryActive } = await import("@/lib/onlineVary");
@@ -279,7 +348,7 @@ describe("isLineVaryActive — 보는 칸은 어르신 연기 하나다", () => 
     expect(isLineVaryActive(CHK_A01)).toBe(true);
   });
 
-  it("응급 유형은 켜 두어도 돌지 않는다 (L3 원칙)", async () => {
+  it("응급 유형은 어느 말투를 골라도 돌지 않는다 (L3 원칙)", async () => {
     await withStored(undefined);
     const { isLineVaryActive } = await import("@/lib/onlineVary");
     const { CHK_B01 } = await import("@/data/scenarios/chk-b01");
@@ -287,7 +356,7 @@ describe("isLineVaryActive — 보는 칸은 어르신 연기 하나다", () => 
     expect(isLineVaryActive(CHK_B01)).toBe(false);
   });
 
-  it("어르신 연기를 끄면 발화 전송이 켜져 있어도 돌지 않는다", async () => {
+  it("「검수 문장 그대로」면 발화 전송이 켜져 있어도 돌지 않는다", async () => {
     await withStored({ aiDialogue: { enabled: false }, onlineCoaching: { enabled: true } });
     const { isLineVaryActive } = await import("@/lib/onlineVary");
     const { CHK_A01 } = await import("@/data/scenarios/chk-a01");
@@ -295,7 +364,7 @@ describe("isLineVaryActive — 보는 칸은 어르신 연기 하나다", () => 
     expect(isLineVaryActive(CHK_A01)).toBe(false);
   });
 
-  it("발화 전송만 꺼져 있어도 어르신 연기는 그대로 돈다 (옛 스위치를 안 켠 기기)", async () => {
+  it("발화 전송만 꺼져 있어도 변주는 그대로 돈다 (옛 스위치를 안 켠 기기)", async () => {
     await withStored({ onlineCoaching: { enabled: false } });
     const { isLineVaryActive } = await import("@/lib/onlineVary");
     const { CHK_A01 } = await import("@/data/scenarios/chk-a01");
@@ -303,7 +372,7 @@ describe("isLineVaryActive — 보는 칸은 어르신 연기 하나다", () => 
     expect(isLineVaryActive(CHK_A01)).toBe(true);
   });
 
-  it("varyLine은 어르신 연기가 꺼져 있으면 네트워크를 부르지 않고 앵커를 돌려준다", async () => {
+  it("varyLine은 말투가 「검수 문장 그대로」면 네트워크를 부르지 않고 앵커를 돌려준다", async () => {
     await withStored({ aiDialogue: { enabled: false }, onlineCoaching: { enabled: true } });
     const { varyLine } = await import("@/lib/onlineVary");
     const { CHK_A01 } = await import("@/data/scenarios/chk-a01");

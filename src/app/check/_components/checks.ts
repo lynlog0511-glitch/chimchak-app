@@ -13,6 +13,12 @@
 
 import { runEngineSelfCheck } from "@/engine";
 import {
+  AI_DIALOGUE_FIXED_LABEL,
+  AI_DIALOGUE_LABEL,
+  AI_DIALOGUE_VARIED_LABEL,
+  loadSettings,
+} from "@/lib/settings";
+import {
   canPlayWithoutGesture,
   createRecognizer,
   isRecognitionSupported,
@@ -525,14 +531,58 @@ export async function checkDialectCases(): Promise<CheckResult> {
   };
 }
 
+/* ── 어르신 말투 설정 ─────────────────────────────────── */
+
+/**
+ * 13. 「어르신 말투」 설정 — 시연에서 보여 줄 「변주」가 이 값 하나에 걸려 있습니다.
+ *
+ * 왜 있는가: 시연 동선은 「검수 문장 그대로」로 한 번 돌아 대본을 보이고, 「매번 조금씩
+ * 다르게」로 되돌려 다시 돌아 차이를 보입니다. 앞 순서 뒤에 되돌리는 것을 잊으면 그때부터
+ * 모든 동선에서 어르신 대사가 검수 문장 그대로만 나오는데, 화면만 봐서는 그 상태를 알 길이
+ * 없습니다 — 「변주」 표기는 붙을 때만 붙고, 안 붙는 화면은 그냥 조용합니다. 15차 감사가
+ * 「/check 15항목 중 이 성립 여부를 재는 항목이 0건」을 짚어 만든 자리입니다.
+ *
+ * 재는 것은 저장된 설정 값까지입니다. 변주가 실제로 도착하는지는 아래 「온라인 코칭 서버」
+ * 항목(서버 준비)과 훈련 화면 한 턴(실제 왕복)으로만 알 수 있고, 그 한계도 문장에 적습니다.
+ * 세션 변주 보관소는 훈련 화면의 메모리에만 살아 이 페이지에서는 읽을 수 없습니다.
+ */
+export async function checkAiDialogueSetting(): Promise<CheckResult> {
+  const id = "ai-dialogue";
+  const title = `「${AI_DIALOGUE_LABEL}」 설정`;
+  if (typeof window === "undefined") {
+    return { id, title, status: "unknown", detail: "이 환경에서는 확인할 수 없습니다." };
+  }
+  const varied = loadSettings().aiDialogue.enabled !== false;
+  if (varied) {
+    return {
+      id,
+      title,
+      status: "ok",
+      detail: `「${AI_DIALOGUE_VARIED_LABEL}」로 되어 있습니다. 실제로 변주가 서는지는 아래 「온라인 코칭 서버」 항목과, 훈련 화면에서 한 턴 돌려 「변주」 표기가 붙는지로 확인합니다(응급 상황 훈련은 원래 제외입니다).`,
+    };
+  }
+  return {
+    id,
+    title,
+    status: "fail",
+    detail: `「${AI_DIALOGUE_FIXED_LABEL}」로 되어 있습니다 — 어르신 대사가 전부 검수 문장 그대로 나오고, 「변주」 표기는 한 번도 붙지 않습니다.`,
+    fix: `대본과의 차이를 보여 주는 시연이라면 설정에서 「${AI_DIALOGUE_VARIED_LABEL}」로 되돌려 주세요. 「검수 문장 그대로」로 한 번 돈 뒤 되돌림을 잊기 쉬운 자리라, 이 항목이 무대 직전에 그것을 잡습니다.`,
+  };
+}
+
 /* ── 온라인 코칭 서버 ─────────────────────────────────── */
 
 /**
- * 13. 온라인 코칭 서버 연결 — **시연 최대 무기의 전제조건**입니다.
+ * 14. 온라인 코칭 서버 연결 — **시연 최대 무기의 전제조건**입니다.
  *
  * 마이크 권한처럼 사소한 것까지 무대 전에 잡아 주면서 정작 이 항목이 없으면, 「완주하면
  * 안전하다」고 믿게 만드는 체크리스트가 가장 큰 구멍 하나를 통과시킵니다. 지금까지 미설정
  * 상태를 알아챌 길은 /practice에 직접 들어가 게이트 문구를 읽는 우회로뿐이었습니다.
+ *
+ * ※ 2026-08-28: 이 주소가 없을 때 함께 죽는 것은 코칭·자유 연습만이 아닙니다. **기본으로 켜져
+ *   있는 어르신 대사 변주**가 같은 주소를 쓰므로(`onlineVary.ts`), 미설정 배포에서는 무대 위
+ *   상황 훈련이 통째로 검수 고정 대사로 돕니다 — 지정과제 서사에서 보여 줄 AI 그 자체입니다.
+ *   항목 이름은 「온라인 코칭 서버」 그대로 두되, 결과 문장이 세 가지를 다 말합니다.
  *
  * 상류를 부르지 않습니다 — 라우트의 `task: "ping"` 분기가 서버 환경변수(주소·모델)가 채워져
  * 있는지만 보고 답합니다. 그래서 이 점검은 요금을 만들지 않고 **예산 통도 쓰지 않습니다**
@@ -571,7 +621,7 @@ export async function checkCoachServer(): Promise<CheckResult> {
       title,
       status: "fail",
       detail: "점검 요청이 서버에 닿지 못했습니다 — 지금 오프라인이거나 서버가 응답하지 않습니다.",
-      fix: "오프라인이라면 정상입니다(온라인 코칭은 회선이 있을 때만 씁니다). 온라인인데도 막히면 배포 상태를 확인해 주세요.",
+      fix: "오프라인이라면 정상입니다(대사 변주·온라인 코칭 모두 회선이 있을 때만 씁니다. 오프라인에서는 검수 대사가 그대로 나옵니다). 온라인인데도 막히면 배포 상태를 확인해 주세요.",
     };
   }
 
@@ -585,7 +635,8 @@ export async function checkCoachServer(): Promise<CheckResult> {
       id,
       title,
       status: "ok",
-      detail: "서버에 주소·모델이 설정되어 있습니다 — 설정 화면에서 켜면 온라인 코칭이 돕니다.",
+      detail:
+        "서버에 주소·모델이 설정되어 있습니다. 기본으로 켜져 있는 대사 변주가 이 자리를 쓰고, 설정 화면에서 켜면 온라인 코칭·자유 연습도 돕니다.",
       fix: undefined,
     };
   }
@@ -594,8 +645,9 @@ export async function checkCoachServer(): Promise<CheckResult> {
       id,
       title,
       status: "fail",
-      detail: "서버에 상류 주소·모델이 없습니다 — 지금은 결정론 코칭만 돕니다(자유 연습은 잠깁니다).",
-      fix: "환경변수 COACH_BASE_URL·COACH_MODEL(·COACH_API_KEY)을 채우고 다시 배포한 뒤 검사해 주세요. 결정론 코칭만으로 시연하실 계획이면 이 항목은 넘기셔도 됩니다.",
+      detail:
+        "서버에 상류 주소·모델이 없습니다. 기본으로 켜져 있는 대사 변주가 함께 접혀 어르신 대사가 검수 문장 그대로 나오고, 자유 연습은 잠기며 코칭은 결정론만 돕니다.",
+      fix: "환경변수 COACH_BASE_URL·COACH_MODEL(·COACH_API_KEY)을 채우고 다시 배포한 뒤 검사해 주세요. 미설정이면 무대에서 AI가 문장을 만드는 자리가 한 곳도 남지 않습니다(판정·응급은 원래 규칙과 고정 문구만 씁니다).",
     };
   }
   /*
@@ -637,7 +689,7 @@ function readBuildStamp(source: string): string | undefined {
 }
 
 /**
- * 15. 이 화면의 빌드 표식 — **지금 눈앞의 배포본이 무엇인지** 기기에서 스스로 증명합니다.
+ * 16. 이 화면의 빌드 표식 — **지금 눈앞의 배포본이 무엇인지** 기기에서 스스로 증명합니다.
  *
  * 왜 있는가: 다른 항목은 전부 「이 기기가 준비됐는가」를 봅니다. 이 항목만 「지금 열려 있는 것이
  * **어느 빌드인가**」를 봅니다. 배포가 최신인지는 지금까지 저장소 바깥의 절차(대시보드·수동 확인)로만
@@ -707,7 +759,7 @@ export async function checkBuildStamp(): Promise<CheckResult> {
   return unknownResult("지금은 빌드 표식을 읽을 수 없습니다 — 오프라인이거나 파일을 받지 못했습니다.");
 }
 
-/** 14. 네트워크 상태 — 참고용. 오프라인이어도 응급 화면은 정상 동작하므로 실패로 다루지 않습니다. */
+/** 15. 네트워크 상태 — 참고용. 오프라인이어도 응급 화면은 정상 동작하므로 실패로 다루지 않습니다. */
 export async function checkNetwork(): Promise<CheckResult> {
   const id = "net";
   const title = "네트워크 상태 (참고용)";
@@ -776,6 +828,7 @@ export const CHECK_RUNNERS: Array<() => Promise<CheckResult>> = [
   checkRuleEngine,
   checkDialectCases,
   checkScenarioReview,
+  checkAiDialogueSetting,
   checkCoachServer,
   checkNetwork,
   checkBuildStamp,
@@ -800,6 +853,7 @@ export function loadingResults(): CheckResult[] {
     loadingResult("rules", "규칙 엔진 경계 케이스"),
     loadingResult("dialect", "사투리 말씨 경계 문항"),
     loadingResult("review", "시나리오 감수 상태"),
+    loadingResult("ai-dialogue", `「${AI_DIALOGUE_LABEL}」 설정`),
     loadingResult("coach", "온라인 코칭 서버"),
     loadingResult("net", "네트워크 상태 (참고용)"),
     loadingResult("build-stamp", "이 화면의 빌드 표식 (참고용)"),

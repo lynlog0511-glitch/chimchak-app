@@ -15,6 +15,7 @@ import { SOURCE_DOCS } from "@/data/docs";
 import { PROTOCOLS } from "@/data/protocols";
 import { CHK_A01, getActiveScenarios } from "@/data/scenarios";
 import { DocCloseButton } from "../_components/DocCloseButton";
+import { ONLINE_MODE_SHORT_LABEL } from "@/lib/settings";
 import { GUIDE_PRIVACY_FAQ_ID } from "../_components/guideAnchors";
 
 export const metadata: Metadata = {
@@ -152,7 +153,7 @@ const FAQ: readonly { id?: string; q: string; a: ReactNode; href: string; linkLa
       <>
         <b className="font-bold text-ink">기본 상태에서는 이 기기 밖으로 나가지 않습니다.</b>{" "}
         계정이 없고, 하신 말씀 원문은 저장하지 않습니다. 훈련이 끝나면 남는 것은 해 본
-        상황과 코칭 요약까지입니다. 설정의 「AI 코칭·자유 연습」을 켜신 경우에만 가명처리를 지난
+        상황과 코칭 요약까지입니다. 설정의 「{ONLINE_MODE_SHORT_LABEL}」을 켜신 경우에만 가명처리를 지난
         말이 침착 서버를 거쳐 나갑니다. 어르신 대사를 다시 쓰는 데 쓰이는 전송에는 하신 말씀이
         실리지 않습니다. 무엇이 나가는지는 안전·개인정보 설계와 약관·개인정보에 그대로 적혀
         있습니다. 보고 화면에서는 성명·번호·기관명·주소·생년을 가린 뒤에야 저장되고,

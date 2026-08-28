@@ -29,6 +29,8 @@ export interface RuleBoundaryCase {
   why: string;
   scenarioType?: ScenarioType;
   cueId?: string;
+  /** 시나리오 id — cueId와 짝으로 보는 게이트(보고 자리의 과거 완료형 면제)를 재는 자리 */
+  scenarioId?: string;
   appliedRubric?: string[];
   /** ⚑CF로 잡혀야 하는가 */
   cf: boolean;
@@ -130,6 +132,7 @@ export function runEngineSelfCheck(input: EngineSelfCheckInput): EngineSelfCheck
     const opts = {
       scenarioType: testCase.scenarioType,
       cueId: testCase.cueId,
+      scenarioId: testCase.scenarioId,
       appliedRubric: testCase.appliedRubric,
     };
 

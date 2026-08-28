@@ -17,9 +17,10 @@ const isDev = process.env.NODE_ENV !== "production";
 /**
  * 콘텐츠 보안 정책(CSP).
  *
- * 이 앱은 외부 API를 부르지 않습니다. 화면 코드에서 `fetch(`를 쓰는 곳은 온라인 코칭
- * 클라이언트(`src/lib/onlineCoach.ts`) 한 곳뿐이고, 그 한 줄이 부르는 주소는 같은 도메인의
- * `/api/coach`입니다 — 상류 제공사는 그 뒤에서 **서버가** 부릅니다(`src/app/api/coach/route.ts`).
+ * 브라우저는 다른 도메인을 부르지 않습니다. 화면 코드에서 `fetch(`를 쓰는 곳은 셋
+ * (`src/lib/onlineCoach.ts`·`onlineVary.ts`·`onlineFree.ts`)이고, 셋 다 부르는 주소는 같은
+ * 도메인의 `/api/coach` 하나입니다 — 상류 제공사는 그 뒤에서 **서버가** 부릅니다
+ * (`src/app/api/coach/route.ts`).
  *
  * 그래서 `connect-src`는 온라인 코칭을 켜든 끄든 `'self'` 하나입니다. 한때 여기에는
  * `NEXT_PUBLIC_LLM_ORIGIN`을 읽어 허용 origin 한 칸을 더하는 분기가 있었습니다. 그 분기가

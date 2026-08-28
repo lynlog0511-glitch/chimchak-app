@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import { BigButton, InlineDisclaimer, SettingsMenu } from "@/components";
 import { useModalDismiss, useOverlayTransition } from "@/components/useModalDismiss";
 import { cx } from "@/components/utils";
@@ -9,7 +17,13 @@ import { startCueCoaching } from "@/lib/onlineCoach";
 import { isLineVaryActive, varyLine } from "@/lib/onlineVary";
 import { subscribeSettings } from "@/lib/settings";
 import { getStageMode, subscribeStageMode } from "@/lib/stageMode";
-import { isRecognitionSupported, primeVoices, speak, stopSpeaking } from "@/lib/speech";
+import {
+  isRecognitionSupported,
+  isSpeechSynthesisSupported,
+  primeVoices,
+  speak,
+  stopSpeaking,
+} from "@/lib/speech";
 import { useVoicePresence } from "@/app/emergency/_components/useProtocolPlayback";
 import { useWakeLock } from "@/lib/wakeLock";
 import {
@@ -42,8 +56,11 @@ import {
 import {
   isSpokenLine,
   lineHoldMs,
-  SPEAKING_HOLD_MS,
+  lineSpokenAloud,
+  settleHoldMs,
+  varyArrival,
   varyTargetOf,
+  type LinePlayback,
 } from "./lineArrival";
 import { ruleDemoExamplesFor, RULE_DEMO_TITLE } from "./ruleDemoExamples";
 import { cueProgress } from "./sessionProgress";
@@ -72,6 +89,21 @@ function prefersReducedMotion(): boolean {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
+
+/**
+ * 대사 도착 효과(아래 효과 ①)가 쓰는 훅 — **그리기 전에** 도는 자리입니다.
+ *
+ * 이 효과가 하는 일 가운데 하나가 「보관소에 이 앵커의 변주가 이미 있는가」를 보고, 있으면
+ * 그 문장을 세우는 것입니다. `useEffect`(그린 뒤)로 두면 붙들지 않는 화면 — 움직임 줄임 ·
+ * 시연 빨리감기 · 소리 끔 — 에서는 앵커가 **한 번 그려진 뒤에** 문장이 얹혀, 읽고 계신 문장이
+ * 눈앞에서 바뀌는 「교체」가 됩니다. 이 앱이 명시적으로 금지한 모양입니다.
+ * `useLayoutEffect`로 두면 같은 커밋 안에서 상태가 바뀌고 브라우저는 **한 번만** 그리므로,
+ * 그 대사는 **처음부터** 변주문으로 섭니다.
+ *
+ * 서버 렌더에서는 `useLayoutEffect`가 아무 일도 하지 않고 경고만 남기므로 그 자리에서는
+ * `useEffect`를 씁니다. 값이 모듈 로드 시 한 번 정해지므로 훅 호출 순서는 바뀌지 않습니다.
+ */
+const useLineArrivalEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 /**
  * 「종료」 확인 모달.
@@ -185,6 +217,21 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
    */
   const { spokenAloud } = useVoicePresence(ttsOn);
   /**
+   * 이 기기에 **브라우저 낭독**(`speechSynthesis`)이 있는가 — 변주문 한 줄이 여기 걸립니다.
+   *
+   * `spokenAloud`가 답하는 것은 「이 기기가 소리를 낼 수 있는가」이고, 그 답은 동봉 오디오만
+   * 있어도 참입니다. 검수 앵커는 실제로 그 표에 있어 소리가 나지만 **변주문은 그 표에
+   * 없습니다** — 새로 쓰인 문장이라 열쇠가 없고, 브라우저 낭독이 없으면 `speak()`가 소리 없이
+   * 즉시 끝납니다. 그 한 갈래를 재는 값이고, 쓰는 곳은 `lineSpokenAloud` 하나입니다.
+   *
+   * 서버·첫 페인트에서는 잴 수 없으므로 「된다」로 시작합니다 —
+   * 「안 된다」로 시작하면 지원하는 기기에서 첫 대사만 리전이 두 번 말합니다.
+   */
+  const [synthesisReady, setSynthesisReady] = useState(true);
+  useEffect(() => {
+    setSynthesisReady(isSpeechSynthesisSupported());
+  }, []);
+  /**
    * 이 세션 화면이 **사용자가 버튼을 눌러** 열렸는지 (「시작하기」·「이어서 하기」).
    *
    * 브리핑에서 그 버튼을 누르면 `BriefingPanel`이 통째로 언마운트되므로 눌린 버튼이 사라지고
@@ -234,7 +281,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   /** 이미 펴 드린 마지막 대사 — 같은 대사를 두 번 붙들지 않습니다 */
   const shownLineRef = useRef<string>("");
 
-  /* ── 대사 변주 (AI 어르신 연기 · 기본 켬) ─────────────────
+  /* ── 대사 변주 (설정 「어르신 말투 · 매번 조금씩 다르게」 — 기본값) ──
      로그가 들고 있는 것은 언제나 검수 앵커입니다. 다시 쓰인 문장은 여기 따로 담아 두고,
      말풍선과 낭독만 그 문장을 봅니다 — 판정·게이지·기록은 앵커도 변주도 보지 않습니다.
 
@@ -243,18 +290,28 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
      펴지는 커밋 사이에서 자막과 소리가 한 문장 어긋날 수 있습니다. */
   const [variations, setVariations] = useState<ReadonlyMap<string, string>>(() => new Map());
   const variationsRef = useRef<Map<string, string>>(new Map());
-  /** 어르신 연기가 켜져 있고 이 시나리오가 변주 대상인지 (응급 유형은 통째로 빠집니다) */
+  /** 말투가 「매번 조금씩 다르게」이고 이 시나리오가 변주 대상인지 (응급 유형은 통째로 빠집니다) */
   const [varyOn, setVaryOn] = useState(false);
   /** 이번 회차에 변주를 이미 청한 대사 — 같은 대사에 두 번 청하지 않습니다 */
   const varyAskedRef = useRef<string>("");
   /**
    * 지금 도는 변주 요청 한 건 — **요청 효과가 적고, 박자 효과가 읽습니다.**
    *
+   * 여기 실리는 것은 **상류로 실제 요청이 나간 대사뿐**입니다(`varyArrival`이 `"ask"`).
+   * 보관소 적중·오프라인·인물 프로필 없음은 여기 오지 않습니다 — 그 대사들은 붙들 이유가
+   * 없고, 14차에는 구분 없이 실려 소리를 끄신 분이 얻는 것 없이 매 대사 700ms를 치렀습니다.
+   *
    * `settle`은 박자 효과가 걸어 두는 자리입니다. 답이 도착하면 그 자리에서 남은 박자만
-   * 지키고 대사를 폅니다 — 변주가 빨리 왔다고 대사가 튀어나오면 안 됩니다.
-   * 붙들지 않는 화면(소리 끔 등)에서는 아무도 걸어 두지 않으므로 그냥 비어 있습니다.
+   * 지키고 대사를 폅니다 — 변주가 빨리 왔다고 대사가 튀어나오면 안 됩니다. 인자는 **문장이
+   * 실제로 바뀌었는가**입니다: 바뀌지 않았으면 붙들 이유 자체가 사라지므로 박자 효과가
+   * 「변주를 안 청했을 때의 시간」으로 되돌립니다(`settleHoldMs`).
+   * 붙들지 않는 화면(움직임 줄임 등)에서는 아무도 걸어 두지 않으므로 그냥 비어 있습니다.
    */
-  const varyWaitRef = useRef<{ key: string; startedAt: number; settle?: () => void } | null>(null);
+  const varyWaitRef = useRef<{
+    key: string;
+    startedAt: number;
+    settle?: (varied: boolean) => void;
+  } | null>(null);
 
   const applyVariation = useCallback((key: string, text: string) => {
     variationsRef.current.set(key, text);
@@ -269,13 +326,28 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   }, []);
 
   /**
-   * 회차가 새로 시작될 때 대사 박자 표시를 통째로 비웁니다 — 같은 이유(로그 키가 0부터 다시)입니다.
-   * 남겨 두면 첫 대사가 「말하는 중」 없이 튀어나오거나(shown·pending), 지난 회차에 이미
-   * 청했다고 기억해 **변주를 아예 청하지 않습니다**(asked).
+   * 회차가 새로 시작될 때 대사 박자·낭독 표시를 **통째로** 비웁니다 — 로그 키가 0부터 다시
+   * 세어지므로(`sessionMachine`의 `line-${seq}-${turn.id}`) 남겨 두면 지난 회차의 기억이
+   * 새 회차의 첫 대사에 그대로 붙습니다.
+   *
+   * 비우는 것은 다섯입니다.
+   *  · `shown`·`pending` — 남기면 첫 대사가 「말하는 중」 없이 튀어나옵니다.
+   *  · `asked`·`wait`   — 남기면 지난 회차에 이미 청했다고 기억해 **변주를 아예 청하지 않습니다**.
+   *  · `spoken`         — 남기면 **첫 대사가 소리 없이 지나갑니다.** 키가 지난 회차와 글자 그대로
+   *    같아 낭독 효과가 조기 반환하고, 그동안 화면의 sr-only 안내는 「소리로 읽어 드리고
+   *    있습니다」로 남아 낭독 사용자에게 두 사실이 어긋납니다(15차 newcode high).
+   *
+   * 이 다섯을 **한 함수**에 모아 두는 것이 그 결함의 재발을 막는 자리입니다 — 14차에는
+   * `spoken`만 이 함수 밖에 있었고, 세 진입 경로(처음부터·다시 하기·이어서 하기) 가운데
+   * 「처음부터」만 그 한 줄을 빠뜨렸습니다.
    */
   const resetLineTiming = useCallback(() => {
+    stopSpeaking();
+    setSpeakingKey("");
+    spokenKeyRef.current = "";
     shownLineRef.current = "";
     pendingLineRef.current = "";
+    setPendingLineKey("");
     varyAskedRef.current = "";
     varyWaitRef.current = null;
   }, []);
@@ -503,42 +575,66 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   }, []);
 
   /**
-   * ① 변주 요청 — **대사가 도착한 그 순간의 독립 경로입니다.**
+   * ① 변주 — **대사가 도착한 그 순간의 독립 경로입니다.** (그리기 전 · `useLineArrivalEffect`)
    *
    * 예전에는 이 호출이 아래 박자 효과 **안**에 있었고, 그 효과는 붙들 이유가 없는 세 경우
-   * (소리 끔·움직임 줄임·시연 빨리감기)에 조기 반환했습니다. 결과는 「어르신 연기 기본 켬」이
+   * (소리 끔·움직임 줄임·시연 빨리감기)에 조기 반환했습니다. 결과는 「말투 기본값이 매번
+   * 조금씩 다르게」라는 사실이
    * 소리를 끄는 순간 **호출 0건**으로 조용히 거짓이 되는 것이었습니다 — 근무 시간 밖·공용
    * 공간에서 소리를 끄는 것은 이 앱이 상정한 사용 맥락에서 예외가 아닙니다
    * (13차 심사석 ai_cto high). 지금은 청하는 자리와 붙드는 자리가 갈렸습니다:
    * 무엇을 청할지는 `varyTargetOf`가 정하고 **재생 상태를 보지 않으며**, 몇 초 붙들지는
    * 아래 효과가 `lineHoldMs`로 정합니다.
    *
-   * 박자 효과보다 **먼저** 선언돼 있어야 같은 커밋에서 `varyWaitRef`가 채워집니다 —
-   * 순서를 바꾸지 마세요(아래 낭독 효과까지 셋의 순서가 그대로 이 화면의 규약입니다).
+   * ── 여기서 갈리는 세 갈래 (`varyArrival`) ──────────────
+   *  · **보관소 적중** — 청하지도 붙들지도 않고 그 문장을 **지금** 세웁니다. 이 효과가 그리기
+   *    전에 도는 이유가 이것입니다: 그린 뒤에 세우면 「이미 편 대사를 갈아 끼우는」 모양이
+   *    되는데, 그 규율이 이 화면의 상위 규율입니다. 14차까지는 이 갈래가 아예 없어, 붙들지
+   *    않는 기기(움직임 줄임·시연 빨리감기)에서는 **두 번째·세 번째 회차에도** 변주가 영영
+   *    서지 못했습니다 — 보관소에 문장을 두고도 그랬습니다(15차 demo·critic high).
+   *  · **요청** — `varyWaitRef`를 세우고 상류에 청합니다. 붙드는 대상은 이 갈래뿐입니다.
+   *  · **부르지 않음**(오프라인·인물 프로필 없음 등) — 아무것도 세우지 않습니다. 세우면
+   *    소리를 끄신 분이 얻는 것 없이 대사마다 700ms를 치릅니다(15차 a11y high ②).
    *
-   * 도착한 답이 화면에 서는 조건은 그대로입니다 — **이미 편 대사는 갈아 끼우지 않습니다.**
-   * 붙들지 않은 화면에서 늦게 온 답은 보관소에만 남아 같은 지점을 다시 하실 때 쓰입니다.
+   * 박자 효과보다 **먼저** 돌아야 같은 커밋에서 `varyWaitRef`가 채워집니다 — 이 효과가
+   * layout, 아래 둘이 passive라 순서는 선언 순서와 실행 순서 양쪽으로 고정돼 있습니다
+   * (셋의 순서가 그대로 이 화면의 규약입니다: 요청 → 박자 → 낭독).
+   *
+   * 늦게 도착한 답의 규칙은 그대로입니다 — **이미 편 대사는 갈아 끼우지 않습니다.**
+   * 그 답은 보관소에만 남고, 같은 지점으로 되돌아오시면 위 첫째 갈래가 그것을 세웁니다.
    */
-  useEffect(() => {
+  useLineArrivalEffect(() => {
     const target = varyTargetOf(state.log, varyOn);
     if (!target) return undefined;
     // 같은 대사에 두 번 청하지 않습니다 — 이 효과는 설정이 바뀔 때도 다시 돕니다.
     if (varyAskedRef.current === target.key) return undefined;
     varyAskedRef.current = target.key;
-    varyWaitRef.current = { key: target.key, startedAt: Date.now() };
 
-    let cancelled = false;
-    void varyLine({
+    const context = {
       scenario,
       speaker: target.speaker,
       anchor: target.anchor,
       recentLines: target.recentLines,
-    }).then((outcome) => {
+    };
+    const arrival = varyArrival(context);
+    if (arrival.kind === "cached") {
+      /* 그리기 전입니다 — 이 대사는 **처음부터** 이 문장으로 섭니다(교체가 아닙니다). */
+      applyVariation(target.key, arrival.text);
+      return undefined;
+    }
+    if (arrival.kind === "skip") return undefined;
+
+    varyWaitRef.current = { key: target.key, startedAt: Date.now() };
+
+    let cancelled = false;
+    void varyLine(context).then((outcome) => {
       const wait = varyWaitRef.current;
       if (wait?.key === target.key) {
         varyWaitRef.current = null;
-        // 붙들고 있는 화면이 있으면 남은 박자만 지키고 폅니다.
-        wait.settle?.();
+        /* 붙들고 있는 화면이 있으면 남은 박자만 지키고 폅니다.
+           문장이 바뀌지 않았으면 붙들 이유가 사라졌다는 뜻이라, 박자 효과가
+           「변주를 안 청했을 때의 시간」으로 되돌립니다(`settleHoldMs`). */
+        wait.settle?.(outcome.varied);
       }
       if (cancelled) return;
       // 이미 편 대사는 바꾸지 않습니다 — 늦게 온 답은 보관소에만 남아 다음 방문에 쓰입니다.
@@ -558,10 +654,23 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
    * 붙들면 코칭까지 함께 가려지므로 그대로 폅니다(반응 대사 → 코칭 → 「말하는 중」 → 다음 대사 순서).
    * 낭독 효과보다 **먼저** 선언돼 있어야 같은 커밋에서 ref가 채워집니다 — 순서를 바꾸지 마세요.
    *
-   * 붙들 시간은 `lineHoldMs` 하나가 정합니다. 0이면 한 프레임도 붙들지 않습니다 —
-   * 버튼만으로 완주하시는 분이 연출 때문에 느려지지 않는다는 규율은 그대로입니다.
-   * 위 요청 효과가 변주를 청해 둔 대사라면 상한이 1200ms로 올라가고, 답이 그 안에 오면
-   * `settle`이 남은 박자만 지키고 폅니다.
+   * 붙들 시간은 `lineHoldMs` 하나가 정합니다 — **그 안에서 끝나는 값도 `settleHoldMs`가
+   * 냅니다.** 0이면 한 프레임도 붙들지 않습니다: 버튼만으로 완주하시는 분이 연출 때문에
+   * 느려지지 않는다는 규율은 그대로입니다. 위 효과가 **요청을 낸** 대사라면 상한이 1200ms
+   * (소리 없는 화면은 700ms)로 올라가고, 답이 그 안에 오면 `settle`이 그 상한을 **넘지 않는**
+   * 선에서 남은 박자만 지키고 폅니다. 답이 앵커 그대로면 붙들 이유가 사라졌다는 뜻이라
+   * 변주를 안 청했을 때의 박자로 되돌아갑니다(소리 켬 800ms · 소리 없음 0ms).
+   *
+   * 보는 재생 상태는 `ttsOn`(헤더 스위치)이 아니라 **`spokenAloud`**입니다 —
+   * 「소리가 난다」의 정의는 이 앱에 하나뿐이고(`useVoicePresence`), 14차 신규 코드가 그 값을
+   * 우회해 자동재생이 막힌 기기·낭독을 못 하는 기기에서 소리가 나지 않는데도 대사를
+   * 800~1200ms 「말하는 중」으로 붙들고 있었습니다(15차 a11y med).
+   *
+   * `varyOn`을 함께 보는 것은 배선 때문이기도 합니다. 마운트 커밋에서는 설정을 아직 읽기
+   * 전이라 `varyOn`이 거짓이고, 다음 커밋에서 참이 되어도 `state.log`는 그대로라 예전 의존성
+   * (`[state.log, ttsOn]`)으로는 이 효과가 **다시 돌지 않았습니다** — 세션 첫 대사만 상한이
+   * 800ms이고 `settle`이 배선되지 않던 자리입니다. 무대에서 판정단이 가장 먼저 보는 한 줄이
+   * 유일하게 33% 짧은 창을 쓰고 있었습니다(15차 critic med).
    */
   useEffect(() => {
     const tail = state.log[state.log.length - 1];
@@ -580,15 +689,20 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
       return undefined;
     }
 
-    const wait = varyWaitRef.current?.key === key ? varyWaitRef.current : null;
-    const hold = lineHoldMs({
-      ttsOn,
+    /* 붙드는 것은 **상류에 요청이 나간 대사**뿐입니다 — 위 효과가 그때만 `varyWaitRef`를
+       세웁니다. `varyOn`을 함께 보는 것은 스위치가 꺼진 순간 그 자리가 빌 수 없다는 사실을
+       적은 것이자, 스위치가 켜지는 커밋에 이 효과가 다시 돌게 하는 의존성입니다. */
+    const wait = varyOn && varyWaitRef.current?.key === key ? varyWaitRef.current : null;
+    const playback: LinePlayback = {
+      spokenAloud,
       reducedMotion: prefersReducedMotion(),
-      demoMode: demoModeRef.current,
+      demoMode: demoFastForwardRef.current,
       varying: wait !== null,
-    });
-    /* 소리를 꺼 두셨거나 · 움직임을 줄이셨거나 · 시연 빨리감기 중이면 곧바로 폅니다.
-       변주 요청은 위 효과가 이미 띄웠습니다 — 여기서 정하는 것은 화면의 박자뿐입니다. */
+    };
+    const hold = lineHoldMs(playback);
+    /* 소리가 나지 않거나 · 움직임을 줄이셨거나 · 시연 빨리감기 중이면 곧바로 폅니다.
+       변주 요청은 위 효과가 이미 띄웠고, 보관소에 있던 문장도 이미 세워 두었습니다 —
+       여기서 정하는 것은 화면의 박자뿐입니다. */
     if (hold === 0) {
       reveal();
       return undefined;
@@ -612,11 +726,13 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
       timer = window.setTimeout(revealNow, Math.max(0, ms));
     };
 
-    /* 상한을 먼저 걸어 둡니다 — 답이 늦어도 화면은 1200ms에서 반드시 다음으로 넘어갑니다. */
+    /* 상한을 먼저 걸어 둡니다 — 답이 늦어도 화면은 그 상한에서 반드시 다음으로 넘어갑니다. */
     holdFor(hold);
     if (wait) {
-      // 남은 박자는 그대로 지킵니다 — 변주가 빨리 왔다고 대사가 튀어나오면 안 됩니다.
-      wait.settle = () => holdFor(SPEAKING_HOLD_MS - (Date.now() - wait.startedAt));
+      /* 남은 박자는 그대로 지키되 **이 대사에 걸린 상한을 넘지 않습니다** —
+         목표 시각을 정하는 것은 `settleHoldMs` 하나입니다(직접 상수를 쓰지 마세요). */
+      wait.settle = (varied) =>
+        holdFor(settleHoldMs(playback, varied) - (Date.now() - wait.startedAt));
     }
 
     return () => {
@@ -624,8 +740,18 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
       if (wait) wait.settle = undefined;
       window.clearTimeout(timer);
     };
-  }, [state.log, ttsOn]);
+  }, [spokenAloud, state.log, varyOn]);
 
+  /**
+   * ③ 낭독 — 화면에 **선 문장 그대로**를 읽습니다.
+   *
+   * 읽을 문장은 `variations`가 든 것이 있으면 그것입니다. 변주문은 동봉 음성 매니페스트에
+   * 없으므로 `speak()`가 브라우저 낭독으로 넘어갑니다 — 정상 경로이고, 자막과 소리는 언제나
+   * 같습니다. 다만 그 브라우저 낭독마저 없는 기기에서는 `speak()`가 **소리 없이 즉시**
+   * 끝납니다. 그때 「읽어 주는 중」을 세우면 화면이 거짓말을 하고, 로그 리전도 입을 닫은 채
+   * 남습니다 — 그래서 표시와 리전이 `lineSpokenAloud` **한 값**을 함께 봅니다
+   * (아래 `logSpokenAloud`가 리전 쪽입니다 · 15차 a11y high).
+   */
   useEffect(() => {
     let lastLine: Extract<LogItem, { kind: "line" }> | undefined;
     for (let i = state.log.length - 1; i >= 0; i -= 1) {
@@ -644,18 +770,42 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     if (!ttsOn) return undefined;
 
     const key = lastLine.key;
+    const text = variationsRef.current.get(key) ?? lastLine.text;
     let cancelled = false;
-    setSpeakingKey(key);
-    /* 화면에 선 문장을 그대로 읽습니다 — 변주된 대사는 동봉 음성 매니페스트에 없으므로
-       speak()가 브라우저 낭독으로 넘어갑니다(정상 경로입니다. 자막과 소리는 언제나 같습니다). */
-    void speak(variationsRef.current.get(key) ?? lastLine.text).then(() => {
+    /* 「읽어 주는 중」은 **실제로 소리가 나는 문장에만** 답니다(이름줄 파형 포함). */
+    if (lineSpokenAloud({ spokenAloud, varied: text !== lastLine.text, synthesis: synthesisReady })) {
+      setSpeakingKey(key);
+    }
+    void speak(text).then(() => {
       if (cancelled) return;
       setSpeakingKey((current) => (current === key ? "" : current));
     });
     return () => {
       cancelled = true;
     };
-  }, [state.log, ttsOn, pendingLineKey]);
+  }, [pendingLineKey, spokenAloud, state.log, synthesisReady, ttsOn]);
+
+  /**
+   * 대화 로그 리전이 말해도 되는가 — 로그 맨 끝 대사가 **소리로 전해지지 않을 때만** 말합니다.
+   *
+   * 값의 뿌리는 `useVoicePresence`의 `spokenAloud` 그대로이고, 여기서 더하는 것은 기기
+   * 판단이 아니라 **문장 하나의 조건**입니다: 그 문장에 낼 소리가 있는가(`lineSpokenAloud`).
+   * 이 좁힘이 없으면, 브라우저 낭독이 없는 기기에서 변주문이 선 순간 앱 목소리도 리더
+   * 목소리도 없는 구간이 생깁니다 — 7차 P0가 세 곳에 「닫혔다」고 적힌 채 열려 있던 자리이고,
+   * 12차가 대사 변주를 기본값으로 돌리면서 예외가 아니라 기본값이 된 경로입니다.
+   */
+  const tailLineKey = useMemo(() => {
+    for (let i = state.log.length - 1; i >= 0; i -= 1) {
+      const item = state.log[i];
+      if (item && item.kind === "line") return item.key;
+    }
+    return "";
+  }, [state.log]);
+  const logSpokenAloud = lineSpokenAloud({
+    spokenAloud,
+    varied: tailLineKey.length > 0 && variations.has(tailLineKey),
+    synthesis: synthesisReady,
+  });
 
   /**
    * 소리 스위치 — 낭독 안내 줄(sr-only)은 **여기서 손대지 않습니다.**
@@ -685,9 +835,11 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   useEffect(() => {
     if (!record) return;
     if (savedIdRef.current === record.id) return;
-    /* 시연 프리셋(?demo=)으로 자동 재생한 세션은 성장 기록에 남기지 않습니다 —
-       자동 재생이 만든 「잘한 것」이 실사용 이력에 섞이면 그 자체가 부정직한 데이터입니다. */
-    if (demoModeRef.current) return;
+    /* 시연 프리셋(?demo=)으로 씨를 뿌린 회차는 성장 기록에 남기지 않습니다 —
+       자동 재생이 만든 「잘한 것」이 실사용 이력에 섞이면 그 자체가 부정직한 데이터입니다.
+       보는 표식은 **회차 기준**(`demoSeededRef`)이라, 발표자가 도중부터 직접 이어 하셔도
+       그 회차의 앞부분은 여전히 자동 재생이 만든 것이므로 계속 막힙니다. */
+    if (demoSeededRef.current) return;
     savedIdRef.current = record.id;
     // 저장이 막힌 기기(시크릿 모드 등)에서는 성공한 척하지 않습니다 — 엔딩에 사실대로 세웁니다.
     setSessionSaveFailed(!saveSession(record));
@@ -705,9 +857,9 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
    */
   useEffect(() => {
     if (state.phase === "briefing") return;
-    /* demo 모드에서는 체크포인트를 건드리지 않습니다 — 발표 직전 리허설이
-       발표자(또는 사용자)의 실제 진행 상태를 덮어쓰는 사고를 막습니다. */
-    if (demoModeRef.current) return;
+    /* 프리셋으로 씨를 뿌린 회차에서는 체크포인트를 건드리지 않습니다 — 발표 직전 리허설이
+       발표자(또는 사용자)의 실제 진행 상태를 덮어쓰는 사고를 막습니다(위와 같은 회차 기준). */
+    if (demoSeededRef.current) return;
     saveProgress(state.session);
   }, [state.phase, state.session]);
 
@@ -724,6 +876,9 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     (input: { utterance?: string; branchId?: string; viaButton: boolean }) => {
       stopSpeaking();
       setSpeakingKey("");
+      /* 발표자가 직접 고르셨습니다 — 여기서부터는 자동으로 지나가는 구간이 아니므로
+         빨리감기를 놓습니다(`demoFastForwardRef` 주석). 저장 억제는 회차가 끝날 때까지 그대로입니다. */
+      demoFastForwardRef.current = false;
       setChosenAlternative("");
       const spoken = (input.utterance ?? "").trim();
       askedRef.current = cue && spoken.length > 0 ? { utterance: spoken, cue } : null;
@@ -765,9 +920,14 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   const handleStart = useCallback(() => {
     clearProgress(scenario.id);
     /* 「처음부터」는 로그 키까지 되돌아갑니다 — 지난 회차에 이미 폈던 키라고 기억하고 있으면
-       첫 대사가 「말하는 중」 없이 튀어나옵니다. */
+       첫 대사가 「말하는 중」 없이 튀어나오고, 낭독 키까지 같아 **소리 없이 지나갑니다**.
+       셋(처음부터·다시 하기·이어서 하기)이 같은 함수를 쓰는 것이 그 결함을 막는 자리입니다. */
     resetLineTiming();
     resetVariations();
+    /* 프리셋으로 열린 탭이어도 여기서 시작하는 판에는 자동으로 지나간 구간이 없습니다 —
+       빨리감기도 저장 억제도 함께 풉니다. */
+    demoSeededRef.current = false;
+    demoFastForwardRef.current = false;
     setCheckpoint(null);
     setAtBriefing(false);
     setCriticalScene(null);
@@ -785,8 +945,30 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
    * 재생은 엔진의 `submitResponse`가 그대로 하고, 지나간 구간은 로그 맨 위 배너로 밝힙니다.
    */
   const demoAppliedRef = useRef(false);
-  /** demo 모드 여부 — 켜지면 이 세션은 체크포인트·성장 기록 어디에도 저장되지 않습니다. */
-  const demoModeRef = useRef(false);
+  /**
+   * 이 회차가 **프리셋으로 씨를 뿌린 판**인가 — 켜져 있으면 체크포인트·성장 기록 어디에도
+   * 저장하지 않습니다. 자동으로 지나간 구간이 만든 「잘한 것」이 실사용 이력에 섞이면 그
+   * 자체가 부정직한 데이터이기 때문입니다.
+   *
+   * 이 표식은 **회차가 끝날 때까지** 유지됩니다 — 발표자가 도중부터 직접 이어 하더라도 그
+   * 회차의 앞부분은 여전히 자동 재생이 만든 것입니다. 푸는 자리는 판을 새로 여는 셋
+   * (처음부터·다시 하기·이어서 하기)뿐이고, 그 셋은 지나간 구간 없이 시작합니다.
+   */
+  const demoSeededRef = useRef(false);
+  /**
+   * 아직 **자동으로 지나간 구간 안**인가 — 화면 박자를 0으로 접습니다(`lineHoldMs`).
+   *
+   * 빨리감기의 의도는 「발표자가 고른 지점까지 빨리 가는 것」이지 「그 뒤로 이 탭을 영구히
+   * 다르게 만드는 것」이 아닙니다. 14차까지 이 표식은 마운트 때 켜지면 어느 핸들러도 되돌리지
+   * 않아서, 프리셋으로 연 탭에서는 **발표자가 직접 고른 뒤 도착하는 반응 대사도 · ⚑CF 재시도도 ·
+   * 「처음부터」로 되돌린 회차도** 전부 변주 표기가 붙지 않았습니다. 요청은 그대로 나가므로
+   * 리허설을 돌릴수록 쿼터만 쓰고 화면에는 아무것도 남지 않았고, 빠져나올 길은 주소에서 쿼리를
+   * 떼고 새로 들어오는 것뿐인데 그 사실이 화면 어디에도 없었습니다(15차 demo high).
+   *
+   * 지금은 **사용자 조작이 시작되는 지점에서 풉니다** — 그 지점부터는 자동 재생이 아니라
+   * 사람이 하는 훈련이고, 화면도 평상시 박자로 돌아갑니다.
+   */
+  const demoFastForwardRef = useRef(false);
 
   useEffect(() => {
     if (demoAppliedRef.current) return;
@@ -794,7 +976,8 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     if (typeof window === "undefined") return;
     const preset = parseDemoPreset(new URLSearchParams(window.location.search).get("demo"));
     if (!preset) return;
-    demoModeRef.current = true;
+    demoSeededRef.current = true;
+    demoFastForwardRef.current = true;
     setCheckpoint(null);
     setAtBriefing(false);
     setCriticalScene(null);
@@ -803,11 +986,10 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   }, []);
 
   const handleRestart = useCallback(() => {
-    stopSpeaking();
-    setSpeakingKey("");
-    spokenKeyRef.current = "";
     resetLineTiming();
     resetVariations();
+    demoSeededRef.current = false;
+    demoFastForwardRef.current = false;
     clearProgress(scenario.id);
     setCheckpoint(null);
     setAtBriefing(false);
@@ -823,6 +1005,9 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
    * 대안을 골라 놓고 버튼으로 다시 고를 수 없으면 「버튼만으로 끝까지」 약속이 그 지점에서 깨집니다.
    */
   const handleRetryAfterCritical = useCallback((alternative?: string) => {
+    /* ⚑CF 뒤 재시도도 사용자 조작입니다 — 「즉시 중단 장면」 프리셋으로 들어가 재시도를
+       보여 드리는 동선이 여기서 평상시 박자로 돌아옵니다(`demoFastForwardRef` 주석). */
+    demoFastForwardRef.current = false;
     setChosenAlternative((alternative ?? "").trim());
     dispatch({ type: "retryAfterCritical", alternative });
   }, []);
@@ -830,11 +1015,10 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   /** 이어서 하기 — 저장해 둔 결정 목록을 엔진에 순서대로 다시 넣습니다. */
   const handleResume = useCallback(() => {
     if (!checkpoint) return;
-    stopSpeaking();
-    setSpeakingKey("");
-    spokenKeyRef.current = "";
     resetLineTiming();
     resetVariations();
+    demoSeededRef.current = false;
+    demoFastForwardRef.current = false;
     dispatch({ type: "resume", progress: checkpoint });
     setCheckpoint(null);
     setAtBriefing(false);
@@ -1001,6 +1185,16 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
             **한 값**의 참·거짓으로 갈리므로 이 「겹치지 않는다」는 주장이 사실입니다(2026-08-27).
             이 화면의 「동시에 발화 가능한 리전 수」는 이 줄이 생겨도 늘지 않습니다.
 
+            2026-08-28 — 로그 쪽이 보는 값이 그 값을 **문장 하나만큼 더 좁힌** `logSpokenAloud`로
+            바뀌었습니다(변주문은 동봉 음성이 없어 브라우저 낭독이 없으면 소리가 나지 않습니다).
+            그래서 둘은 더 이상 한 값의 정확한 여집합이 아닙니다 — 동봉 오디오만 있는 기기에서
+            변주문이 서면 `spokenAloud`는 참인데 `logSpokenAloud`는 거짓입니다. 그래도 **같은
+            순간에 말하지는 않습니다**: 이 줄은 「소리가 나기 시작한 순간」에 한 번만 값이 바뀌고
+            (세션 진입·소리 다시 켬), 대사가 도착할 때는 내용이 그대로라 아무 말도 하지 않습니다.
+            진입 프레임에는 로그 리전이 갓 마운트돼 처음부터 있던 내용을 알리지 않습니다.
+            새 리전을 들일 때 확인할 것은 「값이 반대인가」가 아니라 **「말이 나가는 순간이
+            겹치는가」**입니다.
+
             상자와 내용이 함께 생기지 않게 합니다 — 알림과 함께 리전이 생기면 읽지 않는 리더가
             있어서, 빈 상자가 먼저 서 있어야 다음 문장이 「바뀐 줄」로 읽힙니다. 그래서 여기에는
             조건부 마운트(`{cond && …}`)를 두지 않고, 세션 화면이 그려지는 동안에는 조건 없이
@@ -1040,7 +1234,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
             gaugeLabel={scenario.gauge.label}
             emotion={emotion}
             speaking={speakingKey.length > 0}
-            spokenAloud={spokenAloud}
+            spokenAloud={logSpokenAloud}
             bottomInset={dockHeight}
             tailInset={dockLimit}
             autoScroll={!ended}

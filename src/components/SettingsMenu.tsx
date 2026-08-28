@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   AI_DIALOGUE_LABEL,
   AI_DIALOGUE_NOTICE,
+  AI_DIALOGUE_OPTIONS,
   DEFAULT_SETTINGS,
   FONT_SCALE_OPTIONS,
   ONLINE_COACHING_NOTICE,
@@ -247,7 +248,7 @@ function SettingsPanel({
         </p>
       </div>
 
-      {/* ── AI 스위치 둘 ──────────────────────────────────────
+      {/* ── AI가 닿는 칸 둘 ───────────────────────────────────
           한 칸이던 것을 2026-08-28에 둘로 갈랐습니다. 가르는 잣대는 기능이 아니라
           **하신 말씀이 기기 밖으로 나가는가** 하나입니다 — 그것이 사용자가 실제로 정할 일이고,
           그 하나로 갈라야 두 칸의 무게가 서로 다르다는 사실이 화면에서 읽힙니다.
@@ -261,13 +262,21 @@ function SettingsPanel({
           한때 이 자리에는 주소·모델 이름·API 키 입력칸 셋이 있었습니다. 지금은 없습니다 —
           키는 서버 환경변수에만 두고 브라우저는 같은 도메인 `/api/coach`만 부릅니다. */}
 
-      {/* ① AI 어르신 연기 — **기본 켬**. 동의 칸이 아닙니다(나가는 것에 발화가 없습니다). */}
+      {/* ① 어르신 말투 — **2택**이고 기본은 「매번 조금씩 다르게」입니다.
+          동의 칸이 아닙니다(나가는 것에 발화가 없습니다).
+
+          한때 이 자리는 「AI 어르신 연기」 켜기/끄기였습니다. 그 형식이 사용자에게 물은 것은
+          「AI를 쓸 것인가」였고, 그러면 이 앱이 AI에게 시키는 일이 **꺼도 되는 덧붙임**으로
+          읽힙니다 — 정작 두 갈래 다 검수 대본 안에서 돌고, 고르시는 것은 어르신이 매번 조금씩
+          다르게 말하는가 하나입니다. 그래서 두 보기에 **말투 이름**을 적습니다.
+          위 두 절(글자 크기·음성 빠르기)과 같은 형식이라, 이 칸만 성질이 다른 물음이라는
+          인상도 함께 사라집니다. 이름에서 뺀 AI는 바로 아래 고지가 그대로 받습니다. */}
       <div className="mt-5 border-t border-line pt-4">
         <p id={dialogueLabelId} className="chim-label text-ink">
           {AI_DIALOGUE_LABEL}
         </p>
         <div role="group" aria-labelledby={dialogueLabelId} className="mt-2 flex gap-2">
-          {SWITCH_OPTIONS.map((option) => (
+          {AI_DIALOGUE_OPTIONS.map((option) => (
             <OptionButton
               key={option.label}
               label={option.label}
@@ -354,8 +363,10 @@ function SettingsPanel({
  * - **글자 크기**: 루트 font-size를 100/112.5/125%로 바꿉니다. 토큰이 전부 rem이라 화면이 통째로
  *   비례하고, 백분율이라 브라우저·OS 글꼴 설정 위에 곱해집니다(기본 16px 브라우저에서 16/18/20px).
  * - **음성 빠르기**: `speak()`의 기본 rate가 됩니다. 고르는 즉시 예시 문장을 한 번 읽어 확인시켜 줍니다.
- * - **AI 어르신 연기**: 기본 **켬**. 검수 대사를 같은 뜻으로 다시 말하게 합니다. 나가는 것에
- *   학습자 발화가 없어서 동의 칸이 아니고, 그래서 켜 둔 채로 시작합니다(`AI_DIALOGUE_NOTICE`).
+ * - **어르신 말투**: 「매번 조금씩 다르게」(기본)와 「검수 문장 그대로」 2택입니다. 앞 갈래는
+ *   검수 대사를 AI가 같은 뜻으로 다시 말하게 합니다. 나가는 것에 학습자 발화가 없어서 동의 칸이
+ *   아니고, 그래서 물음도 켜기/끄기가 아니라 **말투 고르기**입니다(`AI_DIALOGUE_NOTICE`가
+ *   AI라는 사실·나가는 것 넷·응급 제외를 그 자리에서 적습니다).
  * - **AI 코칭·자유 연습**: 기본 **꺼짐**. 이 칸이 곧 **발화 전송 동의**입니다 — 하신 말씀이
  *   가림 처리를 지나 서버를 거치는 자리이고, 그런 스위치는 사용자 손에 있어야 하며 그 사실을
  *   스위치 바로 옆에서 문장으로 밝혀야 합니다(`ONLINE_COACHING_NOTICE`).

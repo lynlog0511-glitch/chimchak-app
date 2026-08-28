@@ -99,8 +99,9 @@ function reachableEndings(scenario: Scenario): Set<string> {
  * 찾는 것
  * 1) 끊어진 연결(존재하지 않는 턴 id)·정의되지 않은 엔딩 id·잘못된 defaultBranchId
  * 2) 도달 불가 엔딩 (⚑CF·재훈련 권고처럼 엔진이 직접 채택하는 엔딩은 제외)
- * 3) 정규화하면 2글자 미만이 되는 판정 패턴 (사실상 모든 발화를 삼킵니다)
+ * 3) 정규화하면 2글자 미만이 되는 판정 패턴·부재 조건 (사실상 모든 발화를 삼키거나 무시됩니다)
  * 4) 버튼 폴백 문구를 그대로 말했을 때 자기 분기로 되돌아오지 않는 분기
+ * 5) 요소 개수 판정(elementJudge)의 구조 — 단의 분기 실재·minCount 범위·내림차순·빈 표지
  *
  * 예: `validateScenarioGraph(CHK_B02) // => []`
  */
@@ -154,6 +155,15 @@ export function validateScenarioGraph(scenario: Scenario): string[] {
           );
         }
       }
+      // 부재 조건(unlessPatterns)도 같은 대조기를 지나므로 같은 폭을 받습니다 —
+      // 1글자 조건은 matchPatternList가 말없이 무시해 조건이 통째로 죽습니다.
+      for (const pattern of branch.unlessPatterns ?? []) {
+        if (normalize(pattern).length < 2) {
+          problems.push(
+            `${scenario.id} ${turn.cue.id} ${branch.id}: 부재 조건 "${pattern}" 은 정규화하면 2글자 미만이라 무시됩니다`,
+          );
+        }
+      }
 
       if (typeof branch.fallbackOption === "string" && branch.fallbackOption.length > 0) {
         const back = classifyInput(turn.cue, { utterance: branch.fallbackOption });
@@ -162,6 +172,54 @@ export function validateScenarioGraph(scenario: Scenario): string[] {
             `${scenario.id} ${turn.cue.id} ${branch.id}: 버튼 폴백 문구를 그대로 말하면 "${back.branch.id}" 로 분류됩니다`,
           );
         }
+      }
+    }
+
+    /* 요소 개수 판정(보고 CUE) — **판정을 실제로 정하는 구조인데 그물이 없었습니다**
+       (2026-08-28 · 15차 감사 low). 보고 CUE 세 곳의 분기를 정하는 것이 이 구조인데,
+       위 검사는 next·엔딩·defaultBranchId·branch.patterns·폴백 왕복만 봤습니다.
+       그래서 아래 셋이 **아무 검사도 없이 조용히** 지나갔습니다.
+        · tiers.branchId 오타 — judgeElements가 그 단을 말없이 건너뛰어 아래 단으로 떨어집니다
+          (최상단이 통째로 사라져도 테스트는 전부 통과합니다).
+        · groups.patterns의 1글자 표지 — matchPatternList가 말없이 무시합니다.
+        · minCount가 그룹 수보다 크면 그 단은 영원히 죽습니다.
+       현행 데이터에 위반은 없습니다. 없는 것과 검사가 없는 것은 다른 사실이라 적어 둡니다. */
+    const judge = turn.cue.elementJudge;
+    if (judge) {
+      const where = `${scenario.id} ${turn.cue.id} elementJudge`;
+      if (judge.groups.length === 0) problems.push(`${where}: 요소 그룹이 하나도 없습니다`);
+      for (const group of judge.groups) {
+        if (group.patterns.length === 0) {
+          problems.push(`${where} ${group.id}: 표지가 비어 이 요소는 영원히 세어지지 않습니다`);
+        }
+        for (const pattern of group.patterns) {
+          if (normalize(pattern).length < 2) {
+            problems.push(
+              `${where} ${group.id}: 표지 "${pattern}" 은 정규화하면 2글자 미만이라 무시됩니다`,
+            );
+          }
+        }
+      }
+      if (judge.tiers.length === 0) problems.push(`${where}: 단(tiers)이 하나도 없습니다`);
+      let previous = Number.POSITIVE_INFINITY;
+      for (const tier of judge.tiers) {
+        if (!branchIds.has(tier.branchId)) {
+          problems.push(`${where}: 단의 분기 "${tier.branchId}" 가 이 CUE의 분기 목록에 없습니다`);
+        }
+        if (tier.minCount < 1) {
+          problems.push(`${where} ${tier.branchId}: minCount ${tier.minCount} 는 1보다 작습니다`);
+        }
+        if (tier.minCount > judge.groups.length) {
+          problems.push(
+            `${where} ${tier.branchId}: minCount ${tier.minCount} 가 요소 그룹 수(${judge.groups.length})보다 커서 이 단은 영원히 죽습니다`,
+          );
+        }
+        if (tier.minCount > previous) {
+          problems.push(
+            `${where} ${tier.branchId}: 단이 내림차순이 아닙니다 — 위 단(${previous})보다 minCount 가 큽니다`,
+          );
+        }
+        previous = tier.minCount;
       }
     }
   }

@@ -51,6 +51,13 @@ export interface BranchDef {
    * 예: ⚑CF 억제 분기가 RESTRAINT_EXCEPT_TERMS를 받아 "제 팔 붙잡으세요"(권하는 대안)를 통과시킨다.
    */
   except?: string[];
+  /**
+   * 발화 **어디에든** 이 말이 있으면 이 분기는 서지 않음 (부재 조건 — classify.ts가 읽음).
+   * `except`가 매치 **주변 창**을 보는 것과 다르다. 같은 문장의 다른 자리에서 이미 옳은
+   * 행동을 말했으면 이 감점 갈래가 성립하지 않는 자리에 쓴다.
+   * 예: B02 D3-b「말 걸기만」 — 같은 문장에서 119를 부르겠다고 했으면 「~만」이 아니다.
+   */
+  unlessPatterns?: string[];
   /** 이 분기 중 하나를 지나온 세션에서만 열림 (선행 조건 게이트 — session.ts가 읽음) */
   requiresPriorBranchIds?: string[];
   /** requiresPriorBranchIds 미충족 시 대신 적용할 분기 id */

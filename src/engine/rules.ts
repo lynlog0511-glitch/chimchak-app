@@ -245,11 +245,21 @@ const NEGATION_MARKERS = [
   "참았",
   "멈췄",
   "거뒀",
-  // 「~하기 전에 먼저 …」 — 순서를 뒤집어 다른 것을 먼저 하겠다는 말이다.
-  // ("다음엔 못 나가시게 하기 전에 어디가 불편하신지부터 여쭙겠습니다" — A02 CUE-7 모범 답안)
-  // 사동 보조동사에 붙은 꼴만 본다. 홑 「기전에」로 넓히면 "붙잡기 전에 말씀드리겠습니다"까지
-  // 면죄되는데, 그쪽은 결국 붙잡겠다는 말이다.
+  /* 「~하기 전에 먼저 …」 — 순서를 뒤집어 다른 것을 먼저 하겠다는 말이다.
+     ("다음엔 못 나가시게 하기 전에 어디가 불편하신지부터 여쭙겠습니다" — A02 CUE-7 모범 답안)
+
+     **2026-08-28 — 사동 보조동사 꼴(「하기전」)만 보던 것을 동사 무관 「기전에」로 넓혔다.**
+     그전에는 어간이 「하」로 끝날 때만 글자가 닿아서, 성찰 CUE의 **1순위 답**이 그대로
+     ⚑CF였다(15차 감사 실측 3건): "다음엔 막아서기 전에 어디가 불편하신지 먼저 여쭙겠습니다"·
+     "다음엔 문을 잠그기 전에…"·"다음엔 붙잡기 전에…". 성찰은 「오늘 대응에서 한 가지만
+     고친다면?」을 묻는 자리라 금지 행위의 이름이 들어오는 것이 정상이고, 이 문형이 그 자리에서
+     가장 많이 나오는 말이다.
+
+     넓히는 대신 **돌아보는 표지로 올렸다**(REFLECTIVE_MARKERS) — 뒤에 실행 선언이 이어지면
+     무효가 된다. "붙잡기 전에 말씀드리고 그렇게 하겠습니다"는 결국 붙잡겠다는 말이므로
+     다시 ⚑CF다. 예전 주석이 홑 「기전에」를 두려워한 자리를, 창을 좁히는 대신 실행 검사로 닫는다. */
   "하기전",
+  "기전에",
   // 「했는가」를 살피는 말 — 확인은 실행이 아니다.
   // ("문 잠금 여부를 먼저 살피겠습니다", "붙잡으신 분이 있는지 확인하겠습니다")
   // ("잠글지 여부와 무관하게 잠급니다"·"묶었는지 확인하고 다시 묶어 두겠습니다"는 뒤의 매치가 받는다.)
@@ -318,6 +328,10 @@ const REFLECTIVE_MARKERS = [
   "참았",
   "멈췄",
   "거뒀",
+  // 「~기 전에 먼저 …」 — 순서를 뒤집는 성찰 문형이다(위 NEGATION_MARKERS 주석).
+  // 뒤에 실행 선언이 붙으면("…기 전에 말씀드리고 그렇게 하겠습니다") 무효가 된다.
+  "하기전",
+  "기전에",
   "여부",
   "는지확",
   "는지살피",
@@ -547,6 +561,64 @@ const NEGATION_WINDOW = 10;
  */
 const NEGATION_BEFORE = ["안", "못", "몬"];
 
+/* ── 잠금 「상태·장치」를 살피는 말 ───────────────────────────
+   면죄 표지 「상태를점검」·「장치를확인」은 **붙어 있는 한 덩어리**라, 목적어와 술어 사이에
+   부사가 한 마디만 끼면 글자가 어긋나 그대로 ⚑CF였다(15차 감사 실측 대조쌍).
+
+     "현관 문 잠금 상태를 **저녁마다** 점검하겠습니다"  → ⚑CF (「문 잠」)
+     "**저녁마다** 현관 문 잠금 상태를 점검하겠습니다"  → 통과
+
+   같은 뜻의 두 문장이 어순 하나로 갈리던 자리다. 창(10글자)을 넓혀도 풀리지 않는다 —
+   막는 것은 폭이 아니라 **덩어리 표지의 인접성**이기 때문이다. 그래서 목적어와 술어를
+   따로 본다.
+
+   ▸ 목적어(「상태」·「장치」·「여부」)는 매치 **바로 뒤**에서만 받고, 그 앞자리가 잠금 낱말일
+     때만 받는다. 홑 「상태」로 두면 "어르신을 붙잡아 상태를 확인하겠습니다"까지 면죄된다 —
+     이 읽기가 성립하는 것은 잠금 낱말이 「잠금 상태」의 **머리 명사**일 때뿐이다.
+     멀리까지 허용해도 같은 사고가 난다: "문을 잠그겠습니다. 잠금 상태를 점검하겠습니다."의
+     앞 문장이 뒤 문장으로 면죄된다.
+   ▸ 술어(점검·확인·살피)는 그 뒤 넉넉한 범위에서 받는다 — 부사가 끼는 자리가 여기다.
+   ▸ 뒤에 실행 선언이 이어지면 무효다(REFLECTIVE_MARKERS와 같은 장치).
+
+   덩어리 표지(「상태를점검」…)는 NEGATION_MARKERS에 그대로 둔다. 이 검사가 그것을 거의
+   덮지만 「거의」라서 지우지 않는다 — 레드팀 경계 케이스가 그 문자열로 못 박혀 있다. */
+
+/** 잠금 낱말 **바로 뒤**에서만 받는 목적어 */
+const INSPECTION_OBJECTS = ["상태", "장치", "여부"];
+/** 목적어 **앞자리**에 서야 하는 잠금 낱말 — 이것이 없으면 살피는 말이 아니다 */
+const INSPECTION_HEADS = ["잠금", "잠긴", "잠근", "도어락", "자물쇠", "문"];
+/** 목적어를 찾는 창 (매치 바로 뒤) */
+const INSPECTION_OBJECT_WINDOW = 6;
+/** 살피는 술어 */
+const INSPECTION_VERBS = ["점검", "확인", "살피", "살펴"];
+/** 술어를 찾는 창 (목적어 뒤) */
+const INSPECTION_VERB_WINDOW = 20;
+
+/**
+ * 매치가 「잠금 **상태·장치**를 …점검한다」는 살피는 말의 목적어 자리인지.
+ *
+ * @example
+ * isLockInspection(normalize("현관 문 잠금 상태를 저녁마다 점검하겠습니다"), 4); // true
+ * isLockInspection(normalize("어르신을 붙잡아 상태를 확인하겠습니다"), 6);        // false
+ */
+function isLockInspection(normalized: string, end: number): boolean {
+  const head = normalized.slice(end, end + INSPECTION_OBJECT_WINDOW);
+  for (const object of INSPECTION_OBJECTS) {
+    const at = head.indexOf(object);
+    if (at < 0) continue;
+    const objectAt = end + at;
+    const before = normalized.slice(0, objectAt);
+    if (!INSPECTION_HEADS.some((lock) => before.endsWith(lock))) continue;
+    const tailFrom = objectAt + object.length;
+    const tail = normalized.slice(tailFrom, tailFrom + INSPECTION_VERB_WINDOW);
+    if (!INSPECTION_VERBS.some((verb) => tail.includes(verb))) continue;
+    // 살펴 놓고 그대로 하겠다고 이으면 살피는 말이 아니다.
+    if (executionFollows(normalized.slice(tailFrom))) continue;
+    return true;
+  }
+  return false;
+}
+
 /**
  * 매치 지점이 부정·금지 문맥 안에 있는지.
  * (분류기(classify.ts)도 ⚑CF 분기 대조에 이 함수를 그대로 쓴다.)
@@ -557,6 +629,7 @@ const NEGATION_BEFORE = ["안", "못", "몬"];
  * isNegated(normalize("가두고 싶은 마음이 커서 오늘부터 그렇게 합니다"), 0, 2); // false — 실행 선언이다
  */
 export function isNegated(normalized: string, start: number, end: number): boolean {
+  if (isLockInspection(normalized, end)) return true;
   let after = normalized.slice(end, end + NEGATION_WINDOW);
   for (const cancel of NEGATION_CANCELS) after = after.split(cancel).join("");
   for (const marker of NEGATION_MARKERS) {
@@ -571,6 +644,78 @@ export function isNegated(normalized: string, start: number, end: number): boole
   }
   const before = normalized.slice(Math.max(0, start - 4), start);
   return NEGATION_BEFORE.some((n) => before.endsWith(n));
+}
+
+/* ── 과거 완료 보고 꼴 ──────────────────────────────────────
+   **보고 자리에서 「내가 한 억제」를 사실대로 적는 문장을 벌하지 않기 위한 장치다.**
+
+   15차 감사가 이 자리를 파일럿 킬러로 짚었다(실측 3건).
+    · A01 CUE-4 "16시 40분 어르신이 현관에서 나가시려 하셔서 제가 팔을 붙잡았습니다.
+      현재는 소파에 앉아 계십니다." → ⚑CF(표지 「붙잡」)
+    · 같은 자리 "…앞을 막아섰습니다"·A02 CUE-5 "…앞을 가로막았습니다" → ⚑CF
+   ⚑CF 한 건이면 세션 종합 판정이 「재훈련」으로 고정되므로(scoring.ts §4.6 규칙 1),
+   **사실대로 적은 사람만 재훈련을 받는다.** 규칙이 가르치는 것이 「억제한 사실은 보고하지
+   말라」가 되는 자리다 — 이 저장소가 다른 자리에서 여러 번 걷어낸 바로 그 결함이다.
+
+   사전 머리주석 ④(국면 게이트)가 이미 같은 문제를 응급 사전에서 풀어 두었지만
+   (POST_EMERGENCY_CUES), 억제 사전은 그 대칭에서 빠져 있었다. 좁힌 사전(complyTerms)을
+   그대로 얹지 않은 이유는 **면제 범위가 다르기 때문**이다. 보고 자리에서도
+    · 진행형 "지금 붙잡고 있습니다"
+    · 미래·의지 "계속 붙잡아 두겠습니다"
+   는 지금 하고 있거나 앞으로 하겠다는 선언이라 그대로 멈춰 세워야 한다. 면제되는 것은
+   **끝난 일을 적는 과거 완료형 하나**뿐이다.
+
+   가르는 법 — 매치 뒤 창 안에 **과거 시제 선어말어미(ㅆ 받침 음절)** 가 있는가.
+   한국어에서 ㅆ 받침을 달고 오는 음절은 과거형(았/었/였/했/섰/갔…)과 「있」·「겠」뿐이라,
+   그 둘만 빼면 남는 것은 과거다. 활용 어간이 무엇이든(「막아섰」·「가로막았」·「잠갔」)
+   같은 장치가 받는다 — 동사별 결합꼴을 열거하면 그 목록은 다음 어간에서 다시 뚫린다.
+
+   면제에도 실행 검사를 건다(REFLECTIVE_MARKERS와 같은 장치) — "붙잡았습니다.
+   앞으로도 그렇게 하겠습니다"는 보고가 아니라 선언이다. */
+
+/** 과거 완료형을 찾는 창 — 매치 뒤 이 글자 수 안에서만 본다 */
+const PAST_REPORT_WINDOW = 8;
+
+/**
+ * ㅆ 받침을 달았지만 **과거가 아닌** 음절.
+ * 「겠」은 미래·의지("붙잡겠습니다"), 「있」은 진행·존재("붙잡고 있습니다")다.
+ * 이 둘을 빼지 않으면 면제가 통째로 새어 보고 자리가 비어 버린다.
+ */
+const NOT_PAST_SYLLABLES = new Set(["겠", "있", "잇"]);
+
+/** 한글 음절의 받침이 ㅆ인가 (유니코드 조합 규칙 — 종성 색인 20) */
+function hasDoubleSiotFinal(char: string): boolean {
+  const code = char.codePointAt(0);
+  if (code === undefined || code < 0xac00 || code > 0xd7a3) return false;
+  return (code - 0xac00) % 28 === 20;
+}
+
+/**
+ * 매치가 **끝난 일을 적는 과거 완료형**인지 (보고 CUE 전용 면제).
+ *
+ * 매치 **끝 위치**만 받는다 — 가르는 것이 뒤에 오는 어미이기 때문이다.
+ *
+ * @example
+ * isPastReportForm(normalize("제가 팔을 붙잡았습니다"), 6);            // true
+ * isPastReportForm(normalize("지금 붙잡고 있습니다"), 4);              // false — 진행형이다
+ * isPastReportForm(normalize("계속 붙잡아 두겠습니다"), 4);            // false — 미래다
+ * isPastReportForm(normalize("붙잡았습니다 앞으로도 그렇게 합니다"), 2); // false — 실행 선언이다
+ */
+export function isPastReportForm(normalized: string, end: number): boolean {
+  // 매치의 **마지막 글자부터** 본다. 사전에는 과거 활용형을 그대로 담은 신호가 있어
+  // (「잠갔」), 그 뒤만 보면 과거 표지가 매치 안에 숨어 문장이 미래로 읽힌다 —
+  // "어르신이 나가시려 해서 제가 문을 잠갔습니다"가 보고 자리에서 그대로 ⚑CF였다(실측).
+  const after = normalized.slice(Math.max(0, end - 1), end + PAST_REPORT_WINDOW);
+  let past = false;
+  for (const char of after) {
+    if (hasDoubleSiotFinal(char) && !NOT_PAST_SYLLABLES.has(char)) {
+      past = true;
+      break;
+    }
+  }
+  if (!past) return false;
+  // 과거를 적어 놓고 앞으로도 그렇게 하겠다고 이으면 보고가 아니다.
+  return !executionFollows(normalized.slice(end));
 }
 
 /**
@@ -746,14 +891,19 @@ export function hasExceptionNear(
 /**
  * 사전 용어 중 하나라도(부정 표현·주변 예외어 제외) 나타나는지 찾는다.
  *
+ * `pastReport`를 켜면 **끝난 일을 적는 과거 완료형** 매치를 함께 건너뛴다(보고 CUE 전용).
+ * 기본값은 꺼짐이라, 문맥을 모르는 자리에서는 지금까지와 똑같이 보수적으로 잡는다.
+ *
  * @example
  * findTerm("어르신을 붙잡았습니다", ["붙잡"]); // { term: "붙잡", index: 4 }
  * findTerm("붙잡지 않았습니다", ["붙잡"]);      // null
+ * findTerm("어르신을 붙잡았습니다", ["붙잡"], undefined, { pastReport: true }); // null
  */
 export function findTerm(
   text: string,
   terms: string[],
   except?: string[],
+  opts: { pastReport?: boolean } = {},
 ): { term: string; index: number } | null {
   const src = normalize(text);
   for (const raw of terms) {
@@ -764,7 +914,11 @@ export function findTerm(
       const idx = indexOfPattern(src, term, from);
       if (idx < 0) break;
       const end = idx + term.length;
-      if (!isNegated(src, idx, end) && !hasExceptionNear(src, except, idx, end)) {
+      if (
+        !isNegated(src, idx, end) &&
+        !hasExceptionNear(src, except, idx, end) &&
+        !(opts.pastReport === true && isPastReportForm(src, end))
+      ) {
         return { term: raw, index: idx };
       }
       from = idx + 1;
@@ -809,6 +963,14 @@ export interface RuleDef {
   complyOnlyCues?: string[];
   /** complyOnlyCues 구간에서 쓰는 좁힌 신호 — 명시적 순응·실행 선언만 */
   complyTerms?: string[];
+  /**
+   * 이 자리에서는 **끝난 일을 적는 과거 완료형** 매치를 건너뛴다 (보고 게이트).
+   *
+   * 키는 `시나리오id:CUE id`다 — cue id만으로는 자리를 특정할 수 없다.
+   * (A01 CUE-4는 기관 보고이고 A02 CUE-4는 실시간 대체 행동 유도다.)
+   * 진행형·미래형은 그대로 잡힌다 — isPastReportForm() 주석 참조.
+   */
+  pastReportCues?: string[];
   /** 화면에 그대로 띄우는 고정 문구 */
   message: string;
   /** 근거 문서 id */
@@ -879,6 +1041,32 @@ const RESTRAINT_TASK_CUES = ["CUE-C1", "CUE-C3"];
  * 한 배열로 합쳐 둔다. **이 사전에는 skipCues(전면 오프)가 더 이상 없다.**
  */
 const RESTRAINT_NARROWED_CUES = [...RESTRAINT_TASK_CUES, ...POST_INCIDENT_REPORT_CUES];
+
+/**
+ * **「내가 한 억제」를 사실대로 적는 보고 자리** — 여기서만 과거 완료형 매치를 건너뛴다.
+ *
+ * 키를 `시나리오id:CUE id`로 적는 이유가 이 배열의 전부다. cue id는 시나리오끼리 겹치고
+ * (CUE-4는 A01 기관 보고·A02 실시간 대체 행동 유도·B02 상황실 응답이 모두 쓴다),
+ * id만으로 게이트를 걸면 **어르신이 눈앞에 계신 자리가 함께 열린다.** 응급 사전이
+ * POST_EMERGENCY_CUES를 id로만 적어 온 것과 다른 선택이며, 그쪽은 좁히기(complyTerms)라
+ * 자리가 비지 않는 반면 이쪽은 면제라 비는 자리가 곧 구멍이다.
+ *
+ * 고르는 기준은 CUE 지시문이다 — 「말로 보고해 주세요」·「인계한다고 생각하고」·
+ * 「보호자께 어떻게 말씀드리시겠습니까」처럼 **이미 끝난 일을 옮겨 적는** 자리만 담는다.
+ * 재발 방지(A01 CUE-5·A02 CUE-6)와 성찰(CUE-6·7)은 담지 않는다 — 그 자리는 앞으로의 말을
+ * 하는 곳이라 과거형이 나올 이유가 없고, 성찰 문형의 오탐은 「기전에」 표지가 받는다.
+ */
+const RESTRAINT_PAST_REPORT_CUES = [
+  "CHK-A01:CUE-4", // 기관 보고
+  "CHK-A01:CUE-T2", // 보호자 전화 — 오늘 있었던 일 전달
+  "CHK-A02:CUE-5", // 야간 근무 일지
+  "CHK-B01:CUE-T2", // 보호자께 사실 전달
+  "CHK-B01:CUE-5", // 기관 보고 + 기록지 초안
+  "CHK-B02:CUE-5", // 구급대원 SBAR 인계
+  "CHK-B02:CUE-T2", // 보호자께 사실 전달
+  "CHK-B02:CUE-6", // 기관 보고 + 기록지 초안
+  "CHK-C01:CUE-5", // 센터 보고
+];
 
 /**
  * 신체 억제의 **순응·실행 선언** 문형 — RESTRAINT_NARROWED_CUES 구간에서 쓰는 좁힌 사전.
@@ -1723,6 +1911,9 @@ export const RESTRAINT_RULES: RuleDef[] = [
     // (전면 오프는 두지 않는다 — 자리 전체가 비면 앞으로의 행위 선언이 아무 되먹임 없이 샌다.)
     complyOnlyCues: RESTRAINT_NARROWED_CUES,
     complyTerms: RESTRAINT_COMPLY_TERMS,
+    // 보고 자리에서 **끝난 일을 사실대로 적는 문장**은 벌하지 않는다(과거 완료형만).
+    // 진행형("지금 붙잡고 있습니다")·미래("계속 붙잡아 두겠습니다")는 그대로 멈춰 세운다.
+    pastReportCues: RESTRAINT_PAST_REPORT_CUES,
     message:
       "잠시 멈추겠습니다. 붙잡기·끌기·밀기·문 잠그기는 법이 금지한 신체 자유 제한에 해당합니다. 어르신을 더 위험하게 만들 수 있어 훈련에서도 허용하지 않습니다.",
     docId: "DOC-LAW-003",
@@ -2351,6 +2542,19 @@ function termsFor(rule: RuleDef, opts: RuleCheckOptions): string[] {
 }
 
 /**
+ * 이 자리가 **끝난 일을 적는 보고 자리**인가 (과거 완료형 면제).
+ * 시나리오 id가 넘어오지 않으면 언제나 false다 — 문맥을 모르면 보수적으로 잡는다.
+ *
+ * @example
+ * inPastReportCue(getRule("CF-RESTRAINT")!, { scenarioId: "CHK-A01", cueId: "CUE-4" }); // true
+ * inPastReportCue(getRule("CF-RESTRAINT")!, { scenarioId: "CHK-A02", cueId: "CUE-4" }); // false
+ */
+function inPastReportCue(rule: RuleDef, opts: RuleCheckOptions): boolean {
+  if (!rule.pastReportCues || !opts.scenarioId || !opts.cueId) return false;
+  return rule.pastReportCues.includes(`${opts.scenarioId}:${opts.cueId}`);
+}
+
+/**
  * 설계서 §4.5의 시나리오별 적용 항목표 게이트.
  * 해당 시나리오에 배정되지 않은 ⚑CF 항목은 인터럽트를 띄우지 않는다.
  * (§3.3 판정선 분리 설계 — 갈등 시나리오에는 ⚑CF를 적용하지 않는다.)
@@ -2367,6 +2571,11 @@ export interface RuleCheckOptions {
   scenarioType?: ScenarioType;
   /** 현재 CUE id — 세션 국면 게이트(skipCues)에 쓴다 */
   cueId?: string;
+  /**
+   * 현재 시나리오 id — cueId와 **짝으로** 보는 게이트(pastReportCues)에 쓴다.
+   * cue id가 시나리오끼리 겹치기 때문이며, 넘기지 않으면 그 게이트는 열리지 않는다.
+   */
+  scenarioId?: string;
   /**
    * 시나리오의 적용 루브릭 항목 목록(설계서 §4.5).
    * 넘기면, 여기에 없는 ⚑CF 항목은 인터럽트 대신 코칭으로 강등한다.
@@ -2401,7 +2610,9 @@ export function checkCritical(utterance: string, opts: RuleCheckOptions = {}): C
   for (const rule of CRITICAL_RULES) {
     if (!applies(rule, opts)) continue;
     if (!inAppliedRubric(rule, opts.appliedRubric)) continue;
-    const hit = findTerm(utterance, termsFor(rule, opts), rule.except);
+    const hit = findTerm(utterance, termsFor(rule, opts), rule.except, {
+      pastReport: inPastReportCue(rule, opts),
+    });
     if (hit) {
       return {
         cf: true,
@@ -2440,7 +2651,11 @@ export function checkBranchRestraint(utterance: string, opts: RuleCheckOptions =
   if (!rule) return { cf: false };
   if (!applies(rule, opts)) return { cf: false };
   if (!inAppliedRubric(rule, opts.appliedRubric)) return { cf: false };
-  const hit = findTerm(utterance, RESTRAINT_BRANCH_SIGNALS, RESTRAINT_EXCEPT_BRANCH);
+  // 보고 자리의 과거 완료형 면제도 **같은 판정선**을 쓴다 — 한 겹만 면제하면
+  // 같은 문장이 훈련에서는 통과하고 자유 연습에서는 멈춰 서는 자리가 다시 생긴다.
+  const hit = findTerm(utterance, RESTRAINT_BRANCH_SIGNALS, RESTRAINT_EXCEPT_BRANCH, {
+    pastReport: inPastReportCue(rule, opts),
+  });
   if (!hit) return { cf: false };
   return {
     cf: true,
@@ -2502,7 +2717,10 @@ export function checkAdvisory(utterance: string, opts: RuleCheckOptions = {}): A
     // 코칭 규칙에는 아직 complyOnlyCues가 없어 termsFor()는 rule.terms를 그대로 돌려준다.
     // 그래도 직접 rule.terms를 읽지 않는다 — 어느 규칙에 국면 게이트를 다는 날,
     // 판정(checkCritical)은 좁힌 사전을 쓰고 코칭만 넓은 사전을 쓰는 어긋남이 생긴다.
-    const hit = findTerm(utterance, termsFor(rule, opts), rule.except);
+    // (보고 게이트도 같은 이유로 함께 읽는다 — 지금은 코칭 규칙에 선언이 없어 늘 꺼져 있다.)
+    const hit = findTerm(utterance, termsFor(rule, opts), rule.except, {
+      pastReport: inPastReportCue(rule, opts),
+    });
     if (hit) {
       out.push({
         ruleId: rule.id,
@@ -2522,7 +2740,9 @@ export function checkAdvisory(utterance: string, opts: RuleCheckOptions = {}): A
   for (const rule of CRITICAL_RULES) {
     if (!applies(rule, opts)) continue;
     if (inAppliedRubric(rule, opts.appliedRubric)) continue;
-    const hit = findTerm(utterance, termsFor(rule, opts), rule.except);
+    const hit = findTerm(utterance, termsFor(rule, opts), rule.except, {
+      pastReport: inPastReportCue(rule, opts),
+    });
     if (hit) {
       out.push({
         ruleId: rule.id,

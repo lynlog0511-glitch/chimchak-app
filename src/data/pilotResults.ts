@@ -107,6 +107,10 @@ export const VERIFICATION_LADDER: readonly LadderStep[] = [
 /**
  * ④ 파일럿에서 잴 항목 — **측정 전에** 정해 둔 목록입니다.
  * 결과를 보고 유리한 지표를 고르는 일이 없도록, 항목을 먼저 적어 화면에 걸어 둡니다.
+ *
+ * 같은 결로 미리 정해 두는 설계가 하나 더 있습니다: **사후 측정은 훈련에 쓰지 않은 홀드아웃
+ * 시나리오 1종으로 합니다** — 같은 문항을 다시 내면 「대본을 외웠다」와 「대응이 달라졌다」를
+ * 가를 수 없어, 훈련한 문항으로 재는 사전-사후는 그 자체가 순환논증입니다.
  */
 export const PILOT_PREREGISTERED: readonly { t: string; d: string }[] = [
   {

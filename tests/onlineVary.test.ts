@@ -12,6 +12,19 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "@/app/api/coach/route";
+import {
+  MUTED_VARY_HOLD_MS,
+  SPEAKING_HOLD_MS,
+  VARY_LINE_HOLD_MS,
+  lineHoldMs,
+  recentContextLines,
+  varyTargetOf,
+} from "@/app/train/_components/lineArrival";
+import {
+  initialTrainState,
+  makeTrainReducer,
+  type LogItem,
+} from "@/app/train/_components/sessionMachine";
 import { COACH_RATE_LIMITS } from "@/lib/coachLimits";
 import { CHK_A01 } from "@/data/scenarios/chk-a01";
 import { CHK_B01 } from "@/data/scenarios/chk-b01";
@@ -524,6 +537,178 @@ describe("varyLine", () => {
     await varyLine(contextFor(ANCHOR), { fetchImpl, settings: ON });
     await varyLine(contextFor(ANCHOR), { fetchImpl, settings: ON });
     expect(calls).toHaveLength(2);
+  });
+});
+
+/* ── 요청 경로 · 무전송 경계 (src/app/train/_components/lineArrival.ts) ── */
+
+/**
+ * 학습자가 직접 말한 한 문장 — 아래 검사들이 「이 문자열이 어디에도 없다」로 재는 값이다.
+ * 실제 세션에서 나오는 자리와 같게, 리듀서에 그대로 넣어 로그를 만든다.
+ */
+const LEARNER_SAID = "어르신 제가 옆에 앉아서 같이 이야기 나눠 볼게요";
+
+/**
+ * 실제 세션 이벤트 한 판 — 시작 → 직접 말해서 응답 → 다음 턴 진입.
+ *
+ * 손으로 지어낸 로그가 아니라 `makeTrainReducer`가 만든 로그다. 로그 끝은 다음 턴의 어르신
+ * 대사이고, 그 앞에 학습자 발화(`kind: "learner"`)와 피드백이 실제 순서대로 들어 있다 —
+ * 화면이 변주를 청하는 바로 그 상태를 재현한 것이다.
+ */
+function sessionLogWithLearnerLine(): LogItem[] {
+  const reduce = makeTrainReducer(CHK_A01);
+  const started = reduce(initialTrainState(CHK_A01), { type: "start" });
+  const after = reduce(started, {
+    type: "submit",
+    input: { utterance: LEARNER_SAID, branchId: "D1-c", viaButton: false },
+  });
+  const tail = after.log[after.log.length - 1];
+  if (!tail || tail.kind !== "line") throw new Error("로그 끝이 인물 대사가 아닙니다");
+  if (!after.log.some((item) => item.kind === "learner")) {
+    throw new Error("로그에 학습자 발화가 없습니다 — 이 검사가 재려는 것이 없어졌습니다");
+  }
+  return after.log;
+}
+
+describe("요청 경로 (재생 상태와 분리)", () => {
+  it("소리를 꺼도·움직임을 줄여도·시연 중이어도 변주 요청은 그대로 선다", () => {
+    const log = sessionLogWithLearnerLine();
+    const tail = log[log.length - 1];
+
+    /* 이 함수의 서명에 재생 상태가 없다는 것이 13차에 고친 결합 그 자체다.
+       예전에는 호출부가 「소리 끔·움직임 줄임·시연 빨리감기」 조기 반환 **뒤에** 있어,
+       그 세 경우에 요청이 한 번도 나가지 않았다(ai_cto high). */
+    const target = varyTargetOf(log, true);
+    expect(target).toBeDefined();
+    expect(target?.key).toBe(tail?.kind === "line" ? tail.key : "");
+    expect(target?.anchor).toBe(tail?.kind === "line" ? tail.text : "");
+
+    /* 붙드는 박자: 소리 끔은 **변주가 도는 동안만** 짧게 붙든다(무대 음소거 시연에서
+       첫 대사에 변주가 서게 — 13차 ai_cto 2안, 14차 리더 채택). 움직임 줄임·시연
+       빨리감기는 「기다리지 않겠다」는 명시적 선택이라 변주 대기보다 우선한다. */
+    expect(
+      lineHoldMs({ ttsOn: false, reducedMotion: false, demoMode: false, varying: true }),
+    ).toBe(MUTED_VARY_HOLD_MS);
+    expect(
+      lineHoldMs({ ttsOn: false, reducedMotion: false, demoMode: false, varying: false }),
+    ).toBe(0);
+    for (const playback of [
+      { ttsOn: true, reducedMotion: true, demoMode: false, varying: true },
+      { ttsOn: true, reducedMotion: false, demoMode: true, varying: true },
+      { ttsOn: false, reducedMotion: true, demoMode: false, varying: true },
+      { ttsOn: false, reducedMotion: false, demoMode: true, varying: true },
+    ]) {
+      expect(lineHoldMs(playback)).toBe(0);
+    }
+  });
+
+  it("붙들 시간은 재생 상태만 본다 (상한 1200ms는 그대로)", () => {
+    const on = { ttsOn: true, reducedMotion: false, demoMode: false };
+    expect(lineHoldMs({ ...on, varying: true })).toBe(VARY_LINE_HOLD_MS);
+    expect(lineHoldMs({ ...on, varying: false })).toBe(SPEAKING_HOLD_MS);
+    expect(VARY_LINE_HOLD_MS).toBe(1200);
+  });
+
+  it("스위치가 꺼져 있으면 청하지 않고, 대상 화자가 아니어도 청하지 않는다", () => {
+    const log = sessionLogWithLearnerLine();
+    expect(varyTargetOf(log, false)).toBeUndefined();
+
+    const tail = log[log.length - 1];
+    if (!tail || tail.kind !== "line") throw new Error("로그 끝이 인물 대사가 아닙니다");
+    // 119 상황실은 고정 안내에 가깝다 — 변주 대상에서 빠진다(같은 목록을 본다).
+    const dispatched: LogItem[] = [...log.slice(0, -1), { ...tail, speaker: "dispatcher" }];
+    expect(varyTargetOf(dispatched, true)).toBeUndefined();
+    // 로그 끝이 인물 대사가 아니면(피드백·안내) 청할 자리가 없다.
+    expect(varyTargetOf(log.slice(0, -1), true)).toBeUndefined();
+    expect(varyTargetOf([], true)).toBeUndefined();
+  });
+});
+
+/**
+ * 무전송 경계 — 「어르신 연기 기본 켬 = 동의 불요」의 근거가 통째로 얹혀 있는 자리다.
+ *
+ * 그 근거는 하나뿐이다: **변주 요청에 학습자 발화가 실리지 않는다.** 그 사실을 실제로 만드는
+ * 것은 `recentContextLines`의 `kind !== "line"` 한 줄이고, 서버는 이 값을 개수·길이로만 보고
+ * 그대로 [직전 대화] 블록에 싣는다 — 즉 이 경계가 어긋나면 막아 주는 단이 아래에 없다.
+ * 그래서 골든 판정 스냅샷과 같은 무게로 여기서 고정한다(13차 심사석 sec_expert P0).
+ */
+describe("무전송 경계 (학습자 발화는 실리지 않는다)", () => {
+  beforeEach(() => {
+    clearVariationCache();
+  });
+
+  afterEach(() => {
+    clearVariationCache();
+  });
+
+  it("① 요청 몸통은 네 칸뿐이다 — 칸이 하나 늘면 타입 검사가 먼저 막는다", () => {
+    const FIELDS = ["anchor", "persona", "recentLines", "scenarioSummary"] as const;
+    /* 이 표는 `keyof LineVaryRequest`를 열쇠로 받는다. 인터페이스에 칸이 하나 늘면 「빠진 속성」,
+       하나 줄면 「없는 속성」으로 **컴파일이 붉어진다** — 회귀 검사보다 먼저 걸리는 자리다. */
+    const declared: Record<keyof LineVaryRequest, (typeof FIELDS)[number]> = {
+      scenarioSummary: "scenarioSummary",
+      persona: "persona",
+      anchor: "anchor",
+      recentLines: "recentLines",
+    };
+    expect(Object.keys(declared).sort()).toEqual([...FIELDS]);
+
+    const request = buildVaryRequest(contextFor(ANCHOR));
+    expect(request).toBeDefined();
+    expect(Object.keys(request ?? {}).sort()).toEqual([...FIELDS]);
+  });
+
+  it("② 인물 대사가 아닌 항목은 한 줄도 실리지 않는다 (학습자 발화·기록 초안·안내)", () => {
+    const real = sessionLogWithLearnerLine();
+    const tail = real[real.length - 1];
+    if (!tail || tail.kind !== "line") throw new Error("로그 끝이 인물 대사가 아닙니다");
+
+    /* 실제 로그(학습자 발화 + 피드백)에 기록 초안과 안내를 더 섞는다.
+       초안은 학습자 발화를 **원문으로 삼아** 만들어지므로, 그 갈래가 열리면 경계가 도로 뚫린다. */
+    const log: LogItem[] = [
+      ...real.slice(0, -1),
+      { key: "draft-x", kind: "draft", source: LEARNER_SAID },
+      { key: "notice-x", kind: "notice", text: `안내 ${LEARNER_SAID}`, tone: "brand" },
+      tail,
+    ];
+
+    const lines = recentContextLines(log, tail.key);
+    expect(lines.length).toBeGreaterThan(0);
+    for (const line of lines) {
+      expect(line).not.toContain(LEARNER_SAID);
+      expect(line).not.toContain("안내 ");
+    }
+    // 실린 것은 인물 대사뿐이고, 자기 자신(앵커)은 빠진다.
+    expect(lines.some((line) => line.includes("박 어르신"))).toBe(true);
+    expect(lines.every((line) => !line.includes(tail.text))).toBe(true);
+    expect(lines.length).toBeLessThanOrEqual(VARY_MAX_RECENT_LINES);
+  });
+
+  it("③ 실제 세션에서 나가는 몸통에 학습자 발화가 한 글자도 없다", async () => {
+    const log = sessionLogWithLearnerLine();
+    const target = varyTargetOf(log, true);
+    expect(target).toBeDefined();
+    if (!target) return;
+
+    // 화면이 부르는 그 경로 그대로 — 로그 → 대상 고르기 → 요청 조립 → 직렬화.
+    const request = buildVaryRequest({ scenario: CHK_A01, ...target });
+    expect(JSON.stringify(request)).not.toContain(LEARNER_SAID);
+
+    const { fetchImpl, calls } = fetchReturning(varyReply(target.anchor));
+    await varyLine({ scenario: CHK_A01, ...target }, { fetchImpl, settings: ON });
+    expect(calls).toHaveLength(1);
+    const sent = String(calls[0]?.init?.body);
+    expect(sent).not.toContain(LEARNER_SAID);
+    // 발화를 실어 보낼 칸 자체가 없다 — 서버도 아는 칸만 새로 조립한다.
+    const body = JSON.parse(sent) as Record<string, unknown>;
+    expect(body.utterance).toBeUndefined();
+    expect(Object.keys(body).sort()).toEqual([
+      "anchor",
+      "persona",
+      "recentLines",
+      "scenarioSummary",
+      "task",
+    ]);
   });
 });
 

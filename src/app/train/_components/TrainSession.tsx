@@ -6,12 +6,7 @@ import { useModalDismiss, useOverlayTransition } from "@/components/useModalDism
 import { cx } from "@/components/utils";
 import { buildRecord, currentCue, currentTurn, protocolIdOf, resolveEnding } from "@/engine";
 import { startCueCoaching } from "@/lib/onlineCoach";
-import {
-  VARY_MAX_RECENT_LINES,
-  isLineVaryActive,
-  isVariableSpeaker,
-  varyLine,
-} from "@/lib/onlineVary";
+import { isLineVaryActive, varyLine } from "@/lib/onlineVary";
 import { subscribeSettings } from "@/lib/settings";
 import { getStageMode, subscribeStageMode } from "@/lib/stageMode";
 import { isRecognitionSupported, primeVoices, speak, stopSpeaking } from "@/lib/speech";
@@ -44,6 +39,12 @@ import {
   TAIL_ANCHOR,
   type MicCheck,
 } from "./constants";
+import {
+  isSpokenLine,
+  lineHoldMs,
+  SPEAKING_HOLD_MS,
+  varyTargetOf,
+} from "./lineArrival";
 import { ruleDemoExamplesFor, RULE_DEMO_TITLE } from "./ruleDemoExamples";
 import { cueProgress } from "./sessionProgress";
 import {
@@ -53,27 +54,6 @@ import {
   type CriticalInterruptState,
   type LogItem,
 } from "./sessionMachine";
-
-/**
- * 새 대사를 「말하는 중」으로 붙들어 두는 시간(ms).
- *
- * 어르신이 말을 고르는 짧은 사이입니다 — 대화의 박자를 만드는 것이 목적이지
- * 기다리게 하는 것이 목적이 아니므로, 낭독 한 문장(수 초)보다 훨씬 짧게 잡습니다.
- * 아래 세 경우에는 **한 프레임도 붙들지 않습니다** — 소리를 꺼 두셨을 때(세션 헤더의 「소리 끄기」),
- * 움직임을 줄여 달라고 하셨을 때(`prefers-reduced-motion`), 시연 빨리감기 중일 때.
- * 버튼만으로 완주하시는 분이 이 연출 때문에 느려지지 않도록, 끄는 자리를 화면 안에 둔 셈입니다.
- */
-const SPEAKING_HOLD_MS = 800;
-
-/**
- * 대사 변주를 기다리는 **화면 쪽** 상한(ms).
- *
- * 이미 있던 「말하는 중」 800ms와 **겹칩니다** — 변주는 그 박자 안에서 끝나야 값이 있습니다.
- * 400ms가 더 붙을 수 있는 것이 전부이고, 그 안에 오지 않으면 검수 앵커로 그대로 넘어갑니다.
- * 늦게 도착한 답은 화면을 건드리지 못하고 보관소에만 들어갑니다(같은 지점을 다시 하실 때 씁니다) —
- * 이미 편 대사를 뒤늦게 갈아 끼우면 읽고 계신 문장이 눈앞에서 바뀝니다.
- */
-const VARY_LINE_HOLD_MS = 1200;
 
 /**
  * 소리가 켜진 채로 세션에 들어오신 낭독 사용자께 **한 번만** 드리는 안내.
@@ -86,33 +66,6 @@ const VARY_LINE_HOLD_MS = 1200;
  */
 const VOICE_ON_NOTICE =
   "어르신 대사를 소리로 읽어 드리고 있습니다. 화면 위 「소리 끄기」를 누르시면 글로 전해 드립니다.";
-
-/**
- * 「말하는 중」을 붙일 대사인지.
- * 상황 안내(system)와 검수된 고정 안내(protocol)는 사람이 말을 고르는 자리가 아니므로 그대로 폅니다.
- */
-function isSpokenLine(item: LogItem | undefined): item is Extract<LogItem, { kind: "line" }> {
-  if (!item || item.kind !== "line") return false;
-  return item.speaker === "elder" || item.speaker === "guardian" || item.speaker === "dispatcher";
-}
-
-/**
- * 변주 요청에 실어 보낼 직전 맥락 두어 줄.
- *
- * 담는 것은 **인물·상황 대사뿐**입니다. 학습자 발화(`kind: "learner"`)는 여기서 걸러집니다 —
- * 맥락으로 실으면 편하지만, 그 순간 「기기 밖으로 나가는 말씀은 미분류 턴의 가명처리된 한 문장뿐」
- * 이라는 약속이 조용히 넓어집니다. 넓히지 않는 쪽을 고른 자리이고, 이 함수가 그 경계입니다.
- */
-function recentContextLines(log: LogItem[], exceptKey: string): string[] {
-  const out: string[] = [];
-  for (let i = log.length - 1; i >= 0 && out.length < VARY_MAX_RECENT_LINES; i -= 1) {
-    const item = log[i];
-    if (!item || item.kind !== "line" || item.key === exceptKey) continue;
-    if (item.text.trim().length === 0) continue;
-    out.push(`${item.speakerName}: ${item.text}`);
-  }
-  return out.reverse();
-}
 
 /** 화면 움직임을 줄여 달라고 설정하신 분인지 (DialogueLog의 스크롤 규칙과 같은 질의입니다) */
 function prefersReducedMotion(): boolean {
@@ -292,6 +245,16 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   const variationsRef = useRef<Map<string, string>>(new Map());
   /** 어르신 연기가 켜져 있고 이 시나리오가 변주 대상인지 (응급 유형은 통째로 빠집니다) */
   const [varyOn, setVaryOn] = useState(false);
+  /** 이번 회차에 변주를 이미 청한 대사 — 같은 대사에 두 번 청하지 않습니다 */
+  const varyAskedRef = useRef<string>("");
+  /**
+   * 지금 도는 변주 요청 한 건 — **요청 효과가 적고, 박자 효과가 읽습니다.**
+   *
+   * `settle`은 박자 효과가 걸어 두는 자리입니다. 답이 도착하면 그 자리에서 남은 박자만
+   * 지키고 대사를 폅니다 — 변주가 빨리 왔다고 대사가 튀어나오면 안 됩니다.
+   * 붙들지 않는 화면(소리 끔 등)에서는 아무도 걸어 두지 않으므로 그냥 비어 있습니다.
+   */
+  const varyWaitRef = useRef<{ key: string; startedAt: number; settle?: () => void } | null>(null);
 
   const applyVariation = useCallback((key: string, text: string) => {
     variationsRef.current.set(key, text);
@@ -303,6 +266,18 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     if (variationsRef.current.size === 0) return;
     variationsRef.current.clear();
     setVariations(new Map());
+  }, []);
+
+  /**
+   * 회차가 새로 시작될 때 대사 박자 표시를 통째로 비웁니다 — 같은 이유(로그 키가 0부터 다시)입니다.
+   * 남겨 두면 첫 대사가 「말하는 중」 없이 튀어나오거나(shown·pending), 지난 회차에 이미
+   * 청했다고 기억해 **변주를 아예 청하지 않습니다**(asked).
+   */
+  const resetLineTiming = useCallback(() => {
+    shownLineRef.current = "";
+    pendingLineRef.current = "";
+    varyAskedRef.current = "";
+    varyWaitRef.current = null;
   }, []);
 
   /* 서버에서는 설정을 알 수 없으므로 「꺼짐」으로 시작해 마운트한 다음 실제 값으로 바꿉니다.
@@ -528,15 +503,65 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   }, []);
 
   /**
-   * 새 대사가 도착하면 한 박자 붙듭니다 — 「말하는 중」 빈 말풍선 → 대사 + 낭독.
+   * ① 변주 요청 — **대사가 도착한 그 순간의 독립 경로입니다.**
+   *
+   * 예전에는 이 호출이 아래 박자 효과 **안**에 있었고, 그 효과는 붙들 이유가 없는 세 경우
+   * (소리 끔·움직임 줄임·시연 빨리감기)에 조기 반환했습니다. 결과는 「어르신 연기 기본 켬」이
+   * 소리를 끄는 순간 **호출 0건**으로 조용히 거짓이 되는 것이었습니다 — 근무 시간 밖·공용
+   * 공간에서 소리를 끄는 것은 이 앱이 상정한 사용 맥락에서 예외가 아닙니다
+   * (13차 심사석 ai_cto high). 지금은 청하는 자리와 붙드는 자리가 갈렸습니다:
+   * 무엇을 청할지는 `varyTargetOf`가 정하고 **재생 상태를 보지 않으며**, 몇 초 붙들지는
+   * 아래 효과가 `lineHoldMs`로 정합니다.
+   *
+   * 박자 효과보다 **먼저** 선언돼 있어야 같은 커밋에서 `varyWaitRef`가 채워집니다 —
+   * 순서를 바꾸지 마세요(아래 낭독 효과까지 셋의 순서가 그대로 이 화면의 규약입니다).
+   *
+   * 도착한 답이 화면에 서는 조건은 그대로입니다 — **이미 편 대사는 갈아 끼우지 않습니다.**
+   * 붙들지 않은 화면에서 늦게 온 답은 보관소에만 남아 같은 지점을 다시 하실 때 쓰입니다.
+   */
+  useEffect(() => {
+    const target = varyTargetOf(state.log, varyOn);
+    if (!target) return undefined;
+    // 같은 대사에 두 번 청하지 않습니다 — 이 효과는 설정이 바뀔 때도 다시 돕니다.
+    if (varyAskedRef.current === target.key) return undefined;
+    varyAskedRef.current = target.key;
+    varyWaitRef.current = { key: target.key, startedAt: Date.now() };
+
+    let cancelled = false;
+    void varyLine({
+      scenario,
+      speaker: target.speaker,
+      anchor: target.anchor,
+      recentLines: target.recentLines,
+    }).then((outcome) => {
+      const wait = varyWaitRef.current;
+      if (wait?.key === target.key) {
+        varyWaitRef.current = null;
+        // 붙들고 있는 화면이 있으면 남은 박자만 지키고 폅니다.
+        wait.settle?.();
+      }
+      if (cancelled) return;
+      // 이미 편 대사는 바꾸지 않습니다 — 늦게 온 답은 보관소에만 남아 다음 방문에 쓰입니다.
+      if (shownLineRef.current === target.key) return;
+      if (outcome.varied) applyVariation(target.key, outcome.text);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [applyVariation, scenario, state.log, varyOn]);
+
+  /**
+   * ② 박자 — 새 대사가 도착하면 한 박자 붙듭니다(「말하는 중」 빈 말풍선 → 대사 + 낭독).
    *
    * 붙드는 것은 **로그 맨 끝의 인물 대사** 하나뿐입니다. 뒤에 코칭이 이미 붙은 대사는
    * 붙들면 코칭까지 함께 가려지므로 그대로 폅니다(반응 대사 → 코칭 → 「말하는 중」 → 다음 대사 순서).
    * 낭독 효과보다 **먼저** 선언돼 있어야 같은 커밋에서 ref가 채워집니다 — 순서를 바꾸지 마세요.
    *
-   * 어르신 연기가 켜져 있으면(기본값), 이 박자 **안에서** 대사 변주를 청합니다(어르신·보호자 대사만).
-   * 붙드는 시간이 없는 세 경우(소리 끔·움직임 줄임·시연 빨리감기)에는 청하지 않습니다 —
-   * 그때 변주를 기다리면 그것은 겹치는 연출이 아니라 **새로 만든 지연**입니다.
+   * 붙들 시간은 `lineHoldMs` 하나가 정합니다. 0이면 한 프레임도 붙들지 않습니다 —
+   * 버튼만으로 완주하시는 분이 연출 때문에 느려지지 않는다는 규율은 그대로입니다.
+   * 위 요청 효과가 변주를 청해 둔 대사라면 상한이 1200ms로 올라가고, 답이 그 안에 오면
+   * `settle`이 남은 박자만 지키고 폅니다.
    */
   useEffect(() => {
     const tail = state.log[state.log.length - 1];
@@ -554,8 +579,17 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
       setPendingLineKey("");
       return undefined;
     }
-    /* 소리를 꺼 두셨거나 · 움직임을 줄이셨거나 · 시연 빨리감기 중이면 곧바로 폅니다. */
-    if (!ttsOn || demoModeRef.current || prefersReducedMotion()) {
+
+    const wait = varyWaitRef.current?.key === key ? varyWaitRef.current : null;
+    const hold = lineHoldMs({
+      ttsOn,
+      reducedMotion: prefersReducedMotion(),
+      demoMode: demoModeRef.current,
+      varying: wait !== null,
+    });
+    /* 소리를 꺼 두셨거나 · 움직임을 줄이셨거나 · 시연 빨리감기 중이면 곧바로 폅니다.
+       변주 요청은 위 효과가 이미 띄웠습니다 — 여기서 정하는 것은 화면의 박자뿐입니다. */
+    if (hold === 0) {
       reveal();
       return undefined;
     }
@@ -578,32 +612,19 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
       timer = window.setTimeout(revealNow, Math.max(0, ms));
     };
 
-    const target = spoken && varyOn && isVariableSpeaker(spoken.speaker) ? spoken : undefined;
-    if (!target) {
-      holdFor(SPEAKING_HOLD_MS);
-    } else {
-      const startedAt = Date.now();
-      /* 상한을 먼저 걸어 둡니다 — 답이 늦어도 화면은 1200ms에서 반드시 다음으로 넘어갑니다. */
-      holdFor(VARY_LINE_HOLD_MS);
-      void varyLine({
-        scenario,
-        speaker: target.speaker,
-        anchor: target.text,
-        recentLines: recentContextLines(state.log, key),
-      }).then((outcome) => {
-        // 이미 편 대사는 바꾸지 않습니다 — 늦게 온 답은 보관소에만 남아 다음 방문에 쓰입니다.
-        if (cancelled || revealed) return;
-        if (outcome.varied) applyVariation(key, outcome.text);
-        // 남은 박자는 그대로 지킵니다 — 변주가 빨리 왔다고 대사가 튀어나오면 안 됩니다.
-        holdFor(SPEAKING_HOLD_MS - (Date.now() - startedAt));
-      });
+    /* 상한을 먼저 걸어 둡니다 — 답이 늦어도 화면은 1200ms에서 반드시 다음으로 넘어갑니다. */
+    holdFor(hold);
+    if (wait) {
+      // 남은 박자는 그대로 지킵니다 — 변주가 빨리 왔다고 대사가 튀어나오면 안 됩니다.
+      wait.settle = () => holdFor(SPEAKING_HOLD_MS - (Date.now() - wait.startedAt));
     }
 
     return () => {
       cancelled = true;
+      if (wait) wait.settle = undefined;
       window.clearTimeout(timer);
     };
-  }, [applyVariation, scenario, state.log, ttsOn, varyOn]);
+  }, [state.log, ttsOn]);
 
   useEffect(() => {
     let lastLine: Extract<LogItem, { kind: "line" }> | undefined;
@@ -745,8 +766,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     clearProgress(scenario.id);
     /* 「처음부터」는 로그 키까지 되돌아갑니다 — 지난 회차에 이미 폈던 키라고 기억하고 있으면
        첫 대사가 「말하는 중」 없이 튀어나옵니다. */
-    shownLineRef.current = "";
-    pendingLineRef.current = "";
+    resetLineTiming();
     resetVariations();
     setCheckpoint(null);
     setAtBriefing(false);
@@ -756,7 +776,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     setStartedByUser(true);
     dispatch({ type: "start" });
     scrollToTop();
-  }, [resetVariations, scenario.id, scrollToTop]);
+  }, [resetLineTiming, resetVariations, scenario.id, scrollToTop]);
 
   /**
    * 시연 프리셋 — `/train/[id]?demo=cf|l3|end`.
@@ -786,8 +806,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     stopSpeaking();
     setSpeakingKey("");
     spokenKeyRef.current = "";
-    shownLineRef.current = "";
-    pendingLineRef.current = "";
+    resetLineTiming();
     resetVariations();
     clearProgress(scenario.id);
     setCheckpoint(null);
@@ -796,7 +815,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     setChosenAlternative("");
     dispatch({ type: "restart" });
     scrollToTop();
-  }, [resetVariations, scenario.id, scrollToTop]);
+  }, [resetLineTiming, resetVariations, scenario.id, scrollToTop]);
 
   /**
    * ⚑CF 시트를 닫고 같은 장면으로 돌아갑니다.
@@ -814,8 +833,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     stopSpeaking();
     setSpeakingKey("");
     spokenKeyRef.current = "";
-    shownLineRef.current = "";
-    pendingLineRef.current = "";
+    resetLineTiming();
     resetVariations();
     dispatch({ type: "resume", progress: checkpoint });
     setCheckpoint(null);
@@ -824,7 +842,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     /* 「이어서 하기」도 같은 화면 교체입니다 — 「시작하기」와 초점 처리를 가르지 않습니다. */
     setStartedByUser(true);
     scrollToTop();
-  }, [checkpoint, resetVariations, scrollToTop]);
+  }, [checkpoint, resetLineTiming, resetVariations, scrollToTop]);
 
   /**
    * ‹ — 브리핑으로 돌아갑니다.

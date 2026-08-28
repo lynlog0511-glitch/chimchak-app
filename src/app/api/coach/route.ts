@@ -15,8 +15,11 @@
  *  · `ping`        — 설정 여부만 되돌려 주는 점검용 분기. **상류를 부르지 않고** 예산 통도 쓰지
  *                    않습니다(/check 화면이 무대 전에 켜 보는 자리입니다). 계수기 밖에 두지는
  *                    않아, IP당 분당 한 칸만 셉니다.
- * 앞의 세 일은 검증도 프롬프트도 생성 상한도 따로지만, **한도 계수기는 하나를 나눠 씁니다** —
- * 비용은 요청 수로 나가지 작업 이름으로 나가지 않습니다.
+ * 앞의 세 일은 검증도 프롬프트도 생성 상한도 따로입니다. **IP당 계수기는 하나를 나눠 쓰지만**
+ * (비용은 요청 수로 나가지 작업 이름으로 나가지 않습니다), **배포 전체 하루 예산은 `vary`만
+ * 전용 통을 씁니다** — 변주는 못 받으면 검수 앵커 대사로 조용히 접히는 기능이고 자유 연습은 못
+ * 받으면 화면이 열리지 않는 기능이라, 접히는 쪽이 안 접히는 쪽을 굶기지 않게 격리한 자리입니다
+ * (사유 전문은 `src/lib/coachLimits.ts`의 `varyDailyCap`).
  *
  * 이 파일이 하는 일은 다섯뿐입니다.
  *  ① **출처 확인** — 같은 출처에서 온 JSON 요청만 받습니다. 아무 웹사이트가 방문자의 브라우저로
@@ -186,6 +189,7 @@ const FREE_TEMPERATURE: Record<FreeRequest["stage"], number> = {
 const PER_IP_PER_MINUTE = COACH_RATE_LIMITS.perIpPerMinute;
 const PER_IP_PER_DAY = COACH_RATE_LIMITS.perIpPerDay;
 const DEFAULT_DAILY_CAP = COACH_RATE_LIMITS.defaultDailyCap;
+const DEFAULT_VARY_DAILY_CAP = COACH_RATE_LIMITS.varyDailyCap;
 const ANON_DAILY_CAP = COACH_RATE_LIMITS.anonDailyCap;
 
 /* ── 서버 설정 ─────────────────────────────────────────── */
@@ -195,7 +199,24 @@ interface CoachServerConfig {
   model: string;
   /** 비어 있을 수 있습니다 — 키 없이 도는 사내·로컬 게이트웨이를 막지 않으려는 자리입니다. */
   apiKey: string;
+  /** 코칭·자유 연습이 쓰는 통 (`COACH_DAILY_CAP`) */
   dailyCap: number;
+  /**
+   * 변주 전용 통 (`COACH_VARY_DAILY_CAP`) — 언제나 `min(설정값, dailyCap)`입니다.
+   * 사유는 `COACH_RATE_LIMITS.varyDailyCap` 주석에 있습니다(두 수를 여기 옮겨 적지 않습니다).
+   */
+  varyCap: number;
+}
+
+/**
+ * 예산 상한 env 한 칸 — 양의 정수만 받고, 없거나 이상하면 기본값입니다.
+ *
+ * 두 상한(`COACH_DAILY_CAP`·`COACH_VARY_DAILY_CAP`)이 **같은 함수**를 지납니다. 파싱 규칙을
+ * 두 번 적으면 다음 사람이 한쪽에만 상한(10만)을 걸거나 `0`을 다르게 다루는 자리가 됩니다.
+ */
+function readCapEnv(raw: string | undefined, fallback: number): number {
+  const value = Number.parseInt((raw ?? "").trim(), 10);
+  return Number.isFinite(value) && value > 0 ? Math.min(value, 100_000) : fallback;
 }
 
 /**
@@ -210,11 +231,15 @@ function readConfig(): CoachServerConfig | undefined {
   const model = (process.env.COACH_MODEL ?? "").trim();
   if (baseUrl.length === 0 || model.length === 0) return undefined;
 
-  const capRaw = Number.parseInt((process.env.COACH_DAILY_CAP ?? "").trim(), 10);
-  const dailyCap =
-    Number.isFinite(capRaw) && capRaw > 0 ? Math.min(capRaw, 100_000) : DEFAULT_DAILY_CAP;
+  const dailyCap = readCapEnv(process.env.COACH_DAILY_CAP, DEFAULT_DAILY_CAP);
+  /* 변주 통은 **일반 통을 넘지 않습니다** — `COACH_DAILY_CAP`을 내려 비용을 조인 배포에서
+     변주만 기본 300회를 도는 뒤집힘을 막는 자리입니다(`anonDailyCap`과 같은 규율). */
+  const varyCap = Math.min(
+    readCapEnv(process.env.COACH_VARY_DAILY_CAP, DEFAULT_VARY_DAILY_CAP),
+    dailyCap,
+  );
 
-  return { baseUrl, model, apiKey: (process.env.COACH_API_KEY ?? "").trim(), dailyCap };
+  return { baseUrl, model, apiKey: (process.env.COACH_API_KEY ?? "").trim(), dailyCap, varyCap };
 }
 
 /* ── 요청 검증 ─────────────────────────────────────────── */
@@ -405,10 +430,35 @@ interface IpBucket {
 
 const ipBuckets = new Map<string, IpBucket>();
 let globalDay = -1;
-/** 토큰 표식이 붙은 요청의 몫 — 화면에서 온 정상 호출입니다. */
-let globalCount = 0;
-/** 토큰 없는 요청의 몫 — 비밀값이 설정된 배포에서만 따로 셉니다(위 `anonDailyCap` 주석). */
-let anonCount = 0;
+
+/**
+ * 배포 전체 하루 예산 **한 통**의 계수 두 칸.
+ *
+ *  · `tokened` — 토큰 표식이 붙은 요청의 몫(화면에서 온 정상 호출).
+ *  · `anon`    — 토큰 없는 요청의 몫. 비밀값이 설정된 배포에서만 갈립니다(`anonDailyCap` 주석).
+ */
+interface DailyBudget {
+  tokened: number;
+  anon: number;
+}
+
+/**
+ * **통이 둘입니다** — 코칭·자유 연습이 쓰는 `main`과 변주 전용 `vary`.
+ *
+ * 왜 가르는가: 실패 비용이 비대칭이기 때문입니다. 변주는 못 받으면 화면이 검수 앵커 대사로
+ * 조용히 접히지만(학습자는 아무 일도 없었다고 느낍니다), 자유 연습은 못 받으면 **화면이
+ * 열리지 않습니다**. 통이 하나였을 때는 한 판에 4~6회씩 나가는 변주 트래픽이 그 안 접히는
+ * 기능의 몫을 먹을 수 있었고, 그때 보이는 증상은 「변주가 안 되네」가 아니라 「자유 연습이
+ * 안 열린다」였습니다. 값싼 실패가 비싼 실패를 끌고 들어오지 못하게 격리하는 자리입니다.
+ * 값과 사유 전문은 `COACH_RATE_LIMITS.varyDailyCap`에 있습니다.
+ *
+ * 가르지 **않는** 것도 적어 둡니다 — IP당 분당·일당 한도는 두 통이 그대로 함께 씁니다
+ * (`ipBuckets`). 작업 이름을 바꿔 가며 IP 하나의 몫을 두 배로 쓰는 길을 열지 않습니다.
+ */
+const budgets: Record<"main" | "vary", DailyBudget> = {
+  main: { tokened: 0, anon: 0 },
+  vary: { tokened: 0, anon: 0 },
+};
 
 /** 항목 수 상한 — 값과 사유는 `src/lib/coachLimits.ts`에 있습니다. */
 const MAX_IP_BUCKETS = COACH_RATE_LIMITS.maxIpBuckets;
@@ -448,23 +498,30 @@ function prune(day: number, minute: number): void {
  *
  * `ip`가 없으면(프록시 없는 배포) **배포 전체 상한만** 겁니다 — 위 `clientIp()` 주석 참조.
  *
- * **배포 전체 상한은 두 통입니다.** `tokened`가 참인 요청(화면이 서버 렌더 때 받은 단기 토큰을
- * 붙여 온 요청)은 `dailyCap` 통을, 토큰 없는 요청은 훨씬 작은 `anonDailyCap` 통을 씁니다.
+ * **배포 전체 상한은 통 둘 × 칸 둘입니다.**
+ *  · **어느 통인가** — `vary`는 전용 통(`config.varyCap`), 코칭·자유 연습은 기존 통
+ *    (`config.dailyCap`). 접히는 기능이 안 접히는 기능을 굶기지 않게 가른 자리입니다
+ *    (사유 전문은 위 `budgets`와 `COACH_RATE_LIMITS.varyDailyCap`).
+ *  · **통 안의 어느 칸인가** — `tokened`가 참인 요청(화면이 받은 단기 토큰을 붙여 온 요청)은
+ *    그 통의 상한을, 토큰 없는 요청은 훨씬 작은 `anonDailyCap` 몫을 씁니다. 이 이원 구조는
+ *    통을 가르기 전과 **한 글자도 달라지지 않았고**, 이제 통마다 걸립니다.
  * 통을 나누기 전에는 상한 하나가 곧 「그날 하루 전 사용자의 온라인 코칭을 끄는 스위치」였습니다.
- * 비밀값이 설정되지 않은 배포에서는 호출자가 `tokened`를 언제나 참으로 넘기므로 **통은 하나이고
- * 동작은 예전 그대로**입니다(파일럿 무중단).
+ * 비밀값이 설정되지 않은 배포에서는 호출자가 `tokened`를 언제나 참으로 넘기므로 **통 안의 칸은
+ * 하나이고 동작은 예전 그대로**입니다(파일럿 무중단).
  *
- * IP당 한도는 두 통이 **함께** 씁니다 — IP 하나가 토큰을 붙였다 뺐다 하며 몫을 두 배로 쓰는
- * 길을 열지 않기 위해서입니다.
+ * IP당 한도는 **네 몫이 전부 함께** 씁니다 — IP 하나가 토큰을 붙였다 뺐다 하거나 작업 이름을
+ * 바꿔 가며 몫을 늘리는 길을 열지 않기 위해서입니다.
  *
- * **작은 통은 큰 통을 넘지 않습니다** — `min(anonDailyCap, dailyCap)`. 상수 60을 그대로 쓰면
+ * **작은 칸은 그 통을 넘지 않습니다** — `min(anonDailyCap, 이 통의 상한)`. 상수 60을 그대로 쓰면
  * `COACH_DAILY_CAP`을 60 밑으로 내린 배포에서 대소가 뒤집혀, 비용을 조이려던 운영자가 화면에서
  * 온 요청은 30회에 막고 표식 없는 스크립트 호출에는 60회를 주게 됩니다. 「작은 통이 말라도
- * 정상 사용자의 통은 그대로 돈다」가 그 배포에서만 거짓이 되던 자리입니다.
+ * 정상 사용자의 통은 그대로 돈다」가 그 배포에서만 거짓이 되던 자리입니다. 변주 통도 같은
+ * 규율을 그대로 지납니다(`config.varyCap` 자체가 이미 `min(설정값, dailyCap)`입니다).
  */
 function takeSlot(
   ip: string | undefined,
-  dailyCap: number,
+  task: CoachTask,
+  config: CoachServerConfig,
   tokened: boolean,
   now: number = Date.now(),
 ): boolean {
@@ -473,15 +530,22 @@ function takeSlot(
 
   if (globalDay !== day) {
     globalDay = day;
-    globalCount = 0;
-    anonCount = 0;
+    for (const budget of Object.values(budgets)) {
+      budget.tokened = 0;
+      budget.anon = 0;
+    }
   }
+
+  const vary = task === "vary";
+  const budget = vary ? budgets.vary : budgets.main;
+  const dailyCap = vary ? config.varyCap : config.dailyCap;
+
   const anonCap = Math.min(ANON_DAILY_CAP, dailyCap);
-  if (tokened ? globalCount >= dailyCap : anonCount >= anonCap) return false;
+  if (tokened ? budget.tokened >= dailyCap : budget.anon >= anonCap) return false;
 
   const take = (): true => {
-    if (tokened) globalCount += 1;
-    else anonCount += 1;
+    if (tokened) budget.tokened += 1;
+    else budget.anon += 1;
     return true;
   };
 
@@ -934,7 +998,10 @@ export async function POST(request: Request): Promise<Response> {
   if (!config) return json({ status: "unconfigured" }, 200, refresh);
 
   /*
-   * ④ 한도 — 세 작업이 계수기를 나눠 씁니다(비용은 요청 수로 나갑니다).
+   * ④ 한도 — IP당 계수기는 세 작업이 나눠 쓰고, **배포 전체 예산 통만 변주가 따로 씁니다.**
+   *   (비용은 요청 수로 나가지 작업 이름으로 나가지 않지만, 몫이 마를 때 **잃는 것**은 작업마다
+   *    다릅니다 — 변주는 앵커 대사로 접히고 자유 연습은 화면이 열리지 않습니다. 사유 전문은
+   *    위 `budgets`.)
    *
    * **프롬프트 조립보다 앞**입니다. 예전에는 순서가 반대라, 400으로 끊길 요청이 한도를 한 칸도
    * 쓰지 않은 채 JSON 파싱·정규식·프롬프트 조립 CPU를 무제한으로 태울 수 있었습니다.
@@ -962,7 +1029,7 @@ export async function POST(request: Request): Promise<Response> {
    *   ③ `ping`(위 분기) — 예산 두 통과 IP당 일당은 면제이고 IP당 분당 계수만 셉니다.
    *   이 열거가 틀리면 「하지 않는 일까지 적는다」는 이 파일의 미덕이 그대로 위험이 됩니다.
    */
-  if (!takeSlot(ip, config.dailyCap, verdict === "tokened")) {
+  if (!takeSlot(ip, task, config, verdict === "tokened")) {
     return json({ status: "rate_limited" }, 200, refresh);
   }
 

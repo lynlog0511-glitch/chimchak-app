@@ -19,9 +19,13 @@ export const PRACTICE_TRADEOFF =
 
 /* ── 문 앞에서 멈추는 자리 ─────────────────────────────── */
 
-export const GATE_OFF_TITLE = "온라인 모드가 꺼져 있습니다";
+/* 문 앞의 낱말은 **설정에 적힌 낱말과 같아야** 합니다. 2026-08-28에 스위치가 둘로 갈리면서
+   설정의 이름이 「온라인 모드」에서 「AI 코칭·자유 연습 — 하신 말씀이…」로 바뀌었고, 이 화면이
+   옛 이름으로 안내하면 켜러 간 분이 그 이름의 항목을 찾지 못합니다. 뜻도 같이 좁힙니다 —
+   이 문이 기다리는 것은 회선이 아니라 **발화 전송 동의**입니다. */
+export const GATE_OFF_TITLE = "하신 말씀을 보내는 설정이 꺼져 있습니다";
 export const GATE_OFF_BODY =
-  "이 연습은 상황과 대사를 그 자리에서 만들기 때문에 회선이 필요합니다. 설정에서 온라인 모드를 켜고 서버가 연결되면 열립니다. 켜지 않으셔도 상황 훈련 여섯 종은 그대로 열리고, 회선 없이 끝까지 돌아갑니다.";
+  "이 연습은 하신 말씀이 기기 밖으로 나가기 때문에, 설정에서 「AI 코칭·자유 연습」을 켜셔야 열립니다. 켜지 않으셔도 상황 훈련 여섯 종은 그대로 열리고, 회선 없이 끝까지 돌아갑니다.";
 
 export const GATE_OFFLINE_TITLE = "지금 오프라인입니다";
 export const GATE_OFFLINE_BODY =
@@ -29,7 +33,7 @@ export const GATE_OFFLINE_BODY =
 
 export const GATE_UNCONFIGURED_TITLE = "서버에 연결이 준비돼 있지 않습니다";
 export const GATE_UNCONFIGURED_BODY =
-  "온라인 모드는 켜져 있지만 지금 서버에 AI 연결이 없습니다. 외부 AI로 나간 것은 없고, 침착 서버까지 갔던 요청은 저장 없이 버려졌습니다. 상황 훈련은 그대로 열립니다.";
+  "설정은 켜져 있지만 지금 서버에 AI 연결이 없습니다. 외부 AI로 나간 것은 없고, 침착 서버까지 갔던 요청은 저장 없이 버려졌습니다. 상황 훈련은 그대로 열립니다.";
 
 export const GATE_TRAIN_CTA = "상황 훈련으로 가기";
 /**
@@ -37,12 +41,13 @@ export const GATE_TRAIN_CTA = "상황 훈련으로 가기";
  * 이 문장이 가리키는 「오른쪽 위 설정」은 실제로 이 화면 상단에 있습니다
  * (`app/practice/page.tsx`의 ScreenHeader action) — 예전에는 없는 컨트롤을 가리켰습니다.
  */
-export const GATE_SETTINGS_HINT = "온라인 모드는 화면 오른쪽 위 「설정」에서 켜고 끄실 수 있습니다.";
+export const GATE_SETTINGS_HINT =
+  "이 설정은 화면 오른쪽 위 「설정」의 「AI 코칭·자유 연습」에서 켜고 끄실 수 있습니다.";
 
 /** 꺼져 있어서 막힌 자리 — 여기서 바로 켜실 수 있습니다. */
 export const GATE_ENABLE_HINT =
   "아래 버튼으로 지금 켜실 수 있습니다. 화면 오른쪽 위 「설정」에서 언제든 다시 끄실 수 있습니다.";
-export const GATE_ENABLE_CTA = "온라인 모드 켜기";
+export const GATE_ENABLE_CTA = "안내에 동의하고 켜기";
 
 /* ── 시드 고르기 ───────────────────────────────────────── */
 

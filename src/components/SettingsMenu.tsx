@@ -3,17 +3,21 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import {
+  AI_DIALOGUE_LABEL,
+  AI_DIALOGUE_NOTICE,
   DEFAULT_SETTINGS,
   FONT_SCALE_OPTIONS,
   ONLINE_COACHING_NOTICE,
-  ONLINE_COACHING_OPTIONS,
   ONLINE_MODE_LABEL,
   SPEECH_RATE_OPTIONS,
   SPEECH_RATE_VALUE,
+  SWITCH_OPTIONS,
   getSettings,
+  setAiDialogue,
   setOnlineCoaching,
   setSetting,
   subscribeSettings,
+  type AiDialogueSettings,
   type ChimchakSettings,
   type FontScale,
   type OnlineCoachingSettings,
@@ -42,7 +46,7 @@ interface OptionButtonProps {
  * 비선택은 회색 면 — 보더를 두르지 않습니다(§1-4, §5).
  * 터치 타겟 48px은 여기서도 불변입니다.
  *
- * 「고를 수 없는 보기」는 이 팝오버에 더 이상 없습니다 — 온라인 코칭 켜기에 붙어 있던
+ * 「고를 수 없는 보기」는 이 팝오버에 더 이상 없습니다 — 발화 전송 켜기에 붙어 있던
  * 연결값 조건이 서버 프록시로 옮겨 가면서 사라졌습니다.
  */
 function OptionButton({ label, selected, onSelect }: OptionButtonProps) {
@@ -114,6 +118,7 @@ interface SettingsPanelProps {
   screenGap: number;
   onFontScale: (value: FontScale) => void;
   onSpeechRate: (value: SpeechRate) => void;
+  onAiDialogue: (patch: Partial<AiDialogueSettings>) => void;
   onOnlineCoaching: (patch: Partial<OnlineCoachingSettings>) => void;
   onDismiss: () => void;
   /** 팝오버 안 링크로 화면을 옮길 때 — 닫기만 하고 초점은 트리거로 되돌리지 않습니다. */
@@ -138,6 +143,7 @@ function SettingsPanel({
   screenGap,
   onFontScale,
   onSpeechRate,
+  onAiDialogue,
   onOnlineCoaching,
   onDismiss,
   onNavigate,
@@ -146,8 +152,10 @@ function SettingsPanel({
   const fontLabelRef = useRef<HTMLParagraphElement | null>(null);
   const fontLabelId = `${panelId}-font`;
   const speechLabelId = `${panelId}-speech`;
+  const dialogueLabelId = `${panelId}-dialogue`;
   const onlineLabelId = `${panelId}-online`;
   const toScreen = align === "screen";
+  const dialogue = settings.aiDialogue;
   const online = settings.onlineCoaching;
 
   useModalDismiss({ panelRef, initialFocusRef: fontLabelRef, onDismiss });
@@ -160,7 +168,7 @@ function SettingsPanel({
       aria-modal="true"
       /* 팝오버 제목 — 여는 버튼(「설정」)이 좁힌 이름이 아니라 **담긴 것 전부**를 적습니다.
          이름과 내용이 어긋나면 낭독 사용자에게는 문 뒤에 무엇이 있는지 물어볼 자리가 없습니다. */
-      aria-label="표시·음성·온라인 모드 설정"
+      aria-label="표시·음성·AI 설정"
       /* 세션 헤더의 액션 줄은 `whitespace-nowrap`이라, 팝오버 안 문장이 한 줄로 늘어나지 않도록
          여기서 줄바꿈을 되돌립니다.
 
@@ -239,24 +247,53 @@ function SettingsPanel({
         </p>
       </div>
 
-      {/* ── 온라인 모드 (실험) ────────────────────────────────
-          기본은 꺼짐입니다. 켜기 전까지 이 앱이 기기 밖으로 보내는 요청은 0건이고,
-          켠 뒤에 달라지는 것은 **코칭 문장**·**어르신·보호자 대사의 말맛**, 그리고
-          **자유 연습이 열리는 것** 셋입니다 — 판정·게이지·기록은 그대로 결정론 엔진이 내린 값입니다
+      {/* ── AI 스위치 둘 ──────────────────────────────────────
+          한 칸이던 것을 2026-08-28에 둘로 갈랐습니다. 가르는 잣대는 기능이 아니라
+          **하신 말씀이 기기 밖으로 나가는가** 하나입니다 — 그것이 사용자가 실제로 정할 일이고,
+          그 하나로 갈라야 두 칸의 무게가 서로 다르다는 사실이 화면에서 읽힙니다.
+          한 칸이던 동안에는 발화가 나가지 않는 기능(대사 변주)이 동의 뒤에 서 있어서,
+          동의를 켜는 분은 실제보다 넓은 것을 허락한다고 읽고, 끄는 분은 개인정보와 무관한
+          기능까지 함께 잃었습니다.
+
+          판정·게이지·기록은 어느 칸에서도 달라지지 않습니다 — 결정론 엔진이 내린 값 그대로입니다
           (/safety의 「AI가 쓰이는 자리」 표와 같은 사실).
 
-          절 이름에 세 자리를 다 적는 이유는 하나입니다: 스위치는 하나인데 여는 문이 셋이면,
-          이름이 하나만 말하는 순간 나머지는 사용자가 허락한 적 없는 일이 됩니다.
-
           한때 이 자리에는 주소·모델 이름·API 키 입력칸 셋이 있었습니다. 지금은 없습니다 —
-          키는 서버 환경변수에만 두고 브라우저는 같은 도메인 `/api/coach`만 부릅니다.
-          그래서 사용자가 고를 것이 스위치 하나로 줄었고, 켜기에 조건이 붙지 않습니다. */}
+          키는 서버 환경변수에만 두고 브라우저는 같은 도메인 `/api/coach`만 부릅니다. */}
+
+      {/* ① AI 어르신 연기 — **기본 켬**. 동의 칸이 아닙니다(나가는 것에 발화가 없습니다). */}
+      <div className="mt-5 border-t border-line pt-4">
+        <p id={dialogueLabelId} className="chim-label text-ink">
+          {AI_DIALOGUE_LABEL}
+        </p>
+        <div role="group" aria-labelledby={dialogueLabelId} className="mt-2 flex gap-2">
+          {SWITCH_OPTIONS.map((option) => (
+            <OptionButton
+              key={option.label}
+              label={option.label}
+              selected={dialogue.enabled === option.value}
+              onSelect={() => onAiDialogue({ enabled: option.value })}
+            />
+          ))}
+        </div>
+        <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink-soft">
+          {AI_DIALOGUE_NOTICE}
+        </p>
+        <p className="mt-3 text-[0.7813rem] leading-[1.45] text-ink-muted">
+          바뀐 대사는 형식·길이·숫자·금지 표현, 그리고 검수 문장에 없던 위험 신호까지 기기 안에서
+          확인한 뒤에만 화면에 나가고, 하나라도 지나지 못하면 검수 문장이 그대로 나옵니다. 바뀐
+          대사에는 「변주」 표기가 붙습니다. 판정·게이지·기록은 달라지지 않습니다.
+        </p>
+      </div>
+
+      {/* ② 발화 전송 동의 — **기본 꺼짐**. 켜는 것도 끄는 것도 사용자 손에 있어야 하는 칸이고,
+          그 사실을 스위치 바로 옆에서 문장으로 밝힙니다(`ONLINE_COACHING_NOTICE`). */}
       <div className="mt-5 border-t border-line pt-4">
         <p id={onlineLabelId} className="chim-label text-ink">
           {ONLINE_MODE_LABEL}
         </p>
         <div role="group" aria-labelledby={onlineLabelId} className="mt-2 flex gap-2">
-          {ONLINE_COACHING_OPTIONS.map((option) => (
+          {SWITCH_OPTIONS.map((option) => (
             <OptionButton
               key={option.label}
               label={option.label}
@@ -270,10 +307,8 @@ function SettingsPanel({
         </p>
         <p className="mt-3 text-[0.7813rem] leading-[1.45] text-ink-muted">
           켜도 판정·게이지·기록은 달라지지 않습니다. 판정이 닿지 않은 말씀에만 코칭 문장이 한 줄
-          더해지고, 근거를 확인하지 못한 문장은 화면에 나가지 않습니다. 어르신·보호자 대사의
-          변주는 형식·길이·숫자·금지 표현, 그리고 검수 문장에 없던 위험 신호까지 기기 안에서
-          확인한 뒤에만 화면에 나가고, 하나라도 지나지 못하면 검수 문장이 그대로 나옵니다. 연결이
-          준비돼 있지 않으면 외부 AI로는 아무것도 전달되지 않습니다.
+          더해지고, 근거를 확인하지 못한 문장은 화면에 나가지 않습니다. 연결이 준비돼 있지 않으면
+          외부 AI로는 아무것도 전달되지 않습니다.
         </p>
       </div>
 
@@ -309,22 +344,23 @@ function SettingsPanel({
  * 한동안 낱말이 둘이었습니다 — 홈만 「설정」이고 세션 헤더와 `ScreenHeader`의 기본값은
  * 「글자 크기」였습니다(「그 자리에서 이 팝오버를 여는 까닭이 사실상 글자 크기 하나」라는 판단).
  * 그 판단이 틀린 자리가 팝오버 **안**에 있었습니다: 이 팝오버는 글자 크기 말고도 음성 빠르기·
- * 온라인 모드 스위치·「처음 오신 분께」를 담고 있어서, 세션 안에서 「이거 마이크 꼭 써야 하나」가
+ * AI 스위치 둘·「처음 오신 분께」를 담고 있어서, 세션 안에서 「이거 마이크 꼭 써야 하나」가
  * 궁금해진 분이 그 답이 든 문을 「글자 크기」라는 이름 때문에 지나쳤습니다(3차 페르소나 교육생).
  * 이름이 담긴 것보다 좁으면, 담긴 나머지는 없는 것과 같습니다.
  * 그래서 낱말을 **고를 수 없게** 두었습니다 — `label` prop을 없앴고, 트리거 문구는
  * 이 파일의 `TRIGGER_LABEL` 한 곳에만 있습니다.
  *
- * 담는 것은 셋입니다.
+ * 담는 것은 넷입니다.
  * - **글자 크기**: 루트 font-size를 100/112.5/125%로 바꿉니다. 토큰이 전부 rem이라 화면이 통째로
  *   비례하고, 백분율이라 브라우저·OS 글꼴 설정 위에 곱해집니다(기본 16px 브라우저에서 16/18/20px).
  * - **음성 빠르기**: `speak()`의 기본 rate가 됩니다. 고르는 즉시 예시 문장을 한 번 읽어 확인시켜 줍니다.
- * - **온라인 모드 (실험)**: 기본 꺼짐. 켜기 전에는 이 앱이 기기 밖으로 요청을 보내지 않습니다.
- *   스위치 하나가 코칭 한 문장과 어르신·보호자 대사 변주 두 자리를 함께 엽니다.
- *   여기 있는 이유는 하나입니다 — 발화가 밖으로 나가는 스위치는 사용자 손에 있어야 하고,
- *   그 사실을 스위치 바로 옆에서 문장으로 밝혀야 합니다(`ONLINE_COACHING_NOTICE`).
- *   주소·모델 이름·API 키 입력칸 셋은 없어졌습니다. 키를 브라우저에 두지 않기로 하면서
- *   그 셋이 서버 환경변수로 옮겨 갔고, 사용자가 고를 것은 켜기/끄기 하나만 남았습니다.
+ * - **AI 어르신 연기**: 기본 **켬**. 검수 대사를 같은 뜻으로 다시 말하게 합니다. 나가는 것에
+ *   학습자 발화가 없어서 동의 칸이 아니고, 그래서 켜 둔 채로 시작합니다(`AI_DIALOGUE_NOTICE`).
+ * - **AI 코칭·자유 연습**: 기본 **꺼짐**. 이 칸이 곧 **발화 전송 동의**입니다 — 하신 말씀이
+ *   가림 처리를 지나 서버를 거치는 자리이고, 그런 스위치는 사용자 손에 있어야 하며 그 사실을
+ *   스위치 바로 옆에서 문장으로 밝혀야 합니다(`ONLINE_COACHING_NOTICE`).
+ *   주소·모델 이름·API 키 입력칸 셋은 없어졌습니다 — 키를 브라우저에 두지 않기로 하면서
+ *   서버 환경변수로 옮겨 갔고, 사용자가 고를 것은 켜기/끄기뿐입니다.
  *
  * 맨 아래에는 「처음 오신 분께」(/guide)로 가는 조용한 텍스트 링크 한 줄이 있습니다.
  *
@@ -400,6 +436,10 @@ export function SettingsMenu({ className, align = "trigger" }: SettingsMenuProps
   };
 
   /** 스위치는 누르는 즉시 저장합니다 — 「저장」 버튼을 따로 두지 않습니다. */
+  const changeAiDialogue = (patch: Partial<AiDialogueSettings>): void => {
+    setSettingsState(setAiDialogue(patch));
+  };
+
   const changeOnlineCoaching = (patch: Partial<OnlineCoachingSettings>): void => {
     setSettingsState(setOnlineCoaching(patch));
   };
@@ -467,6 +507,7 @@ export function SettingsMenu({ className, align = "trigger" }: SettingsMenuProps
           screenGap={screenPos.gap}
           onFontScale={chooseFontScale}
           onSpeechRate={chooseSpeechRate}
+          onAiDialogue={changeAiDialogue}
           onOnlineCoaching={changeOnlineCoaching}
           onDismiss={dismiss}
           /* 링크로 화면을 옮기는 길입니다 — 닫되 초점을 트리거로 되돌리지 않습니다.

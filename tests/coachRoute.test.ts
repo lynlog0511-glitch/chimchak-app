@@ -89,6 +89,28 @@ function coachBody(extra: Record<string, unknown> = {}): Record<string, unknown>
   };
 }
 
+/** 대사 변주 몸통 — 이 작업만 **전용 예산 통**을 쓴다(아래 「변주 전용 예산 통」 절). */
+function varyBody(extra: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    task: "vary",
+    scenarioSummary: "현관 앞 귀가 요구 (치매·인지) — 오후 방문요양 3개월차입니다.",
+    persona: "80대 남성 어르신. 저녁 무렵이면 집에 가야 한다고 하십니다.",
+    anchor: "집에 가야 해요. 우리 애들이 기다려요.",
+    recentLines: [],
+    ...extra,
+  };
+}
+
+/** 자유 연습 몸통(첫 단계) — 이 작업은 **못 받으면 화면이 열리지 않는다**. */
+function freeBody(extra: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    task: "free",
+    stage: "setup",
+    seed: "치매 행동 · 중급 — 목욕을 거부하십니다",
+    ...extra,
+  };
+}
+
 async function statusOf(response: Response): Promise<string> {
   return ((await response.json()) as { status: string }).status;
 }
@@ -723,6 +745,172 @@ describe("배포 전체 상한", () => {
     }
     expect(statuses.slice(0, limit)).toEqual(Array(limit).fill("ok"));
     expect(statuses[limit]).toBe("rate_limited");
+  });
+});
+
+/* ── 변주 전용 예산 통 ─────────────────────────────────── */
+
+describe("변주 전용 예산 통", () => {
+  /**
+   * 이 절이 지키는 것은 **실패 비용의 비대칭**이다.
+   *
+   * 변주(`task: "vary"`)는 못 받으면 화면이 검수 앵커 대사를 그대로 띄운다 — 학습자는 아무 일도
+   * 없었다고 느끼고 훈련은 끊기지 않는다. 자유 연습(`task: "free"`)은 못 받으면 상황도 인물도
+   * 없어 **화면 자체가 열리지 않는다**. 통이 하나였을 때는 한 판에 4~6회씩 조용히 나가는 변주가
+   * 그 안 접히는 기능의 몫을 먹을 수 있었고, 그때 운영자에게 보이는 증상은 「변주가 안 되네」가
+   * 아니라 「자유 연습이 안 열린다」였다(이 경로는 로그를 남기지 않으므로 원인이 어디에도 없다).
+   *
+   * 아래 검사가 두드리는 것은 그래서 **양방향 독립성**이다 — 한쪽이 말라도 다른 쪽이 돈다.
+   * 한 방향만 확인하면 「vary가 main을 굶기지 않는다」는 참인데 「main이 vary를 굶긴다」가
+   * 남아 있어도 초록이다.
+   */
+  let calls: UpstreamCall[];
+
+  beforeEach(() => {
+    calls = stubUpstream();
+    vi.stubEnv("COACH_BASE_URL", "https://coach.invalid/v1");
+    vi.stubEnv("COACH_MODEL", "tiny-coach-1");
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it("변주 통이 말라도 자유 연습·코칭은 그대로 돈다", async () => {
+    vi.stubEnv("COACH_DAILY_CAP", "600");
+    vi.stubEnv("COACH_VARY_DAILY_CAP", "2");
+    const POST = await freshRoute();
+
+    const vary: string[] = [];
+    for (let i = 0; i < 3; i += 1) vary.push(await statusOf(await POST(coachRequest(varyBody()))));
+    expect(vary).toEqual(["ok", "ok", "rate_limited"]);
+
+    // 굶기지 않는다는 사실이 이 두 줄이다 — 변주가 마른 뒤에도 안 접히는 기능이 돈다.
+    expect(await statusOf(await POST(coachRequest(freeBody())))).toBe("ok");
+    expect(await statusOf(await POST(coachRequest(coachBody())))).toBe("ok");
+    expect(calls).toHaveLength(4); // 변주 2 + 자유 연습 1 + 코칭 1 (막힌 한 건은 상류에 닿지 않는다)
+  });
+
+  it("자유 연습·코칭 통이 말라도 변주는 그대로 돈다", async () => {
+    /* 반대 방향이다. 통을 가른다는 말은 **양쪽 모두** 서로의 고갈에 영향받지 않는다는 뜻이고,
+       한 방향만 검사하면 나머지 절반이 조용히 뒤집혀도 초록이 남는다. */
+    vi.stubEnv("COACH_DAILY_CAP", "2");
+    const POST = await freshRoute();
+
+    expect(await statusOf(await POST(coachRequest(freeBody())))).toBe("ok");
+    expect(await statusOf(await POST(coachRequest(coachBody())))).toBe("ok");
+    expect(await statusOf(await POST(coachRequest(freeBody())))).toBe("rate_limited");
+
+    expect(await statusOf(await POST(coachRequest(varyBody())))).toBe("ok");
+  });
+
+  it("변주가 아무리 돌아도 일반 통의 계수는 한 칸도 줄지 않는다", async () => {
+    /* 위 두 검사는 「마른 뒤에도 돈다」를 본다. 이 검사는 그보다 앞의 사실을 본다 —
+       변주 트래픽이 애초에 일반 통을 **건드리지 않는다**. 통을 가르지 않고 변주만 먼저
+       거절하는 구현으로도 위 검사는 통과할 수 있어, 계수 자체를 확인해 둔다. */
+    vi.stubEnv("COACH_DAILY_CAP", "3");
+    vi.stubEnv("COACH_VARY_DAILY_CAP", "3");
+    const POST = await freshRoute();
+
+    for (let i = 0; i < 3; i += 1) {
+      expect(await statusOf(await POST(coachRequest(varyBody()))), String(i)).toBe("ok");
+    }
+
+    // 일반 통은 손대지 않았으므로 세 칸이 그대로 남아 있다.
+    const main: string[] = [];
+    for (let i = 0; i < 4; i += 1) main.push(await statusOf(await POST(coachRequest(coachBody()))));
+    expect(main).toEqual(["ok", "ok", "ok", "rate_limited"]);
+  });
+
+  it("COACH_VARY_DAILY_CAP으로 조정한다", async () => {
+    vi.stubEnv("COACH_DAILY_CAP", "600");
+    vi.stubEnv("COACH_VARY_DAILY_CAP", "1");
+    const POST = await freshRoute();
+
+    expect(await statusOf(await POST(coachRequest(varyBody())))).toBe("ok");
+    expect(await statusOf(await POST(coachRequest(varyBody())))).toBe("rate_limited");
+    expect(calls).toHaveLength(1);
+  });
+
+  it("설정하지 않으면 coachLimits.ts의 기본값이 그대로 상한이다", async () => {
+    vi.stubEnv("COACH_DAILY_CAP", "600");
+    const POST = await freshRoute();
+    const cap = COACH_RATE_LIMITS.varyDailyCap;
+
+    for (let i = 0; i < cap; i += 1) {
+      expect(await statusOf(await POST(coachRequest(varyBody()))), String(i)).toBe("ok");
+    }
+    expect(await statusOf(await POST(coachRequest(varyBody())))).toBe("rate_limited");
+    // 같은 순간 일반 통은 손대지 않은 채다.
+    expect(await statusOf(await POST(coachRequest(freeBody())))).toBe("ok");
+  });
+
+  it("COACH_DAILY_CAP을 변주 통 밑으로 내려도 대소가 뒤집히지 않는다", async () => {
+    /*
+     * `anonDailyCap`과 같은 규율이다. 변주 통이 상수 300으로 굳어 있으면 `COACH_DAILY_CAP=2`로
+     * 비용을 조인 배포에서 **코칭·자유 연습은 2회에 막히고 변주만 300회를 도는** 뒤집힘이 된다 —
+     * 운영자가 아는 손잡이 하나가 더 이상 천장이 아니게 되는 자리다.
+     * 라우트는 언제나 `min(변주 통, 배포 전체 상한)`을 쓴다.
+     */
+    vi.stubEnv("COACH_DAILY_CAP", "2");
+    vi.stubEnv("COACH_VARY_DAILY_CAP", "500");
+    const POST = await freshRoute();
+
+    const vary: string[] = [];
+    for (let i = 0; i < 3; i += 1) vary.push(await statusOf(await POST(coachRequest(varyBody()))));
+    expect(vary).toEqual(["ok", "ok", "rate_limited"]);
+  });
+
+  it("기본값끼리도 변주 통이 일반 통을 넘지 않는다 (숫자는 coachLimits.ts에서 읽는다)", () => {
+    expect(COACH_RATE_LIMITS.varyDailyCap).toBeLessThanOrEqual(COACH_RATE_LIMITS.defaultDailyCap);
+  });
+
+  it("IP당 한도는 두 통이 함께 쓴다 — 작업 이름을 바꿔도 몫이 두 배가 되지 않는다", async () => {
+    /* 가른 것은 **배포 전체 예산**뿐이다. IP당 계수기까지 갈리면 기기 하나가 vary와 coach를
+       번갈아 부르며 분당 몫을 두 배로 쓸 수 있다. */
+    const POST = await freshRoute();
+    const limit = COACH_RATE_LIMITS.perIpPerMinute;
+    const ip = "10.9.9.9";
+
+    const statuses: string[] = [];
+    for (let i = 0; i < limit + 1; i += 1) {
+      const body = i % 2 === 0 ? varyBody() : coachBody();
+      const headers = { "x-forwarded-for": ip };
+      statuses.push(await statusOf(await POST(coachRequest(body, { headers }))));
+    }
+    expect(statuses.slice(0, limit)).toEqual(Array(limit).fill("ok"));
+    expect(statuses[limit]).toBe("rate_limited");
+  });
+
+  it("표식 유무별 이원 구조는 변주 통 안에서도 그대로다", async () => {
+    /* 통을 가르면서 통 **안의** 구조(표식 있는 몫 / 표식 없는 작은 몫)가 사라지면, 배포 주소를
+       아는 스크립트가 변주 통 전량을 태워 화면의 변주를 하루 끌 수 있다. 통마다 걸린다. */
+    vi.stubEnv("COACH_SHARED_SECRET", SECRET);
+    vi.stubEnv("COACH_DAILY_CAP", "600");
+    const POST = await freshRoute();
+    const anonCap = COACH_RATE_LIMITS.anonDailyCap;
+
+    for (let i = 0; i < anonCap; i += 1) {
+      expect(await statusOf(await POST(coachRequest(varyBody()))), String(i)).toBe("ok");
+    }
+    expect(await statusOf(await POST(coachRequest(varyBody())))).toBe("rate_limited");
+
+    const token = await coachToken(SECRET, coachTokenWindow());
+    const tokened = await POST(
+      coachRequest(varyBody(), { headers: { [COACH_TOKEN_HEADER]: token } }),
+    );
+    expect(await statusOf(tokened)).toBe("ok");
+  });
+
+  it("미설정 배포는 예전 그대로다 — 코칭 경로가 한 글자도 달라지지 않는다", async () => {
+    /* `COACH_VARY_DAILY_CAP`을 넣지 않은 배포에서 기존 동작이 그대로인지. 이 검사가 붉어지면
+       파일럿에 나가는 배포가 달라졌다는 뜻이다. */
+    vi.stubEnv("COACH_DAILY_CAP", "1");
+    const POST = await freshRoute();
+    expect(await statusOf(await POST(coachRequest(coachBody())))).toBe("ok");
+    expect(await statusOf(await POST(coachRequest(coachBody())))).toBe("rate_limited");
+    expect(await statusOf(await POST(coachRequest(freeBody())))).toBe("rate_limited");
   });
 });
 

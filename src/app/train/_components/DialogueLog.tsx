@@ -444,7 +444,7 @@ function latestLineKey(items: LogItem[]): string {
  * (`pendingLineKey` — 시간을 재는 것은 부모인 TrainSession입니다). 붙들려 있는 동안에는
  * 그 대사를 목록에서 빼고 세므로, 자동 스크롤이 아직 보이지 않는 대사를 미리 당기지 않습니다.
  *
- * 온라인 모드에서 같은 뜻으로 다시 쓰인 대사는 `variations`가 들고 옵니다. 이 컴포넌트가 하는
+ * AI가 같은 뜻으로 다시 쓴 대사는 `variations`가 들고 옵니다. 이 컴포넌트가 하는
  * 일은 둘뿐입니다 — 그 문장을 펴는 것, 그리고 **바뀌었다는 사실을 말풍선에 적는 것**입니다.
  */
 export function DialogueLog({

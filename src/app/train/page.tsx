@@ -36,7 +36,7 @@ import { scenarioBranchPrints } from "./_components/unexplored";
 export const metadata: Metadata = {
   title: "훈련",
   description:
-    "치매 행동·응급 판단·갈등 대응을 말로 연습합니다. 정답 시험이 아니라 말이 나오게 만드는 연습입니다.",
+    "치매 행동·응급 판단·갈등 대응을 어르신 역의 AI와 말로 연습합니다. 정답 시험이 아니라 말이 나오게 만드는 연습입니다.",
 };
 
 /** 카드 eyebrow의 유형 낱말 — 시안 7a의 표기입니다(데이터의 긴 유형명 대신 목록용 짧은 말). */
@@ -153,8 +153,13 @@ export default function TrainIndexPage() {
           홈·브리핑·자유 연습·이력까지 다섯 자리에서 같은 말이 되풀이됐습니다. 네 번째로 읽으면
           안심이 아니라 「왜 자꾸 이 말을 하지, 진짜 시험인가 보다」가 됩니다(현직 검증).
           고정 문구는 홈과 첫 브리핑 두 곳에 그대로 남아 있습니다 — 지운 것이 아니라 자리를
-          줄인 것이고, 이 자리는 지금 할 일에 내줍니다. */}
-      <ScreenHeader title="훈련" subtitle="오늘 한 판 · 4~6분이면 끝나요" />
+          줄인 것이고, 이 자리는 지금 할 일에 내줍니다.
+
+          2026-08-28: 그 「지금 할 일」에 **누구와 하는 일인지**를 한 마디 넣었습니다. 여섯 장을
+          고르는 이 화면에는 AI라는 낱말이 한 곳(사레 카드의 L3 한 줄)에만 있었고, 그마저
+          「AI가 빠집니다」였습니다 — 목록을 훑는 동안 이 앱에서 AI가 하는 일이 한 번도
+          서지 않았습니다. 낱말은 홈의 「어르신 역의 AI와 말로 연습」과 같은 것을 씁니다. */}
+      <ScreenHeader title="훈련" subtitle="어르신 역의 AI와 오늘 한 판 · 4~6분이면 끝나요" />
 
       {/* 열린 시나리오 카드 — 이 화면에서 면(paper-2)을 쓰는 곳은 이 카드들뿐입니다. */}
       <section className="mt-4 space-y-[10px]" aria-label="지금 연습할 수 있는 상황">
@@ -342,7 +347,7 @@ export default function TrainIndexPage() {
                 붙어 있는데 왜 안 열리는지·내가 뭘 잘못한 건지 알 길이 없습니다(현직 검증).
                 들어가면 그 화면이 바로 켜는 버튼을 세워 줍니다(8/25 보강) — 홈으로 돌려보내지 않습니다. */}
             <span className="min-w-0 text-[0.7813rem] leading-[1.45] text-ink-faint">
-              온라인 모드가 필요해요. 들어가시면 바로 켜실 수 있어요
+              하신 말씀을 보내는 설정이 필요해요. 들어가시면 바로 켜실 수 있어요
             </span>
             {/* brand-800 — 위 시나리오 카드와 같은 면(paper-2)이라 같은 규칙입니다. */}
             <span aria-hidden className="ml-auto text-[0.9375rem] leading-none font-bold text-brand-800">

@@ -36,12 +36,15 @@ import {
   type LineVaryContext,
   type LineVaryRequest,
 } from "@/lib/onlineVary";
-import type { OnlineCoachingSettings } from "@/lib/settings";
+import type { AiDialogueSettings } from "@/lib/settings";
 
 /* ── 도구 ──────────────────────────────────────────────── */
 
-const ON: OnlineCoachingSettings = { enabled: true };
-const OFF: OnlineCoachingSettings = { enabled: false };
+/* 이 칸은 **어르신 연기** 스위치다(`settings.aiDialogue`) — 발화 전송 동의가 아니다.
+   2026-08-28에 갈렸고, 이 파일이 재는 기능은 학습자 발화를 싣지 않으므로 그쪽으로 갔다.
+   기본값이 켬이라는 사실과 마이그레이션 표는 tests/settings.test.ts가 맡는다. */
+const ON: AiDialogueSettings = { enabled: true };
+const OFF: AiDialogueSettings = { enabled: false };
 
 /** 앵커 한 줄 — 숫자가 없어 「새 숫자」 가드를 또렷하게 잴 수 있다. */
 const ANCHOR = "집에 가야 해요. 우리 애기 밥 줘야 하는데 이러고 있으면 어떡해요.";

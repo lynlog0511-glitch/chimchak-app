@@ -13,6 +13,11 @@
  *    「기기 밖으로 나가는 것은 미분류 턴의 가명처리된 발화 한 문장뿐」이라고 적어 둔 약속을,
  *    편의를 위해 조용히 넓히지 않습니다(`recentLines`를 만드는 쪽이 이 규칙을 지킵니다).
  *
+ * **이 목록이 이 기능의 기본값을 정합니다.** 개인정보가 나가지 않으므로 동의 게이트가 붙을
+ * 자리가 아니고, 그래서 스위치(`settings.aiDialogue`)는 **기본이 켬**입니다 — 하신 말씀이
+ * 나가는 자리(코칭 보조·자유 연습)의 동의 칸(`settings.onlineCoaching`)과는 다른 칸입니다.
+ * 위 목록이 한 줄이라도 늘어나면 그 순간 이 문단이 거짓이 되고, 기본값도 함께 다시 정해야 합니다.
+ *
  * 제외하는 자리
  *  · **응급 유형 시나리오 전체**(L3 원칙). 기도폐쇄·낙상 장면의 대사는 한 낱말이 대응을 가릅니다.
  *    「여기서부터 AI가 화면에서 빠집니다」라고 적어 둔 유형에서 대사만 다시 쓰는 것은 앞뒤가
@@ -51,7 +56,7 @@ import {
   squash,
   type OnlineCoachFallback,
 } from "./onlineCoach";
-import { getSettings, type OnlineCoachingSettings } from "./settings";
+import { getSettings, type AiDialogueSettings } from "./settings";
 
 /* ── 상수 ──────────────────────────────────────────────── */
 
@@ -92,14 +97,14 @@ export const VARIED_LINE_LABEL = "변주";
 export const VARIED_LINE_NOTE = "AI가 검수 대사를 같은 뜻으로 바꿔 말했습니다";
 
 /**
- * 온라인 모드를 켠 세션의 생성 자리 고지.
+ * 어르신 연기가 켜진 세션의 생성 자리 고지.
  *
- * 꺼져 있을 때의 고지(`GENERATION_ADAPTER_NOTE`)는 「어르신 대사는 검수된 시나리오 문장」이라고
+ * 꺼 두었을 때의 고지(`GENERATION_ADAPTER_NOTE`)는 「어르신 대사는 검수된 시나리오 문장」이라고
  * 단언합니다. 켠 화면에서 그 문장을 그대로 두면 바로 아래 말풍선의 「변주」 표기와 어긋나므로,
  * 같은 자리에 이 문장으로 갈아 세웁니다 — 화면이 스스로를 반박하지 않게.
  */
 export const VARY_ADAPTER_NOTE =
-  "온라인 모드가 켜져 있어, 어르신·보호자 대사는 검수 문장과 같은 뜻으로 다시 쓰여 나올 수 있습니다. 바뀐 대사에는 「변주」 표기가 붙고, 판정은 그대로 규칙이 합니다.";
+  "AI가 어르신·보호자를 연기하고 있어, 검수 문장과 같은 뜻으로 다시 쓰인 대사가 나올 수 있습니다. 바뀐 대사에는 「변주」 표기가 붙고, 판정은 그대로 규칙이 합니다. 하신 말씀은 나가지 않습니다.";
 
 /* ── 결과 모양 ─────────────────────────────────────────── */
 
@@ -149,8 +154,8 @@ export interface LineVaryOptions {
   /** 시험용 주입 자리 — 넘기지 않으면 전역 fetch를 씁니다 */
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
-  /** 시험용 — 넘기지 않으면 저장된 설정을 읽습니다 */
-  settings?: OnlineCoachingSettings;
+  /** 시험용 — 넘기지 않으면 저장된 설정(`aiDialogue`)을 읽습니다 */
+  settings?: AiDialogueSettings;
   /**
    * 가드 ⑥이 규칙 엔진에 넘길 시나리오 유형 — `varyLine`이 채워 넘깁니다.
    *
@@ -189,14 +194,20 @@ export function isVariableSpeaker(speaker: TurnDef["speaker"]): boolean {
 /**
  * 이 시나리오에서 대사 변주가 도는가 — 응급 유형은 **통째로** 빠집니다(L3 원칙).
  *
- * 여기서 답하는 것은 「사용자가 무엇을 허락했는가 + 이 시나리오가 대상인가」 둘뿐입니다.
- * 실제로 문장이 오는지는 서버 설정과 회선에 달렸고, 오지 않으면 조용히 앵커가 남습니다.
+ * 보는 칸은 **어르신 연기 스위치**(`settings.aiDialogue`)입니다 — 발화 전송 동의
+ * (`settings.onlineCoaching`)가 아닙니다. 두 칸이 갈린 날(2026-08-28) 이 함수가 보는 자리도
+ * 함께 옮겼습니다. 그대로 두었다면 「하신 말씀은 나가지 않습니다」라고 적어 둔 기능이
+ * 발화 전송을 켠 분에게만 도는, 화면과 코드가 어긋난 상태가 됩니다.
  *
- * @example isLineVaryActive(CHK_B01) // false (응급)
+ * 여기서 답하는 것은 「사용자가 이 칸을 켜 두었는가 + 이 시나리오가 대상인가」 둘뿐입니다.
+ * 실제로 문장이 오는지는 서버 설정과 회선에 달렸고, 오지 않으면 조용히 앵커가 남습니다.
+ * 응급 제외는 스위치와 무관한 불변입니다 — 켜 두어도 `EMERGENCY`에서는 거짓입니다.
+ *
+ * @example isLineVaryActive(CHK_B01) // false (응급 — 켜 두어도)
  */
 export function isLineVaryActive(
   scenario: Scenario,
-  settings: OnlineCoachingSettings = getSettings().onlineCoaching,
+  settings: AiDialogueSettings = getSettings().aiDialogue,
 ): boolean {
   if (!settings.enabled) return false;
   return scenario.type !== "EMERGENCY";
@@ -487,7 +498,7 @@ function readRelay(payload: unknown): { content?: string; fallback?: OnlineCoach
  */
 export async function requestLineVariation(
   request: LineVaryRequest,
-  config: OnlineCoachingSettings,
+  config: AiDialogueSettings,
   options: LineVaryOptions = {},
 ): Promise<LineVaryOutcome> {
   if (!config.enabled) return varyFallback(request.anchor, "disabled");
@@ -539,7 +550,7 @@ export async function varyLine(
   options: LineVaryOptions = {},
 ): Promise<LineVaryOutcome> {
   const anchor = context.anchor.trim();
-  const config = options.settings ?? getSettings().onlineCoaching;
+  const config = options.settings ?? getSettings().aiDialogue;
 
   if (!isLineVaryActive(context.scenario, config)) return varyFallback(anchor, "disabled");
   // 오프라인이면 애초에 부르지 않습니다 — 훈련은 네트워크 없이 끝까지 돌아야 합니다.

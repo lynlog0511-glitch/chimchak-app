@@ -281,7 +281,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   /** 이미 펴 드린 마지막 대사 — 같은 대사를 두 번 붙들지 않습니다 */
   const shownLineRef = useRef<string>("");
 
-  /* ── 대사 변주 (온라인 모드) ──────────────────────────────
+  /* ── 대사 변주 (AI 어르신 연기 · 기본 켬) ─────────────────
      로그가 들고 있는 것은 언제나 검수 앵커입니다. 다시 쓰인 문장은 여기 따로 담아 두고,
      말풍선과 낭독만 그 문장을 봅니다 — 판정·게이지·기록은 앵커도 변주도 보지 않습니다.
 
@@ -290,7 +290,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
      펴지는 커밋 사이에서 자막과 소리가 한 문장 어긋날 수 있습니다. */
   const [variations, setVariations] = useState<ReadonlyMap<string, string>>(() => new Map());
   const variationsRef = useRef<Map<string, string>>(new Map());
-  /** 온라인 모드가 켜져 있고 이 시나리오가 변주 대상인지 (응급 유형은 통째로 빠집니다) */
+  /** 어르신 연기가 켜져 있고 이 시나리오가 변주 대상인지 (응급 유형은 통째로 빠집니다) */
   const [varyOn, setVaryOn] = useState(false);
 
   const applyVariation = useCallback((key: string, text: string) => {
@@ -305,8 +305,11 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     setVariations(new Map());
   }, []);
 
-  /* 서버에서는 설정을 알 수 없으므로 「꺼짐」으로 그린 뒤 마운트한 다음 실제 값으로 바꿉니다
-     (기본값이 꺼짐이라 서버 렌더 결과와 첫 클라이언트 렌더가 어긋나지 않습니다 — /safety와 같은 규칙). */
+  /* 서버에서는 설정을 알 수 없으므로 「꺼짐」으로 시작해 마운트한 다음 실제 값으로 바꿉니다.
+     이 값은 **화면에 그려지지 않고** 아래 효과의 가드로만 쓰이므로(말풍선은 `variations`가 든
+     문장만 봅니다), 기본값이 켬으로 바뀐 뒤에도 서버 렌더와 어긋날 자리가 없습니다.
+     첫 대사도 놓치지 않습니다 — 이 효과가 먼저 돌아 값을 켜면 아래 효과가 `varyOn` 의존으로
+     한 번 더 도는데, 그때는 아직 `shownLineRef`가 비어 있어 그 대사를 다시 집습니다. */
   useEffect(() => {
     const read = () => setVaryOn(isLineVaryActive(scenario));
     read();
@@ -531,7 +534,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
    * 붙들면 코칭까지 함께 가려지므로 그대로 폅니다(반응 대사 → 코칭 → 「말하는 중」 → 다음 대사 순서).
    * 낭독 효과보다 **먼저** 선언돼 있어야 같은 커밋에서 ref가 채워집니다 — 순서를 바꾸지 마세요.
    *
-   * 온라인 모드를 켜신 경우, 이 박자 **안에서** 대사 변주를 청합니다(어르신·보호자 대사만).
+   * 어르신 연기가 켜져 있으면(기본값), 이 박자 **안에서** 대사 변주를 청합니다(어르신·보호자 대사만).
    * 붙드는 시간이 없는 세 경우(소리 끔·움직임 줄임·시연 빨리감기)에는 청하지 않습니다 —
    * 그때 변주를 기다리면 그것은 겹치는 연출이 아니라 **새로 만든 지연**입니다.
    */

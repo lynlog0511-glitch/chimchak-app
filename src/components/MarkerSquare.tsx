@@ -4,7 +4,7 @@ import { cx } from "./utils";
 export type MarkerTone = "danger" | "brand" | "neutral" | "ok";
 
 const TONE: Record<MarkerTone, string> = {
-  danger: "bg-danger-soft text-danger-ink", // 응급 5종 — 낙·기·의·경·출
+  danger: "bg-danger-soft text-danger-ink", // 응급 안내 목록 — 낙·기·의·경·출·문
   brand: "bg-brand-tint text-brand-800",
   neutral: "bg-paper-2 text-ink-soft",
   ok: "bg-ok-soft text-ok-ink",

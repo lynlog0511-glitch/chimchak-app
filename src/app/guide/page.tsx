@@ -12,7 +12,7 @@ import {
 } from "@/components";
 import { CALL_119_CAPTION } from "@/app/emergency/_components/Call119Bar";
 import { SOURCE_DOCS } from "@/data/docs";
-import { PROTOCOLS } from "@/data/protocols";
+import { PROTOCOLS, PROTOCOL_COUNT_PHRASE } from "@/data/protocols";
 import { CHK_A01, getActiveScenarios } from "@/data/scenarios";
 import { DocCloseButton } from "../_components/DocCloseButton";
 import { ONLINE_MODE_SHORT_LABEL } from "@/lib/settings";
@@ -77,7 +77,10 @@ const WHEN_ROWS: readonly { when: string; title: string; desc: string; href: str
   {
     when: "근무 중",
     title: "응급 안내 — 손이 급할 때 목소리로",
-    desc: `검수된 고정 문구 ${PROTOCOL_COUNT}종을 음성과 큰 자막으로 읽어 드립니다. 통신이 끊긴 자리에서도 열리고, 신체 술기는 119 상황실이 목소리로 직접 지도합니다.`,
+    // 문두의 「검수된」은 2026-08-30에 걷었습니다 — 그 한 낱말이 뒤따르는 셈을 통째로 덮어,
+    // 아직 감수를 마치지 않은 다섯 종까지 검수된 것으로 읽혔습니다(적대 검증 M7).
+    // 감수 상태는 이제 셈 안에 그대로 적힙니다(`PROTOCOL_COUNT_PHRASE`).
+    desc: `고정 문구 — ${PROTOCOL_COUNT_PHRASE}을 음성과 큰 자막으로 읽어 드립니다. 통신이 끊긴 자리에서도 열리고, 신체 술기는 119 상황실이 목소리로 직접 지도합니다.`,
     href: "/emergency",
   },
   {

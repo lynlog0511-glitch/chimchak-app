@@ -419,7 +419,7 @@ describe("재시도 — 안전 대조에 걸렸을 때", () => {
     expect(calls).toHaveLength(2);
     expect(outcome.status).toBe("blocked");
     expect(outcome.blocked).toBe("safety");
-    // 고정 장면을 대신 세우지 않는다 — 그 자리는 검수된 시나리오 여섯 종이 맡는다.
+    // 고정 장면을 대신 세우지 않는다 — 그 자리는 검수된 시나리오 일곱 종이 맡는다.
     expect(outcome.situation).toBe("");
     expect(outcome.persona).toBe("");
   });

@@ -51,6 +51,32 @@
 
 import type { CallDelayBoundaryCase, EvidenceBoundaryCase, RuleBoundaryCase } from "@/engine";
 
+/**
+ * CHK-D01(위험 판단·초급)의 적용 항목표 — `src/data/scenarios/chk-d01.ts`의 `appliedRubric`과
+ * **같은 목록**입니다. 시나리오 본문을 값으로 끌어오지 않으려고 여기 한 벌을 적어 둡니다
+ * (이 파일은 /check 화면이 그대로 import합니다 — `scenarioIds.ts`를 따로 둔 것과 같은 이유입니다).
+ *
+ * 아래 bc-398~bc-406이 재는 것은 **CO-01·CO-02·CO-07·CO-08이 빠져 있을 때 무엇이 남는가**이므로,
+ * 그 넷이 빠져 있는 한 나머지 항목이 조금 달라져도 케이스의 뜻은 그대로입니다.
+ * (bc-407~bc-410은 게이트를 넘기지 않는 케이스라 이 목록을 쓰지 않습니다.)
+ */
+const D01_APPLIED_RUBRIC = [
+  "SA-01",
+  "SA-05",
+  "SA-06",
+  "SA-07",
+  "SA-08",
+  "CO-03",
+  "CO-04",
+  "CO-05",
+  "RE-07",
+  "RE-09",
+  "CL-01",
+  "CL-02",
+  "CL-03",
+  "CL-05",
+];
+
 /** 규칙 사전 경계 문장 — bc-01~bc-30이 최초 30건, 그 뒤는 실측으로 뚫린 자리를 메운 추가분입니다. */
 export const RULE_BOUNDARY_CASES: readonly RuleBoundaryCase[] = [
   /* ── ⚑CF 신체 자유 제한 (CO-02) ─────────────────────────── */
@@ -3243,6 +3269,164 @@ export const RULE_BOUNDARY_CASES: readonly RuleBoundaryCase[] = [
     id: "bc-397",
     utterance: "복대를 채우고 이동하겠습니다.",
     why: "복대는 억제 기구라 이동 목적이어도 섭니다 — 예외어를 「벨트」에 묶어 둔 자리",
+    cf: true,
+    ruleId: "CF-RESTRAINT",
+  },
+
+  /* ── 위험 판단 D01 「문 잠김」 · 국면 게이트와 항목표 게이트 — bc-398~bc-410 ──────
+     새 유형(RISK)의 첫 회차는 **「문 잠김」이 상황 자체**입니다. 전역 사전의 잠금 신호
+     (「문 잠」·「문은 잠」)는 조사가 은/는인 꼴까지 덮으려고 넓게 적혀 있어 **능동(잠그다)과
+     피동(잠기다)을 가르지 못합니다.** 그래서 이 회차에서는 아래가 전부 걸렸습니다(실측).
+       "문은 잠겨 있습니다" · "문은 잠겨 있고 안에서 벨 소리가 납니다"(**모범 답안 원문**)
+       · "안에서 문을 잠그신 것 같습니다"(어르신의 행동을 관찰한 진술)
+     전역 사전을 좁히면 여섯 종이 함께 움직이므로, **이 회차의 CUE에서만** 사전을 순응 문형으로
+     좁혔습니다(rules.ts `LOCKED_DOOR_SITUATION_CUES`). 이 묶음이 못 박는 것은 다섯입니다.
+      ① 좁힌 자리에서 관찰·상태 진술은 지나간다 (bc-398·bc-400·bc-401·bc-406).
+      ② 좁혀도 **하겠다고 선언한 말**은 그대로 남는다 (bc-399).
+      ③ 좁힘은 **D01 여섯 CUE에서만** 돈다 — 게이트 밖에서는 전역 사전이 그대로 선다(bc-405).
+      ④ 개인정보 코칭(WARN-PII)은 **항목표 게이트 밖**에서 돈다 — CO-08을 배정하지 않아도
+         실제 번지를 부르면 그대로 붙는다(bc-403). 신고 자리에서 주소를 말하는 것이 옳은 행동인
+         만큼, 이 한 줄이 그 자리의 실제 판정을 적어 두는 유일한 기록이다.
+      ⑤ ②가 **전수가 아니다** — 좁힌 사전이 놓치는 잠금 선언 꼴이 있고, 그 꼴들도 게이트
+         밖에서는 그대로 ⚑CF다 (bc-407~bc-410). 2026-08-30 적대 검증이 짚은 자리입니다:
+         머리주석과 chk-d01.ts가 「남는 자리 **하나**」라고 적어 두었지만, 잠금 선언 20꼴을
+         게이트 안에서 재면 **10꼴**이 ⚑CF도 코칭도 받지 않고 지나갑니다(연결어미·결정·
+         보조용언·사동·상태 유지·비교·「은」 조사 계열). 좁힌 사전이 담은 것은 행위어와
+         의지·약속·평서·결정 어미의 **결합형**뿐이기 때문입니다. 그래도 사전을 넓히지
+         않은 이유는 아래 네 케이스가 적어 두는 사실입니다 — **새는 것은 전역 판정선이
+         아니라 D01 여섯 자리의 코칭 한 줄**이고, complyTerms를 넓히면 같은 사전을 그대로
+         쓰는 C02의 ⚑CF 분기와 A01·A02의 억제 판정선이 함께 움직입니다.
+     항목표 게이트(§4.5)가 하는 일은 **인터럽트를 걷는 것**이지 사전을 끄는 것이 아닙니다 —
+     CO-02를 배정하지 않은 D01에서 억제 문형은 ⚑CF 대신 코칭으로 남습니다(bc-399가 그 자리).
+     appliedRubric은 chk-d01.ts의 목록을 그대로 옮겨 적습니다 — 여기서 재는 것은 「CO-02·CO-08이
+     빠져 있을 때 무엇이 남는가」이므로, 그 둘이 빠져 있는 한 목록이 조금 달라져도 뜻은 같습니다. */
+  {
+    id: "bc-398",
+    utterance: "안에서 문을 잠그신 것 같습니다.",
+    why: "어르신의 행동을 관찰해 적은 문장입니다 — 좁힌 사전은 순응·실행 선언만 보므로 지나갑니다",
+    scenarioType: "RISK",
+    scenarioId: "CHK-D01",
+    cueId: "CUE-D2",
+    appliedRubric: D01_APPLIED_RUBRIC,
+    cf: false,
+    noAdvisory: true,
+  },
+  {
+    id: "bc-399",
+    utterance: "제가 현관문을 잠그겠습니다.",
+    why: "같은 자리에서 **내가 하겠다**는 선언은 그대로 남아야 합니다 — 좁힌 것이지 끈 것이 아닙니다",
+    scenarioType: "RISK",
+    scenarioId: "CHK-D01",
+    cueId: "CUE-D5",
+    appliedRubric: D01_APPLIED_RUBRIC,
+    // 항목표에 CO-02가 없어 인터럽트는 서지 않고, 안내는 코칭으로 남습니다(§3.3 판정선 분리).
+    cf: false,
+    advisory: ["CO-02"],
+  },
+  {
+    id: "bc-400",
+    utterance: "문이 잠겨 있어서 들어갈 수 없습니다.",
+    why: "조사가 가릅니다 — 「문이 잠겨」는 상태 진술이라 사전에 닿지 않습니다",
+    scenarioType: "RISK",
+    scenarioId: "CHK-D01",
+    cueId: "CUE-D4",
+    appliedRubric: D01_APPLIED_RUBRIC,
+    cf: false,
+    noAdvisory: true,
+  },
+  {
+    id: "bc-401",
+    utterance: "현관 문 잠금 상태를 확인해 보겠습니다.",
+    why: "살피는 말입니다 — 잠금 「상태를 확인」은 이미 면죄 장치가 받고 있습니다",
+    scenarioType: "RISK",
+    scenarioId: "CHK-D01",
+    cueId: "CUE-D1",
+    appliedRubric: D01_APPLIED_RUBRIC,
+    cf: false,
+    noAdvisory: true,
+  },
+  {
+    id: "bc-402",
+    utterance: "제가 문을 부수고 들어가겠습니다.",
+    why: "규칙 사전에는 「문 부수기」가 없습니다 — 이 판단은 시나리오 분기(D01 V1-c·V3-c)가 감점으로 받습니다",
+    scenarioType: "RISK",
+    scenarioId: "CHK-D01",
+    cueId: "CUE-D3",
+    appliedRubric: D01_APPLIED_RUBRIC,
+    cf: false,
+    noAdvisory: true,
+  },
+  {
+    id: "bc-403",
+    utterance: "역삼동 12-3번지입니다.",
+    why: "개인정보 코칭은 항목표 게이트 밖에서 돕니다 — CO-08을 배정하지 않아도 실제 번지에는 그대로 붙습니다",
+    scenarioType: "RISK",
+    scenarioId: "CHK-D01",
+    cueId: "CUE-D4",
+    appliedRubric: D01_APPLIED_RUBRIC,
+    cf: false,
+    advisory: ["CO-08"],
+  },
+  {
+    id: "bc-404",
+    utterance: "112와 119에 함께 신고하겠습니다.",
+    why: "이 회차의 모범 답안입니다 — 두 곳을 함께 부르는 말이 어떤 규칙에도 걸리지 않아야 합니다",
+    scenarioType: "RISK",
+    scenarioId: "CHK-D01",
+    cueId: "CUE-D3",
+    appliedRubric: D01_APPLIED_RUBRIC,
+    cf: false,
+    noAdvisory: true,
+  },
+  {
+    id: "bc-405",
+    utterance: "문은 잠겨 있습니다.",
+    why: "좁힘은 D01 여섯 CUE에서만 돕니다 — 게이트 밖에서는 전역 사전이 그대로 섭니다(피동을 가르지 못하는 이 오탐은 rules.ts의 한계로 남아 있습니다)",
+    cf: true,
+    ruleId: "CF-RESTRAINT",
+  },
+  {
+    id: "bc-406",
+    utterance: "문은 잠겨 있고 안에서 벨 소리가 납니다.",
+    why: "bc-405의 짝 — 같은 문장이 D01의 전달 자리에서는 지나가야 합니다. 이 회차 최고 갈래의 모범 답안 원문 조각입니다",
+    scenarioType: "RISK",
+    scenarioId: "CHK-D01",
+    cueId: "CUE-D4",
+    appliedRubric: D01_APPLIED_RUBRIC,
+    cf: false,
+    noAdvisory: true,
+  },
+
+  /* ── 좁힌 사전이 놓치는 잠금 선언 4꼴 — 전역 사전은 그대로 선다 (bc-407~bc-410) ──
+     위 ⑤가 적은 자리를 문장으로 못 박습니다. 넷 다 **게이트를 넘기지 않고**(cueId 없음)
+     재는 이유가 이 묶음의 전부입니다 — 여기서 지키려는 사실은 「D01 안에서 어떻게 되는가」가
+     아니라 **「complyTerms를 넓히지 않아도 전역 판정선은 온전한가」**이기 때문입니다.
+     이 넷이 초록인 한, D01 게이트 안의 코칭 한 줄은 사전을 넓히지 않고 두어도 되는 값입니다. */
+  {
+    id: "bc-407",
+    utterance: "제가 문을 잠그고 기다리겠습니다.",
+    why: "연결어미 「~고」 — 좁힌 사전은 「문을 잠그겠」처럼 어미가 바로 붙은 꼴만 알아 이 문장을 놓칩니다. 게이트 밖에서는 그대로 서야 합니다",
+    cf: true,
+    ruleId: "CF-RESTRAINT",
+  },
+  {
+    id: "bc-408",
+    utterance: "제가 문을 잠그기로 했습니다.",
+    why: "결정 꼴 「~기로 했」 — 「가두기로」는 좁힌 사전에 있는데 잠금 쪽에는 없습니다. 게이트 밖에서는 그대로 서야 합니다",
+    cf: true,
+    ruleId: "CF-RESTRAINT",
+  },
+  {
+    id: "bc-409",
+    utterance: "제가 문을 잠가 버리겠습니다.",
+    why: "보조용언 「~아 버리」 — 어간과 어미 사이에 보조용언이 끼면 좁힌 사전의 글자가 어긋납니다. 게이트 밖에서는 그대로 서야 합니다",
+    cf: true,
+    ruleId: "CF-RESTRAINT",
+  },
+  {
+    id: "bc-410",
+    utterance: "제가 문은 잠그겠습니다.",
+    why: "조사가 「을」이 아니라 「은」인 꼴 — 좁힌 사전에는 「문은 잠그고」만 있어 이 선언을 놓칩니다. 게이트 밖에서는 그대로 서야 합니다",
     cf: true,
     ruleId: "CF-RESTRAINT",
   },

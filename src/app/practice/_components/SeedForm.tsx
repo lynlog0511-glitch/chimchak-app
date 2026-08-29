@@ -20,6 +20,10 @@ import {
   SEED_HINT_PLACEHOLDER,
   SEED_LEVEL_LABEL,
   SEED_MAKING,
+  SEED_PRESET_LABEL,
+  SEED_PRESET_NOTE,
+  SEED_PRESET_OVERLAP_NOTE,
+  SEED_PRESETS,
   SEED_START,
   SEED_TYPE_LABEL,
 } from "./constants";
@@ -86,6 +90,7 @@ export function SeedForm({ busy, onStart }: SeedFormProps) {
   const levelLabelId = useId();
   const hintId = useId();
   const hintNoteId = useId();
+  const presetLabelId = useId();
 
   return (
     <div>
@@ -145,6 +150,35 @@ export function SeedForm({ busy, onStart }: SeedFormProps) {
         <p id={hintNoteId} className="mt-1.5 text-[0.8438rem] leading-[1.6] text-ink-muted">
           {SEED_HINT_NOTE}
         </p>
+      </section>
+
+      {/* 현장에서 온 상황 — 누르면 위 입력칸이 채워집니다. 새 모드가 아니라 시작 지문일 뿐이라,
+          채점하지 않는다는 이 화면의 성격은 그대로입니다. 출처를 바로 아래 한 줄로 밝힙니다. */}
+      <section aria-labelledby={presetLabelId} className="mt-5">
+        <p id={presetLabelId} className="chim-label text-ink">
+          {SEED_PRESET_LABEL}
+        </p>
+        <p className="mt-1.5 text-[0.8438rem] leading-[1.6] text-ink-muted">{SEED_PRESET_NOTE}</p>
+        {/* 부제는 「검수된 N 상황 **밖**」이라고 적어 두었는데, 아래 보기 하나는 검수 훈련의
+            갈등 회차와 주제가 겹칩니다. 겹침을 지우는 대신 무엇이 다른지를 적습니다 —
+            여기서 다른 것은 소재가 아니라 판정을 내리지 않는다는 것입니다(2026-08-30). */}
+        <p className="mt-1 text-[0.8438rem] leading-[1.6] text-ink-muted">
+          {SEED_PRESET_OVERLAP_NOTE}
+        </p>
+        {/* 세로로 쌓습니다 — 유형·난이도 줄과 달리 한 줄 지문이 통째로 보여야 고를 수 있습니다.
+            `grid`인 이유는 `OptionButton`이 들고 있는 `flex-1` 때문입니다. 세로 flex 안에서는
+            그 한 줄이 세 칸의 높이를 서로 맞춰 버려, 짧은 지문 아래 빈 공간이 남습니다. */}
+        <div role="group" aria-labelledby={presetLabelId} className="mt-2 grid gap-2">
+          {SEED_PRESETS.map((preset) => (
+            <OptionButton
+              key={preset.id}
+              label={preset.label}
+              note={preset.hint}
+              selected={hint === preset.hint}
+              onSelect={() => setHint(preset.hint)}
+            />
+          ))}
+        </div>
       </section>
 
       {/* 시작 전 고지 — 접히지 않습니다. */}

@@ -6,7 +6,7 @@ export interface MaskingStep {
   step: string;
   /** 그 단계에서 **지금** 일어나는 일 */
   desc: string;
-  /** 설계는 끝났지만 아직 구현하지 않은 부분 — 「계획」 배지를 달아 구현물과 갈라 놓습니다. */
+  /** 설계는 끝났지만 아직 열지 않은 부분 — 「도입 예정」 표를 달아 구현물과 갈라 놓습니다. */
   plan?: string;
 }
 
@@ -41,10 +41,12 @@ export function MaskingPipeline({ steps, className }: MaskingPipelineProps) {
           <div className="min-w-0">
             <p className="text-[1.0625rem] leading-[1.45] font-extrabold text-ink">{s.step}</p>
             <p className="mt-1 text-[0.9375rem] leading-[1.6] text-ink-muted">{s.desc}</p>
-            {/* 「지금 되는 것」 아래에 「계획」을 따로 세웁니다 — 같은 문단에 섞으면 구별되지 않습니다. */}
+            {/* 「지금 되는 것」 아래에 「도입 예정」을 따로 세웁니다 — 같은 문단에 섞으면 구별되지 않습니다.
+                이 두 줄(추론 단·저장 단)에 올라올 「게시물」은 없습니다 — 만들어져야 하는 것은
+                외부 AI 연결 계약과 기관 연동이라, 라벨은 「도입 예정」입니다(PlanTag 주석의 기준). */}
             {s.plan && (
               <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink-muted">
-                <PlanTag className="mr-2" />
+                <PlanTag className="mr-2" label="도입 예정" />
                 {s.plan}
               </p>
             )}

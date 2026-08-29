@@ -1,4 +1,5 @@
 import { BigButton, InlineDisclaimer, PageShell, ScreenHeader } from "@/components";
+import { PROTOCOLS } from "@/data/protocols";
 
 export const metadata = {
   title: "찾으시는 화면이 없습니다",
@@ -24,11 +25,14 @@ export default function NotFound() {
           가이드 §7-8은 15px 미만의 「읽어야 하는 문장」을 막고 메타·각주만 예외로 두는데,
           길을 잃은 사람이 다음 행동을 고르려고 읽는 문장은 각주가 아닙니다.
           행간도 3단 사다리에 없던 1.65에서 본문 단 1.6으로 내려 다른 화면과 맞췄습니다. */}
+      {/* 종수는 데이터에서 셉니다. 괄호 안 낱말은 목록 화면의 마커(낙·기·의·경·출·문)와 같은
+          순서로 손으로 적은 것이라, 안내가 늘면 여기도 한 낱말 더해야 합니다 — 숫자만 늘고
+          낱말이 그대로면 이 문단이 스스로와 어긋납니다. */}
       <div className="mt-[16px] rounded-card bg-paper-2 px-[15px] py-[14px]">
         <p className="text-[0.9375rem] leading-[1.6] text-ink">
-          급하신 상황이라면 아래에서 응급 안내를 바로 여실 수 있습니다. 응급 안내
-          5종(낙상·기도폐쇄·의식 저하·경련·출혈)은 고정 문구로 되어 있고, 연결이 끊겨도
-          열리도록 기기에 저장해 둡니다.
+          급하신 상황이라면 아래에서 응급 안내를 바로 여실 수 있습니다. 응급 안내{" "}
+          {PROTOCOLS.length}종(낙상·기도폐쇄·의식 저하·경련·출혈·문 잠김)은 고정 문구로 되어
+          있고, 연결이 끊겨도 열리도록 기기에 저장해 둡니다.
         </p>
       </div>
 

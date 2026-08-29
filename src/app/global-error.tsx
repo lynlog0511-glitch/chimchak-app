@@ -99,8 +99,8 @@ export default function GlobalError({ reset }: GlobalErrorProps) {
               }}
             >
               <p style={{ margin: 0, fontSize: 13.5, color: INK_SOFT }}>
-                급하신 상황이라면 아래에서 응급 안내를 바로 여실 수 있습니다. 응급 안내는 검수된
-                고정 문구로 되어 있고, 연결이 끊겨도 열리도록 기기에 저장해 둡니다.
+                급하신 상황이라면 아래에서 응급 안내를 바로 여실 수 있습니다. 응급 안내는 미리
+                적어 둔 고정 문구로 되어 있고, 연결이 끊겨도 열리도록 기기에 저장해 둡니다.
               </p>
             </div>
 

@@ -190,6 +190,7 @@ export interface EmergencyProtocol {
   title: string; // "기도폐쇄(질식)"
   situation: string; // 언제 쓰는가
   reviewed: string; // 검수 상태 표기
+  reviewPending?: boolean; // true면 이 안내가 현직 검토 중(신설 초안) — /emergency 목록·안내 화면 라벨, /check 감수 항목, /safety 검수 계보가 이 필드 하나를 셉니다. 감수 완료 시 이 표기만 지우면 됩니다(시나리오 쪽 같은 이름 필드와 같은 규율).
   steps: ProtocolStep[];
   notDoing: { what: string; why: string; instead: string }[]; // 앱이 하지 않는 것
 }

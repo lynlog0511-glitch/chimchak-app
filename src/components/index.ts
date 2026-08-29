@@ -49,6 +49,9 @@ export type { EyebrowLabelProps, EyebrowTone } from "./EyebrowLabel";
 /** 가림 인라인 칩 규격 한 벌 — /report와 /history가 같은 값을 봅니다. */
 export { MASK_CHIP_CLASS } from "./maskChip";
 
+/** 검토 대기 라벨 한 벌 — /train 카드와 /emergency 목록·안내 화면, /check 안내가 같은 말을 씁니다. */
+export { REVIEW_PENDING_LABEL } from "./reviewPending";
+
 export { MicButton } from "./MicButton";
 export type { MicButtonProps, MicButtonSize } from "./MicButton";
 

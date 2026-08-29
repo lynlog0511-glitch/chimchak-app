@@ -7,9 +7,16 @@
  *
  * 알파 초안 — 현직 감수 대기
  *   CHK-A02 BPSD·중급 (야간 배회 + 보호자 부재) / CHK-B01 응급·초급 (낙상 후 의식 있음) /
- *   CHK-C02 갈등·고급 (사고 책임 추궁·계약 해지 위협)
+ *   CHK-C02 갈등·고급 (사고 책임 추궁·계약 해지 위협) /
+ *   CHK-D01 위험 판단·초급 (방문 시 무응답 + 문 잠김)
  *   루브릭 30항목·규칙 사전·엔진을 그대로 재사용하고 **데이터만** 더한 확장입니다.
  *   대사 감수가 끝나지 않았다는 사실은 화면(/train 카드 라벨)에 그대로 적습니다.
+ *
+ * 유형④(위험 판단)가 열린 경위
+ *   매트릭스(src/data/matrix.ts)는 유형④를 「동작 교정 오인 위험을 알파에서 통제할 수 없어
+ *   **판단·절차 훈련으로 변환 후** 편성합니다」로 이연해 두었습니다. D01은 그 변환을 구조로
+ *   만족합니다 — 어르신이 잠긴 문 뒤에 계셔서 몸으로 할 수 있는 일이 처음부터 없고, 재는 것이
+ *   확인·신고·대기·보고의 순서뿐입니다. 사유와 한계는 chk-d01.ts 머리주석에 적혀 있습니다.
  */
 
 import type { Scenario, TurnDef } from "@/types";
@@ -22,6 +29,7 @@ import { CHK_B01 } from "./chk-b01";
 import { CHK_B02 } from "./chk-b02";
 import { CHK_C01 } from "./chk-c01";
 import { CHK_C02 } from "./chk-c02";
+import { CHK_D01 } from "./chk-d01";
 
 export { CHK_A01 } from "./chk-a01";
 export { CHK_A02 } from "./chk-a02";
@@ -29,8 +37,17 @@ export { CHK_B01 } from "./chk-b01";
 export { CHK_B02, B02_PROTOCOL_RESUME_TURN_ID } from "./chk-b02";
 export { CHK_C01 } from "./chk-c01";
 export { CHK_C02 } from "./chk-c02";
+export { CHK_D01 } from "./chk-d01";
 
-export const SCENARIOS: Scenario[] = [CHK_A01, CHK_A02, CHK_B01, CHK_B02, CHK_C01, CHK_C02];
+export const SCENARIOS: Scenario[] = [
+  CHK_A01,
+  CHK_A02,
+  CHK_B01,
+  CHK_B02,
+  CHK_C01,
+  CHK_C02,
+  CHK_D01,
+];
 
 /** 시나리오 id 로 조회합니다. 대소문자 구분 없이(예: "chk-a01") 찾습니다. */
 export function getScenario(id: string): Scenario | undefined {

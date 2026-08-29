@@ -2,7 +2,13 @@ import type { Metadata } from "next";
 import { ChevronGlyph } from "@/components/icons";
 import Link from "next/link";
 import type { ScenarioType } from "@/types";
-import { EyebrowLabel, InlineDisclaimer, PageShell, ScreenHeader } from "@/components";
+import {
+  EyebrowLabel,
+  InlineDisclaimer,
+  PageShell,
+  REVIEW_PENDING_LABEL,
+  ScreenHeader,
+} from "@/components";
 import { SOURCE_DOCS } from "@/data/docs";
 import {
   getMatrixRow,
@@ -71,13 +77,16 @@ const CARD_SUMMARY: Record<string, string> = {
      요약에서 빼 두면 카드가 「거절 연습」으로만 읽혀, 정작 준비해 온 상황과 대조되지 않습니다. */
   "CHK-C01": "폭언·호칭 격하에 흔들리지 않고, 해 드릴 수 없는 일을 관계를 지키며 거절하기",
   "CHK-C02": "원인을 모르는 멍 앞에서 — 단정하지 않고 기록으로 답하기",
+  /* 이 카드의 핵심은 「부를 곳이 두 곳」이라는 사실입니다 — 119만으로는 잠긴 문이 열리지
+     않는다는 것이 이 상황에서 가장 자주 어긋나는 자리라(현직 인터뷰), 목록에서 먼저 보입니다. */
+  "CHK-D01": "문은 잠겼고 대답은 없을 때 — 혼자 열지 않고 부를 곳을 정하기",
 };
 
 /** 첫 카드에만 붙는 안내 — 어디부터 해야 할지 묻지 않게 합니다(시안 7a). */
 const FIRST_CARD_HINT = "처음이라면 여기부터";
 
 /**
- * 카드 한 글자 마커 — 응급 5종 목록과 같은 스캔 장치입니다(42px · radius 12).
+ * 카드 한 글자 마커 — 응급 안내 목록과 같은 스캔 장치입니다(42px · radius 12).
  *
  * 아이콘도 이모지도 쓰지 않습니다. 옆 제목이 뜻을 전하므로 마커는 **어디쯤인지 눈이 먼저 찾는
  * 표식**이고, 보조기술에는 읽히지 않습니다. 글자는 그 상황에서 가장 먼저 보이는 장면 하나입니다.
@@ -89,6 +98,7 @@ const CARD_MARK: Record<string, string> = {
   "CHK-B02": "사", // 사레
   "CHK-C01": "반", // 반찬
   "CHK-C02": "멍",
+  "CHK-D01": "문", // 잠긴 문
 };
 
 /**
@@ -104,9 +114,12 @@ const CARD_MARK: Record<string, string> = {
  * 그 말이 연습을 막지 않도록 카드 맨 아래 각주 단으로 내립니다.
  *
  * 목록은 손으로 적지 않습니다 — 원천은 시나리오 데이터의 `reviewPending` 필드 하나이고,
- * /check 「시나리오 감수 상태」 항목도 같은 필드를 셉니다(8/24 단일화).
+ * /check 「감수 상태」 항목도 같은 필드를 셉니다(8/24 단일화).
+ *
+ * 라벨 **문자열** 자체는 2026-08-30에 `@/components/reviewPending`으로 옮겼습니다 —
+ * 응급 안내에도 검토 중인 안내가 한 종 생기면서 같은 말을 쓰는 자리가 넷이 되었고,
+ * 손으로 적은 사본은 한쪽만 고쳐지는 날 갈라집니다.
  */
-const REVIEW_PENDING_LABEL = "전문가 검토를 받고 있어요";
 /**
  * 무엇이 검토 중이고 무엇은 아닌지 — 한 줄로 갈라 적습니다.
  *
@@ -312,7 +325,11 @@ export default function TrainIndexPage() {
               둘 다 사실이지만 **심사에 답하는 문장**이라, 연습할 상황을 고르시는 화면에서
               가장 마지막으로 읽히는 자리를 차지하고 있었습니다.
               같은 내용은 /safety가 근거·실측과 함께 그대로 들고 있습니다 — 지운 것이 아니라
-              자리를 옮긴 것이고, 이 화면에는 「언제 열리는가」 한 줄만 남깁니다. */}
+              자리를 옮긴 것이고, 이 화면에는 「언제 열리는가」 한 줄만 남깁니다.
+
+              (2026-08-30 기준으로 그 「이연 사유」는 절반이 해소됐습니다 — ④ 위험 판단의 초급이
+              판단·절차 훈련으로 바뀌어 열렸고, 중급·고급만 남았습니다. 이 화면은 그 사실을
+              편성표의 「열림 / 준비 중」 표기로만 말합니다 — 사유는 여전히 /safety의 몫입니다.) */}
           <p className="mt-[10px] text-[0.7188rem] leading-[1.6] text-ink-faint">
             {MATRIX_PENDING_NOTE}
           </p>
@@ -321,7 +338,7 @@ export default function TrainIndexPage() {
 
       {/* 자유 연습으로 들어가는 유일한 문 — 탭바에는 넣지 않습니다.
           위 카드들과 같은 문법(paper-2 면 · radius 14 · eyebrow → 제목 → 한 줄)을 쓰되,
-          「검증된 여섯 종」과 나란히 놓지 않으려고 편성표 아래에 따로 세웁니다.
+          「검증된 일곱 종」과 나란히 놓지 않으려고 편성표 아래에 따로 세웁니다.
           카드에 적는 두 낱말(온라인 · 채점 없음)이 이 모드의 조건 전부입니다 —
           들어가 보고 나서야 「회선이 필요하다」를 알게 되지 않도록 문 앞에 적어 둡니다. */}
       <section className="mt-4 border-t border-line pt-4" aria-label="자유 연습">

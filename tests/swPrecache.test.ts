@@ -47,7 +47,13 @@ function readStringConst(source: string, name: string): string {
 
 const PRECACHE_URLS = readStringArray(SW_SOURCE, "PRECACHE_URLS");
 
-/** 응급 안내 — 목록 화면 + 프로토콜 5종. */
+/**
+ * 응급 안내 — 목록 화면 + 프로토콜 전 종.
+ *
+ * 건수를 여기 적지 않는 것이 이 배열의 요점이다. 프로토콜이 한 종 늘면 이 목록이 먼저 늘고,
+ * sw.js가 따라오지 않으면 아래 두 블록이 양쪽에서 잡는다 — 「데이터에 있는데 목록에 없다」와
+ * 「목록에 있는데 데이터에 없다」. 2026-08-30 P-06(문 잠김·무응답)이 그 경로로 들어왔다.
+ */
 const EMERGENCY_ROUTES = [
   "/emergency",
   ...PROTOCOLS.map((protocol) => `/emergency/${protocol.id.toLowerCase()}`),

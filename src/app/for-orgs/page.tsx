@@ -4,7 +4,7 @@ import Link from "next/link";
 import { BigButton, EyebrowLabel, InlineDisclaimer, PageShell, ScreenHeader } from "@/components";
 import { SOURCE_DOCS } from "@/data/docs";
 import { SCENARIO_MATRIX } from "@/data/matrix";
-import { PROTOCOLS } from "@/data/protocols";
+import { PROTOCOLS, PROTOCOL_COUNT_PHRASE } from "@/data/protocols";
 import { SCENARIOS } from "@/data/scenarios";
 import { PILOT_SCOPE, VERIFICATION_LADDER } from "@/data/pilotResults";
 import { DocCloseButton } from "../_components/DocCloseButton";
@@ -22,12 +22,16 @@ const ACTIVE_COUNT = ACTIVE_SCENARIOS.length;
 const TOTAL_COUNT = SCENARIO_MATRIX.length;
 const PROTOCOL_COUNT = PROTOCOLS.length;
 const ACTIVE_MINUTES = ACTIVE_SCENARIOS.reduce((sum, scenario) => sum + scenario.durationMin, 0);
-/** 12종이 다 열렸을 때의 시수는 **추정치**입니다 — 지금 열린 5종의 평균 소요를 그대로 곱한 값입니다. */
+/** 12종이 다 열렸을 때의 시수는 **추정치**입니다 — 지금 열린 종수의 평균 소요를 그대로 곱한 값입니다. */
 const PROJECTED_MINUTES = Math.round((ACTIVE_MINUTES / ACTIVE_COUNT) * TOTAL_COUNT);
 
 /**
- * 「계획」 표 — /safety가 미구현 설계에 다는 것과 같은 표기입니다.
- * 이 화면은 구매 판단 자료라, 지금 되는 것과 설계까지만 한 것이 같은 말투로 섞이면 안 됩니다.
+ * 「계획」 표 — 미구현 설계에 다는 표기입니다. 이 화면은 구매 판단 자료라, 지금 되는 것과
+ * 설계까지만 한 것이 같은 말투로 섞이면 안 됩니다.
+ *
+ * /safety는 같은 뜻을 두 낱말로 갈라 씁니다(「도입 예정」·「게시 예정」 · `PlanTag` 주석).
+ * 여기서는 한 낱말로 둡니다 — 이 화면의 표는 「구매 뒤에 무엇이 더 열리는가」를 묻는
+ * 담당자가 읽는 것이라, 올라올 것이 기능인지 값인지를 가르는 구분이 하는 일이 없습니다.
  */
 function PlanMark() {
   return (
@@ -171,8 +175,11 @@ export default function ForOrgsPage() {
             ))}
           </ul>
           <p className="mt-[8px] text-[0.8438rem] leading-[1.6] text-ink-soft">
-            ①은 앱 안에서 지금 다시 돌려 보실 수 있고, ②·③은 앱 밖 하네스 실행 기록을 옮겨 적은
-            값이며, ④는 8월 파일럿({PILOT_SCOPE})에서 잽니다. 1차 결과가 나오기 전까지 ④ 칸에는
+            {/* 「앱 밖 하네스」는 이 화면을 읽는 기관 담당자에게 아무 뜻이 없는 내부 말이었습니다
+                — 무엇이 이 화면에서 지금 다시 재어지는 값이고 무엇이 옮겨 적은 값인지가
+                낱말로 갈리지 않았습니다(2026-08-30 적대 검증 M9). */}
+            ①은 앱 안에서 지금 다시 돌려 보실 수 있고, ②·③은 외부 검증 환경에서 잰 값이며(이 화면
+            실측 아님), ④는 8월 파일럿({PILOT_SCOPE})에서 잽니다. 1차 결과가 나오기 전까지 ④ 칸에는
             숫자를 적지 않습니다. 상세는 「안전·개인정보 설계」 화면의 검증 계단에 있습니다.
           </p>
         </div>
@@ -185,7 +192,9 @@ export default function ForOrgsPage() {
           />
           <StateRow
             title={`응급 안내 ${PROTOCOL_COUNT}종 · 오프라인 재생`}
-            desc="검수된 고정 문구를 음성과 대형 자막으로 읽어 줍니다. 기기에 저장돼 있어 통신이 끊긴 자리에서도 열립니다. 신체 술기는 지도하지 않고 119 상황실로 넘깁니다."
+            /* 문두의 「검수된」은 2026-08-30에 걷었습니다 — /guide의 같은 줄과 같은 사유입니다
+               (적대 검증 M7 · 감수 상태는 이제 셈 안에 그대로 적힙니다). */
+            desc={`고정 문구 — ${PROTOCOL_COUNT_PHRASE}을 음성과 대형 자막으로 읽어 줍니다. 기기에 저장돼 있어 통신이 끊긴 자리에서도 열립니다. 신체 술기는 지도하지 않고 119 상황실로 넘깁니다.`}
           />
           <StateRow
             title="보고 초안 만들기"
@@ -212,7 +221,11 @@ export default function ForOrgsPage() {
           <StateRow
             plan
             title={`나머지 시나리오 ${TOTAL_COUNT - ACTIVE_COUNT}종`}
-            desc={`전체 ${TOTAL_COUNT}종이 열리면 같은 방식으로 1인당 약 ${PROJECTED_MINUTES}분이 됩니다. 열린 ${ACTIVE_COUNT}종의 소요를 그대로 곱한 추정치이지 실측치가 아닙니다. 위험 판단 유형은 동작 교정으로 오인될 위험을 통제하기 어려워 이번 제공 범위에 넣지 않았습니다.`}
+            /* 위험 판단 유형 문면은 2026-08-30에 고쳤습니다 — 예전 문장은 「이번 제공 범위에
+               넣지 않았습니다」였는데, 그 유형의 초급 한 종(D01)이 판단·절차 훈련으로 바뀌어
+               열렸습니다. 화면 한 곳이 낡으면 같은 사실을 말하는 다른 화면(/train 편성표·
+               /safety)과 정면으로 어긋나므로, 열린 범위와 남은 범위를 함께 적습니다. */
+            desc={`전체 ${TOTAL_COUNT}종이 열리면 같은 방식으로 1인당 약 ${PROJECTED_MINUTES}분이 됩니다. 열린 ${ACTIVE_COUNT}종의 소요를 그대로 곱한 추정치이지 실측치가 아닙니다. 위험 판단 유형은 동작 교정으로 오인될 위험이 있어, 몸으로 하는 동작이 들어가지 않는 판단·절차 훈련으로 바꾼 초급 한 종만 넣었습니다(대사는 현직 검토 중입니다). 나머지 두 종은 같은 변환을 마친 뒤에 넣습니다.`}
           />
           <StateRow
             plan

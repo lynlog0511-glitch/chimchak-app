@@ -327,14 +327,36 @@ function SettingsPanel({
 
       {/* 처음 오신 분이 가장 자주 여는 화면이 설정입니다 — 글자를 키우려고 들어왔다가
           「그래서 이걸 어떻게 쓰는가」를 물을 자리가 여기밖에 없습니다. 버튼으로 세우지 않고
-          조용한 텍스트 한 줄로만 둡니다(설정을 고치러 온 분의 흐름을 끊지 않으려고요). */}
-      <Link
-        href="/guide"
-        onClick={onNavigate}
-        className="mt-1 inline-flex min-h-[48px] items-center text-[0.8438rem] leading-[1.45] font-semibold text-ink-muted underline decoration-1 underline-offset-[3px] transition-colors duration-150 hover:text-brand-800"
-      >
-        처음 오신 분께
-      </Link>
+          조용한 텍스트 줄로만 둡니다(설정을 고치러 온 분의 흐름을 끊지 않으려고요).
+
+          2026-08-30에 「안전·검증 안내」(/safety)를 같은 줄 격으로 나란히 세웠습니다.
+          바로 위 두 절이 AI가 하는 일과 발화 전송 동의를 묻는데, 「그래서 제 말은 어디로
+          갑니까」의 **전문**이 그 물음 옆에 없었습니다 — 이 팝오버에서 갈 수 있는 곳이
+          /guide 하나뿐이라, 상세를 찾는 분은 홈 맨 아래까지 되돌아가야 했습니다.
+          처방침·약관을 앱 안 한자리에 모아 두는 자리와 같은 격이라 이 줄에 둡니다.
+          /safety는 이 앱에서 가장 무거운 화면이라(RSC 약 118KB) 미리 당기지 않습니다 —
+          설정을 고치러 오신 분의 요청 뒤에 세우지 않으려고요(홈 하단 링크와 같은 판단).
+
+          클래스를 상수로 빼지 않고 두 줄에 그대로 적습니다: 48px 폭 게이트가 여는 태그
+          안의 클래스를 읽어 라벨 폭을 어림하므로, 상수로 빼면 그 검사가 이 두 자리를
+          「못 읽는 자리」 장부로 넘깁니다(`tests/designScale.test.ts`의 ⓐ 갈래). */}
+      <div className="mt-1 flex flex-wrap items-center gap-x-4">
+        <Link
+          href="/guide"
+          onClick={onNavigate}
+          className="inline-flex min-h-[48px] items-center text-[0.8438rem] leading-[1.45] font-semibold text-ink-muted underline decoration-1 underline-offset-[3px] transition-colors duration-150 hover:text-brand-800"
+        >
+          처음 오신 분께
+        </Link>
+        <Link
+          href="/safety"
+          prefetch={false}
+          onClick={onNavigate}
+          className="inline-flex min-h-[48px] items-center text-[0.8438rem] leading-[1.45] font-semibold text-ink-muted underline decoration-1 underline-offset-[3px] transition-colors duration-150 hover:text-brand-800"
+        >
+          안전·검증 안내
+        </Link>
+      </div>
     </div>
   );
 }
@@ -373,7 +395,9 @@ function SettingsPanel({
  *   주소·모델 이름·API 키 입력칸 셋은 없어졌습니다 — 키를 브라우저에 두지 않기로 하면서
  *   서버 환경변수로 옮겨 갔고, 사용자가 고를 것은 켜기/끄기뿐입니다.
  *
- * 맨 아래에는 「처음 오신 분께」(/guide)로 가는 조용한 텍스트 링크 한 줄이 있습니다.
+ * 맨 아래에는 조용한 텍스트 링크 두 개가 한 줄로 섭니다 — 「처음 오신 분께」(/guide)와
+ * 「안전·검증 안내」(/safety). 앞은 쓰는 법이고 뒤는 안내 문서라, 앱이 무엇을 하고 무엇을
+ * 하지 않는지의 전문이 AI 스위치 바로 아래에 있게 됩니다.
  *
  * 형태는 v3 문법입니다: 흰 면·무보더·팝오버 그림자(shadow-panel), 라벨 15px, 버튼 48px,
  * 선택은 틸 채움 하나로만 알립니다(체크 아이콘·보더·색 바 없음).

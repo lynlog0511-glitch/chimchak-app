@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { ChevronGlyph } from "@/components/icons";
 import { unlockAudio } from "@/lib/speech";
+import { isLineVaryExcludedType } from "@/lib/onlineVary";
 import Link from "next/link";
 import { BackGlyph, BigButton, EyebrowLabel, InlineDisclaimer, SourceChip } from "@/components";
 import { progressStepCount, type SessionProgress } from "@/lib/storage";
@@ -365,10 +366,14 @@ export function BriefingPanel({
           빠지므로(L3 원칙 — `isLineVaryActive`), 그 두 종에서는 어르신 대사가 전부 검수 고정문이고
           세션 안에 AI가 한 자리도 없습니다. 무조건 렌더로 두면 몇 턴 뒤 「여기서부터 AI가 화면에서
           빠집니다」가 뜨는데 애초에 들어온 적이 없습니다. 설정 스위치는 보지 않습니다 — 이 줄이
-          답하는 것은 「이 상황에서 AI가 도는가」이고, 유형 제외만이 스위치와 무관한 불변입니다. */}
+          답하는 것은 「이 상황에서 AI가 도는가」이고, 유형 제외만이 스위치와 무관한 불변입니다.
+
+          2026-08-30: 위험 판단 유형(D01)이 열리면서 제외 목록이 둘이 됐습니다. 유형 이름을 여기에
+          다시 적지 않고 `LINE_VARY_EXCLUDED_TYPES`를 그대로 봅니다 — 목록이 두 벌이면 어느 날
+          한쪽만 늘어나고, 그때 화면은 AI가 도는 것처럼 적어 둔 채로 남습니다. */}
       <div className="mt-[14px] space-y-1.5">
         <p className="text-[1rem] leading-[1.6] font-semibold text-ink-soft">
-          {scenario.type === "EMERGENCY"
+          {isLineVaryExcludedType(scenario)
             ? "검수해 둔 고정 대사로 진행해요. 마이크가 없어도 버튼만으로 끝까지 할 수 있어요."
             : "AI와 말을 주고받아요. 마이크가 없어도 버튼만으로 끝까지 할 수 있어요."}
         </p>

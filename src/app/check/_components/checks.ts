@@ -12,6 +12,9 @@
  */
 
 import { runEngineSelfCheck } from "@/engine";
+// 화면에 실제로 뜨는 라벨을 그대로 인용합니다 — 배럴(@/components)이 아니라 상수 모듈에서
+// 직접 가져옵니다(이 파일은 React에 의존하지 않는 순수 로직이라 조각을 끌어오지 않습니다).
+import { REVIEW_PENDING_LABEL } from "@/components/reviewPending";
 import {
   AI_DIALOGUE_FIXED_LABEL,
   AI_DIALOGUE_LABEL,
@@ -26,7 +29,7 @@ import {
 } from "@/lib/speech";
 import { EVIDENCE_GUARD } from "@/data/evidenceGuard";
 import { SCENARIO_MATRIX } from "@/data/matrix";
-import { PROTOCOLS } from "@/data/protocols";
+import { PROTOCOLS, REVIEW_PENDING_PROTOCOLS } from "@/data/protocols";
 // 시나리오 본문까지 번들에 실리지만, /check는 발표자 전용 로컬 페이지라 무게보다
 // 「감수 대기 라벨이 무대 카드에 노출되는가」를 한 화면에서 아는 쪽을 택했습니다(8/24).
 import { SCENARIOS } from "@/data/scenarios";
@@ -121,6 +124,9 @@ const EMERGENCY_ROUTES = [
   ...PROTOCOLS.map((protocol) => `/emergency/${protocol.id.toLowerCase()}`),
 ];
 
+/** 캐시 점검 항목의 이름 — 화면 목록과 로딩 플레이스홀더가 **같은 문자열**을 써야 합니다. */
+const EMERGENCY_CACHE_TITLE = `응급 안내 ${PROTOCOLS.length}종 캐시`;
+
 /** 훈련 한 바퀴 — 고르고, 한 판 돌고, 보고를 적고, 기록을 확인하는 데까지의 화면입니다. */
 const TRAINING_ROUTES = [
   "/train",
@@ -182,9 +188,14 @@ async function checkRoutesCached(
   }
 }
 
-/** 3. 응급 안내 5종(+목록) 캐시 존재 여부. */
+/**
+ * 3. 응급 안내 전 종(+목록) 캐시 존재 여부.
+ *
+ * 항목 이름의 종수도 데이터에서 셉니다(`EMERGENCY_CACHE_TITLE`) — 손으로 적어 두면
+ * 프로토콜이 늘어난 날 「5종 캐시 · 7 / 7개 저장」처럼 제목과 값이 서로 다른 말을 합니다.
+ */
 export async function checkEmergencyCache(): Promise<CheckResult> {
-  return checkRoutesCached("cache", "응급 안내 5종 캐시", EMERGENCY_ROUTES, "응급 화면");
+  return checkRoutesCached("cache", EMERGENCY_CACHE_TITLE, EMERGENCY_ROUTES, "응급 화면");
 }
 
 /**
@@ -777,40 +788,51 @@ export async function checkNetwork(): Promise<CheckResult> {
   };
 }
 
-/* ── 시나리오 감수 상태 ───────────────────────────────── */
+/* ── 감수 상태 (시나리오 · 응급 안내) ─────────────────── */
 
 /**
- * 12. 시나리오 감수 상태 — 감수 대기 라벨이 시연 카드에 노출되는지 무대 전에 확인합니다.
- * 원천은 시나리오 데이터의 `reviewPending` 필드 하나이고, /train 카드 라벨이 같은 필드를
- * 읽습니다. 감수가 끝나면 해당 시나리오 파일의 `reviewPending` 한 줄을 지우는 것으로
- * 라벨과 이 항목이 함께 내려갑니다.
+ * 12. 감수 상태 — 검토 대기 라벨이 무대에 노출되는지 먼저 확인합니다.
  *
- * ※ 아래 안내 문장은 **사용자 화면에 실제로 뜨는 말**(「전문가 검토를 받고 있어요」)을 인용합니다.
+ * 원천은 데이터의 `reviewPending` 필드 하나뿐이고, 그 필드를 가진 데이터가 이제 둘입니다 —
+ * 시나리오(/train 카드 라벨)와 응급 프로토콜(/emergency 목록·안내 화면 라벨, 2026-08-30 P-06).
+ * 두 목록을 **한 항목에서 함께** 셉니다. 항목을 새로 만들지 않는 이유는, 발표자가 무대 직전에
+ * 알아야 할 것이 「어느 화면에 검토 중 라벨이 떠 있는가」 하나이기 때문입니다.
+ * 감수가 끝나면 해당 데이터 파일의 `reviewPending` 한 줄을 지우는 것으로 라벨과 이 항목이
+ * 함께 내려갑니다.
+ *
+ * ※ 아래 안내 문장은 **사용자 화면에 실제로 뜨는 말**(`REVIEW_PENDING_LABEL`)을 인용합니다.
  *   내부 문서 표기(「알파 초안 — 현직 감수 대기」)를 그대로 옮겨 적었더니, 발표자가 화면에서
- *   찾을 문자열과 안내가 달랐습니다.
+ *   찾을 문자열과 안내가 달랐습니다. 2026-08-30에 그 말을 손으로 옮겨 적던 사본도 지우고
+ *   화면과 같은 상수를 직접 읽습니다.
  */
-async function checkScenarioReview(): Promise<CheckResult> {
+async function checkReviewLabels(): Promise<CheckResult> {
   const id = "review";
-  const title = "시나리오 감수 상태";
-  const pending = SCENARIOS.filter((s) => s.reviewPending);
-  if (pending.length === 0) {
+  const title = "감수 상태 (시나리오·응급 안내)";
+  const scenarios = SCENARIOS.filter((s) => s.reviewPending);
+  const protocols = REVIEW_PENDING_PROTOCOLS;
+  if (scenarios.length === 0 && protocols.length === 0) {
     return {
       id,
       title,
       status: "ok",
-      detail: `열린 ${SCENARIOS.length}종 모두 현직 감수를 마쳤습니다 — 카드에 초안 라벨이 없습니다.`,
+      detail: `열린 시나리오 ${SCENARIOS.length}종과 응급 안내 ${PROTOCOLS.length}종 모두 현직 감수를 마쳤습니다 — 화면에 검토 중 라벨이 없습니다.`,
     };
   }
-  const names = pending.map((s) => s.id.replace("CHK-", "")).join("·");
+  const parts: string[] = [];
+  if (scenarios.length > 0) {
+    parts.push(
+      `훈련 카드 ${scenarios.length}종(${scenarios.map((s) => s.id.replace("CHK-", "")).join("·")})`,
+    );
+  }
+  if (protocols.length > 0) {
+    parts.push(`응급 안내 ${protocols.length}종(${protocols.map((p) => p.id).join("·")})`);
+  }
   return {
     id,
     title,
     status: "fail",
-    // 발표자가 화면에서 찾아야 할 문자열이므로 **/train 카드에 실제로 뜨는 라벨** 그대로 적습니다
-    // (src/app/train/page.tsx의 REVIEW_PENDING_LABEL). 안내와 화면의 말이 다르면 무대 직전
-    // 몇 초를 엉뚱한 데 씁니다.
-    detail: `감수 대기 ${pending.length}종(${names}) — 훈련 카드에 「전문가 검토를 받고 있어요」 라벨이 그대로 노출됩니다.`,
-    fix: "시연은 감수 완료 시나리오로 태우시고, 감수가 끝나면 해당 시나리오 데이터의 reviewPending 표기를 지워 주세요.",
+    detail: `검토 대기 — ${parts.join(" · ")}. 해당 화면에 「${REVIEW_PENDING_LABEL}」 라벨이 그대로 노출됩니다.`,
+    fix: "시연은 감수를 마친 시나리오·안내로 태우시고, 감수가 끝나면 해당 데이터의 reviewPending 표기를 지워 주세요.",
   };
 }
 
@@ -827,7 +849,7 @@ export const CHECK_RUNNERS: Array<() => Promise<CheckResult>> = [
   checkLocalStorage,
   checkRuleEngine,
   checkDialectCases,
-  checkScenarioReview,
+  checkReviewLabels,
   checkAiDialogueSetting,
   checkCoachServer,
   checkNetwork,
@@ -843,7 +865,7 @@ export function loadingResults(): CheckResult[] {
   return [
     loadingResult("build", "프로덕션 빌드 여부"),
     loadingResult("sw", "서비스워커 등록·활성"),
-    loadingResult("cache", "응급 안내 5종 캐시"),
+    loadingResult("cache", EMERGENCY_CACHE_TITLE),
     loadingResult("train-cache", "훈련 한 바퀴 캐시"),
     loadingResult("tts", "낭독 경로(동봉 음성·TTS)"),
     loadingResult("autoplay", "이 탭에서 소리 자동 재생"),
@@ -852,7 +874,7 @@ export function loadingResults(): CheckResult[] {
     loadingResult("storage", "기기 저장소(localStorage) 쓰기"),
     loadingResult("rules", "규칙 엔진 경계 케이스"),
     loadingResult("dialect", "사투리 말씨 경계 문항"),
-    loadingResult("review", "시나리오 감수 상태"),
+    loadingResult("review", "감수 상태 (시나리오·응급 안내)"),
     loadingResult("ai-dialogue", `「${AI_DIALOGUE_LABEL}」 설정`),
     loadingResult("coach", "온라인 코칭 서버"),
     loadingResult("net", "네트워크 상태 (참고용)"),

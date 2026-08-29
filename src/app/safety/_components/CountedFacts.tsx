@@ -97,7 +97,7 @@ export function CountedFacts({ className }: CountedFactsProps) {
       </dl>
 
       <p className="mt-3 text-[0.7813rem] leading-[1.6] text-ink-muted">
-        두 칸이 다른 까닭은 시나리오 1종을 더하고 중립 분기를 보강했기 때문입니다. 위 칸은 설계
+        두 칸이 다른 까닭은 시나리오 2종을 더하고 중립 분기를 보강했기 때문입니다. 위 칸은 설계
         문서에 적은 그날의 값이고, 아래 칸은 이 화면이 지금 세는 값입니다.
       </p>
 

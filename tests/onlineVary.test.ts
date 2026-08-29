@@ -43,7 +43,9 @@ import {
   buildVaryRequest,
   clearVariationCache,
   isLineVaryActive,
+  isLineVaryExcludedType,
   isVariableSpeaker,
+  personaFor,
   requestLineVariation,
   varyLine,
   type LineVaryContext,
@@ -186,6 +188,37 @@ describe("변주 대상", () => {
     expect(request?.recentLines).toHaveLength(VARY_MAX_RECENT_LINES);
     // 가장 가까운 세 줄을 남긴다.
     expect(request?.recentLines[2]).toBe("네 줄");
+  });
+
+  /* 2026-08-29 현장 인터뷰 A(23:31~24:41 · 22:19): 「치매 중증도에 따른 대화」를 넣어 달라,
+     지금은 어르신이 실제로 말하는 듯한 표현력이 부족하다. 그 제언의 축소판으로 어르신·보호자
+     프로필 끝에 인지·정서 한 줄을 붙였다(등급을 단정하지 않고 행동으로 적는다).
+
+     여기서 재는 것은 **그 한 줄이 AI가 읽는 자리까지 실제로 가는가**다. 프로필이 길어지다
+     600자 상한(`VARY_PERSONA_MAX`)에 닿으면 `buildVaryRequest`가 조용히 끝을 잘라 낸다 —
+     화면의 인물 소개와 요청의 인물 소개가 그때부터 다른 사람을 말하는데, 어느 화면에도
+     그 사실이 뜨지 않는다. 그래서 「담긴다」가 아니라 **「한 글자도 잘리지 않는다」**로 잰다. */
+  it("인물 프로필은 한 글자도 잘리지 않고 요청에 실린다", () => {
+    let checked = 0;
+    for (const scenario of getActiveScenarios()) {
+      // 응급·위험 판단은 통째로 변주 밖이다(L3 원칙 — LINE_VARY_EXCLUDED_TYPES).
+      // 유형 이름을 여기 다시 적지 않는다 — 목록이 두 벌이면 어느 날 한쪽만 늘어난다.
+      if (isLineVaryExcludedType(scenario)) continue;
+      for (const speaker of ["elder", "guardian"] as const) {
+        const persona = personaFor(scenario, speaker);
+        if (!persona) continue;
+        const request = buildVaryRequest({ scenario, speaker, anchor: ANCHOR, recentLines: [] });
+        expect(request?.persona).toBe(`${persona.name} — ${persona.profile}`);
+        checked += 1;
+      }
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+
+  /* 위 검사는 「잘리지 않는다」만 말한다 — 붙인 한 줄이 그 자리에 있는지는 따로 못 박는다. */
+  it("어르신 프로필의 인지·정서 한 줄이 요청에 담긴다", () => {
+    const request = buildVaryRequest(contextFor(ANCHOR));
+    expect(request?.persona).toContain("같은 요구를 몇 분 간격으로 되풀이하시며");
   });
 });
 

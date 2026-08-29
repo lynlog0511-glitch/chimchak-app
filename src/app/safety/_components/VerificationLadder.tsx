@@ -14,12 +14,12 @@ import { PlanTag } from "./PlanTag";
  * 검증 계단 ①~④ — 「무엇을 어디까지 재 봤는가」를 네 칸으로 세워 두는 자리입니다.
  *
  * 이 화면에는 이미 실측 패널이 둘 있습니다(외부 요청 계측·규칙 엔진 재실행). 그런데 그 둘은
- * **이 기기에서 잴 수 있는 것**만 다룹니다. 근거 가드와 사투리는 앱 밖 하네스에서 쟀고,
+ * **이 기기에서 잴 수 있는 것**만 다룹니다. 근거 가드와 사투리는 외부 검증 환경에서 쟀고,
  * 파일럿은 아직 재지 않았습니다 — 세 종류의 값이 한 화면에 있는데 구분이 없으면, 재 본 것과
  * 옮겨 적은 것과 하겠다고 한 것이 전부 같은 무게로 읽힙니다.
  *
  * 그래서 칸마다 **출처를 문장으로** 답니다(`LADDER_ORIGIN_NOTE`). ①에는 기존 재실행 카드를
- * 그대로 끼워 넣고, ④에는 「계획」 표를 답니다 — ④에는 숫자가 한 칸도 없습니다.
+ * 그대로 끼워 넣고, ④에는 「게시 예정」 표를 답니다 — ④에는 숫자가 한 칸도 없습니다.
  *
  * 형태는 이 화면의 나머지와 같습니다 — 보더·그림자 없이 hairline 행,
  * 눈금은 번호·출처 12.5 / 본문 15 / 계단 이름 17.
@@ -115,7 +115,10 @@ export function VerificationLadder({ proof, className }: VerificationLadderProps
           </EyebrowLabel>
           <p className="mt-1 text-[1.0625rem] leading-[1.45] font-extrabold text-ink">
             {step.title}
-            {step.origin === "not-yet" && <PlanTag className="ml-2" />}
+            {/* 이 화면에서 「게시 예정」이 맞는 유일한 자리입니다 — 기능은 이미 있고,
+                아직 없는 것은 **잰 값**뿐이라 1차 결과가 나오면 그대로 이 칸에 올라옵니다.
+                (다른 자리의 표는 기능이 없는 자리라 「도입 예정」입니다 — PlanTag 주석.) */}
+            {step.origin === "not-yet" && <PlanTag className="ml-2" label="게시 예정" />}
           </p>
           <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink-soft">{step.hypothesis}</p>
           <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink">{step.result}</p>
@@ -127,8 +130,12 @@ export function VerificationLadder({ proof, className }: VerificationLadderProps
           {step.id === "pilot" && <PilotPlan />}
           {step.id === "rules" && proof}
 
+          {/* 라벨은 2026-08-30에 「남은 과제」에서 「다음 검증」으로 바꿨습니다 — 이 줄이 적는 것은
+              내부 할 일 목록이 아니라 **이 계단에서 다음에 재는 것**이고, 안내 문서 격의 화면에는
+              뒤를 보는 말보다 앞을 보는 말이 맞습니다. 뒤에 오는 문장(`step.remaining`)은 한 글자도
+              바뀌지 않았습니다 — 카드·장표가 그 세 문장을 축자로 인용합니다. */}
           <p className="mt-3 text-[0.7813rem] leading-[1.6] text-ink-faint">
-            남은 과제 · {step.remaining}
+            다음 검증 · {step.remaining}
           </p>
         </li>
       ))}

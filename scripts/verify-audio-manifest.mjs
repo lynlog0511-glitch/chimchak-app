@@ -77,7 +77,9 @@ function collectSpoken() {
     spoken.get(key).push(origin);
   };
 
-  for (const file of ["chk-a01", "chk-a02", "chk-b02", "chk-c01", "chk-c02"]) {
+  // 2026-08-29 — chk-d01(위험 판단·초급)을 더했습니다. 이 목록이 곧 「합성 대상으로 세는
+  // 시나리오」라, 새 시나리오를 얹고 여기 한 줄을 잊으면 대사가 검수 음성 없이 배포됩니다.
+  for (const file of ["chk-a01", "chk-a02", "chk-b01", "chk-b02", "chk-c01", "chk-c02", "chk-d01"]) {
     const mod = loadModule(`src/data/scenarios/${file}.ts`);
     const scenario = Object.values(mod).find((v) => v && typeof v === "object" && v.turns);
     for (const turn of scenario.turns) {

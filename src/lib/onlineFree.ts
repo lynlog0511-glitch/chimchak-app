@@ -4,7 +4,7 @@
  * 검증 훈련(`/train/[id]`)이 하는 일과 이 파일이 하는 일은 방향이 다릅니다.
  * 검증 훈련은 검수된 시나리오 위에서 **판정**을 냅니다 — 같은 입력에는 같은 판정이 나오고,
  * 대사는 앵커이며, 기기 밖으로 나가는 것은 미분류 턴의 가명처리된 한 문장뿐입니다.
- * 자유 연습은 반대쪽입니다 — **판정을 내리지 않는 대신 상황을 넓힙니다.** 시나리오 여섯 종에
+ * 자유 연습은 반대쪽입니다 — **판정을 내리지 않는 대신 상황을 넓힙니다.** 시나리오 일곱 종에
  * 없는 장면을 그 자리에서 만들고, 인물이 즉흥으로 답합니다. 그 대가로 이 모드는
  * 온라인에서만 열리고, 점수·게이지·기록을 하나도 남기지 않습니다.
  *
@@ -45,6 +45,9 @@
  */
 
 import { EVIDENCE_GUARD } from "@/data/evidenceGuard";
+/* 시나리오 **번호만** 가져옵니다 — 이 파일은 훈련 목록 카드가 import하므로, 콘텐츠 배럴을
+   참조하면 시나리오 본문이 목록 번들에 실립니다(`scenarioIds.ts` 머리주석과 같은 규율). */
+import { SCENARIO_IDS } from "@/data/scenarioIds";
 import { checkEvidence, type EvidenceGuard } from "@/engine/evidence";
 import { maskText } from "@/engine/masking";
 import { checkBranchRestraint, checkCritical, type CriticalCheck } from "@/engine/rules";
@@ -62,14 +65,30 @@ import {
 } from "./onlineCoach";
 import { getSettings, type OnlineCoachingSettings } from "./settings";
 
+/**
+ * 검수된 시나리오 종수를 한글 수사로 — 12종 설계 상한까지의 수사만 압니다.
+ *
+ * 이 모드를 말하는 문장은 「검수된 N 상황 **밖**」으로 시작하므로, 그 N이 편성표와 어긋나면
+ * 화면이 스스로 틀린 말을 합니다. 그래서 손으로 적지 않고 여기서 한 번 세어 내보냅니다
+ * (/practice 머리말은 자기 파일에서 같은 방식으로 셉니다).
+ */
+const KOREAN_COUNT = ["", "한", "두", "세", "네", "다섯", "여섯", "일곱", "여덟", "아홉", "열", "열한", "열두"];
+export const SCENARIO_COUNT_KO = KOREAN_COUNT[SCENARIO_IDS.length] ?? String(SCENARIO_IDS.length);
+
 /* ── 시드 (유형·난이도·한 줄) ──────────────────────────── */
 
 /**
  * 이 모드가 다루는 유형 — **둘뿐입니다.**
  *
  * `ScenarioType`의 부분집합이라 규칙 엔진에 그대로 넘길 수 있습니다(변환표를 두지 않습니다).
- * 응급(`EMERGENCY`)이 없는 것이 이 타입의 핵심이고, 위험 판단(`RISK`)은 검증 훈련에서도
- * 아직 베타로 이연한 유형이라 여기서도 열지 않습니다.
+ * 응급(`EMERGENCY`)이 없는 것이 이 타입의 핵심입니다.
+ *
+ * 위험 판단(`RISK`)은 검증 훈련 쪽에서 초급 한 종이 열렸지만(CHK-D01) **여기서는 열지
+ * 않습니다** — 사유가 이연이 아니라 응급과 같아졌기 때문입니다. 그 유형이 재는 것은
+ * 「지금 어디에 연락하는가」라는 판단이고, 그 장면을 즉흥 생성이 만들면 **부를 곳이 몇 곳인지가
+ * 매번 달라집니다.** 검증 훈련의 D01은 그 답이 검수된 고정 대본 위에 있어 성립하지만,
+ * 자유 연습에는 그 대본이 없습니다. 같은 이유로 대사 변주에서도 이 유형을 뺐습니다
+ * (`lib/onlineVary.ts`의 `LINE_VARY_EXCLUDED_TYPES`).
  */
 export type FreeSeedType = Extract<ScenarioType, "BPSD" | "CONFLICT">;
 
@@ -199,8 +218,10 @@ export const FREE_NO_SCORE_LINE =
 export const FREE_PRACTICE_HREF = "/practice";
 export const FREE_ENTRY_TITLE = "자유 연습";
 export const FREE_ENTRY_EYEBROW = "온라인 · 채점 없음";
-export const FREE_ENTRY_SUMMARY =
-  "검수된 여섯 상황 밖의 장면을 그 자리에서 만들어 대화합니다. 판정도 기록도 남기지 않습니다.";
+/* 종수는 데이터에서 셉니다 — 손으로 적어 두면 한 종이 열리는 날 이 카드만 옛 숫자를 말합니다
+   (2026-08-30: 일곱 종이 열려 있는데 「여섯」으로 적혀 있던 자리입니다). 무게 없는 id 목록만
+   가져오므로 훈련 목록 번들에 시나리오 본문이 실리지 않습니다. */
+export const FREE_ENTRY_SUMMARY = `검수된 ${SCENARIO_COUNT_KO} 상황 밖의 장면을 그 자리에서 만들어 대화합니다. 판정도 기록도 남기지 않습니다.`;
 
 /** 가상 인물 고지 — 만들어진 인물에도 같은 문장을 답니다. */
 export const FREE_FICTION_NOTICE =
@@ -708,7 +729,7 @@ async function relayFree(
  *
  * 안전 대조(가드 ④)에 걸리면 **한 번만** 더 청합니다. 두 번 다 걸리면 상황을 만들지 못한 채
  * 끝냅니다 — 여기서 고정 장면을 대신 세우면 그것은 이미 자유 연습이 아니라 검증 훈련이고,
- * 그 자리는 검수된 시나리오 여섯 종이 이미 훨씬 낫게 하고 있습니다.
+ * 그 자리는 검수된 시나리오 일곱 종이 이미 훨씬 낫게 하고 있습니다.
  */
 export async function requestFreeSetup(
   request: FreeSetupRequest,

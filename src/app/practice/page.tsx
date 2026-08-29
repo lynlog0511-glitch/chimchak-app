@@ -6,6 +6,7 @@ import {
   FREE_ENTRY_TITLE,
   FREE_FICTION_NOTICE,
   FREE_NO_SCORE_LINE,
+  SCENARIO_COUNT_KO,
 } from "@/lib/onlineFree";
 import { PRACTICE_SUBTITLE, PRACTICE_TRADEOFF } from "./_components/constants";
 import { PracticeClient } from "./_components/PracticeClient";
@@ -19,8 +20,9 @@ import { PracticeClient } from "./_components/PracticeClient";
 
 export const metadata: Metadata = {
   title: FREE_ENTRY_TITLE,
-  description:
-    "검수된 여섯 상황 밖의 장면을 그 자리에서 만들어 자유롭게 대화해 보는 연습 모드입니다. 온라인에서만 열리고 채점하지 않습니다.",
+  // 종수를 손으로 적지 않습니다 — 2026-08-30에 일곱 종이 열려 있는데 이 한 줄만 「여섯」으로
+  // 남아 있었습니다. 세는 자리는 카드 문장(`FREE_ENTRY_SUMMARY`)과 같은 한 곳입니다.
+  description: `검수된 ${SCENARIO_COUNT_KO} 상황 밖의 장면을 그 자리에서 만들어 자유롭게 대화해 보는 연습 모드입니다. 온라인에서만 열리고 채점하지 않습니다.`,
 };
 
 export default function PracticePage() {

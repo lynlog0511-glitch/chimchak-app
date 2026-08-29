@@ -322,11 +322,14 @@ describe("보고 CUE — 「보고드리겠습니다」 여섯 글자", () => {
       .map(({ cue }) => [`${scenario.id} ${cue.id}`, cue] as const),
   );
 
-  it("요소 개수 판정을 선언한 CUE가 세 곳이다 (A01 CUE-4 · A02 CUE-5 · C02 CUE-C4)", () => {
+  it("요소 개수 판정을 선언한 CUE가 네 곳이다 (A01 CUE-4 · A02 CUE-5 · C02 CUE-C4 · D01 CUE-D4)", () => {
     expect(보고_CUE.map(([where]) => where)).toEqual([
       "CHK-A01 CUE-4",
       "CHK-A02 CUE-5",
       "CHK-C02 CUE-C4",
+      // 위험 판단 D01의 신고 접수 전달 — 「보고」라는 낱말은 없지만 **몇 가지가 들어 있는가**로
+      // 갈리는 자리라 같은 장치를 씁니다(주소·무응답 시간·마지막 통화·문 잠김·안에서 들린 것).
+      "CHK-D01 CUE-D4",
     ]);
   });
 
@@ -419,6 +422,8 @@ describe("미분류 분기의 체류 원칙", () => {
     "CHK-B02/CUE-7": "마무리 — 「훈련을 마쳤습니다」",
     "CHK-C01/CUE-7": "마무리 — 「오늘 훈련을 마쳤습니다」",
     "CHK-C02/CUE-C6": "마무리 — 「오늘 훈련을 마쳤습니다」",
+    // D01은 CUE가 여섯이고 마지막 CUE-D6이 보고와 마무리를 함께 묻는다 — 회차를 닫는 자리다.
+    "CHK-D01/CUE-D6": "마무리 — 「오늘 훈련을 마쳤습니다」",
   };
 
   it("예외로 적어 둔 자리가 실제로 있는 자리다 (목록이 낡지 않게)", () => {
@@ -558,6 +563,7 @@ describe("종료 화면 표시부 — 설계표 분류 이름", () => {
   it("데이터의 분기 이름은 그대로다 (표시부 한 겹만 얹었다)", () => {
     // 감수 문서·판정·기록이 쓰는 이름은 손대지 않는다.
     const labels = SCENARIOS.flatMap((s) => allCues(s).flatMap(({ cue }) => cue.branches.map((b) => b.label)));
-    expect(labels.filter((l) => l === "무응답·미분류").length).toBe(50);
+    // 6종 50 + D01의 CUE 여섯 자리 = 56. 시나리오가 늘 때마다 그 CUE 수만큼 함께 오른다.
+    expect(labels.filter((l) => l === "무응답·미분류").length).toBe(56);
   });
 });

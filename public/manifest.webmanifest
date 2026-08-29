@@ -42,7 +42,7 @@
     {
       "name": "응급 음성 안내",
       "short_name": "응급",
-      "description": "검수된 응급 안내 5종을 바로 엽니다.",
+      "description": "응급 안내 6종(현직 감수 1종 완료 · 검토 중 5종)을 바로 엽니다.",
       "url": "/emergency"
     },
     {

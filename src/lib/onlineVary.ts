@@ -208,7 +208,27 @@ export function isVariableSpeaker(speaker: TurnDef["speaker"]): boolean {
 }
 
 /**
- * 이 시나리오에서 대사 변주가 도는가 — 응급 유형은 **통째로** 빠집니다(L3 원칙).
+ * 대사 변주에서 **통째로** 빠지는 시나리오 유형.
+ *
+ * 응급(`EMERGENCY`)은 L3 원칙으로 처음부터 빠져 있었고, 위험 판단(`RISK`)을 2026-08-30에
+ * 같은 칸에 넣었습니다. 두 유형의 사유가 같습니다 — **여기서 흔들리는 것은 말투가 아니라
+ * 판단의 근거**입니다. CHK-D01에서 「안에서 전화벨이 울립니다」가 같은 뜻이라며 「안이
+ * 조용합니다」로 다시 쓰이면, 그 한 낱말이 다음 CUE의 신고 판단을 통째로 뒤집습니다.
+ * 변주 가드 다섯 단(형식·길이·숫자·금지 표현·위험 신호)은 **규칙 사전에 적힌 말**만 보므로
+ * 이런 사실 뒤집힘을 잡지 못합니다. 그물이 닿지 않는 자리는 애초에 열지 않습니다.
+ *
+ * 스위치와 무관한 불변입니다 — 사용자가 「매번 조금씩 다르게」를 골라 두어도 거짓입니다.
+ * 같은 사실을 /safety AI 지도와 훈련 브리핑 첫 화면이 같은 낱말로 적습니다.
+ */
+export const LINE_VARY_EXCLUDED_TYPES: ReadonlyArray<Scenario["type"]> = ["EMERGENCY", "RISK"];
+
+/** 이 시나리오가 변주 제외 유형인가 (스위치와 무관). */
+export function isLineVaryExcludedType(scenario: Scenario): boolean {
+  return LINE_VARY_EXCLUDED_TYPES.includes(scenario.type);
+}
+
+/**
+ * 이 시나리오에서 대사 변주가 도는가 — 응급·위험 판단 유형은 **통째로** 빠집니다(L3 원칙).
  *
  * 보는 칸은 **「어르신 말투」**(`settings.aiDialogue`)입니다 — 발화 전송 동의
  * (`settings.onlineCoaching`)가 아닙니다. 두 칸이 갈린 날(2026-08-28) 이 함수가 보는 자리도
@@ -218,16 +238,17 @@ export function isVariableSpeaker(speaker: TurnDef["speaker"]): boolean {
  * 여기서 답하는 것은 「사용자가 이 칸에서 어느 말투를 고르셨는가 + 이 시나리오가 대상인가」
  * 둘뿐입니다.
  * 실제로 문장이 오는지는 서버 설정과 회선에 달렸고, 오지 않으면 조용히 앵커가 남습니다.
- * 응급 제외는 스위치와 무관한 불변입니다 — 켜 두어도 `EMERGENCY`에서는 거짓입니다.
+ * 유형 제외는 스위치와 무관한 불변입니다 — 켜 두어도 `LINE_VARY_EXCLUDED_TYPES`에서는 거짓입니다.
  *
  * @example isLineVaryActive(CHK_B01) // false (응급 — 켜 두어도)
+ * @example isLineVaryActive(CHK_D01) // false (위험 판단 — 켜 두어도)
  */
 export function isLineVaryActive(
   scenario: Scenario,
   settings: AiDialogueSettings = getSettings().aiDialogue,
 ): boolean {
   if (!settings.enabled) return false;
-  return scenario.type !== "EMERGENCY";
+  return !isLineVaryExcludedType(scenario);
 }
 
 /** 이 화자를 설명하는 인물 프로필 (없으면 undefined — 그러면 변주를 청하지 않습니다) */
@@ -249,7 +270,9 @@ export function buildVaryRequest(context: LineVaryContext): LineVaryRequest | un
   const anchor = context.anchor.trim();
   if (anchor.length === 0 || anchor.length > VARY_ANCHOR_MAX) return undefined;
   if (!isVariableSpeaker(context.speaker)) return undefined;
-  if (context.scenario.type === "EMERGENCY") return undefined;
+  // 유형 제외는 여기서도 한 번 더 봅니다 — 요청을 만드는 자리와 켜짐을 답하는 자리가
+  // 갈라지면, 한쪽만 고친 날 제외한 유형의 대사가 그대로 나갑니다.
+  if (isLineVaryExcludedType(context.scenario)) return undefined;
 
   const persona = personaFor(context.scenario, context.speaker);
   if (!persona) return undefined;

@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { EyebrowLabel, InlineDisclaimer, PageShell } from "@/components";
+import type { EmergencyProtocol } from "@/types";
+import {
+  EyebrowLabel,
+  InlineDisclaimer,
+  PageShell,
+  REVIEW_PENDING_LABEL,
+} from "@/components";
 import { PROTOCOLS, getProtocol } from "@/data/protocols";
 import { ProtocolPlayer } from "./_components/ProtocolPlayer";
 
@@ -42,15 +48,23 @@ function situationText(situation: string): string {
  * 원문에는 화면 밖 진행 상태를 가리키는 내부 표기가 섞여 있고, 사용자가 알아야 할 것은
  * 「현직이 봤는가 · 아직인가」와 「어느 쪽이든 고정 문구다」 둘뿐입니다.
  *
+ * 2026-08-30에 셋째 갈래가 생겼습니다 — **새로 더해 첫 감수를 기다리는 안내**(`reviewPending`)는
+ * 「2차 감수 대기」와 같은 말로 묶이지 않습니다. 앞의 것들은 한 번 본 뒤 다시 보는 중이고,
+ * 이쪽은 아직 아무도 보지 않았습니다. 그 차이를 목록·이 화면·/check·/safety가 같은 필드
+ * 하나로 갈라 적습니다. 말은 /train 카드와 한 벌(`REVIEW_PENDING_LABEL`)입니다.
+ *
  * **데이터는 건드리지 않습니다.** 위 치환표와 같은 규율입니다.
  */
-function reviewLine(reviewed: string): string {
-  return reviewed.startsWith("감수 완료")
+function reviewLine(protocol: EmergencyProtocol): string {
+  if (protocol.reviewPending) {
+    return `${REVIEW_PENDING_LABEL} — 현장 사례를 반영해 새로 준비한 안내입니다. 고정 문구·생성 0건 원칙은 그대로 적용됩니다`;
+  }
+  return protocol.reviewed.startsWith("감수 완료")
     ? "현직 감수 완료 · 고정 문구 · 생성 호출 없음"
     : "초안 · 현직 감수 대기. 고정 문구·생성 0건 원칙은 그대로 적용됩니다";
 }
 
-/** 프로토콜 5종을 정적 경로로 미리 만들어 둡니다(서비스워커 precache 목록과 동일). */
+/** 프로토콜 전 종을 정적 경로로 미리 만들어 둡니다(서비스워커 precache 목록과 동일). */
 export function generateStaticParams(): Array<{ id: string }> {
   return PROTOCOLS.map((protocol) => ({ id: protocol.id.toLowerCase() }));
 }
@@ -85,18 +99,18 @@ export default async function ProtocolPage({ params }: PageParams) {
       {/* 이 안내를 언제 쓰는지 — 재생을 방해하지 않도록 아래에 조용히 둡니다.
 
           그 아래 한 줄은 **이 안내 하나의 감수 상태**입니다. 한때 이 자리에 있던 줄은
-          다섯 종에 같은 문장을 달아 중복이었고, 그래서 지웠습니다. 지금 다시 세우는 줄은
-          프로토콜마다 다릅니다 — 현직 감수를 마친 것은 아직 한 종뿐이고, 공통 각주
-          (`PROTOCOL_NOTICE`)는 다섯 종 전부에 참인 것(고정 문구 재생·생성 호출 없음)만
-          말하도록 감수 단언을 내려놓았기 때문입니다. 두 줄이 서로 다른 일을 하므로 중복이 아닙니다.
-          검수 계보의 전문은 /safety 검증 계단이 그대로 들고 있습니다. */}
+          전 종에 같은 문장을 달아 중복이었고, 그래서 지웠습니다. 지금 다시 세우는 줄은
+          프로토콜마다 다릅니다 — 현직 감수를 마친 것은 아직 한 종뿐이고 한 종(P-06)은 첫 감수
+          전이며, 공통 각주(`PROTOCOL_NOTICE`)는 여섯 종 전부에 참인 것(고정 문구 재생·생성
+          호출 없음)만 말하도록 감수 단언을 내려놓았기 때문입니다. 두 줄이 서로 다른 일을 하므로
+          중복이 아닙니다. 검수 계보의 전문은 /safety 검증 계단이 그대로 들고 있습니다. */}
       <section className="mt-8">
         <EyebrowLabel>이럴 때 씁니다</EyebrowLabel>
         <p className="mt-1.5 text-[0.9375rem] leading-[1.6] text-ink-soft">
           {situationText(protocol.situation)}
         </p>
         <p className="mt-2.5 text-[0.8438rem] leading-[1.6] text-ink-muted">
-          {reviewLine(protocol.reviewed)}
+          {reviewLine(protocol)}
         </p>
       </section>
 

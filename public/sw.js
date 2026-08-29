@@ -2,7 +2,7 @@
  * 침착(ChimChak) 서비스워커
  *
  * 목적은 하나입니다 — **서버가 죽어도, 회선이 끊겨도 화면은 열린다.**
- * 설치 시점에 응급 라우트 5종과 목록 화면, 훈련 한 바퀴(시나리오 선택 → 세션 5종 → 보고 → 기록),
+ * 설치 시점에 응급 라우트 6종과 목록 화면, 훈련 한 바퀴(시나리오 선택 → 세션 → 보고 → 기록),
  * 매니페스트·아이콘·폰트를 미리 저장해 두고, 네트워크가 끊기면 저장해 둔 화면을 그대로 돌려줍니다.
  *
  * 캐시 전략
@@ -39,7 +39,7 @@ const CACHE_NAME = "chimchak-__CHIMCHAK_BUILD__";
 /**
  * 오프라인에서도 반드시 열려야 하는 화면·자산 목록입니다.
  *
- * 이 목록은 src/data/protocols.ts(P-01~P-05)·src/data/scenarios/index.ts(SCENARIOS)와
+ * 이 목록은 src/data/protocols.ts(P-01~P-06)·src/data/scenarios/index.ts(SCENARIOS)와
  * 같은 순서·같은 건수를 유지해야 합니다. 서비스워커는 번들 밖 정적 파일이라 데이터를 import할 수
  * 없어, 어긋남은 tests/swPrecache.test.ts가 대신 잡습니다.
  */
@@ -53,6 +53,9 @@ const PRECACHE_URLS = [
   "/emergency/p-03",
   "/emergency/p-04",
   "/emergency/p-05",
+  // 2026-08-30 신설(문 잠김·무응답). 검토 중인 안내여도 저장 대상에서 빼지 않습니다 —
+  // 화면에 있는 줄이 오프라인에서만 열리지 않으면 그 어긋남을 아무도 실패로 느끼지 못합니다.
+  "/emergency/p-06",
 
   // 훈련 한 바퀴 — 고르고, 한 판 돌고, 보고를 적고, 기록을 확인하는 데까지입니다.
   // 여기를 비워 두면 오프라인에서 /train 주소가 아래 네비게이션 폴백에 걸려 응급 화면으로
@@ -65,6 +68,7 @@ const PRECACHE_URLS = [
   "/train/chk-b02",
   "/train/chk-c01",
   "/train/chk-c02",
+  "/train/chk-d01",
   "/report",
   "/history",
   // 도움말도 오프라인에서 열립니다 — 처음 오신 분이 회선 없는 자리에서 헤매지 않게.

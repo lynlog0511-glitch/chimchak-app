@@ -8,8 +8,13 @@ import { SAFETY_TOC_EVENT } from "./tocEvent";
  * 접히는 섹션 손잡이.
  *
  * 이 화면은 증명서라 내용을 줄일 수 없는데, 430px 폭에서 세로로 이어 붙이면 15,000px가 넘습니다
- * (19화면). 그래서 **지우는 대신 접습니다** — 섹션 제목이 그대로 손잡이가 되고, 기본 펼침으로
- * 두는 것은 화면의 주장에 해당하는 셋(실측 패널·3계층 다이어그램·검증 계단)뿐입니다.
+ * (19화면). 그래서 **지우는 대신 접습니다** — 절 제목이 그대로 손잡이가 되고, 안을 보시려면
+ * 그 줄을 누릅니다.
+ *
+ * 2026-08-30: 한동안 검증 계단 한 절만 펴 둔 채 세워 두었습니다(`alwaysOpen`). 이 화면이
+ * 개인정보 처리방침 같은 **안내 문서** 격이 되면서 그 예외를 없앴습니다 — 아홉 절이 모두 같은
+ * 규칙으로 접히고, 필요한 절을 눌러서 펴시는 한 가지 모델만 남습니다. 화면 머리의 요약
+ * (실측 패널·3계층 막대·개인정보 경로 칩)은 애초에 절 밖이라 언제나 펴져 있습니다.
  *
  * 2026-08-25: 예전에는 md↑에서 펴 둔 채 누름도 막았습니다. 앱 프레임이 어느 뷰포트에서도
  * 430px이라 「폭이 넉넉해 문서로 읽히는 자리」가 더는 없습니다 — **모든 폭에서 접힙니다**.
@@ -28,31 +33,21 @@ export interface MobileFoldProps {
   id: string;
   /** 손잡이에 들어가는 것 — 번호(span)와 제목(h2) 줄입니다. */
   handle: ReactNode;
-  /** 접지 않을 섹션(이 화면의 주장에 해당하는 칸) */
-  alwaysOpen?: boolean;
   children: ReactNode;
   className?: string;
 }
 
-export function MobileFold({
-  id,
-  handle,
-  alwaysOpen = false,
-  children,
-  className,
-}: MobileFoldProps) {
+export function MobileFold({ id, handle, children, className }: MobileFoldProps) {
   const [open, setOpen] = useState(true);
 
   /* 첫 렌더는 펼침(서버가 그린 화면과 같음)이고, 수화 직후 접습니다 —
      자바스크립트가 없는 화면에는 접힌 채 갇히는 내용이 남지 않습니다. */
   useEffect(() => {
-    if (alwaysOpen) return;
     setOpen(false);
-  }, [alwaysOpen]);
+  }, []);
 
   /* 목차 칩으로 뛰어온 항목은 폅니다 — 접힌 채로 두면 「눌렀는데 아무 일도 없는」 화면이 됩니다. */
   useEffect(() => {
-    if (alwaysOpen) return;
     const openIfMine = (target: string): void => {
       if (target === id) setOpen(true);
     };
@@ -77,16 +72,7 @@ export function MobileFold({
       window.removeEventListener(SAFETY_TOC_EVENT, onToc);
       window.removeEventListener("hashchange", onHash);
     };
-  }, [alwaysOpen, id]);
-
-  if (alwaysOpen) {
-    return (
-      <div className={className}>
-        {handle}
-        <div className="mt-5">{children}</div>
-      </div>
-    );
-  }
+  }, [id]);
 
   return (
     <details

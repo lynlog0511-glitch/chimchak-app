@@ -8,8 +8,11 @@ import { cx } from "@/components/utils";
  * 「현직 감수를 받았습니다」만 적어 두면 어디까지 받았는지 알 수 없고,
  * 진행 중인 것을 완료로 적으면 나머지 기록까지 못 믿게 됩니다. 그래서 두 줄을 같이 놓습니다.
  *
- * 응급 안내 줄은 `src/data/protocols.ts`의 `reviewed` 문자열을 세어서 만듭니다 —
- * 데이터가 바뀌면 이 카드도 같이 바뀝니다(손으로 적은 숫자가 아닙니다).
+ * 응급 안내 줄은 `src/data/protocols.ts`의 `reviewed` 문자열과 `reviewPending` 표기를 세어서
+ * 만듭니다 — 데이터가 바뀌면 이 카드도 같이 바뀝니다(손으로 적은 숫자가 아닙니다).
+ * 감수는 세 갈래입니다: 마친 것 · 한 번 보고 다시 보는 중인 것 · **아직 한 번도 안 본 것**.
+ * 셋째 갈래(2026-08-30 신설)를 둘째와 같은 말로 묶으면, 이 카드가 스스로 하지 말라고 적어 둔
+ * 일(진행 중인 것을 진행된 것처럼 적기)을 한 단 아래에서 다시 하게 됩니다.
  *
  * 감수 **완료본을 고친 사실**도 여기 적습니다. 완료 종수만 세면 화면은 「1종 감수 완료」라고
  * 말하는데, 그 1종이 방금 고쳐져 재확인을 기다리는 중일 수 있습니다. 고친 줄 수도 데이터에서
@@ -31,6 +34,10 @@ function isReviewed(reviewed: string): boolean {
  * 고친 줄은 주소 단계 음성이고, 그 안에는 유일한 감수 완료본(P-02)이 들어 있습니다.
  * 화면이 「1종 감수 완료」만 말하고 이 사실을 빼면, 진행 중인 것을 완료로 적는 셈입니다 —
  * 이 카드가 스스로 하지 말라고 적어 둔 일입니다(페르소나 PM low).
+ *
+ * ※ 이 날 고친 줄을 셀 때 **뒤에 새로 더한 안내는 빼야 합니다**(아래 `revisedLines`).
+ *   P-06은 2026-08-30에 처음 쓴 안내라 8/25에 고쳐진 적이 없습니다. 주소 단계를 가졌다는
+ *   이유만으로 함께 세면, 이 카드가 「8. 25.에 6줄을 고쳤습니다」라는 없던 사실을 적게 됩니다.
  */
 const REVISED_ON = "2026. 8. 25.";
 
@@ -56,10 +63,14 @@ const RUBRIC_REVISED_IDS: readonly string[] = ["CL-01"];
 
 export function ReviewLedger({ className }: ReviewLedgerProps) {
   const done = PROTOCOLS.filter((p) => isReviewed(p.reviewed));
-  const pending = PROTOCOLS.length - done.length;
+  /* 「첫 감수 전」과 「2차 감수 대기」는 다른 말입니다 — 앞의 것은 아무도 본 적이 없고,
+     뒤의 것은 한 번 본 뒤 다시 보는 중입니다. 세 갈래로 갈라 셉니다. */
+  const fresh = PROTOCOLS.filter((p) => p.reviewPending);
+  const pending = PROTOCOLS.length - done.length - fresh.length;
   const doneTitles = done.map((p) => p.title).join(" · ");
-  /* 고친 줄 수도 데이터에서 셉니다 — 주소를 크게 띄우는 단계가 그 줄을 가진 단계입니다. */
-  const revisedLines = PROTOCOLS.reduce(
+  /* 고친 줄 수도 데이터에서 셉니다 — 주소를 크게 띄우는 단계가 그 줄을 가진 단계입니다.
+     새로 더한 안내는 그날 고쳐진 적이 없으므로 제외합니다(위 `REVISED_ON` 주석). */
+  const revisedLines = PROTOCOLS.filter((p) => !p.reviewPending).reduce(
     (sum, p) => sum + p.steps.filter((step) => typeof step.address === "string").length,
     0,
   );
@@ -86,15 +97,30 @@ export function ReviewLedger({ className }: ReviewLedgerProps) {
       : []),
     {
       k: "시나리오 대사",
-      v: "먼저 연 3종은 2차 교차 감수가 진행 중이며, 아직 끝나지 않았습니다. 뒤에 더한 3종(CHK-A02·CHK-B01·CHK-C02)은 초안으로, 현직 감수 대기 상태임을 훈련 카드에도 그대로 적었습니다.",
+      v: "먼저 연 3종은 2차 교차 감수가 진행 중이며, 아직 끝나지 않았습니다. 뒤에 더한 3종(CHK-A02·CHK-B01·CHK-C02)은 초안으로, 현직 감수 대기 상태임을 훈련 카드에도 그대로 적었습니다. 2026. 8. 30. 현장 인터뷰 사례를 반영해 위험 판단 유형 1종(CHK-D01 — 방문 시 무응답·문 잠김)을 새로 열었습니다. 첫 현직 감수 전이며, 신체 동작 지시 없이 확인·신고·보고 절차만 다루는지가 감수의 첫 확인 항목입니다.",
+    },
+    {
+      k: "인물 소개 12인",
+      v: "2026. 8. 30. 현장 인터뷰의 표현력 지적을 반영해 여섯 시나리오 열두 인물의 소개에 인지·정서 서술 한 문장씩을 더했습니다. 의학 등급 단정 없이 행동 서술로만 적었고, 현직 확인을 기다립니다. 이 문장은 대사 변주 요청의 인물 소개 칸에 함께 실립니다.",
     },
     {
       k: `응급 안내 ${PROTOCOLS.length}종`,
       v:
         done.length > 0
           ? `${done.length}종 감수 완료 — ${doneTitles} · 나머지 ${pending}종은 2차 감수 대기`
-          : `${PROTOCOLS.length}종 모두 2차 감수 대기`,
+          : `${PROTOCOLS.length - fresh.length}종 모두 2차 감수 대기`,
     },
+    /* 새로 더한 안내가 없어지면(첫 감수가 끝나면) 이 줄도 함께 사라집니다 — 위 줄이
+       「나머지는 2차 감수 대기」라고만 말하면, 한 번도 감수를 받지 않은 안내가 「한 번 보고
+       다시 보는 중」인 것들 사이에 조용히 섞입니다. 종수도 제목도 데이터에서 셉니다. */
+    ...(fresh.length > 0
+      ? [
+          {
+            k: `응급 안내 신설 ${fresh.length}종 — 첫 감수 전`,
+            v: `${fresh.map((p) => `${p.id} ${p.title}`).join(" · ")}. 2026. 8. 30. 현장 인터뷰 사례를 반영해 새로 더한 안내이며, 아직 현직 감수를 한 번도 받지 않았습니다. 응급 안내 목록과 해당 안내 화면에 「전문가 검토를 받고 있어요」를 그대로 적어 두었습니다. 고정 문구 재생·생성 0건 원칙은 나머지와 똑같이 적용됩니다.`,
+          },
+        ]
+      : []),
     /* 고친 줄이 없어지면(주소 단계가 사라지면) 이 줄도 함께 사라집니다 — 화면이
        「0줄을 고쳤습니다」라고 말하지 않게. */
     ...(revisedLines > 0

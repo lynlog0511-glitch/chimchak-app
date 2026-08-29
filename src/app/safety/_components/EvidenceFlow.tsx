@@ -28,7 +28,7 @@ interface FlowNode {
   caption: string;
   /** 다이어그램 안 두 줄 — 한 줄 11자 안쪽으로 유지합니다(상자 안쪽 폭 192). */
   lines: readonly [string, string];
-  /** 알파에 없는 단계 — 제목 옆에 「계획」을 답니다 */
+  /** 알파에 없는 단계 — 제목 옆에 「도입 예정」을 답니다(없는 것이 기능이라 「게시」가 아닙니다) */
   plan?: boolean;
 }
 
@@ -49,7 +49,10 @@ const INPUT_NODES: readonly FlowNode[] = [
     key: "search",
     title: "근거 검색",
     // 알파에는 검색(retrieval)이 없습니다 — 분기·규칙이 사전 매핑된 문서 id를 들고 있습니다.
-    // 그 사실을 「계획」 배지와 함께 이 자리에서 먼저 밝힙니다.
+    // 그 사실을 「도입 예정」 표와 함께 이 자리에서 먼저 밝힙니다(없는 것이 문서가 아니라
+    // 검색 기능이라 「게시 예정」이 아닙니다 — 2026-08-30 라벨 재분류).
+    // (상자 안 두 줄 「지금은 사전 매핑 / 목록 검색은 계획」은 문장이라 그대로 둡니다 —
+    //  바뀐 것은 상태 표의 낱말이고, 문장 속 「계획」은 보통의 우리말 그대로입니다.)
     caption:
       "지금 배포본은 분기·규칙에 사전 매핑된 근거를 씁니다. 공식 문서 목록을 실제로 검색하는 기능은 계획입니다.",
     lines: ["지금은 사전 매핑", "목록 검색은 계획"],
@@ -394,7 +397,7 @@ function StepRow({ index, node }: { index: number; node: FlowNode }) {
       <div className="min-w-0">
         <p className="text-[1.0625rem] leading-[1.45] font-extrabold text-ink">
           {node.title}
-          {node.plan && <PlanTag className="ml-2" />}
+          {node.plan && <PlanTag className="ml-2" label="도입 예정" />}
         </p>
         <p className="mt-1 text-[0.9375rem] leading-[1.6] text-ink-muted">{node.caption}</p>
       </div>

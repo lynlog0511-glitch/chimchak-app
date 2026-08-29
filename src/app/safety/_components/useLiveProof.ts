@@ -84,6 +84,7 @@ export const ROUTE_LABEL: Record<string, string> = {
   "/emergency/p-03": "P-03 의식 저하·무반응",
   "/emergency/p-04": "P-04 경련",
   "/emergency/p-05": "P-05 심한 출혈",
+  "/emergency/p-06": "P-06 문 잠김 — 안에서 응답이 없을 때",
   "/manifest.webmanifest": "앱 설치 정보",
   "/icon.svg": "앱 아이콘",
 };

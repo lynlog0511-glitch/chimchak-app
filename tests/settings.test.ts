@@ -283,7 +283,8 @@ describe("라벨 — 이름이 성질을 적는다", () => {
     expect(settings.AI_DIALOGUE_NOTICE).toContain("AI");
     expect(settings.AI_DIALOGUE_NOTICE).toContain("하신 말씀은 나가지 않습니다");
     expect(settings.AI_DIALOGUE_NOTICE).toContain("매번 조금씩 다르게");
-    expect(settings.AI_DIALOGUE_NOTICE).toContain("응급 상황 훈련은 제외");
+    // 19차에 위험 판단 유형이 변주 제외에 합류하면서 고지도 두 유형을 함께 센다(AiMap과 한 목소리).
+    expect(settings.AI_DIALOGUE_NOTICE).toContain("응급과 위험 판단 유형 훈련은 제외");
   });
 
   /**

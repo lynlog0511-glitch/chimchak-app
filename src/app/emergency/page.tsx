@@ -5,6 +5,7 @@ import {
   ListRows,
   MarkerSquare,
   PageShell,
+  REVIEW_PENDING_LABEL,
   ScreenHeader,
 } from "@/components";
 import { PROTOCOLS, PROTOCOL_NOTICE } from "@/data/protocols";
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * 한 글자 마커 — 시안 5b의 낙·기·의·경·출입니다.
+ * 한 글자 마커 — 시안 5b의 낙·기·의·경·출에 2026-08-30 「문」이 더해졌습니다.
  * 옆의 제목이 뜻을 전하므로 마커는 스캔용 장치일 뿐입니다(스크린리더에는 읽히지 않습니다).
  */
 const PROTOCOL_MARK: Record<string, string> = {
@@ -30,6 +31,7 @@ const PROTOCOL_MARK: Record<string, string> = {
   "P-03": "의",
   "P-04": "경",
   "P-05": "출",
+  "P-06": "문",
 };
 
 /**
@@ -43,6 +45,7 @@ const PROTOCOL_MARK: Record<string, string> = {
  *   P-03 「이름을 부르고 반응이 있는지 확인하세요」
  *   P-04 「주변의 단단한 물건만 치워 주세요 · 시작된 시각을 보세요」
  *   P-05 「어디에서 피가 나는지, 언제부터인지 보신 그대로 119에 말씀하세요」
+ *   P-06 「지금 119와 112에 모두 신고하세요 · 문을 여는 것은 경찰이 합니다」
  */
 const ACTION_SUMMARY: Record<string, string> = {
   "P-01": "일으키지 않고 확인부터",
@@ -50,6 +53,7 @@ const ACTION_SUMMARY: Record<string, string> = {
   "P-03": "이름을 불러 반응부터",
   "P-04": "주변을 치우고 시간 재기",
   "P-05": "보이는 그대로 119에 전달",
+  "P-06": "119와 112를 함께",
 };
 
 /**
@@ -70,7 +74,23 @@ const LIST_TITLE_REWRITES: Record<string, string> = {
   "P-03": "불러도 반응이 없을 때 (의식 저하)",
   "P-04": "온몸이 떨리며 굳으실 때 (경련)",
   "P-05": "피가 멎지 않을 때 (심한 출혈)",
+  "P-06": "문이 잠겼는데 응답이 없을 때 (문 잠김)",
 };
+
+/**
+ * 검토 중인 안내에만 붙는 한 줄 — /train 카드의 같은 자리와 **한 벌**입니다.
+ *
+ * 「목록에 있다」와 「감수까지 끝났다」는 다른 말입니다. 둘을 같은 얼굴로 두면 나머지 다섯 줄의
+ * 표기까지 함께 의심받으므로, 검토 중인 것을 목록에서 먼저 밝힙니다. 급할 때 이 줄이 손을 막지
+ * 않도록 자리는 부제 아래 각주 단(12.5px · ink-faint)이고, 행은 그대로 눌립니다.
+ *
+ * 목록은 손으로 적지 않습니다 — 원천은 `src/data/protocols.ts`의 `reviewPending` 하나이고,
+ * 감수가 끝나면 그 한 줄을 지우는 것으로 이 줄과 /check 항목, /safety 계보가 함께 내려갑니다.
+ * 뒤따르는 범위 한 줄은 「그럼 이 안내는 따라도 되나」에 답합니다 — 검토 중인 것은 문면이고,
+ * 119·112 신고라는 절차 자체는 검토와 무관하게 그대로 하시는 것이 맞습니다.
+ */
+const REVIEW_PENDING_SCOPE =
+  "현장 사례를 반영해 새로 준비한 안내예요. 119·112 신고 절차는 그대로 하시면 됩니다.";
 
 export default function EmergencyPage() {
   return (
@@ -102,29 +122,46 @@ export default function EmergencyPage() {
       </div>
 
       {/* 목록 앞에 있던 면책 한 문단(「이 안내는 119 신고를 대체하지 않습니다…」)은 아래 각주로
-          내렸습니다. 이 화면이 존재하는 이유는 「다섯 개 중에 지금 상황 하나 고르기」인데,
-          그 다섯 개에 닿기 전에 경고가 네 겹 쌓여 있었고 그중 둘은 같은 말을 두 번 하고
+          내렸습니다. 이 화면이 존재하는 이유는 「목록에서 지금 상황 하나 고르기」인데,
+          그 목록에 닿기 전에 경고가 네 겹 쌓여 있었고 그중 둘은 같은 말을 두 번 하고
           있었습니다(페르소나 디자이너 med). 위에 남는 것은 119 버튼 캡션 한 줄뿐이라,
           가장 중요한 경고가 오히려 더 잘 읽힙니다. 문장은 한 글자도 지우지 않고 자리만 옮겼습니다. */}
 
-      {/* 5종 — 카드가 아니라 선으로 나눈 목록입니다. 마커 한 글자로 눈이 먼저 찾습니다. */}
+      {/* 목록 — 카드가 아니라 선으로 나눈 줄입니다. 마커 한 글자로 눈이 먼저 찾습니다.
+          줄 수는 데이터가 정합니다(`PROTOCOLS`) — 안내가 늘면 줄도 함께 늡니다. */}
       <ListRows className="mt-[14px]">
         {PROTOCOLS.map((protocol) => {
           const mark = PROTOCOL_MARK[protocol.id] ?? protocol.title.slice(0, 1);
           const summary = ACTION_SUMMARY[protocol.id];
           const listTitle = LIST_TITLE_REWRITES[protocol.id] ?? protocol.title;
+          const steps = `${protocol.steps.length}단계`;
           return (
             <ListRow
               key={protocol.id}
               size="lg"
               href={`/emergency/${protocol.id.toLowerCase()}`}
-              ariaLabel={`${listTitle} 안내 열기`}
+              /* aria-label은 행 안의 글자를 **덮습니다** — 검토 중 표기를 부제에만 두면
+                 눈으로 보는 분에게는 뜨는데 낭독으로 듣는 분에게는 없는 표기가 됩니다.
+                 그래서 라벨에도 같은 사실을 붙입니다(범위 문장까지는 넣지 않습니다 —
+                 목록 낭독이 길어지면 상황을 고르는 일 자체가 느려집니다). */
+              ariaLabel={
+                protocol.reviewPending
+                  ? `${listTitle} 안내 열기 · ${REVIEW_PENDING_LABEL}`
+                  : `${listTitle} 안내 열기`
+              }
               leading={<MarkerSquare>{mark}</MarkerSquare>}
               title={listTitle}
               subtitle={
-                summary
-                  ? `${summary} · ${protocol.steps.length}단계`
-                  : `${protocol.steps.length}단계`
+                <>
+                  {summary ? `${summary} · ${steps}` : steps}
+                  {/* 검토 중인 안내에만 서는 두 줄 — 데이터의 `reviewPending`이 유일한 원천입니다. */}
+                  {protocol.reviewPending && (
+                    <span className="mt-[6px] block text-[0.7813rem] leading-[1.45] text-ink-faint">
+                      {REVIEW_PENDING_LABEL}
+                      <span className="mt-[2px] block">{REVIEW_PENDING_SCOPE}</span>
+                    </span>
+                  )}
+                </>
               }
             />
           );
@@ -137,9 +174,9 @@ export default function EmergencyPage() {
           (페르소나 현직 P0, 3차). 이제 적는 일은 재생 밖 이 블록에서 끝나고, 재생 화면은 적어
           두신 것을 보여 주기만 합니다.
 
-          목록 **아래**에 두는 데는 이유가 둘입니다. ① 이 화면의 주인은 다섯 줄이고, 주소는
+          목록 **아래**에 두는 데는 이유가 둘입니다. ① 이 화면의 주인은 그 목록이고, 주소는
           근무 전에 한 번 하는 일이라 위계가 뒤입니다. ② 이 블록은 저장소를 읽은 뒤(마운트 후)
-          나타납니다 — 목록 위에 있으면 손가락이 다섯 줄에 닿는 순간 목록을 아래로 밀 수 있고,
+          나타납니다 — 목록 위에 있으면 손가락이 목록에 닿는 순간 목록을 아래로 밀 수 있고,
           그때 눌리는 것은 고르려던 상황이 아닙니다. */}
       <ProtocolAddressPanel className="mt-5" />
 

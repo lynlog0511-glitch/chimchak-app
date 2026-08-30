@@ -5,7 +5,6 @@ import {
   ListRows,
   MarkerSquare,
   PageShell,
-  REVIEW_PENDING_LABEL,
   ScreenHeader,
 } from "@/components";
 import { PROTOCOLS, PROTOCOL_NOTICE } from "@/data/protocols";
@@ -77,20 +76,13 @@ const LIST_TITLE_REWRITES: Record<string, string> = {
   "P-06": "문이 잠겼는데 응답이 없을 때 (문 잠김)",
 };
 
-/**
- * 검토 중인 안내에만 붙는 한 줄 — /train 카드의 같은 자리와 **한 벌**입니다.
- *
- * 「목록에 있다」와 「감수까지 끝났다」는 다른 말입니다. 둘을 같은 얼굴로 두면 나머지 다섯 줄의
- * 표기까지 함께 의심받으므로, 검토 중인 것을 목록에서 먼저 밝힙니다. 급할 때 이 줄이 손을 막지
- * 않도록 자리는 부제 아래 각주 단(12.5px · ink-faint)이고, 행은 그대로 눌립니다.
- *
- * 목록은 손으로 적지 않습니다 — 원천은 `src/data/protocols.ts`의 `reviewPending` 하나이고,
- * 감수가 끝나면 그 한 줄을 지우는 것으로 이 줄과 /check 항목, /safety 계보가 함께 내려갑니다.
- * 뒤따르는 범위 한 줄은 「그럼 이 안내는 따라도 되나」에 답합니다 — 검토 중인 것은 문면이고,
- * 119·112 신고라는 절차 자체는 검토와 무관하게 그대로 하시는 것이 맞습니다.
+/*
+ * 검토 중 표기는 2026-08-30 밤에 **목록에서 안내 화면(재생 · `/emergency/[id]`)으로만** 좁혔습니다
+ * (팀장 결정 — 표면/깊이 분리 · /train 카드와 같은 이동). 목록은 급할 때 하나를 고르는 자리라
+ * 각주가 손을 늦추는 비용이 있고, 이 고지가 실제로 필요한 순간은 안내를 **따르는 화면**입니다 —
+ * 그 화면에는 라벨과 범위 문장이 그대로 남아 있습니다. 원천(`reviewPending`)·/safety 원장·
+ * /check 「감수 상태」 항목은 바뀌지 않았습니다.
  */
-const REVIEW_PENDING_SCOPE =
-  "현장 사례를 반영해 새로 준비한 안내예요. 119·112 신고 절차는 그대로 하시면 됩니다.";
 
 export default function EmergencyPage() {
   return (
@@ -140,29 +132,10 @@ export default function EmergencyPage() {
               key={protocol.id}
               size="lg"
               href={`/emergency/${protocol.id.toLowerCase()}`}
-              /* aria-label은 행 안의 글자를 **덮습니다** — 검토 중 표기를 부제에만 두면
-                 눈으로 보는 분에게는 뜨는데 낭독으로 듣는 분에게는 없는 표기가 됩니다.
-                 그래서 라벨에도 같은 사실을 붙입니다(범위 문장까지는 넣지 않습니다 —
-                 목록 낭독이 길어지면 상황을 고르는 일 자체가 느려집니다). */
-              ariaLabel={
-                protocol.reviewPending
-                  ? `${listTitle} 안내 열기 · ${REVIEW_PENDING_LABEL}`
-                  : `${listTitle} 안내 열기`
-              }
+              ariaLabel={`${listTitle} 안내 열기`}
               leading={<MarkerSquare>{mark}</MarkerSquare>}
               title={listTitle}
-              subtitle={
-                <>
-                  {summary ? `${summary} · ${steps}` : steps}
-                  {/* 검토 중인 안내에만 서는 두 줄 — 데이터의 `reviewPending`이 유일한 원천입니다. */}
-                  {protocol.reviewPending && (
-                    <span className="mt-[6px] block text-[0.7813rem] leading-[1.45] text-ink-faint">
-                      {REVIEW_PENDING_LABEL}
-                      <span className="mt-[2px] block">{REVIEW_PENDING_SCOPE}</span>
-                    </span>
-                  )}
-                </>
-              }
+              subtitle={summary ? `${summary} · ${steps}` : steps}
             />
           );
         })}

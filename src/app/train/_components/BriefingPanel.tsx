@@ -5,7 +5,14 @@ import { ChevronGlyph } from "@/components/icons";
 import { isLikelyInAppBrowser, unlockAudio } from "@/lib/speech";
 import { isLineVaryExcludedType } from "@/lib/onlineVary";
 import Link from "next/link";
-import { BackGlyph, BigButton, EyebrowLabel, InlineDisclaimer, SourceChip } from "@/components";
+import {
+  BackGlyph,
+  BigButton,
+  EyebrowLabel,
+  InlineDisclaimer,
+  REVIEW_PENDING_LABEL,
+  SourceChip,
+} from "@/components";
 import { progressStepCount, type SessionProgress } from "@/lib/storage";
 import type { PersonaDef, Scenario, ScenarioType } from "@/types";
 import {
@@ -548,6 +555,18 @@ export function BriefingPanel({
         </Fold>
       </div>
 
+      {/* 감수 대기 두 줄 — 2026-08-30 밤에 목록 카드에서 이 자리(쓰기 직전 화면의 각주 단)로
+          옮겨 왔습니다(팀장 결정 — 표면/깊이 분리). 목록에서는 열린 7종 중 4종에 반복돼 화면
+          전체가 「미완성」으로 먼저 읽혔고, 이 고지가 실제로 필요한 순간은 훈련을 **시작하기
+          직전**입니다. 원천은 시나리오 데이터의 `reviewPending` 하나 — /safety 감수 원장·/check
+          「감수 상태」와 같은 필드입니다. 범위 문장은 「그럼 여기서 배운 건 안 맞을 수도 있나」에
+          답합니다(현직 검증 반영 문면 그대로). */}
+      {scenario.reviewPending && (
+        <p className="mt-3 text-[0.6875rem] leading-[1.6] text-ink-faint">
+          {REVIEW_PENDING_LABEL} — 현직 선생님들이 보고 계신 것은 어르신 대사 표현이에요. 판정
+          근거 문서는 확정본이에요.
+        </p>
+      )}
       <p className="mt-3 text-[0.6875rem] leading-[1.6] text-ink-faint">{FICTION_NOTICE}</p>
 
       <InlineDisclaimer size="md" tone="readable" className="mt-5" />

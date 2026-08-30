@@ -6,7 +6,6 @@ import {
   EyebrowLabel,
   InlineDisclaimer,
   PageShell,
-  REVIEW_PENDING_LABEL,
   ScreenHeader,
 } from "@/components";
 import { SOURCE_DOCS } from "@/data/docs";
@@ -101,36 +100,13 @@ const CARD_MARK: Record<string, string> = {
   "CHK-D01": "문", // 잠긴 문
 };
 
-/**
- * 대사 감수가 끝나지 않은 시나리오 — 카드 하단에 한 줄로 적습니다.
- *
- * 「열렸다」와 「감수까지 끝났다」는 다른 말입니다. 둘을 같은 얼굴로 두면 나머지 표기의
- * 신뢰도 함께 떨어지므로, 감수 대기 상태를 카드에서 먼저 밝힙니다.
- * (/safety 「현직 감수 현황」의 시나리오 대사 줄과 같은 사실을 가리킵니다.)
- *
- * 자리는 2026-08-24에 옮겼습니다 — 예전에는 eyebrow 끝에 「알파 초안 — 현직 감수 대기」로
- * 붙어, 제목보다 먼저 읽히는 자리에서 개발 단계 이름을 말하고 있었습니다.
- * 사실은 그대로 두고 **말과 자리만** 바꿉니다: 뜻은 「사람이 더 볼 것이 남았다」 하나뿐이고,
- * 그 말이 연습을 막지 않도록 카드 맨 아래 각주 단으로 내립니다.
- *
- * 목록은 손으로 적지 않습니다 — 원천은 시나리오 데이터의 `reviewPending` 필드 하나이고,
- * /check 「감수 상태」 항목도 같은 필드를 셉니다(8/24 단일화).
- *
- * 라벨 **문자열** 자체는 2026-08-30에 `@/components/reviewPending`으로 옮겼습니다 —
- * 응급 안내에도 검토 중인 안내가 한 종 생기면서 같은 말을 쓰는 자리가 넷이 되었고,
- * 손으로 적은 사본은 한쪽만 고쳐지는 날 갈라집니다.
+/*
+ * 감수 대기 표기는 2026-08-30 밤에 **목록 카드에서 브리핑 하단 각주로** 옮겼습니다(팀장 결정 —
+ * 표면/깊이 분리: 첫 화면은 완성품으로 서고, 상태 고지는 쓰기 직전 화면과 /safety 감수
+ * 원장·/check가 맡습니다). 열린 7종 중 4종에 같은 두 줄이 반복돼, 목록 전체가 「미완성」으로
+ * 먼저 읽히던 자리였습니다. 사실은 지워지지 않았습니다 — 원천(`reviewPending` 필드)은 그대로이고,
+ * 브리핑(`BriefingPanel` 하단)·/safety 원장·/check 「감수 상태」가 같은 필드를 계속 셉니다.
  */
-/**
- * 무엇이 검토 중이고 무엇은 아닌지 — 한 줄로 갈라 적습니다.
- *
- * 예전에는 「전문가 검토를 받고 있어요」 한 줄뿐이라, 읽으신 분이 「그럼 여기서 배운 건 아직 안
- * 맞을 수도 있다는 건가」로 받았습니다(현직 검증). 배운 대로 현장에서 했다가 어긋나면 책임은
- * 그분이 집니다. 솔직하게 밝힌 자리를 지우지 않고, 판단할 수 있게 범위를 적습니다.
- */
-const REVIEW_PENDING_SCOPE =
-  "현직 선생님들이 보고 계신 것은 어르신 대사 표현이에요. 판정 근거 문서는 확정본이에요.";
-const REVIEW_PENDING_IDS: string[] = SCENARIOS.filter((s) => s.reviewPending).map((s) => s.id);
-
 /** 편성표 아래 한 줄 — 잠긴 칸이 언제 열리는지만 답합니다(자세한 사유는 /safety가 들고 있습니다). */
 const MATRIX_PENDING_NOTE = "준비 중인 상황은 전문가 검토가 끝나는 대로 열립니다.";
 
@@ -189,7 +165,6 @@ export default function TrainIndexPage() {
           ]
             .filter((part): part is string => Boolean(part))
             .join(" · ");
-          const reviewPending = REVIEW_PENDING_IDS.includes(scenario.id);
           const mark = CARD_MARK[scenario.id] ?? scenario.title.slice(0, 1);
 
           return (
@@ -254,13 +229,7 @@ export default function TrainIndexPage() {
                   prints={scenarioBranchPrints(scenario)}
                   className="mt-[6px]"
                 />
-                {/* 감수 대기 — 카드에서 가장 조용한 줄입니다. 연습을 막는 말이 아니라 사실 한 줄입니다. */}
-                {reviewPending && (
-                  <span className="mt-[6px] block text-[0.7813rem] leading-[1.45] text-ink-faint">
-                    {REVIEW_PENDING_LABEL}
-                    <span className="mt-[2px] block">{REVIEW_PENDING_SCOPE}</span>
-                  </span>
-                )}
+                {/* 감수 대기 두 줄은 2026-08-30에 브리핑 하단으로 옮겼습니다 — 파일 위 주석 참조. */}
                 {/* 목적지 — 눈으로는 「연습하기 ›」 셰브론이 말하고(그쪽은 aria-hidden),
                     낭독에는 이 한 조각이 말합니다. 카드 이름의 맨 끝에 붙습니다. */}
                 <span className="sr-only">브리핑 열기</span>

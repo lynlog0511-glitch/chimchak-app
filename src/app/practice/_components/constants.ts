@@ -82,11 +82,12 @@ export const SEED_LEVEL_LABEL = "얼마나 어렵게 할까요?";
 export const SEED_STAGE_LABEL = "어르신 인지 단계";
 
 /**
- * 출처와 감수 상태를 한 줄로 — 있는 것을 숨기지 않고, 없는 것을 있다고도 하지 않습니다.
- * 이 설정은 현장 제언에서 왔고 아직 현직 감수를 거치지 않았습니다(2026-08-30).
+ * 출처 한 줄 — 이 설정이 현장 제언에서 왔다는 사실은 이 화면의 강점이라 그대로 둡니다.
+ * 감수 상태(단계 서술 3종 · 첫 현직 감수 전)는 화면이 아니라 /safety 감수 원장이 말합니다 —
+ * 2026-08-30 밤 팀장 결정(표면/깊이 분리)으로 이 문장에서 상태 문구를 뺐습니다. 상태의
+ * 원천 기록은 원장 행과 문답카드 E절 35번에 그대로 있습니다.
  */
-export const SEED_STAGE_NOTE =
-  "현장 인터뷰 제언을 반영해 더한 설정입니다. 단계 서술은 현직 감수 전입니다.";
+export const SEED_STAGE_NOTE = "현장 인터뷰 제언을 반영해 더한 설정입니다.";
 export const SEED_HINT_LABEL = "상황 만들기 (비워 두셔도 됩니다)";
 export const SEED_HINT_PLACEHOLDER = "예: 목욕을 한사코 거부하십니다";
 export const SEED_HINT_NOTE =

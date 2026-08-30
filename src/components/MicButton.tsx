@@ -132,6 +132,11 @@ export function MicButton({
       onPointerLeave={onPointerLeave}
       onKeyDown={onKeyDown}
       onKeyUp={onKeyUp}
+      /* 길게 누르는 버튼의 안드로이드 방어 (2026-08-30 · 파일럿 실기기 제보 「길게 누르기가
+         안 된다」). 안드로이드 계열은 길게 누르면 컨텍스트 메뉴·텍스트 콜아웃 제스처가 먼저
+         발동해 pointer가 끊길 수 있습니다 — touchAction:none이 스크롤 가로채기를 막고,
+         contextmenu 취소와 selection 금지가 나머지 두 경로를 막습니다. */
+      onContextMenu={(event) => event.preventDefault()}
       className={cx(
         "flex flex-none flex-col items-center justify-center rounded-full",
         // 눌림 = 딥 채움 + 1.5% 축소를 한 박자(150ms)에 — `.chim-press`가 둘을 함께 전이시킵니다.
@@ -151,6 +156,9 @@ export function MicButton({
         height: spec.box,
         boxShadow: RING[size],
         touchAction: "none",
+        userSelect: "none",
+        WebkitUserSelect: "none",
+        WebkitTouchCallout: "none",
       }}
     >
       {/* 마이크 헤드 */}

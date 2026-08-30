@@ -120,6 +120,24 @@ export function isRecognitionSupported(): boolean {
 }
 
 /**
+ * 앱 안 브라우저(인앱 웹뷰)로 보이는 환경인지 — **경고문 한 줄을 붙일지 정하는 용도까지만**입니다.
+ *
+ * UA 문자열 판별은 확실한 판정이 못 되므로(위장·누락 둘 다 가능), 이 값으로 기능을 잠그거나
+ * 버튼을 숨기지 않습니다. 쓰는 자리는 「음성 인식이 열리지 않을 수 있다」는 안내 한 문장을
+ * 미리 보여 줄지뿐이고, 실패의 실제 판정은 인식기 오류(ERROR_MESSAGES의 권한 계열)가 맡습니다.
+ * 목록은 국내 사용층에서 실제로 마주치는 앱만 짧게 둡니다 — 넓히면 오탐이 안내를 소음으로 만듭니다.
+ *
+ * @example
+ * isLikelyInAppBrowser(); // 카카오톡 안에서 열면 true
+ */
+export function isLikelyInAppBrowser(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /KAKAOTALK|NAVER\(inapp|DaumApps|Instagram|FBAN|FBAV|\bLine\//i.test(
+    navigator.userAgent,
+  );
+}
+
+/**
  * 음성 합성(TTS)을 쓸 수 있는 환경인지.
  *
  * @example
@@ -167,9 +185,16 @@ export interface Recognizer {
   supported: boolean;
 }
 
+/* 권한 계열 두 줄에 앱 안 브라우저 이야기가 붙어 있는 이유 (2026-08-30 · 파일럿 실기기 제보) —
+   카카오톡·네이버처럼 앱 안에서 연 화면은 음성 인식 껍데기(webkitSpeechRecognition)는 있는데
+   실제로 시작하면 권한 창 없이 이 두 오류로 떨어지는 경우가 있습니다. 그 자리에서 「권한이
+   없습니다」만 말하면 사용자는 자기가 뭘 잘못 눌렀는지 찾게 됩니다 — 잘못은 사용자에게 없고,
+   기본 브라우저로 여는 우회로가 실제로 있습니다. 단정하지 않고 「경우가 많습니다」까지만 씁니다. */
 const ERROR_MESSAGES: Record<string, string> = {
-  "not-allowed": "마이크 권한이 허용되지 않았습니다. 아래 버튼으로 진행해 주세요.",
-  "service-not-allowed": "이 기기에서 음성 인식이 허용되지 않았습니다. 아래 버튼으로 진행해 주세요.",
+  "not-allowed":
+    "마이크 권한이 허용되지 않았습니다. 카카오톡처럼 앱 안에서 여셨다면 크롬 같은 기본 브라우저로 열면 되는 경우가 많습니다. 아래 버튼으로도 끝까지 진행하실 수 있습니다.",
+  "service-not-allowed":
+    "이 브라우저에서는 음성 인식이 허용되지 않았습니다. 앱 안 브라우저(카카오톡·네이버 등)에서 자주 있는 일이라, 크롬 같은 기본 브라우저로 열면 되는 경우가 많습니다. 아래 버튼으로도 진행하실 수 있습니다.",
   "no-speech": "말소리를 듣지 못했습니다. 다시 말씀하시거나 아래 버튼을 눌러 주세요.",
   "audio-capture": "마이크를 찾지 못했습니다. 아래 버튼으로 진행해 주세요.",
   network: "네트워크 문제로 음성 인식이 멈췄습니다. 아래 버튼으로 진행해 주세요.",

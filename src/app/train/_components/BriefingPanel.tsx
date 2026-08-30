@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { ChevronGlyph } from "@/components/icons";
-import { unlockAudio } from "@/lib/speech";
+import { isLikelyInAppBrowser, unlockAudio } from "@/lib/speech";
 import { isLineVaryExcludedType } from "@/lib/onlineVary";
 import Link from "next/link";
 import { BackGlyph, BigButton, EyebrowLabel, InlineDisclaimer, SourceChip } from "@/components";
@@ -463,7 +463,15 @@ export function BriefingPanel({
               {micCheck === "unknown"
                 ? `${MIC_CHECKING_LINE}. 버튼과 직접 입력은 지금도 그대로 쓰실 수 있습니다.`
                 : micCheck === "yes"
-                  ? "마이크 버튼을 처음 누르면 브라우저가 마이크 허용을 물어봅니다. ‘허용’을 누르신 뒤, 버튼을 꾹 누른 채로 말씀하시고 다 말씀하시면 손을 떼세요. 허용하지 않으셔도 버튼과 직접 입력으로 끝까지 하실 수 있습니다."
+                  ? /* 앱 안 브라우저 한 문장 — 껍데기는 있는데 시작하면 막히는 환경이 실재해서
+                       (2026-08-30 파일럿 실기기 제보), 실패를 겪기 전에 우회로를 먼저 둡니다.
+                       micCheck가 "yes"가 된 뒤(마운트 후)에만 읽는 분기라 서버 렌더와 어긋나지
+                       않습니다. 판별이 확실하지 않으므로 문장도 「수 있습니다」까지만 갑니다. */
+                    `마이크 버튼을 처음 누르면 브라우저가 마이크 허용을 물어봅니다. ‘허용’을 누르신 뒤, 버튼을 꾹 누른 채로 말씀하시고 다 말씀하시면 손을 떼세요. 허용하지 않으셔도 버튼과 직접 입력으로 끝까지 하실 수 있습니다.${
+                      isLikelyInAppBrowser()
+                        ? " 지금은 앱 안 브라우저로 보고 계셔서 음성 인식이 열리지 않을 수 있습니다 — 그때는 크롬 같은 기본 브라우저로 열어 주세요."
+                        : ""
+                    }`
                   : "이 기기에서는 음성 인식을 쓸 수 없습니다. 버튼과 직접 입력만으로 끝까지 진행하실 수 있습니다."}
             </li>
             <li>

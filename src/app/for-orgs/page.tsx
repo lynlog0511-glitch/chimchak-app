@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BigButton, EyebrowLabel, InlineDisclaimer, PageShell, ScreenHeader } from "@/components";
 import { SOURCE_DOCS } from "@/data/docs";
+import { FIELD_VOICES, FIELD_VOICE_BASIS } from "@/data/fieldVoices";
 import { SCENARIO_MATRIX } from "@/data/matrix";
 import { PROTOCOLS, PROTOCOL_COUNT_PHRASE } from "@/data/protocols";
 import { SCENARIOS } from "@/data/scenarios";
@@ -114,6 +115,40 @@ export default function ForOrgsPage() {
         않고, 대신 앱이 <b className="font-bold">이미 재고 있는 값</b>만 놓았습니다. 아래 숫자는
         모두 지금 보고 계신 기기에서 잰 실측치이며, 없는 값은 없다고 적습니다.
       </p>
+
+      {/* 「현장의 말」 — 2026-08-30 현장 인터뷰 제언 반영 · 첫 현직 감수 전.
+          이 화면은 여기서부터 끝까지 숫자와 절차만 보여 주는 자리라, 그 숫자가 왜 필요한지를
+          말하는 문장이 한 줄도 없었습니다. 결재 라인에 올리는 분이 가장 먼저 답해야 하는 질문이
+          「이걸 왜 사야 하는가」인데, 그 답을 우리가 쓴 문장으로 적으면 판매 문구가 됩니다.
+          그래서 들은 말을 축자로 두 줄만 놓고, 다섯 분이 현장 전체가 아니라는 한계를 같은
+          자리에 적습니다.
+
+          축자는 `src/data/fieldVoices.ts`가 정본입니다 — 화면에 손으로 옮겨 적으면 두 곳이
+          갈라지고, 갈라진 쪽은 더 이상 인용이 아닙니다. 자리는 계측 패널 **앞**입니다.
+          이 말을 숫자 뒤에 두면 근거가 아니라 사족으로 읽힙니다. */}
+      <Section
+        title="현장의 말"
+        lead="아래 숫자를 보시기 전에, 이 훈련이 왜 필요한지 들은 말 그대로 두 줄만 옮깁니다."
+      >
+        <div className="mt-[10px] rounded-card bg-paper-2 px-4 py-[14px]">
+          <ul className="chim-hairline border-y border-line">
+            {FIELD_VOICES.map((voice) => (
+              <li key={voice.id} className="py-[11px]">
+                {/* 낫표는 축자에만 답니다 — 맥락 줄은 우리가 쓴 서술문이라 따옴표 없이 둡니다. */}
+                <blockquote className="text-[0.9375rem] leading-[1.6] text-ink">
+                  「{voice.quote}」
+                </blockquote>
+                <p className="mt-[3px] text-[0.8438rem] leading-[1.6] text-ink-soft">
+                  {voice.context}
+                </p>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-[10px] text-[0.8438rem] leading-[1.6] text-ink-soft">
+            {FIELD_VOICE_BASIS}
+          </p>
+        </div>
+      </Section>
 
       <Section
         title="이 기기에서 잰 값"

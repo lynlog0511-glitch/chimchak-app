@@ -23,6 +23,7 @@ import { checkCritical } from "@/engine/rules";
 import { BANNED_PHRASES, MODEL_IDENTITY_WORDS, findBannedExpression } from "@/lib/onlineCoach";
 import {
   FREE_BLOCK_LABEL,
+  FREE_COGNITION_STAGES,
   FREE_CONSENT_LINES,
   FREE_ENDPOINT,
   FREE_FALLBACK_LINE,
@@ -33,19 +34,23 @@ import {
   FREE_MAX_TURNS,
   FREE_PERSONA_MAX,
   FREE_PRACTICE_KEY,
+  FREE_SEED_MAX,
   FREE_SEED_TYPES,
   FREE_SITUATION_MAX,
+  FREE_STAGE_SEED_PREFIX,
   FREE_SUMMARY_FAILED,
   FREE_SUMMARY_MAX,
   applyLineGuards,
   applySetupGuards,
   applySummaryGuards,
+  buildFreeSystemPrompt,
   buildHistory,
   buildReplyRequest,
   buildSetupRequest,
   buildSummaryRequest,
   bumpPracticeCount,
   checkLearnerUtterance,
+  freeCognitionLabel,
   readPracticeCount,
   requestFreeLine,
   requestFreeSetup,
@@ -129,6 +134,88 @@ describe("연습 유형", () => {
     expect(checkCritical(FREE_FALLBACK_LINE).cf).toBe(false);
     expect(findBannedExpression(FREE_FALLBACK_LINE)).toBeUndefined();
     expect(FREE_FALLBACK_LINE.length).toBeLessThanOrEqual(FREE_LINE_MAX);
+  });
+});
+
+/* ── 어르신 인지 단계 ─────────────────────────────────── */
+
+/**
+ * 2026-08-30 현장 인터뷰 제언으로 더한 설정값이다(첫 현직 감수 전).
+ *
+ * 이 절이 지키는 것은 넷이다.
+ *  ① 고르신 단계는 시드 한 줄에 실린다.
+ *  ② **고르지 않으면 예전 한 줄과 한 글자도 다르지 않다** — 안 고른 것을 고른 것처럼 보내지 않는다.
+ *  ③ 갈등 유형에는 실리지 않는다 — 마주 앉는 상대가 보호자·가족이라 단계 개념이 성립하지 않는다.
+ *  ④ 화면이 읽는 서술과 인물이 연기하는 서술이 **같은 원문**이다.
+ */
+describe("어르신 인지 단계", () => {
+  const STAGE_SEED: FreeSeed = { ...SEED, stage: "middle" };
+
+  it("① 치매 행동 시드에는 고르신 단계가 실린다", () => {
+    expect(seedLine(STAGE_SEED)).toBe("치매 행동 · 중급 · 인지 중기 — 목욕을 거부하십니다");
+    expect(buildSetupRequest(STAGE_SEED).seed).toContain("인지 중기");
+    // 머리말이 길어져도 상한에 닿지 않는다(한 줄 상한을 다 채운 시드로 한 번 재 둔다).
+    const full = seedLine({ ...STAGE_SEED, level: 3, hint: filler(FREE_HINT_MAX) });
+    expect(full.length).toBeLessThanOrEqual(FREE_SEED_MAX);
+  });
+
+  it("① 라벨은 화면·시드가 같은 낱말을 본다", () => {
+    expect(freeCognitionLabel("early")).toBe("초기");
+    expect(freeCognitionLabel("middle")).toBe("중기");
+    expect(freeCognitionLabel("late")).toBe("말기");
+    expect(FREE_STAGE_SEED_PREFIX).toBe("인지");
+  });
+
+  it("② 고르지 않으면 예전 한 줄 그대로다 (회귀 고정 — 기존 호출부는 한 자도 안 고쳤다)", () => {
+    const before = "치매 행동 · 중급 — 목욕을 거부하십니다";
+    expect(seedLine(SEED)).toBe(before);
+    expect(seedLine({ ...SEED, stage: "none" })).toBe(before);
+    // 시드를 쓰는 세 요청도 마찬가지다.
+    expect(buildSetupRequest({ ...SEED, stage: "none" })).toEqual(buildSetupRequest(SEED));
+    expect(buildReplyRequest({ ...SCENE, seed: { ...SEED, stage: "none" } }).seed).toBe(before);
+  });
+
+  it("③ 갈등 유형에는 단계를 싣지 않는다 (상대가 보호자·가족이라 개념이 성립하지 않는다)", () => {
+    const conflict: FreeSeed = { type: "CONFLICT", level: 2, stage: "late", hint: "" };
+    expect(seedLine(conflict)).toBe("갈등 · 중급");
+    expect(seedLine(conflict)).not.toContain("인지");
+    expect(buildSetupRequest(conflict).seed).not.toContain("말기");
+  });
+
+  it("④ 상황 만들기·연기 프롬프트 둘 다 단계 규칙을 들고 있다", () => {
+    const setup = buildFreeSystemPrompt(buildSetupRequest(STAGE_SEED));
+    const reply2 = buildFreeSystemPrompt(buildReplyRequest({ ...SCENE, seed: STAGE_SEED }));
+    for (const prompt of [setup, reply2]) {
+      expect(prompt).toContain("인지 단계가 적혀 있으면");
+      // 진단 흉내는 프롬프트에서 먼저 막는다 — 이 앱은 사람의 상태를 가려 주지 않는다.
+      expect(prompt).toContain("병명");
+    }
+    // 연기하지 않는 자리(마무리 코칭)에는 이 규칙이 없다.
+    expect(buildFreeSystemPrompt(buildSummaryRequest(SCENE))).not.toContain(
+      "인지 단계가 적혀 있으면",
+    );
+  });
+
+  it("⑤ 화면 서술과 프롬프트 서술이 같은 원문이다 (두 곳에 따로 적으면 한쪽만 고쳐진다)", () => {
+    const setup = buildFreeSystemPrompt(buildSetupRequest(STAGE_SEED));
+    const reply2 = buildFreeSystemPrompt(buildReplyRequest({ ...SCENE, seed: STAGE_SEED }));
+    const stages = FREE_COGNITION_STAGES.filter((item) => item.value !== "none");
+    expect(stages).toHaveLength(3);
+    for (const stage of stages) {
+      expect(setup, stage.value).toContain(stage.note);
+      expect(reply2, stage.value).toContain(stage.note);
+    }
+    // 「구분 없음」은 고르지 않은 상태라 연기 규칙에 실릴 것이 없다.
+    const none = FREE_COGNITION_STAGES.find((item) => item.value === "none")?.note ?? "";
+    expect(none.length).toBeGreaterThan(0);
+    expect(setup).not.toContain(none);
+  });
+
+  it("서술은 진단이 아니라 말투다 (금지 표현·모델 정체어가 섞이지 않는다)", () => {
+    for (const stage of FREE_COGNITION_STAGES) {
+      expect(findBannedExpression(stage.note), stage.value).toBeUndefined();
+      expect(stage.note.length, stage.value).toBeGreaterThan(0);
+    }
   });
 });
 

@@ -9,7 +9,8 @@
  * 온라인에서만 열리고, 점수·게이지·기록을 하나도 남기지 않습니다.
  *
  * 나가는 것과 나가지 않는 것
- *  · 나가는 것 — 시드(유형·난이도·적어 주신 한 줄), 만들어진 상황 지문·인물 소개,
+ *  · 나가는 것 — 시드(유형·난이도·**고르신 경우의** 어르신 인지 단계·적어 주신 한 줄),
+ *    만들어진 상황 지문·인물 소개,
  *    그리고 **학습자 발화**입니다. 이 모드에서는 학습자의 말이 기기 밖으로 나갑니다.
  *    대사 변주(`onlineVary.ts`)가 지키던 「학습자 발화는 담지 않는다」가 여기서는 성립하지
  *    않습니다 — 즉흥 연기의 상대가 무슨 말을 들었는지 모르면 연기가 되지 않기 때문입니다.
@@ -75,7 +76,7 @@ import { getSettings, type OnlineCoachingSettings } from "./settings";
 const KOREAN_COUNT = ["", "한", "두", "세", "네", "다섯", "여섯", "일곱", "여덟", "아홉", "열", "열한", "열두"];
 export const SCENARIO_COUNT_KO = KOREAN_COUNT[SCENARIO_IDS.length] ?? String(SCENARIO_IDS.length);
 
-/* ── 시드 (유형·난이도·한 줄) ──────────────────────────── */
+/* ── 시드 (유형·난이도·인지 단계·한 줄) ───────────────── */
 
 /**
  * 이 모드가 다루는 유형 — **둘뿐입니다.**
@@ -127,9 +128,73 @@ export const FREE_LEVELS: ReadonlyArray<{ value: FreeLevel; label: string; note:
   { value: 3, label: "고급", note: "설득이 잘 통하지 않는 장면" },
 ];
 
+/* ── 어르신 인지 단계 ──────────────────────────────────── */
+
+/**
+ * 어르신의 인지 단계 — **자유 연습에만 있는 설정값**입니다.
+ * (2026-08-30 현장 인터뷰 제언 반영 · 첫 현직 감수 전)
+ *
+ * 인터뷰에서 「치매 중증도 단계를 인물 설정값으로 두어 단계마다 대화 난이도가 달라지게 해
+ * 달라」는 제언이 나왔습니다. 그 제언을 검증 훈련 쪽에 넣으면 검수된 앵커와 판정이 함께
+ * 흔들립니다 — 같은 입력에 같은 판정이라는 약속이 설정값 하나로 갈리기 때문입니다.
+ * 그래서 **판정을 내리지 않는 이 모드**에만 둡니다(판정 엔진은 여기서도 재사용만 합니다).
+ *
+ * 눈금이 셋인 이유 — 1~5로 쪼개면 그 사이의 경계를 이 저장소가 근거 없이 지어내는 셈입니다.
+ * 초기·중기·말기는 공적 안내 문서가 쓰는 구분이라 거기까지만 씁니다. 더 잘게 나누는 것은
+ * 현직 감수 안건입니다.
+ */
+export type FreeCognitionStage = "none" | "early" | "middle" | "late";
+
+/**
+ * 단계마다의 **말투 서술** — 화면의 설명과 연기 규칙이 이 한 배열을 함께 봅니다.
+ *
+ * `note`에 진단 문장을 적지 않습니다. 적는 것은 「이 단계의 어르신은 어떻게 말씀하시는가」
+ * 하나이고, 병명·중증도 판정·의학 지시는 이 자리의 말이 아닙니다 — 이 앱은 어느 화면에서도
+ * 사람의 상태를 가려 주지 않습니다.
+ *
+ * 두 곳에 따로 적지 않는 이유는 이 파일의 다른 상수들과 같습니다(`FREE_SEED_MAX`·
+ * `BANNED_PHRASES` 주석 참조). 화면 설명과 프롬프트 규칙이 문장을 따로 들고 있으면 어느 날
+ * 한쪽만 고쳐지고, 그때 학습자가 읽은 설명과 인물이 연기한 말투가 조용히 갈립니다.
+ * 그래서 `note`가 두 곳의 **유일한 원문**입니다(`buildFreeSystemPrompt`가 그대로 끌어옵니다).
+ */
+export const FREE_COGNITION_STAGES: ReadonlyArray<{
+  value: FreeCognitionStage;
+  label: string;
+  note: string;
+}> = [
+  { value: "none", label: "구분 없음", note: "단계를 정하지 않고 시작합니다" },
+  {
+    value: "early",
+    label: "초기",
+    note: "낱말이 늦게 나오고 같은 질문을 가끔 반복하십니다",
+  },
+  {
+    value: "middle",
+    label: "중기",
+    note: "시간·장소를 혼동하시고 같은 요구를 반복하시며 감정 기복이 큽니다",
+  },
+  {
+    value: "late",
+    label: "말기",
+    note: "짧은 낱말 위주로 말씀하시고 몸짓·표정이 많습니다",
+  },
+];
+
+/**
+ * 시드 한 줄에 끼우는 머리말 — 시드·프롬프트 규칙이 **같은 낱말**을 봅니다.
+ * 프롬프트가 「인지 중기」라고 적힌 시드를 알아보아야 하므로, 두 곳이 이 상수를 함께 씁니다.
+ */
+export const FREE_STAGE_SEED_PREFIX = "인지";
+
 export interface FreeSeed {
   type: FreeSeedType;
   level: FreeLevel;
+  /**
+   * 어르신 인지 단계 — **선택 필드**입니다.
+   * 넘기지 않으면 시드에도 프롬프트에도 단계가 실리지 않습니다(고르지 않은 것을 고른 것처럼
+   * 적지 않습니다). 기존 호출부는 한 자도 고치지 않고 그대로 돕니다.
+   */
+  stage?: FreeCognitionStage;
   /** 「상황 만들기」에 적어 주신 한 줄 — 비워 두셔도 됩니다. */
   hint: string;
 }
@@ -146,6 +211,11 @@ export function freeLevelLabel(level: FreeLevel): string {
   return FREE_LEVELS.find((item) => item.value === level)?.label ?? String(level);
 }
 
+/** 단계 라벨 — 화면과 시드 한 줄이 같은 낱말을 봅니다. */
+export function freeCognitionLabel(stage: FreeCognitionStage): string {
+  return FREE_COGNITION_STAGES.find((item) => item.value === stage)?.label ?? String(stage);
+}
+
 /**
  * 시드를 요청에 실을 한 줄로 폅니다.
  *
@@ -155,11 +225,27 @@ export function freeLevelLabel(level: FreeLevel): string {
  * 가리는 것이 먼저이고 자르는 것이 나중인 순서에도 이유가 있습니다 — 먼저 자르면 이름이
  * 경계에서 토막 나 규칙이 놓칩니다.
  *
+ * 인지 단계는 **고르신 경우에만** 끼웁니다(2026-08-30). 고르지 않으신 시드는 예전 한 줄과
+ * 한 글자도 다르지 않습니다 — 이 함수의 출력이 곧 요청 몸통이라, 안 고른 것을 고른 것처럼
+ * 적으면 화면이 말한 것보다 많은 것이 나갑니다.
+ *
  * @example seedLine({ type: "BPSD", level: 2, hint: "목욕을 거부하십니다" })
  * // "치매 행동 · 중급 — 목욕을 거부하십니다"
+ * @example seedLine({ type: "BPSD", level: 2, stage: "middle", hint: "목욕을 거부하십니다" })
+ * // "치매 행동 · 중급 · 인지 중기 — 목욕을 거부하십니다"
  */
 export function seedLine(seed: FreeSeed): string {
-  const head = `${freeTypeLabel(seed.type)} · ${freeLevelLabel(seed.level)}`;
+  const parts = [freeTypeLabel(seed.type), freeLevelLabel(seed.level)];
+  /* 단계는 **「치매 행동」에서만** 뜻이 있습니다. 갈등 유형에서 마주 앉는 상대는 보호자·가족이고,
+     그 사람에게 인지 단계라는 개념이 성립하지 않습니다 — 실려 나가면 인물이 없는 설정을 두고
+     연기하는 꼴이 됩니다. 화면도 유형을 바꾸는 순간 그 섹션을 감추지만, 시드를 만드는 이 자리에서
+     한 번 더 막습니다(화면을 거치지 않고 이 함수를 부르는 자리가 있습니다). */
+  if (seed.type === "BPSD" && seed.stage !== undefined && seed.stage !== "none") {
+    parts.push(`${FREE_STAGE_SEED_PREFIX} ${freeCognitionLabel(seed.stage)}`);
+  }
+  /* 길이 걱정이 없는 자리입니다 — 머리말은 길어야 「치매 행동 · 고급 · 인지 중기」 열여덟 자이고,
+     한 줄 상한(120자)을 다 채워도 `FREE_SEED_MAX`(240자) 안에 넉넉히 듭니다. */
+  const head = parts.join(" · ");
   const hint = maskText(seed.hint.trim()).masked.slice(0, FREE_HINT_MAX);
   return hint.length > 0 ? `${head} — ${hint}` : head;
 }
@@ -357,6 +443,19 @@ function commonRules(): string[] {
 }
 
 /**
+ * 인지 단계 서술을 프롬프트에 실을 한 줄로 폅니다 — **화면이 읽는 그 문장 그대로**입니다.
+ *
+ * 문장을 여기서 새로 짓지 않고 `FREE_COGNITION_STAGES`의 `note`를 끌어옵니다. 화면 설명과
+ * 연기 규칙이 갈리면 학습자는 읽은 대로의 어르신을 기대하고 인물은 다른 말투로 답합니다 —
+ * 그 어긋남은 화면 어디에도 표시되지 않는 종류의 고장입니다.
+ */
+function stageMannerList(): string {
+  return FREE_COGNITION_STAGES.filter((item) => item.value !== "none")
+    .map((item) => `${FREE_STAGE_SEED_PREFIX} ${item.label} — ${item.note}`)
+    .join(" / ");
+}
+
+/**
  * 시스템 프롬프트 — 단계마다 지켜야 할 것을 전부 문장으로 적어 둡니다.
  *
  * 코칭·변주와 같은 원칙입니다: 여기 적은 규칙을 지켰는지는 **믿지 않고 가드로 다시 확인합니다**.
@@ -372,6 +471,9 @@ export function buildFreeSystemPrompt(request: FreeRequest): string {
       `1. 상황 지문은 두세 문장, ${FREE_SITUATION_MAX}자 이내입니다. 요양보호사가 그 자리에 막 들어선 순간을 3인칭으로 적습니다.`,
       `2. 인물 소개는 한 문장, ${FREE_PERSONA_MAX}자 이내입니다. 이름·나이대·지금 마음 상태만 담습니다.`,
       "3. 정답이나 대응 요령을 적지 않습니다. 상황만 놓고, 무슨 말을 할지는 학습자가 정합니다.",
+      /* 시드에 단계가 적혀 있을 때만 발동하는 규칙입니다 — 안 적혀 있으면 예전과 같은 장면이
+         만들어집니다. 서술 세 줄은 화면이 보는 상수 그대로입니다(`stageMannerList`). */
+      `4. 시드에 인지 단계가 적혀 있으면 그 말투가 드러나는 장면과 인물로 만듭니다(${stageMannerList()}). 병명·진단명을 적지 않고, 의학적 지시나 치료 방법도 넣지 않습니다.`,
       ...commonRules(),
       "",
       '출력은 다른 말 없이 JSON 한 덩어리로만 합니다: {"situation": "상황 지문", "persona": "인물 소개"}',
@@ -388,6 +490,9 @@ export function buildFreeSystemPrompt(request: FreeRequest): string {
       "3. 연기 밖의 말(설명·사과·머리말·지문)을 붙이지 않습니다.",
       "4. 상황을 갑자기 뒤집지 않습니다 — 학습자의 말에 반응해 조금씩 움직입니다.",
       "5. 학습자에게 몸에 손대는 일이나 약·의료 처치를 시키지 않습니다.",
+      /* 위 setup 규칙 4와 **같은 원문**을 봅니다. 연기하는 쪽에만 적어 두면 장면은 초기인데
+         말투만 말기인 대화가 나옵니다. */
+      `6. 시드에 인지 단계가 적혀 있으면 그 서술에 맞는 말투로 연기합니다(${stageMannerList()}). 그 인물은 자기 병명·진단을 입에 올리지 않고, 의학적 지시나 치료 방법도 말하지 않습니다.`,
       ...commonRules(),
       "",
       '출력은 다른 말 없이 JSON 한 덩어리로만 합니다: {"line": "인물의 대사"}',

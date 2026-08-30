@@ -8,6 +8,11 @@ import { BreathMark } from "@/components/BreathMark";
 import { cx } from "@/components/utils";
 import { unexploredBranches, type TracedFeedback } from "@/engine";
 import { durationText, durationTextFromSeconds } from "@/lib/duration";
+import {
+  buildRubricBreakdown,
+  type RubricBreakdownRow,
+  type RubricStatusWord,
+} from "@/lib/rubricBreakdown";
 import { MAX_SESSION_SEC, loadSessions } from "@/lib/storage";
 import type { EndingDef, Scenario, SessionEvent, SessionRecord, SessionState } from "@/types";
 import {
@@ -277,6 +282,73 @@ function SessionTimeline({ rows, situations }: { rows: TimelineRow[]; situations
   );
 }
 
+/* ── 항목별 자세히 보기 ───────────────────────────────────── */
+
+/**
+ * 판정 낱말 → 표준 마크. 화면에 나가는 글자는 STATUS_MARK_LABEL이 정본이라 여기서 다시 적지 않습니다
+ * (「충족」·「코칭」이 화면마다 다른 말로 갈라지지 않게 하는 자리입니다).
+ */
+const BREAKDOWN_MARK: Record<RubricStatusWord, StatusMarkKind> = {
+  충족: "met",
+  코칭: "coach",
+};
+
+/**
+ * 항목별 자세히 보기 — 기본은 접혀 있습니다.
+ * (2026-08-30 현장 인터뷰 제언 반영 · 첫 현직 감수 전 — 「코칭이 더 세부적으로 가야 한다」.)
+ *
+ * 세부화의 재료는 **이미 있는 판정**뿐입니다. 엔진이 턴마다 적어 둔 루브릭 항목을 항목별로
+ * 다시 묶은 것이고(`lib/rubricBreakdown`), 새 판정도 새 문장도 여기서 만들지 않습니다.
+ *
+ * 이 화면의 주인공은 여전히 「잘한 것」과 「다시 볼 것」 두 목록입니다 — 그래서 「이번 훈련의 흐름」과
+ * 같은 접힘으로, 같은 자리에 둡니다. 펴야 보이는 것이라야 두 목록의 무게가 유지됩니다.
+ * 점수·등급·순위는 어떤 형태로도 만들지 않으므로, 행이 말하는 것은 **항목 이름 · 판정 낱말 ·
+ * 그때 드린 문구** 셋뿐입니다.
+ */
+function RubricBreakdownFold({ rows }: { rows: RubricBreakdownRow[] }) {
+  return (
+    <details className="group mt-4 border-t border-line">
+      <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 rounded-field px-0.5 text-[0.7813rem] leading-[1.45] font-bold text-ink-muted transition-colors duration-150 active:bg-paper-2 [&::-webkit-details-marker]:hidden">
+        항목별 자세히 보기
+        <ChevronGlyph size="sm" className="flex-none text-ink-ghost group-open:rotate-180" />
+      </summary>
+      <p className="px-0.5 pb-1 text-[0.7813rem] leading-[1.6] text-ink-muted">
+        이번에 판정이 붙은 항목 {rows.length}개입니다. 점수도 등급도 아닙니다.
+      </p>
+      <ul className="pb-1">
+        {rows.map((row) => (
+          <li key={row.itemId} className="border-t border-line px-0.5 py-2.5">
+            {/* 한 항목이 충족·코칭 양쪽에 걸린 회차에서는 두 낱말이 나란히 섭니다 —
+                뒤의 한 번이 앞서 해내신 것을 지우지 않게 하려는 것입니다. */}
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              {row.statuses.map((status) => (
+                <StatusMark
+                  key={status}
+                  kind={BREAKDOWN_MARK[status]}
+                  label={STATUS_MARK_LABEL[BREAKDOWN_MARK[status]]}
+                  size="sm"
+                  quiet
+                />
+              ))}
+              <span className="text-[0.7813rem] leading-[1.45] font-semibold text-ink-muted">
+                {row.areaLabel}
+              </span>
+            </div>
+            {/* 항목 이름은 루브릭의 행동지표 문장 그대로입니다 — 턴 판정 접힘이 「기준」 줄에
+                쓰는 것과 같은 값이라, 두 화면이 같은 항목을 다른 말로 부르지 않습니다. */}
+            <p className="mt-1 text-[0.9375rem] leading-[1.6] text-ink">{row.name}</p>
+            {row.messages.map((message) => (
+              <p key={message} className="mt-1 text-[0.8438rem] leading-[1.6] text-ink-soft">
+                {message}
+              </p>
+            ))}
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
 /* ── 가장 잘한 순간 ───────────────────────────────────────── */
 
 interface BestMoment {
@@ -409,9 +481,10 @@ function CriticalSceneCard({
  * ✓ 또는 ↺ 원 하나 + 제목 + 소요시간으로 시작해 「잘한 것」과 「다시 볼 것」만 남깁니다.
  * 점수·등급·순위·백분위는 어떤 형태로도 보여 주지 않습니다(브리프 §3-1).
  *
- * 그 위아래로 이번 회차를 되짚는 세 가지가 더 있습니다 — 전부 엔진이 남긴 이벤트를 옮긴 것이고,
+ * 그 위아래로 이번 회차를 되짚는 네 가지가 더 있습니다 — 전부 엔진이 남긴 이벤트를 옮긴 것이고,
  * 여기서 새로 판정하거나 문장을 짓지 않습니다:
  *  · 「가장 잘한 순간」 — 충족 턴 하나를 순서·갈래 이름과 함께 카드로 세웁니다(목록에서는 뺍니다).
+ *  · 「항목별 자세히 보기」 — 같은 판정을 루브릭 항목으로 다시 묶은 접힘(`lib/rubricBreakdown`).
  *  · 「이번 훈련의 흐름」 — 턴별 판정어를 순서대로 편 접힘(마크를 가로로 늘어놓지 않습니다).
  *  · 「다음엔 —」 — 성장 기록과 같은 순수 함수(`nextTraining`)가 고른 추천 한 줄.
  */
@@ -449,6 +522,10 @@ export function EndingPanel({
     [timeline],
   );
   const best = useMemo(() => pickBestMoment(session.events), [session.events]);
+
+  /* 항목별 자세히 보기 — 같은 이벤트를 루브릭 항목으로 다시 묶기만 합니다(점수는 나가지 않습니다).
+     저장 포맷(SessionRecord)은 건드리지 않으므로 이미 쌓인 기록의 모양도 그대로입니다. */
+  const breakdown = useMemo(() => buildRubricBreakdown(session.events), [session.events]);
 
   /* 안 가 본 길 — 지나온 자리에 남은 갈래 수. 엔진의 순수 함수가 세고, 여기서는 옮기기만 합니다. */
   const unexplored = useMemo(() => unexploredBranches(scenario, session), [scenario, session]);
@@ -615,6 +692,10 @@ export function EndingPanel({
           emptyText="따로 짚어 드릴 것이 없습니다. 지금처럼 이어가 주세요."
         />
       </section>
+
+      {/* 항목별 자세히 보기 — 위 두 목록의 문장이 무엇을 보고 나왔는지를 항목으로 폅니다.
+          걸린 항목이 없는 회차에는 섹션 자체를 그리지 않습니다(빈 접힘을 남기지 않습니다). */}
+      {breakdown.length > 0 && <RubricBreakdownFold rows={breakdown} />}
 
       {/* 이번 훈련의 흐름 — 접힌 채로 둡니다(주인공은 위 두 목록입니다). */}
       {timeline.length > 0 && <SessionTimeline rows={timeline} situations={situations} />}

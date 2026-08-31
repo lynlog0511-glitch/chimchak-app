@@ -31,6 +31,10 @@ TS 파싱은 정규식 + 간이 스캐너입니다(주석 제거 → 문자열 �
   python scripts/synthesize-audio.py           # 증분 (바뀐 문장만 다시 합성)
   python scripts/synthesize-audio.py --force   # 전부 다시 합성
   python scripts/synthesize-audio.py --dry-run # 합성하지 않고 대상만 보고
+
+합성에는 TYPECAST_API_KEY 환경변수가 필요합니다(--dry-run은 키 없이 동작).
+여기서 담는 것은 **검수 앵커 원문**뿐입니다 — 온라인 변주문(onlineVary)은 매번 새 문장이라
+매니페스트에 없고, speech.ts가 브라우저 낭독으로 폴백합니다(설계된 경로).
 """
 
 from __future__ import annotations
@@ -39,8 +43,12 @@ import argparse
 import asyncio
 import hashlib
 import json
+import os
 import re
+import subprocess
 import sys
+import urllib.error
+import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -63,38 +71,37 @@ MANIFEST_PATH = OUT_DIR / "manifest.json"
 INDEX_PATH = SCRIPT_DIR / ".audio-index.json"
 
 MAX_RETRIES = 2
-CONCURRENCY = 4
+CONCURRENCY = 2  # Typecast 무료 플랜 동시 요청 상한
 
 
 # ── 화자 배정 ────────────────────────────────────────────────────────────
 #
-# rate/pitch는 edge-tts 표기 그대로입니다. 어르신 두 분은 또박또박 들리도록 느리게,
-# 119 상황실은 침착하되 늘어지지 않게, 프로토콜 안내는 차분하게 잡았습니다.
+# 엔진: Typecast API(ssfm-v30). 노인 배역은 진짜 노년 음색 보이스를 쓰므로,
+# 이전 엔진(edge-tts)처럼 젊은 보이스를 느리게 트는 조작이 필요 없습니다(tempo 1.0 기본).
+# 감정은 모델이 문맥에서 읽습니다(emotion_preset=normal의 Smart Emotion).
 
 @dataclass(frozen=True)
 class Voice:
-    name: str
-    rate: str = "+0%"
-    pitch: str = "+0Hz"
+    voice_id: str
+    label: str
+    tempo: float = 1.0
 
 
-SUNHI = "ko-KR-SunHiNeural"
-INJOON = "ko-KR-InJoonNeural"
-
+# 2026-08-31 캐스팅. 배역 교체는 여기 voice_id만 바꾸면 됩니다(해당 문장만 증분 재합성).
 # CHK-A01 박 어르신(여 82세) · CHK-C01 어르신(여) · CHK-C02 윤 어르신(여 85세)
-ELDER_F = Voice(SUNHI, "-12%", "-4Hz")
+ELDER_F = Voice("tc_61c2f70c343884babeed840b", "숙희(할머니)")
 # CHK-B02 이 어르신(남 79세) · CHK-A02 최 어르신(남 78세)
-ELDER_M = Voice(INJOON, "-12%", "-3Hz")
-# 보호자 — 딸(여성)
-GUARDIAN_F = Voice(SUNHI)
-# 보호자 — 아들(남성). CHK-C02는 아드님이 상대역이라 어르신(여)과 목소리가 갈려야 합니다.
-GUARDIAN_M = Voice(INJOON)
+ELDER_M = Voice("tc_5c3c52c95827e00008dd7f34", "덕춘(할아버지)")
+# 보호자 — 딸(중년 여성)
+GUARDIAN_F = Voice("tc_5d01a529bb04140008a23f36", "정원(따님)")
+# 보호자 — 아들(중년 남성). CHK-C02는 아드님이 상대역이라 어르신(여)과 목소리가 갈려야 합니다.
+GUARDIAN_M = Voice("tc_5c789c337ad86500073a02ce", "상도(아드님)")
 # 119 상황실
-DISPATCHER = Voice(INJOON, "-4%")
+DISPATCHER = Voice("tc_68257f68bc6e3c161ab5078d", "필재(119 상황실)")
 # 프로토콜 안내 · 상황 지문(system) · 응급 전환 안내(protocol)
-NARRATION = Voice(SUNHI, "-6%")
-# 설정 예시 문장
-SAMPLE = Voice(SUNHI)
+NARRATION = Voice("tc_600697fd8a8ea9b977284703", "연화(안내)")
+# 설정 예시 문장 — 안내와 같은 목소리로 통일합니다.
+SAMPLE = NARRATION
 
 # 시나리오별 어르신 성별 — 인물 프로필(personas)과 맞춥니다.
 ELDER_BY_SCENARIO = {
@@ -422,35 +429,70 @@ def dedupe(items: list[Item], warnings: list[str]) -> list[Item]:
 # ── 합성 ─────────────────────────────────────────────────────────────────
 
 def signature(item: Item) -> str:
-    payload = f"{item.text} {item.voice.name} {item.voice.rate} {item.voice.pitch}"
+    payload = f"{item.text} typecast/ssfm-v30 {item.voice.voice_id} {item.voice.tempo}"
     return hashlib.sha1(payload.encode("utf-8")).hexdigest()
+
+
+TYPECAST_URL = "https://api.typecast.ai/v1/text-to-speech"
+
+
+def _typecast_request(item: Item, api_key: str) -> bytes:
+    payload = {
+        "voice_id": item.voice.voice_id,
+        "text": item.text,
+        "model": "ssfm-v30",
+        "language": "kor",
+        "prompt": {"emotion_preset": "normal", "emotion_intensity": 1},
+        "output": {"volume": 100, "audio_pitch": 0, "audio_tempo": item.voice.tempo, "audio_format": "mp3"},
+    }
+    req = urllib.request.Request(
+        TYPECAST_URL,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"X-API-KEY": api_key, "Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            data = resp.read()
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", "replace")[:300]
+        raise RuntimeError(f"HTTP {exc.code}: {detail}") from exc
+    if not data:
+        raise RuntimeError("오디오가 비어 있습니다.")
+    return data
+
+
+def _transcode(raw: Path, target: Path) -> None:
+    """API 원본(고비트레이트)을 기존 규격(24kHz 모노 48kbps)으로 줄입니다 — 앱 용량 유지."""
+    import imageio_ffmpeg
+
+    ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
+    out = target.with_suffix(".enc")
+    result = subprocess.run(
+        [ffmpeg, "-y", "-loglevel", "error", "-i", str(raw), "-ac", "1", "-ar", "24000",
+         "-b:a", "48k", "-f", "mp3", str(out)],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0 or not out.exists() or out.stat().st_size == 0:
+        out.unlink(missing_ok=True)
+        raise RuntimeError(f"ffmpeg 변환 실패: {result.stderr[:200]}")
+    out.replace(target)
 
 
 async def synth_one(item: Item, sem: asyncio.Semaphore) -> int:
     """한 문장을 합성해 저장하고 바이트 수를 돌려줍니다. 실패는 예외로 올립니다."""
-    import edge_tts
-
+    api_key = os.environ.get("TYPECAST_API_KEY", "").strip()
     target = OUT_DIR / item.filename
     tmp = target.with_suffix(".part")
     last: Exception | None = None
     async with sem:
         for attempt in range(MAX_RETRIES + 1):
             try:
-                communicate = edge_tts.Communicate(
-                    item.text,
-                    item.voice.name,
-                    rate=item.voice.rate,
-                    pitch=item.voice.pitch,
-                )
-                with tmp.open("wb") as fp:
-                    got_audio = False
-                    async for chunk in communicate.stream():
-                        if chunk["type"] == "audio":
-                            fp.write(chunk["data"])
-                            got_audio = True
-                if not got_audio:
-                    raise RuntimeError("오디오가 비어 있습니다.")
-                tmp.replace(target)
+                data = await asyncio.to_thread(_typecast_request, item, api_key)
+                tmp.write_bytes(data)
+                _transcode(tmp, target)
+                tmp.unlink(missing_ok=True)
                 return target.stat().st_size
             except Exception as exc:  # noqa: BLE001 — 네트워크 오류 전부 재시도 대상
                 last = exc
@@ -515,8 +557,12 @@ def main() -> int:
     if args.dry_run:
         for item in items:
             flag = "E" if item.emergency else " "
-            print(f"  {flag} {item.filename}  {item.voice.name} {item.voice.rate} {item.voice.pitch}  {item.text[:40]}")
+            print(f"  {flag} {item.filename}  {item.voice.label} x{item.voice.tempo}  {item.text[:40]}")
         return 0
+
+    if not os.environ.get("TYPECAST_API_KEY", "").strip():
+        print("TYPECAST_API_KEY 환경변수가 필요합니다(Typecast 합성 키).")
+        return 1
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     attempted, ok, failures = asyncio.run(run(items, args.force))

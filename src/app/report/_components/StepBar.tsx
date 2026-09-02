@@ -1,16 +1,16 @@
 import { cx } from "@/components";
 
 export interface StepBarProps {
-  /** 현재 단계 (1 말하기 · 2 가리기 · 3 확인) */
+  /** 현재 단계 (1 내용 입력 · 2 개인정보 확인 · 3 저장) */
   current: 1 | 2 | 3;
   /** 확정까지 마쳤는지 — true면 3단계도 완료로 표시합니다. */
   finished?: boolean;
 }
 
 const STEPS: { n: 1 | 2 | 3; mark: string; label: string }[] = [
-  { n: 1, mark: "①", label: "말하기" },
-  { n: 2, mark: "②", label: "가리기" },
-  { n: 3, mark: "③", label: "확인" },
+  { n: 1, mark: "①", label: "내용 입력" },
+  { n: 2, mark: "②", label: "개인정보 확인" },
+  { n: 3, mark: "③", label: "저장" },
 ];
 
 /**

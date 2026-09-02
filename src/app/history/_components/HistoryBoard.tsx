@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { ScenarioType, SessionRecord } from "@/types";
-import { EyebrowLabel, InlineDisclaimer, cx } from "@/components";
+import { BigButton, ChevronGlyph, EyebrowLabel, InlineDisclaimer, cx } from "@/components";
 import { DEMO_SEED_SUMMARY, clearDemoRecords, isDemoRecord } from "@/lib/demoSeed";
 import {
   clearReports,
@@ -141,6 +141,8 @@ export function HistoryBoard({
     () => countRubricCoverage(sessions, rubricByScenarioId, rubricTotal),
     [rubricByScenarioId, rubricTotal, sessions],
   );
+  const recentSessions = sessions.slice(0, 3);
+  const olderSessions = sessions.slice(3);
 
   if (!loaded) {
     /* 이 화면에서 지금 글자는 이것 하나뿐입니다 — 가장 작고 흐린 단(12.5px·ink-faint)에 두는 것은
@@ -208,253 +210,214 @@ export function HistoryBoard({
 
   return (
     <div className="mt-4">
-      {/* 시연용 예시가 섞여 있으면 화면이 먼저 밝힙니다 — 예시가 증빙으로 오인되면 안 됩니다.
-          지우기는 예시만 지우고, 이 기기의 진짜 기록과 이수 시수는 그대로 둡니다. */}
       {demoShown && (
         <section
           aria-labelledby="demo-notice-title"
           className="mb-4 rounded-card bg-warn-soft px-4 py-[14px]"
         >
-          <h2
-            id="demo-notice-title"
-            className="text-[0.9375rem] leading-[1.45] font-extrabold text-warn-ink"
-          >
+          <h2 id="demo-notice-title" className="text-[1rem] leading-[1.45] font-extrabold text-warn-ink">
             체험용 예시 기록이 표시되고 있습니다
           </h2>
-          <p className="mt-[5px] text-[0.8438rem] leading-[1.6] text-ink-soft">
-            화면 확인을 위해 심어 둔 {DEMO_SEED_SUMMARY}이 아래 목록에 섞여 있습니다. 해당 행에는
-            「예시」 표시가 붙고, 이수 확인서에는 「예시 미리보기」로 인쇄됩니다. 실제 이수 시수
-            누계에는 들어가지 않습니다.
-          </p>
-          <button
-            type="button"
-            onClick={handleClearDemo}
-            className="mt-[10px] flex min-h-[48px] w-full items-center justify-center rounded-card bg-paper text-[0.9375rem] font-bold text-ink transition-colors duration-150 active:bg-paper-2"
-          >
-            예시 기록 한 번에 지우기
-          </button>
-          <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
-            예시만 지웁니다. 직접 완주하신 기록과 이수 시수는 그대로 남습니다.
+          <p className="mt-[5px] text-[0.9375rem] leading-[1.6] text-ink-soft">
+            화면 확인을 위해 심어 둔 {DEMO_SEED_SUMMARY}이 섞여 있습니다. 「예시」 표시는 실제
+            이수 시수에 들어가지 않으며, 지우기는 아래 데이터 관리에서 할 수 있습니다.
           </p>
         </section>
       )}
 
-      {/* 다음엔 이 장면 — 추천 규칙은 순수 함수가 정하고, 여기서는 장면 이름과 이유 한 줄만 답니다.
-          tint 면 위 글자는 `brand-on-tint`(#0f3f3a · tint 위 10.3:1) **한 단**입니다(2026-08-25).
-          예전에는 한 카드 안에 brand-700(eyebrow)·brand-900(제목)·brand-800(본문)·brand-700(CTA)
-          네 단이 얹혀 있어 카드 하나가 팔레트 견본처럼 보였습니다 — 가이드 §1은 tint 면 위
-          텍스트를 brand-on-tint 한 단으로 지정합니다. 위계는 크기와 굵기가 만듭니다. */}
-      {suggestion && (
-        <Link
-          href={trainHref(suggestion.candidate.id)}
-          aria-label={`${suggestion.candidate.title} 훈련으로 가기. ${nextTrainingSentence(suggestion)}`}
-          /* 좌우 여백은 이 화면의 다른 면 카드들과 같은 rem 한 값입니다(px-4 = 1rem).
-             2026-08-26에 px-[15px]에서 옮겼습니다 — 한 화면에 세로로 쌓이는 카드 셋이
-             15px(px 고정)·16px(rem) 두 단위계로 갈려 있어, 「아주 크게」에서 어긋남이
-             1px에서 5px로 벌어졌습니다(페르소나 디자이너 med). */
-          className="mb-4 flex min-h-[48px] items-center gap-[10px] rounded-card bg-brand-tint px-4 py-[14px] transition-colors duration-150 active:bg-mint-200"
-        >
-          <span className="min-w-0 flex-1">
-            {/* 링크 안이라 문단(EyebrowLabel)을 넣을 수 없는 자리입니다 —
-                크기·자간은 그 컴포넌트와 같은 값으로 맞춰 둡니다(12.5px / 700 / +.06em). */}
-            <span className="block text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-brand-on-tint">
-              다음엔 이 장면
-            </span>
-            {/* 장면 이름을 먼저 세웁니다 — 어디로 가는지가 이유보다 먼저 읽혀야 합니다. */}
-            <span className="mt-[2px] block text-[0.9375rem] leading-[1.45] font-bold text-brand-on-tint">
-              {suggestion.candidate.title}
-            </span>
-            {/* 왜 이 장면인지 — 최근 코칭이 가리킨 항목을 그대로 문장으로 답니다(숫자 없음). */}
-            <span className="mt-[3px] block text-[0.8438rem] leading-[1.6] text-brand-on-tint">
-              {nextTrainingSentence(suggestion)}
-            </span>
-          </span>
-          <span className="flex-none text-[0.9375rem] font-bold whitespace-nowrap text-brand-on-tint">
-            가기 ›
-          </span>
-        </Link>
-      )}
+      <BigButton href="/report" size="lg" block>
+        돌봄 기록 만들기
+      </BigButton>
 
-      {/* 이번 주 — 누계(커버리지)와 회차 목록 사이에 놓는 시간 축 한 장입니다. */}
-      <WeeklySummaryCard
-        records={sessions}
-        typeByScenarioId={typeByScenarioId}
-        className="mb-[18px]"
-      />
+      <section aria-labelledby="recent-practice-title" className="mt-7">
+        <h2 id="recent-practice-title" className="text-[1.0625rem] leading-[1.45] font-bold text-ink">
+          최근 연습
+        </h2>
+        {recentSessions.length > 0 ? (
+          <div className="chim-rows mt-[2px]">
+            {recentSessions.map((record) => (
+              <TrainingRow
+                key={record.id}
+                record={record}
+                typeLabel={shortTypeLabel(record, typeByScenarioId)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="border-b border-line px-[2px] py-[14px]">
+            <p className="text-[1.0625rem] leading-[1.45] font-bold text-ink">
+              아직 마친 연습이 없습니다
+            </p>
+            <p className="mt-[4px] text-[0.9375rem] leading-[1.6] text-ink-soft">
+              한 번 마치면 잘한 것과 다시 볼 것이 문장으로 남습니다. 점수와 등급은 남지 않습니다.
+            </p>
+            <Link
+              href="/train"
+              className="mt-[6px] inline-flex min-h-[48px] items-center rounded-field text-[1rem] font-bold text-brand-800 transition-colors duration-150 active:bg-paper-2"
+            >
+              첫 연습 시작하기 ›
+            </Link>
+          </div>
+        )}
+      </section>
 
-      <EyebrowLabel className="mb-2">유형별로 해 본 것</EyebrowLabel>
-      <CoverageGrid
-        records={sessions}
-        typeByScenarioId={typeByScenarioId}
-        activeTypes={activeTypes}
-      />
-      {/* 채점표 커버리지 한 줄 — 유형 4칸이 「무엇을 몇 번」이라면, 이 줄은 「어디까지 지나왔나」
-          입니다. 세 종만 돌려도 30항목이 한 번씩 다 나온다는 편성 원칙을 화면이 직접 세어
-          확인해 줍니다(페르소나 PM med). 숫자는 둘까지이고 점수·등급은 여전히 없습니다. */}
-      <p className="mt-[8px] mb-[18px] text-[0.8438rem] leading-[1.6] text-ink-soft">
-        {rubricCoverageSentence(rubricCoverage)}
-      </p>
+      <section aria-labelledby="care-records-title" className="mt-7">
+        <h2 id="care-records-title" className="text-[1.0625rem] leading-[1.45] font-bold text-ink">
+          저장한 돌봄 기록
+        </h2>
+        {reports.length > 0 ? (
+          <ReportList reports={reports} />
+        ) : (
+          <div className="border-b border-line px-[2px] py-[14px]">
+            <p className="text-[1.0625rem] leading-[1.45] font-bold text-ink">
+              아직 저장한 돌봄 기록이 없습니다
+            </p>
+            <p className="mt-[4px] text-[0.9375rem] leading-[1.6] text-ink-soft">
+              위 버튼에서 오늘 있었던 일을 말하거나 적으면, 개인정보를 확인한 뒤 이 기기에
+              저장할 수 있습니다.
+            </p>
+          </div>
+        )}
+      </section>
 
-      <EyebrowLabel className="mb-[2px]">최근 훈련</EyebrowLabel>
-      {sessions.length > 0 ? (
-        <div className="chim-rows">
-          {sessions.map((record) => (
-            <TrainingRow
-              key={record.id}
-              record={record}
-              typeLabel={shortTypeLabel(record, typeByScenarioId)}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="border-b border-line px-[2px] py-[14px]">
-          <p className="text-[1.0625rem] leading-[1.45] font-bold text-ink">
-            아직 완주한 훈련이 없습니다
+      <details className="group mt-7 border-y border-line">
+        <summary className="flex min-h-[56px] cursor-pointer list-none items-center justify-between gap-3 rounded-field px-[2px] text-[1.0625rem] leading-[1.45] font-bold text-ink transition-colors duration-150 active:bg-paper-2 [&::-webkit-details-marker]:hidden">
+          <span>연습 현황·데이터 관리</span>
+          <ChevronGlyph className="text-ink-ghost group-open:rotate-180" />
+        </summary>
+        <div className="pb-5">
+          {suggestion && (
+            <Link
+              href={trainHref(suggestion.candidate.id)}
+              aria-label={`${suggestion.candidate.title} 연습으로 가기. ${nextTrainingSentence(suggestion)}`}
+              className="mb-4 flex min-h-[48px] items-center gap-[10px] rounded-card bg-brand-tint px-4 py-[14px] transition-colors duration-150 active:bg-mint-200"
+            >
+              <span className="min-w-0 flex-1">
+                <span className="block text-[0.9375rem] leading-[1.45] font-bold text-brand-on-tint">
+                  다음 연습 · {suggestion.candidate.title}
+                </span>
+                <span className="mt-[3px] block text-[0.9375rem] leading-[1.6] text-brand-on-tint">
+                  {nextTrainingSentence(suggestion)}
+                </span>
+              </span>
+              <span className="flex-none text-[0.9375rem] font-bold whitespace-nowrap text-brand-on-tint">
+                가기 ›
+              </span>
+            </Link>
+          )}
+
+          <WeeklySummaryCard
+            records={sessions}
+            typeByScenarioId={typeByScenarioId}
+            className="mb-[18px]"
+          />
+          <EyebrowLabel className="mb-2">유형별로 해 본 것</EyebrowLabel>
+          <CoverageGrid
+            records={sessions}
+            typeByScenarioId={typeByScenarioId}
+            activeTypes={activeTypes}
+          />
+          <p className="mt-[8px] text-[0.9375rem] leading-[1.6] text-ink-soft">
+            {rubricCoverageSentence(rubricCoverage)}
           </p>
-          {/* 고정 문구(「정답을 맞히는 시험이 아니라…」)를 이 자리에서 걷었습니다(2026-08-26).
-              한 글자도 바꾸지 않고 **자리만** 줄인 것입니다 — 문구는 홈 히어로·/guide·첫 브리핑
-              세 곳에 그대로 있습니다. 네 번째로 읽히면 안심이 아니라 「왜 자꾸 이 말을 하지,
-              진짜 시험인가 보다」가 됩니다(현직 검증 · /train 부제에서 같은 이유로 이미 뺀 자리).
-              이력 화면의 빈 상태가 할 말은 따로 있습니다 — **여기에 무엇이 남는가**입니다. */}
-          <p className="mt-[3px] text-[0.7813rem] leading-[1.6] text-ink-soft">
-            한 번 마치시면 이 자리에 잘한 것과 다시 볼 것이 문장으로 남습니다. 점수·등급은
-            남지 않습니다.
-          </p>
-          {/* 링크 셋(여기·「기관 담당자용 안내」·「음성 보고하러 가기」)의 글자는 brand-800입니다.
-              정본 지면은 흰색이지만 **눌리는 순간 paper-2**가 되고, 그 면에서 brand-700은
-              4.49:1(AA 하한 4.5)입니다 — 「지면이 흰색이 아닌 순간이 있으면 brand-800」이
-              globals.css와 가이드 §9-8이 적은 한 줄이고, 이제 게이트도 변형 접두가 붙은 면을
-              함께 셉니다(5차 페르소나 디자이너 low — 문서·게이트·실코드 3단 어긋남). */}
-          <Link
-            href="/train"
-            className="mt-[6px] inline-flex min-h-[48px] items-center rounded-field text-[0.9375rem] font-bold text-brand-800 transition-colors duration-150 active:bg-paper-2"
-          >
-            첫 훈련 시작하기 ›
-          </Link>
-        </div>
-      )}
 
-      {/* 이수 확인서 — 인쇄용 화면으로 나갑니다(이수 사실만 담습니다). */}
-      <Link
-        href="/history/certificate"
-        className="mt-4 flex min-h-[50px] w-full items-center justify-center rounded-card bg-paper-2 text-[0.9375rem] font-bold text-ink transition-colors duration-150 active:bg-neutral-line"
-      >
-        이수 확인서 만들기
-      </Link>
-      {/* 안심 문구는 고지가 아니라 읽으라고 두는 줄입니다 — 크기·대비를 한 단계 올려 둡니다. */}
-      <p className="mt-[8px] text-center text-[0.8438rem] leading-[1.6] text-ink-soft">
-        확인서에는 이수 사실만 담깁니다. 판정과 대화 내용은 담기지 않습니다.
-      </p>
-      {/* 기관 담당자는 이 화면까지 따라오는 일이 잦습니다 — 탭바에는 두지 않고 여기서만 엽니다. */}
-      <p className="mt-[6px] text-center">
-        <Link
-          href="/for-orgs"
-          className="inline-flex min-h-[48px] items-center rounded-field text-[0.8438rem] font-bold text-brand-800 transition-colors duration-150 active:bg-paper-2"
-        >
-          기관 담당자용 안내 보기 ›
-        </Link>
-      </p>
-
-      {/* 확정한 기록 — 최근 훈련과 같은 리스트 문법입니다. */}
-      <EyebrowLabel className="mt-7 mb-[2px]">확정한 기록</EyebrowLabel>
-      {reports.length > 0 ? (
-        <ReportList reports={reports} />
-      ) : (
-        <div className="border-b border-line px-[2px] py-[14px]">
-          <p className="text-[1.0625rem] leading-[1.45] font-bold text-ink">
-            아직 확정한 기록이 없습니다
-          </p>
-          <p className="mt-[3px] text-[0.7813rem] leading-[1.6] text-ink-soft">
-            오늘 있었던 일을 말로 보고하시면 이름·번호를 가린 뒤 급여제공기록지 5요소 초안이
-            만들어집니다.
-          </p>
-          <Link
-            href="/report"
-            className="mt-[6px] inline-flex min-h-[48px] items-center rounded-field text-[0.9375rem] font-bold text-brand-800 transition-colors duration-150 active:bg-paper-2"
-          >
-            음성 보고하러 가기 ›
-          </Link>
-        </div>
-      )}
-
-      {/* 이 기록이 어디에 쓰이는지 — 면 카드 한 장으로 조용히 둡니다. */}
-      <div className="mt-7 rounded-card bg-paper-2 px-4 py-[14px]">
-        <EyebrowLabel>이 기록이 쓰이는 곳</EyebrowLabel>
-        <p className="mt-[8px] text-[0.8438rem] leading-[1.6] text-ink-soft">
-          훈련 이력은 이 기기에만 쌓입니다. 기관에서 요구하는 보수교육·직무평가 증빙으로 쓰실 수
-          있도록 이수 여부와 이수 일시를 중심으로 남깁니다. 내부 판정 결과와 대화 내용은 기관
-          관리자에게 공개되지 않고 인사평가에 연동하지 않습니다.
-        </p>
-        {/* 오독 방지 — 확인서 하단 각주와 같은 문장을 여기에도 둡니다(경계는 두 곳에서 같아야 합니다). */}
-        <p className="mt-[8px] text-[0.8438rem] leading-[1.6] font-bold text-ink">
-          이 기록과 이수 확인서는 앱 기록 기반이며 법정 보수교육 이수 인정이 아닙니다 — 기관 자체
-          직무교육·정기평가 내부 증빙용입니다.
-        </p>
-        <p className="mt-[8px] text-[0.8438rem] leading-[1.6] text-ink-soft">
-          훈련 속 인물은 전원 가상이며, 대사는 검수된 문장을 바탕으로 합니다. 하신 말씀 원문은
-          어디에도 저장하지 않습니다.
-        </p>
-
-        <div className="mt-[14px] border-t border-line pt-[12px]">
-          {confirmClear ? (
-            <div>
-              <p className="text-[0.7813rem] leading-[1.6] font-bold text-danger-ink">
-                이 기기에 저장된 훈련 이력과 확정 기록을 모두 지울까요? 되돌릴 수 없습니다.
-              </p>
-              {/* 증빙 원본이 이 기기 한 벌뿐이라, 지우기 전에 남길 방법을 먼저 알려 드립니다. */}
-              <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
-                이수 횟수와 이수 시수 누계도 함께 지워집니다. 확인서로 인쇄하거나 파일로 내려받아
-                두지 않은 이수 사실은 되살릴 수 없습니다.
-              </p>
-              {/* **이 버튼이 닿지 않는 자리**를 같은 문단에서 밝힙니다 (2026-08-27).
-                  공용 태블릿 운영안 (b)는 회차별 지우기를 두 단계로 정의하는데, 그 둘째 단계
-                  (응급 안내의 방문지 주소 지우기)를 말하는 화면이 앱 안에 /legal 하나뿐이었습니다.
-                  여기서 「다 지웠다」고 생각하고 반납하면 다음 분이 /emergency를 열었을 때 앞사람이
-                  담당하던 어르신 댁 주소가 그대로 떠 있습니다 — 이 앱이 저장하는 값 중 개인을 가장
-                  곧바로 가리키는 값입니다(5차 페르소나 현직 P2 · 7차에 P1으로 재요청).
-                  확정 전 보고 원문(임시 보관)도 같은 성격이라 함께 적습니다 — 탭 수명이라
-                  「지우기」의 대상이 아닌데, 「이어서 적기」 한 번이면 앞사람의 **가리기 전 원문**이
-                  입력 칸에 그대로 들어옵니다(7차 페르소나 백엔드 med · 현직 low).
-
-                  /legal로 보내는 링크는 **넣지 않습니다.** 이 문단은 「네, 지웁니다」를 눈앞에 둔
-                  확인 상태이고, 여기서 화면을 옮기면 방금 연 확인이 사라져 되돌아온 분이 처음부터
-                  다시 눌러야 합니다. 대신 두 자리를 **문장으로 가리킵니다** — 어느 화면에서 무엇을
-                  하면 되는지가 링크 없이도 그대로 전해집니다. 전체 목록은 /legal에 있습니다. */}
-              <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-soft">
-                적어 두신 방문지 주소와 확정 전 보고 원문(임시 보관)은 이 버튼으로 지워지지
-                않습니다. 방문지 주소는 응급 안내 화면의 「방문지 주소」에서 지우시고, 적으시던
-                보고는 다음 분이 「새로 적기」를 누르시거나 앱을 완전히 종료하시면 사라집니다.
-              </p>
-              <div className="mt-[10px] flex gap-2">
-                <button
-                  type="button"
-                  onClick={handleClear}
-                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-card bg-danger-ink text-[0.9375rem] font-bold text-paper transition-colors duration-150 active:brightness-95"
-                >
-                  네, 지웁니다
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setConfirmClear(false)}
-                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-card bg-paper text-[0.9375rem] font-bold text-ink-soft transition-colors duration-150 active:bg-neutral-line"
-                >
-                  취소
-                </button>
+          {olderSessions.length > 0 && (
+            <div className="mt-5">
+              <EyebrowLabel className="mb-[2px]">지난 연습</EyebrowLabel>
+              <div className="chim-rows">
+                {olderSessions.map((record) => (
+                  <TrainingRow
+                    key={record.id}
+                    record={record}
+                    typeLabel={shortTypeLabel(record, typeByScenarioId)}
+                  />
+                ))}
               </div>
             </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setConfirmClear(true)}
-              className="flex min-h-[48px] items-center rounded-field text-[0.8438rem] font-bold text-ink-soft transition-colors duration-150 active:bg-paper-2"
-            >
-              이 기기의 기록 지우기
-            </button>
           )}
-        </div>
-      </div>
+          <section className="mt-5 border-t border-line pt-5" aria-labelledby="data-management-title">
+            <h2
+              id="data-management-title"
+              className="mb-3 text-[1rem] leading-[1.45] font-bold text-ink"
+            >
+              데이터 관리
+            </h2>
+          <Link
+            href="/history/certificate"
+            className="flex min-h-[56px] w-full items-center justify-center rounded-card bg-paper-2 text-[1rem] font-bold text-ink transition-colors duration-150 active:bg-neutral-line"
+          >
+            이수 확인서 만들기
+          </Link>
+          <p className="mt-[8px] text-[0.9375rem] leading-[1.6] text-ink-soft">
+            확인서에는 이수 사실만 담기며 판정과 대화 내용은 담기지 않습니다.
+          </p>
+          <Link
+            href="/for-orgs"
+            className="mt-[6px] inline-flex min-h-[48px] items-center rounded-field text-[0.9375rem] font-bold text-brand-800 transition-colors duration-150 active:bg-paper-2"
+          >
+            기관 담당자용 안내 보기 ›
+          </Link>
 
-      <InlineDisclaimer size="md" tone="readable" className="mt-6 mb-3" />
+          <div className="mt-4 rounded-card bg-paper-2 px-4 py-[14px]">
+            <EyebrowLabel>이 기록이 쓰이는 곳</EyebrowLabel>
+            <p className="mt-[8px] text-[0.9375rem] leading-[1.6] text-ink-soft">
+              연습 기록은 이 기기에만 쌓입니다. 이수 여부와 일시는 기관 자체 직무교육의 내부
+              증빙에 쓸 수 있지만, 법정 보수교육 이수 인정은 아닙니다. 판정과 대화 내용은 기관
+              관리자에게 공개하거나 인사평가에 연결하지 않습니다.
+            </p>
+
+            {demoShown && (
+              <button
+                type="button"
+                onClick={handleClearDemo}
+                className="mt-[12px] flex min-h-[48px] w-full items-center justify-center rounded-card bg-paper text-[1rem] font-bold text-ink transition-colors duration-150 active:bg-neutral-line"
+              >
+                예시 기록만 지우기
+              </button>
+            )}
+
+            <div className="mt-[14px] border-t border-line pt-[12px]">
+              {confirmClear ? (
+                <div>
+                  <p className="text-[1rem] leading-[1.6] font-bold text-danger-ink">
+                    이 기기의 연습 기록과 돌봄 기록을 모두 지울까요? 되돌릴 수 없습니다.
+                  </p>
+                  <p className="mt-[6px] text-[0.9375rem] leading-[1.6] text-ink-soft">
+                    이수 횟수와 시간도 함께 지워집니다. 방문지 주소와 확정 전 원문은 포함되지
+                    않으므로 각각 응급 안내와 돌봄 기록 만들기 화면에서 따로 지워 주세요.
+                  </p>
+                  <div className="mt-[10px] flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleClear}
+                      className="flex min-h-[64px] flex-1 items-center justify-center rounded-card bg-danger-ink text-[1rem] font-bold text-paper transition-colors duration-150 active:brightness-95"
+                    >
+                      네, 지웁니다
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmClear(false)}
+                      className="flex min-h-[48px] flex-1 items-center justify-center rounded-card bg-paper text-[1rem] font-bold text-ink-soft transition-colors duration-150 active:bg-neutral-line"
+                    >
+                      취소
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmClear(true)}
+                  className="flex min-h-[48px] items-center rounded-field text-[0.9375rem] font-bold text-ink-soft transition-colors duration-150 active:bg-paper"
+                >
+                  이 기기의 기록 지우기
+                </button>
+              )}
+            </div>
+          </div>
+          </section>
+          <InlineDisclaimer size="md" tone="readable" className="mt-5" />
+        </div>
+      </details>
     </div>
   );
 }

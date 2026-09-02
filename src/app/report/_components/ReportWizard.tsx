@@ -154,15 +154,8 @@ export function ReportWizard() {
    * 그래서 재지 않고, 재지 않았다는 사실을 확정 화면에 적습니다.
    */
   const [resumedDraft, setResumedDraft] = useState(false);
-  /**
-   * 세션 저장소를 아직 한 번도 읽지 않은 동안에는 쓰지도 않습니다.
-   *
-   * 예전에는 이 짝으로 `pendingRef`도 함께 들고 있었습니다 — 쓰기 효과가 「맡아 둔 글이
-   * 있는가」를 판단해야 했는데, 마운트 첫 commit에서는 그 상태가 아직 갱신 전이라 ref가
-   * 필요했습니다. 칸을 둘로 나눈 뒤로는 쓰기 쪽이 아무것도 판단하지 않으므로(언제나 「지금
-   * 적는 글」 칸에 씁니다) 그 셀이 통째로 사라졌습니다.
-   */
-  const restoredRef = useRef(false);
+  /** 세션 저장소를 읽기 전에는 입력 UI를 열지 않습니다 — 복원 카드와 마이크의 깜빡임 방지. */
+  const [restored, setRestored] = useState(false);
   /**
    * 이 회차의 표식. 확정 뒤 「새 보고 작성하기」로 다시 시작하면 새 값을 받습니다.
    * 렌더 중에 한 번만 발급합니다 — 화면에 그리는 값이 아니라 수화 어긋남이 생기지 않습니다.
@@ -212,8 +205,8 @@ export function ReportWizard() {
      방금 올린 「맡아 둔」 칸을 다시 이을 뿐이라 같은 값이 나옵니다. */
   useEffect(() => {
     const held = promoteHeldDraft();
-    restoredRef.current = true;
     if (held.length > 0) setPendingDraft(held);
+    setRestored(true);
   }, []);
 
   /* 원문이 바뀔 때마다 「지금 적는 글」 칸을 갱신합니다. 여기 담기는 것은 **가리기 전 원문**이고,
@@ -223,9 +216,9 @@ export function ReportWizard() {
      맡아 둔 글은 다른 칸에 있어 이 쓰기가 닿지 못하므로, 예전처럼 「어느 쪽을 죽일지」를
      여기서 정할 일이 없습니다. `saved`만 봅니다(확정 뒤에는 지운 칸을 다시 채우지 않습니다). */
   useEffect(() => {
-    if (!restoredRef.current || saved) return;
+    if (!restored || saved) return;
     writeDraftSlot(CURRENT_KEY, text);
-  }, [text, saved]);
+  }, [text, saved, restored]);
 
   /* 시스템 뒤로 = 한 단계 되돌리기.
      방향을 세지 않습니다 — 도착한 항목이 자기 깊이와 단계를 들고 있으므로, 뒤로든 앞으로든
@@ -429,7 +422,7 @@ export function ReportWizard() {
             tabIndex={-1}
             className="text-[1.1875rem] leading-[1.45] font-extrabold text-ok-ink"
           >
-            {saved && !saved.persisted ? SAVE_FAILED_TITLE : "확정했습니다"}
+            {saved && !saved.persisted ? SAVE_FAILED_TITLE : "저장했습니다"}
           </h2>
           <EyebrowLabel tone="ok" className="mt-[3px]">
             {saved && !saved.persisted ? "저장되지 않음" : "이 기기에만 저장"}
@@ -486,19 +479,27 @@ export function ReportWizard() {
           </p>
         </div>
 
-        <EyebrowLabel className="mt-6">확정한 기록 초안 — 다섯 칸</EyebrowLabel>
+        <EyebrowLabel className="mt-6">저장한 돌봄 기록 — 다섯 칸</EyebrowLabel>
         <DraftRows draft={saved.draft} empty="confirmed" className="mt-[2px]" />
 
         {/* 저장까지 끝났으므로 5단계 전부 완료 표시 */}
         <PrivacyPath reached={6} className="mt-6" />
 
         <BigButton href="/history" size="lg" block className="mt-5">
-          내 이력에서 확인하기
+          내 기록에서 확인하기
         </BigButton>
         <BigButton onClick={reset} variant="secondary" block className="mt-2">
-          새 보고 작성하기
+          새 돌봄 기록 만들기
         </BigButton>
       </div>
+    );
+  }
+
+  if (!restored) {
+    return (
+      <p role="status" className="py-8 text-center text-[1rem] font-semibold text-ink-soft">
+        작성 중이던 기록을 확인하고 있어요
+      </p>
     );
   }
 
@@ -506,12 +507,9 @@ export function ReportWizard() {
     <div>
       <StepBar current={step} />
 
-      {/* 적으시던 글이 남아 있을 때 — 자동으로 채우지 않고 고르시게 둡니다.
-          고르실 때까지 세워 둡니다. 예전에는 `text.length === 0`이 조건에 붙어 있어, 입력창에
-          한 글자만 쳐도 카드가 사라지고 되찾을 문이 그 순간 닫혔습니다.
-          카드를 세워 두는 동안이 무보호 구간이 아닙니다 — 그동안 치신 글은 「지금 적는 글」
-          칸에 따로 남습니다(위 보관 주석). 고르지 않는 것이 기본 동작인 화면이라, 안 고르신
-          채 보내는 시간에 아무것도 잃지 않는 편이 맞습니다. */}
+      {/* 적으시던 글이 남아 있을 때 — 자동으로 채우지 않고 먼저 고르시게 둡니다.
+          이 선택 전에는 새 입력창을 함께 보여 주지 않습니다. 「이어서 적기」와 말하기 시작이
+          동시에 주 행동으로 보이면 무엇부터 눌러야 하는지 다시 판단해야 하기 때문입니다. */}
       {step === 1 && pendingDraft.length > 0 && (
         <section
           aria-labelledby="report-resume-title"
@@ -531,12 +529,10 @@ export function ReportWizard() {
             <button
               type="button"
               onClick={() => {
-                /* 맡아 둔 글만 지웁니다 — 카드가 떠 있는 동안 이미 치기 시작하신 글은
-                   그대로 둡니다(「새로」는 지난 글을 버리겠다는 뜻이지, 방금 치신 글을
-                   버리겠다는 뜻이 아닙니다). */
+                /* 맡아 둔 지난 글만 지우고 빈 입력 화면을 엽니다. */
                 settlePending();
               }}
-              className="flex min-h-[48px] flex-1 items-center justify-center rounded-card border border-line-strong bg-paper text-[0.9375rem] font-semibold text-ink-soft transition-colors duration-150 active:bg-paper-2"
+              className="flex min-h-[64px] flex-1 items-center justify-center rounded-card border border-line-strong bg-paper text-[1rem] font-semibold text-ink-soft transition-colors duration-150 active:bg-paper-2"
             >
               새로 적기
             </button>
@@ -548,13 +544,11 @@ export function ReportWizard() {
                    앱에서 유일한 절감 근거라 짧게 나오는 쪽이 더 위험합니다.
                    그래서 이 회차는 아예 재지 않고, 그 사실을 확정 화면에 적습니다. */
                 setResumedDraft(true);
-                /* 카드가 떠 있는 동안 새로 치신 글이 있으면 뒤에 잇습니다 — 맡아 둔 글을
-                   지키려고 세운 카드가 방금 치신 문장을 대신 지우면 손실을 옮긴 것뿐입니다.
-                   이음은 `joinDrafts`가 맡습니다(공백뿐인 쪽은 빈 줄을 남기지 않습니다). */
+                /* 복원 직전 메모리의 글이 있더라도 손실 없이 잇습니다. */
                 updateText(joinDrafts(pendingDraft, text));
                 settlePending();
               }}
-              className="flex min-h-[48px] flex-[1.4] items-center justify-center rounded-card bg-brand-700 text-[0.9375rem] font-bold text-paper transition-colors duration-150 active:bg-brand-800"
+              className="flex min-h-[64px] flex-[1.4] items-center justify-center rounded-card bg-brand-700 text-[1rem] font-bold text-paper transition-colors duration-150 active:bg-brand-800"
             >
               이어서 적기
             </button>
@@ -563,7 +557,7 @@ export function ReportWizard() {
       )}
 
       <div className="mt-[18px]">
-        {step === 1 && (
+        {step === 1 && pendingDraft.length === 0 && (
           <VoiceInput
             value={text}
             onChange={updateText}

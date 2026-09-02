@@ -357,14 +357,15 @@ export function situationOrdinal(index: number): string {
 }
 
 /**
- * 세션 헤더 부제 — 「셋째 상황 · 대화 단계 · AI는 어르신 역만 맡습니다」 (가이드 §4.1).
+ * 세션 헤더 부제. 역할·생성 여부는 각 말풍선에서 실제 상태에 맞게 밝히므로,
+ * 헤더는 현재 위치만 짧게 알려 줍니다.
  *
  * 진행 번호는 점수가 아니라 **지금 몇째 장면인가**입니다(§4.2와 같은 뜻).
  *
- * @example sessionSubtitle(CHK_A01, 3) // "셋째 상황 · 대화 단계 · AI는 어르신 역만 맡습니다"
+ * @example sessionSubtitle(3) // "셋째 상황 · 대화 중"
  */
-export function sessionSubtitle(scenario: Scenario, index: number): string {
-  return `${situationOrdinal(index)} 상황 · ${aiRoleNote(scenario)}`;
+export function sessionSubtitle(index: number): string {
+  return `${situationOrdinal(index)} 상황 · 대화 중`;
 }
 
 /**

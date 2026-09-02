@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { ChevronGlyph, StatusMark, STATUS_MARK_LABEL, type StatusMarkKind } from "@/components/icons";
 import Link from "next/link";
 import { BigButton, EyebrowLabel, useSourceDoc } from "@/components";
-import { BreathMark } from "@/components/BreathMark";
 import { cx } from "@/components/utils";
 import { unexploredBranches, type TracedFeedback } from "@/engine";
 import { durationText, durationTextFromSeconds } from "@/lib/duration";
@@ -475,6 +474,13 @@ function CriticalSceneCard({
   );
 }
 
+/** 기본 종료 화면에는 검수된 문장 가운데 첫 문장 하나만 보여 줍니다. */
+function firstSentence(raw: string): string {
+  const clean = stripInternalIds(raw).replace(/\s+/g, " ").trim();
+  if (!clean) return "";
+  return /^.*?[.!?](?=\s|$)/.exec(clean)?.[0]?.trim() ?? clean;
+}
+
 /**
  * 훈련 종료 화면 (시안 6a 충족 · 6b 재훈련 · 가이드 §4.7).
  *
@@ -565,237 +571,198 @@ export function EndingPanel({
       pickNextTraining([record, ...storedSessions.filter((item) => item.id !== record.id)], {
         // 방금 마친 상황은 재시도 버튼이 따로 있으므로 추천에서는 뺍니다.
         excludeScenarioId: scenario.id,
-      }),
+    }),
     [record, scenario.id, storedSessions],
   );
 
+  const criticalLead = criticalFeedback
+    ? splitLawSentences(criticalFeedback.message).lead
+    : "";
+  const mainGood = firstSentence(
+    best?.message ?? record.greenChecks[0] ?? "끝까지 연습을 마쳤어요.",
+  );
+  const mainNext = firstSentence(
+    criticalLead ||
+      advisoryEnding?.message ||
+      coachings[0] ||
+      (suggestion ? nextTrainingSentence(suggestion) : "다른 상황도 천천히 연습해 보세요."),
+  );
+
   return (
-    <div className={cx("animate-fade-up", className)}>
-      {/* 머리 — 호흡 마크, 원 하나, 제목. 판정 낱말은 세우지 않습니다(점수로 읽히지 않게).
-
-          호흡 마크는 이 앱의 전역 유일 심볼입니다(홈 히어로·앱 아이콘과 같은 마크).
-          훈련이 끝난 자리에 그 마크를 세우는 것은 「끝까지 가셨어요」를 형태로 한 번 더 말하는
-          일이고, 점 셋이 차례로 들어오는 동안 화면이 한 박자 숨을 고릅니다.
-
-          모션은 새로 만들지 않습니다 — 등장은 이미 있는 두 단 중 가벼운 쪽(chim-pop-in 180ms)이고,
-          점마다 110ms씩 늦게 출발합니다(말하는 중 점 셋과 같은 간격). 움직임을 줄여 달라고
-          설정하신 분께는 규칙 자체가 적용되지 않아, 세 점이 처음부터 제자리에 서 있습니다.
-
-          틸 채움은 이 화면에서 여전히 **두 곳**입니다 — 판정 원 하나와 아래 주 버튼 하나.
-          호흡 마크는 면이 아니라 심볼이라 그 셈에 들지 않습니다(14px 높이의 점 셋). */}
-      <div className="text-center">
-        <BreathMark
-          height={14}
-          className={cx(
-            "mx-auto mb-3",
-            /* 점마다 같은 등장(--animate-pop-in)에 110ms씩 늦은 출발만 얹습니다 —
-               `animation` 축약형에서 두 번째 시간값이 지연이라, 속도·이징·채움은 그대로 한 벌입니다.
-               `animation-delay`를 따로 걸지 않는 이유는 축약형이 뒤에 오면 지연을 0으로 되돌리기 때문입니다.
-               `motion-safe:`로 감싸 두었으므로, 움직임을 줄여 달라고 하신 분께는 규칙 자체가 적용되지
-               않습니다 — 세 점이 처음부터 제자리에 그대로 서 있습니다(지연된 등장도 없습니다). */
-            "motion-safe:[&>.breath-dot-1]:[animation:var(--animate-pop-in)]",
-            "motion-safe:[&>.breath-dot-2]:[animation:var(--animate-pop-in)_110ms]",
-            "motion-safe:[&>.breath-dot-3]:[animation:var(--animate-pop-in)_220ms]",
-          )}
-        />
-        <span
-          aria-hidden
-          className={cx(
-            "mx-auto mb-3.5 flex h-[54px] w-[54px] items-center justify-center rounded-full text-[1.5rem] leading-none font-extrabold",
-            mark.circle,
-          )}
-        >
-          {mark.char}
-        </span>
-        <span className="sr-only">{mark.label}</span>
-        <EyebrowLabel>
-          훈련 마침 · {scenario.title}
-        </EyebrowLabel>
-        <h2 className="mt-1.5 text-[1.375rem] leading-[1.45] font-extrabold tracking-[-0.01em] text-ink">
-          {completionHeadline(verdict, session)}
+    <div className={cx("animate-fade-up pb-[calc(20px_+_var(--chim-safe-b))]", className)}>
+      <header className="text-center">
+        <EyebrowLabel>{scenario.title}</EyebrowLabel>
+        <h2 className="mt-2 text-[1.4375rem] leading-[1.3] font-extrabold tracking-[-0.02em] text-ink">
+          연습을 마쳤어요
         </h2>
-        {/* 시나리오 결과 제목 — 검수 문구 그대로, 크기만 15px 부제로 내려 둡니다. */}
-        <p className="mt-1.5 text-[0.9375rem] leading-[1.45] font-semibold text-ink">
-          {ending?.title ?? record.endingTitle}
-        </p>
-        {/* 회복·완주를 말하는 줄은 부제 바로 아래 15px로 세웁니다 — 각주 크기로 내리지 않습니다. */}
-        <p className="mt-1.5 text-[0.9375rem] leading-[1.6] text-ink-soft">
-          {leadText(verdict, session)}
-        </p>
-        <p className="mt-[4px] text-[0.8438rem] leading-[1.6] text-ink-muted">
-          {spent}
-          {shape === "retry" && (
-            <>
-              {spent.length > 0 && <br />}
-              {RETRY_NOTE}
-            </>
-          )}
-        </p>
-      </div>
+        {spent && <p className="mt-1.5 text-[0.9375rem] leading-[1.6] text-ink-muted">{spent}</p>}
+      </header>
 
-      {/* 다시 볼 장면 — 그때의 규칙 판정과 대안을 그대로 다시 폅니다. */}
-      {shape === "retry" && criticalFeedback && (
-        <div className="mt-5">
-          <CriticalSceneCard feedback={criticalFeedback} alternatives={criticalAlternatives} />
-        </div>
-      )}
-
-      {advisoryEnding && (
-        <div className="mt-4 rounded-card bg-paper-2 px-[15px] py-3.5">
-          <p className="text-[0.7813rem] leading-[1.45] font-bold text-warn-ink">
-            {advisoryEnding.title}
-          </p>
-          <p className="mt-1.5 text-[0.8438rem] leading-[1.6] text-ink-soft">{advisoryEnding.message}</p>
-        </div>
-      )}
-
-      {ending?.message && (
-        <p className="mt-4 text-[0.9375rem] leading-[1.6] text-ink-soft">{ending.message}</p>
-      )}
-
-      <section className="mt-5">
-        {/* 개수는 「몇 가지를 보고 계신지」이지 점수가 아닙니다 — 0은 아예 적지 않습니다. */}
-        {/* 「그래도」는 양보 부사라 '그럼에도 불구하고 잘한 게 있긴 하다'로 읽힙니다 — 걷어냅니다. */}
-        {/* 이 줄만 15px입니다 — 「다시 볼 것」(12.5px)보다 먼저·크게 읽혀야 하는 자리라,
-            같은 h3라고 해서 같은 크기로 통일하지 않습니다. */}
-        <h3 className="mb-1.5 text-[0.9375rem] leading-[1.45] font-bold text-ok-ink">
-          잘한 것{record.greenChecks.length > 0 && ` ${record.greenChecks.length}`}
+      <section className="mt-5 rounded-card bg-paper-2 px-4 py-4" aria-labelledby="one-good">
+        <h3 id="one-good" className="text-[1rem] leading-[1.45] font-extrabold text-ok-ink">
+          잘한 점
         </h3>
-        {/* 가장 잘한 순간 — 그 자리에서 드린 검수 문구를 순서·갈래 이름과 함께 다시 폅니다.
-            새 문장을 짓지 않고, 목록 맨 위 한 줄을 카드로 세운 것뿐입니다.
-            면은 이 화면의 다른 카드와 같은 `paper-2`입니다 — 뜻은 머리말 색(ok-ink)이 전합니다
-            (초록 면을 하나 더 만들면 위 ✓ 원과 함께 화면이 초록으로 두 번 말합니다). */}
-        {best && (
-          <div className="mb-2 rounded-card bg-paper-2 px-[15px] py-3.5">
-            <p className="text-[0.7813rem] leading-[1.45] font-bold text-ok-ink">
-              가장 잘한 순간 — {best.ordinal} 상황
-            </p>
-            <p className="mt-1.5 text-[0.9375rem] leading-[1.6] text-ink">{best.message}</p>
-          </div>
-        )}
-        {(greens.length > 0 || !best) && (
-          <FoldedList
-            items={greens}
-            withCheck
-            emptyText="이번에는 충족으로 기록된 항목이 없습니다. 아래 한 가지만 들고 다시 해보시면 충분합니다."
-          />
-        )}
+        <p className="mt-2 text-[1.0625rem] leading-[1.6] text-ink">{mainGood}</p>
       </section>
 
-      <section className="mt-4">
-        <h3 className="mb-1 text-[0.7813rem] leading-[1.45] font-bold text-warn-ink">
-          다시 볼 것{coachings.length > 0 && ` ${coachings.length}`}
+      <section className="mt-3 rounded-card bg-paper-2 px-4 py-4" aria-labelledby="one-next">
+        <h3 id="one-next" className="text-[1rem] leading-[1.45] font-extrabold text-warn-ink">
+          다음에는
         </h3>
-        <FoldedList
-          items={coachings}
-          withCheck={false}
-          emptyText="따로 짚어 드릴 것이 없습니다. 지금처럼 이어가 주세요."
-        />
+        <p className="mt-2 text-[1.0625rem] leading-[1.6] text-ink">{mainNext}</p>
       </section>
 
-      {/* 항목별 자세히 보기 — 위 두 목록의 문장이 무엇을 보고 나왔는지를 항목으로 폅니다.
-          걸린 항목이 없는 회차에는 섹션 자체를 그리지 않습니다(빈 접힘을 남기지 않습니다). */}
-      {breakdown.length > 0 && <RubricBreakdownFold rows={breakdown} />}
-
-      {/* 이번 훈련의 흐름 — 접힌 채로 둡니다(주인공은 위 두 목록입니다). */}
-      {timeline.length > 0 && <SessionTimeline rows={timeline} situations={situations} />}
-
-      {/* 안 가 본 길 — 한 줄. 아래 버튼(같은 장면 다시 · 다음 상황으로)으로 그대로 이어지는
-          자리라 새 버튼을 달지 않고 문구만 둡니다. 남은 갈래 수는 「몇 곳이 남았는가」이지
-          점수가 아니고(위 「잘한 것 N」과 같은 셈법), 전부 가 보셨으면 달성으로만 적습니다.
-
-          이 값이 세는 것은 **이번에 지나온 자리**뿐입니다(engine/coverage). 훈련 목록 카드는
-          그 상황의 CUE를 전부 세므로 숫자가 더 큽니다 — 셈법이 아니라 범위가 다른 것이라,
-          두 문장이 각자 무엇을 세는지 그대로 적습니다(교육생 3차 P2). */}
-      {timeline.length > 0 && (
-        <p className="mt-4 rounded-card bg-paper-2 px-[15px] py-3.5 text-[0.9375rem] leading-[1.6] text-ink-soft">
-          {unexplored > 0
-            ? `이번에 지나온 자리에서 고르지 않은 갈래가 ${unexplored}곳 있습니다. 같은 상황도 다른 대답이면 다르게 흘러갑니다.`
-            : "이번에 지나온 자리의 갈래를 전부 가 보셨습니다."}
-        </p>
-      )}
-
-      {/* 버튼만으로 완주하신 회차에 한 줄 — 세션 안에서 드린 것과 같은 사실입니다. */}
-      {buttonOnly && (
-        <p className="mt-4 rounded-card bg-paper-2 px-[15px] py-3.5 text-[0.9375rem] leading-[1.6] text-ink-soft">
-          이번에는 보기로만 하셨어요. 다음에 한 번만 직접 말해 보시면 규칙 사전이 그 말씀을 보고
-          다르게 짚어 드려요.
-        </p>
-      )}
-
-      {/* 보조 경로와 안내문 — **도크 밖 일반 흐름**입니다.
-          훈련 → 보고 → 성장의 순환이 마지막 힌지에서 끊기지 않도록 두 마무리 모두 보조
-          2분할(보고 연습 · 성장 기록)을 답니다(가이드 §4.7). 다만 도크 안에 두었을 때는
-          주 CTA 56px + 추천 한 줄 + 2분할 48px + 「오늘은 여기까지」 48px + 안내 두 줄이
-          쌓여 표준 260px·「아주 크게」 320px이 되었고, 완주 직후 읽어야 할 「잘한 것 / 다시 볼 것」이
-          844px 뷰포트의 38%를 도크에 내주었습니다 — 도크가 화면이 되어 버린 자리입니다
-          (UIUX 검증). 지금 여기 남는 것은 「지금 눌러야 하는 것」이 아닌 것들입니다. */}
       <div className="mt-5 space-y-2">
-        <div className="flex gap-2">
-          <Link
-            href="/report"
-            className="flex min-h-[48px] min-w-0 flex-1 items-center justify-center rounded-field bg-paper-2 px-3 text-center text-[0.9375rem] leading-[1.3] font-semibold text-ink transition-colors duration-150 active:bg-neutral-line"
-          >
-            이 훈련 보고 연습하기
-          </Link>
-          <Link
-            href="/history"
-            className="flex min-h-[48px] min-w-0 flex-1 items-center justify-center rounded-field bg-paper-2 px-3 text-center text-[0.9375rem] leading-[1.3] font-semibold text-ink transition-colors duration-150 active:bg-neutral-line"
-          >
-            내 이력 보기
-          </Link>
-        </div>
-
-        {shape === "retry" && (
-          <Link
-            href="/train"
-            className="flex min-h-[48px] w-full items-center justify-center rounded-field px-3 text-center text-[0.9375rem] leading-[1.3] font-semibold text-ink-soft transition-colors duration-150 active:bg-paper-2"
-          >
-            오늘은 여기까지
-          </Link>
-        )}
-
-        {/* 16px은 §2 눈금에 없는 값이었습니다 — 바로 아래 줄과 같은 15px으로 맞춥니다(대비·색은 유지). */}
-        <p className="text-center text-[0.9375rem] leading-[1.6] text-ink-soft">
-          점수가 아니라 다음에 볼 지점 안내예요
-        </p>
-        <p className="text-center text-[0.9375rem] leading-[1.6] text-ink-soft">
-          이 기록은 기기 안에만 남습니다 · 말씀하신 원문은 저장하지 않습니다
-        </p>
+        <BigButton
+          href={suggestion ? scenarioHref(suggestion.candidate.id) : "/train"}
+          size="lg"
+          block
+        >
+          다른 상황 연습하기
+        </BigButton>
+        <BigButton href="/train" variant="secondary" block>
+          오늘은 그만하기
+        </BigButton>
       </div>
 
-      {/* 다음 행동 — 문법에 따라 「다음 상황으로」 또는 「같은 장면 다시」가 주인공이 됩니다.
-          이 블록은 화면 아래에 도킹해, 로그를 끝까지 내리지 않아도 닿게 합니다.
-          도크 안에는 **주 CTA 하나와 그 까닭 한 줄**만 둡니다. 세션 컴포저와 같은 상한(45dvh)을
-          걸어 두어, 큰 글자 설정에서도 도크가 화면을 차지하는 역전이 일어나지 않게 합니다. */}
-      <div className="sticky bottom-0 z-10 mt-4 max-h-[45dvh] overflow-y-auto overscroll-contain border-t border-line bg-paper pt-3.5 pb-[calc(20px_+_var(--chim-safe-b))]">
-        {shape === "forward" ? (
-          <BigButton
-            href={suggestion ? scenarioHref(suggestion.candidate.id) : "/train"}
-            size="lg"
-            block
-          >
-            {suggestion ? `다음 상황으로 — ${suggestion.candidate.title}` : "다음 상황 고르기"}
-          </BigButton>
-        ) : (
-          /* 라벨에 감점 이야기를 붙여 두면 이 화면에서 그 낱말이 가장 크게 읽힙니다 —
-             ⚑CF 시트에서 이미 뗀 표기이고, 뜻은 위 RETRY_NOTE와 아래 안내 줄이 맡습니다.
-             라벨 문구는 CriticalInterrupt의 주 CTA와 **같은 말**입니다. */
-          <BigButton onClick={onRestart} size="lg" block>
-            같은 장면 다시 해 보기
-          </BigButton>
-        )}
+      <details className="group mt-5 border-y border-line">
+        <summary className="flex min-h-[56px] cursor-pointer list-none items-center justify-between gap-3 rounded-field px-1 py-3 text-[1rem] leading-[1.45] font-bold text-ink transition-colors duration-150 active:bg-paper-2 [&::-webkit-details-marker]:hidden">
+          <span>자세한 결과 보기</span>
+          <ChevronGlyph size="sm" className="flex-none text-ink-ghost group-open:rotate-180" />
+        </summary>
 
-        {/* 다음 추천 한 줄 — 성장 기록과 **같은 순수 함수**가 고른 이유를 그대로 적습니다
-            (`nextTraining`). 앞으로 가는 마무리에서는 위 버튼이 어디로 가는지의 까닭이 되고,
-            다시 보는 마무리에서는 오늘 이후를 가리키는 조용한 한 줄로 남습니다. */}
-        {suggestion && (
-          <p className="mt-2 text-center text-[0.9375rem] leading-[1.6] text-ink-soft">
-            다음엔 — {nextTrainingSentence(suggestion)}
+        <div className="px-1 pb-5">
+          <div className="text-center">
+            <span
+              aria-hidden
+              className={cx(
+                "mx-auto mb-3 flex h-[54px] w-[54px] items-center justify-center rounded-full text-[1.5rem] leading-none font-extrabold",
+                mark.circle,
+              )}
+            >
+              {mark.char}
+            </span>
+            <span className="sr-only">{mark.label}</span>
+            <h3 className="text-[1.1875rem] leading-[1.45] font-extrabold text-ink">
+              {completionHeadline(verdict, session)}
+            </h3>
+            <p className="mt-1.5 text-[0.9375rem] leading-[1.45] font-semibold text-ink">
+              {ending?.title ?? record.endingTitle}
+            </p>
+            <p className="mt-1.5 text-[0.9375rem] leading-[1.6] text-ink-soft">
+              {leadText(verdict, session)}
+            </p>
+            {shape === "retry" && (
+              <p className="mt-1 text-[0.8438rem] leading-[1.6] text-ink-muted">{RETRY_NOTE}</p>
+            )}
+          </div>
+
+          {shape === "retry" && criticalFeedback && (
+            <div className="mt-5">
+              <CriticalSceneCard feedback={criticalFeedback} alternatives={criticalAlternatives} />
+            </div>
+          )}
+
+          {advisoryEnding && (
+            <div className="mt-4 rounded-card bg-paper-2 px-4 py-4">
+              <p className="text-[0.9375rem] leading-[1.45] font-bold text-warn-ink">
+                {advisoryEnding.title}
+              </p>
+              <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink-soft">
+                {advisoryEnding.message}
+              </p>
+            </div>
+          )}
+
+          {ending?.message && (
+            <p className="mt-4 text-[0.9375rem] leading-[1.6] text-ink-soft">{ending.message}</p>
+          )}
+
+          <section className="mt-5">
+            <h3 className="mb-2 text-[1rem] leading-[1.45] font-bold text-ok-ink">
+              잘한 점 전체{record.greenChecks.length > 0 && ` ${record.greenChecks.length}`}
+            </h3>
+            {best && (
+              <div className="mb-2 rounded-card bg-paper-2 px-4 py-4">
+                <p className="text-[0.8438rem] leading-[1.45] font-bold text-ok-ink">
+                  가장 잘한 순간 · {best.ordinal} 상황
+                </p>
+                <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink">{best.message}</p>
+              </div>
+            )}
+            {(greens.length > 0 || !best) && (
+              <FoldedList
+                items={greens}
+                withCheck
+                emptyText="이번에는 충족으로 기록된 항목이 없습니다. 위의 다음 한 가지를 보고 다시 해보시면 충분합니다."
+              />
+            )}
+          </section>
+
+          <section className="mt-4">
+            <h3 className="mb-2 text-[1rem] leading-[1.45] font-bold text-warn-ink">
+              다음에 볼 점 전체{coachings.length > 0 && ` ${coachings.length}`}
+            </h3>
+            <FoldedList
+              items={coachings}
+              withCheck={false}
+              emptyText="따로 짚어 드릴 것이 없습니다. 지금처럼 이어가 주세요."
+            />
+          </section>
+
+          {breakdown.length > 0 && <RubricBreakdownFold rows={breakdown} />}
+          {timeline.length > 0 && <SessionTimeline rows={timeline} situations={situations} />}
+
+          {shape === "retry" && (
+            <BigButton onClick={onRestart} variant="secondary" block className="mt-4">
+              같은 장면 처음부터 다시 하기
+            </BigButton>
+          )}
+
+          {timeline.length > 0 && (
+            <p className="mt-4 rounded-card bg-paper-2 px-4 py-4 text-[0.9375rem] leading-[1.6] text-ink-soft">
+              {unexplored > 0
+                ? `이번에 지나온 자리에서 고르지 않은 갈래가 ${unexplored}곳 있습니다. 같은 상황도 다른 대답이면 다르게 흘러갑니다.`
+                : "이번에 지나온 자리의 갈래를 전부 가 보셨습니다."}
+            </p>
+          )}
+
+          {buttonOnly && (
+            <p className="mt-4 rounded-card bg-paper-2 px-4 py-4 text-[0.9375rem] leading-[1.6] text-ink-soft">
+              이번에는 보기로만 하셨어요. 다음에 한 번만 직접 말해 보시면 규칙 사전이 그 말씀을
+              보고 다르게 짚어 드려요.
+            </p>
+          )}
+
+          {suggestion && (
+            <p className="mt-4 text-[0.9375rem] leading-[1.6] text-ink-soft">
+              다음 연습 추천 · {nextTrainingSentence(suggestion)}
+            </p>
+          )}
+
+          <div className="mt-5 flex gap-2">
+            <Link
+              href="/report"
+              className="flex min-h-[48px] min-w-0 flex-1 items-center justify-center rounded-field bg-paper-2 px-3 text-center text-[0.9375rem] leading-[1.45] font-semibold text-ink transition-colors duration-150 active:bg-neutral-line"
+            >
+              돌봄 기록 만들기
+            </Link>
+            <Link
+              href="/history"
+              className="flex min-h-[48px] min-w-0 flex-1 items-center justify-center rounded-field bg-paper-2 px-3 text-center text-[0.9375rem] leading-[1.45] font-semibold text-ink transition-colors duration-150 active:bg-neutral-line"
+            >
+              내 기록
+            </Link>
+          </div>
+
+          <p className="mt-4 text-center text-[0.9375rem] leading-[1.6] text-ink-soft">
+            점수가 아니라 다음에 볼 지점 안내예요.
           </p>
-        )}
-
-      </div>
+          <p className="mt-1 text-center text-[0.9375rem] leading-[1.6] text-ink-soft">
+            이 기록은 기기 안에만 남고, 말씀하신 원문은 저장하지 않아요.
+          </p>
+        </div>
+      </details>
     </div>
   );
 }

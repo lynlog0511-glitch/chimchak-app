@@ -161,7 +161,7 @@ export function FreeInterrupt({ check, onClose }: FreeInterruptProps) {
             type="button"
             ref={retryRef}
             onClick={() => leave()}
-            className="min-h-[54px] w-full rounded-card bg-brand-700 px-5 text-[1rem] font-bold text-paper transition-colors duration-150 hover:bg-brand-800 active:bg-brand-press"
+            className="min-h-[64px] w-full rounded-card bg-brand-700 px-5 text-[1rem] font-bold text-paper transition-colors duration-150 hover:bg-brand-800 active:bg-brand-press"
           >
             {CF_RETRY}
           </button>

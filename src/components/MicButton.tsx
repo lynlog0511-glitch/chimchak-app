@@ -1,7 +1,7 @@
 import type { KeyboardEventHandler, PointerEventHandler } from "react";
 import { cx } from "./utils";
 
-export type MicButtonSize = "md" | "lg";
+export type MicButtonSize = "md" | "lg" | "xl";
 
 /* 시안 4a(52px 대기) · 4b(64px 녹음 중) 도형.
    마이크는 v4에서 유일하게 "그려서" 쓰는 도형입니다 — 아이콘 폰트도 SVG 세트도 쓰지 않습니다.
@@ -58,16 +58,29 @@ const SPEC: Record<MicButtonSize, MicSpec> = {
     stemH: "0.21875rem" /* 3.5 */,
     gap: "0.1875rem" /* 3 */,
   },
+  xl: {
+    box: "7rem" /* 112 */,
+    capW: "1.125rem" /* 18 */,
+    capH: "2rem" /* 32 */,
+    capR: "0.5625rem" /* 9 */,
+    cradleW: "1.875rem" /* 30 */,
+    cradleH: "0.75rem" /* 12 */,
+    cradleR: "0.9375rem" /* 15 */,
+    stroke: "0.1875rem" /* 3 */,
+    stemH: "0.4375rem" /* 7 */,
+    gap: "0.25rem" /* 4 */,
+  },
 };
 
 /** 대기(md) 옅은 링 3px / 녹음(lg) 이중 링 8px + 16px */
 const RING: Record<MicButtonSize, string> = {
   md: "0 0 0 3px var(--color-brand-tint)",
   lg: "0 0 0 8px var(--color-brand-tint), 0 0 0 16px var(--color-brand-50)",
+  xl: "0 0 0 10px var(--color-brand-tint), 0 0 0 22px var(--color-brand-50)",
 };
 
 export interface MicButtonProps {
-  /** md 52px(대기) · lg 64px(녹음 중) */
+  /** md 52px · lg 64px · xl 112px(고령 사용자용 주 행동) */
   size?: MicButtonSize;
   /** 누르고 있는 중 — `aria-pressed`가 함께 붙고 채움이 딥으로 바뀝니다. */
   pressed?: boolean;

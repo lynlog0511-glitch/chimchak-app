@@ -9,10 +9,9 @@ import {
   DEFAULT_SETTINGS,
   FONT_SCALE_OPTIONS,
   ONLINE_COACHING_NOTICE,
-  ONLINE_MODE_LABEL,
+  ONLINE_MODE_SHORT_LABEL,
   SPEECH_RATE_OPTIONS,
   SPEECH_RATE_VALUE,
-  SWITCH_OPTIONS,
   getSettings,
   setAiDialogue,
   setOnlineCoaching,
@@ -57,7 +56,7 @@ function OptionButton({ label, selected, onSelect }: OptionButtonProps) {
       onClick={onSelect}
       aria-pressed={selected}
       className={cx(
-        "chim-label min-h-[48px] flex-1 rounded-card px-2",
+        "min-h-[56px] flex-1 rounded-card px-2 py-2 text-[1rem] leading-[1.3] font-semibold",
         "transition-colors duration-150 ease-soft",
         selected
           ? "bg-brand-700 font-bold text-paper active:bg-brand-800"
@@ -100,7 +99,7 @@ export interface SettingsMenuProps {
 export const SETTINGS_TRIGGER_ATTR = "data-chim-settings-trigger";
 
 /** 여는 버튼에 적는 낱말 — **전 화면 한 낱말**입니다. 아래 컴포넌트 주석 참고. */
-const TRIGGER_LABEL = "설정";
+const TRIGGER_LABEL = "글자·소리";
 
 interface SettingsPanelProps {
   panelId: string;
@@ -150,16 +149,32 @@ function SettingsPanel({
   onNavigate,
 }: SettingsPanelProps) {
   const panelRef = useRef<HTMLDivElement | null>(null);
-  const fontLabelRef = useRef<HTMLParagraphElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [scopeOpen, setScopeOpen] = useState(false);
+  const titleId = `${panelId}-title`;
   const fontLabelId = `${panelId}-font`;
   const speechLabelId = `${panelId}-speech`;
+  const aiPanelId = `${panelId}-ai`;
   const dialogueLabelId = `${panelId}-dialogue`;
   const onlineLabelId = `${panelId}-online`;
+  const scopePanelId = `${panelId}-scope`;
   const toScreen = align === "screen";
   const dialogue = settings.aiDialogue;
   const online = settings.onlineCoaching;
 
-  useModalDismiss({ panelRef, initialFocusRef: fontLabelRef, onDismiss });
+  useModalDismiss({ panelRef, initialFocusRef: closeButtonRef, onDismiss });
+
+  const fontLabel: Record<FontScale, string> = {
+    standard: "보통",
+    large: "크게",
+    xlarge: "아주 크게",
+  };
+  const speechLabel: Record<SpeechRate, string> = {
+    slow: "느리게",
+    standard: "보통",
+    fast: "빠르게",
+  };
 
   return (
     <div
@@ -169,7 +184,7 @@ function SettingsPanel({
       aria-modal="true"
       /* 팝오버 제목 — 여는 버튼(「설정」)이 좁힌 이름이 아니라 **담긴 것 전부**를 적습니다.
          이름과 내용이 어긋나면 낭독 사용자에게는 문 뒤에 무엇이 있는지 물어볼 자리가 없습니다. */
-      aria-label="표시·음성·AI 설정"
+      aria-labelledby={titleId}
       /* 세션 헤더의 액션 줄은 `whitespace-nowrap`이라, 팝오버 안 문장이 한 줄로 늘어나지 않도록
          여기서 줄바꿈을 되돌립니다.
 
@@ -196,15 +211,29 @@ function SettingsPanel({
         "animate-pop-in",
       )}
     >
-      <div>
-        <p id={fontLabelId} ref={fontLabelRef} tabIndex={-1} className="chim-label text-ink">
+      <div className="flex items-center justify-between gap-3">
+        <h2 id={titleId} className="text-[1.1875rem] leading-[1.3] font-extrabold text-ink">
+          글자·소리
+        </h2>
+        <button
+          ref={closeButtonRef}
+          type="button"
+          onClick={onDismiss}
+          className="inline-flex min-h-[48px] min-w-[48px] items-center justify-center rounded-field px-2 text-[0.9375rem] font-bold text-ink-soft transition-colors duration-150 active:bg-paper-2"
+        >
+          닫기
+        </button>
+      </div>
+
+      <div className="mt-4">
+        <p id={fontLabelId} className="text-[1rem] leading-[1.45] font-bold text-ink">
           글자 크기
         </p>
         <div role="group" aria-labelledby={fontLabelId} className="mt-2 flex gap-2">
           {FONT_SCALE_OPTIONS.map((option) => (
             <OptionButton
               key={option.value}
-              label={option.label}
+              label={fontLabel[option.value]}
               selected={settings.fontScale === option.value}
               onSelect={() => onFontScale(option.value)}
             />
@@ -223,19 +252,19 @@ function SettingsPanel({
             글자를 키우려다 화면을 망칠까 봐 손을 못 대는 분께 하는 약속이라
             13px(chim-caption)이 아니라 안심 문구 규격 15px + ink-soft로 둡니다(가이드 §7-8). */}
         <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink-soft">
-          화면 전체 글자가 함께 커집니다. 언제든 되돌릴 수 있습니다.
+          누르면 화면 전체 글자가 바로 바뀌어요.
         </p>
       </div>
 
       <div className="mt-5">
-        <p id={speechLabelId} className="chim-label text-ink">
-          음성 빠르기
+        <p id={speechLabelId} className="text-[1rem] leading-[1.45] font-bold text-ink">
+          읽어주는 속도
         </p>
         <div role="group" aria-labelledby={speechLabelId} className="mt-2 flex gap-2">
           {SPEECH_RATE_OPTIONS.map((option) => (
             <OptionButton
               key={option.value}
-              label={option.label}
+              label={speechLabel[option.value]}
               selected={settings.speechRate === option.value}
               onSelect={() => onSpeechRate(option.value)}
             />
@@ -243,8 +272,8 @@ function SettingsPanel({
         </div>
         <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink-soft">
           {voiceSupported
-            ? "누르시면 예시 문장을 한 번 읽어 드립니다. 훈련 대사와 응급 안내 낭독에 함께 적용됩니다."
-            : "이 기기에서는 음성 낭독을 지원하지 않습니다. 안내 문구는 화면 자막으로 그대로 보실 수 있습니다."}
+            ? "누르면 예시 문장을 바로 들려드려요."
+            : "이 기기에서는 음성 낭독을 지원하지 않아요."}
         </p>
       </div>
 
@@ -272,57 +301,120 @@ function SettingsPanel({
           위 두 절(글자 크기·음성 빠르기)과 같은 형식이라, 이 칸만 성질이 다른 물음이라는
           인상도 함께 사라집니다. 이름에서 뺀 AI는 바로 아래 고지가 그대로 받습니다. */}
       <div className="mt-5 border-t border-line pt-4">
-        <p id={dialogueLabelId} className="chim-label text-ink">
-          {AI_DIALOGUE_LABEL}
-        </p>
-        <div role="group" aria-labelledby={dialogueLabelId} className="mt-2 flex gap-2">
-          {AI_DIALOGUE_OPTIONS.map((option) => (
-            <OptionButton
-              key={option.label}
-              label={option.label}
-              selected={dialogue.enabled === option.value}
-              onSelect={() => onAiDialogue({ enabled: option.value })}
-            />
-          ))}
-        </div>
-        <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink-soft">
-          {AI_DIALOGUE_NOTICE}
-        </p>
-        <p className="mt-3 text-[0.7813rem] leading-[1.45] text-ink-muted">
-          바뀐 대사는 형식·길이·숫자·금지 표현, 그리고 검수 문장에 없던 위험 신호까지 기기 안에서
-          확인한 뒤에만 화면에 나가고, 하나라도 지나지 못하면 검수 문장이 그대로 나옵니다. 바뀐
-          대사에는 「변주」 표기가 붙습니다. 판정·게이지·기록은 달라지지 않습니다.
-        </p>
+        <button
+          type="button"
+          aria-expanded={aiOpen}
+          aria-controls={aiPanelId}
+          onClick={() => setAiOpen((value) => !value)}
+          className="flex min-h-[64px] w-full items-center justify-between gap-3 rounded-card bg-paper-2 px-4 py-3 text-left transition-colors duration-150 active:bg-neutral-line"
+        >
+          <span className="min-w-0">
+            <span className="block text-[1rem] leading-[1.45] font-bold text-ink">AI·개인정보</span>
+            <span className="mt-1 block text-[0.8438rem] leading-[1.45] text-ink-soft">
+              내 말씀 전송:{" "}
+              <strong className="font-bold text-ink">{online.enabled ? "허용" : "안 함"}</strong>
+            </span>
+          </span>
+          <span aria-hidden className="flex-none text-[0.9375rem] font-bold text-brand-800">
+            {aiOpen ? "접기" : "자세히 보기"}
+          </span>
+        </button>
+
+        {aiOpen && (
+          <div id={aiPanelId} className="mt-4">
+            <section aria-labelledby={dialogueLabelId}>
+              <h3 id={dialogueLabelId} className="text-[1rem] leading-[1.45] font-bold text-ink">
+                {AI_DIALOGUE_LABEL}
+              </h3>
+              <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink-soft">
+                AI가 검수된 어르신 대사를 같은 뜻으로 바꿔 말해요. 내가 한 말은
+                보내지 않아요.
+              </p>
+              <div role="group" aria-labelledby={dialogueLabelId} className="mt-3 flex flex-col gap-2">
+                {AI_DIALOGUE_OPTIONS.map((option) => (
+                  <OptionButton
+                    key={option.label}
+                    label={option.label}
+                    selected={dialogue.enabled === option.value}
+                    onSelect={() => onAiDialogue({ enabled: option.value })}
+                  />
+                ))}
+              </div>
+            </section>
+
+            <section aria-labelledby={onlineLabelId} className="mt-5 border-t border-line pt-4">
+              <h3 id={onlineLabelId} className="text-[1rem] leading-[1.45] font-bold text-ink">
+                {ONLINE_MODE_SHORT_LABEL}
+              </h3>
+              <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink-soft">
+                허용하면 앱이 판단하지 못한 답변 한 문장과 자유 연습에 적은 내용·대화가 가림
+                처리를 거쳐 침착 서버를 통해 외부 AI로 전송돼요. 가림이 완벽하지 않을 수 있어
+                실제 개인정보는 입력하거나 말하지 마세요.
+              </p>
+              <div role="group" aria-labelledby={onlineLabelId} className="mt-3 flex flex-col gap-2">
+                <OptionButton
+                  label="전송 안 함"
+                  selected={!online.enabled}
+                  onSelect={() => onOnlineCoaching({ enabled: false })}
+                />
+                <OptionButton
+                  label="전송 허용"
+                  selected={online.enabled}
+                  onSelect={() => onOnlineCoaching({ enabled: true })}
+                />
+              </div>
+            </section>
+
+            <button
+              type="button"
+              aria-expanded={scopeOpen}
+              aria-controls={scopePanelId}
+              onClick={() => setScopeOpen((value) => !value)}
+              className="mt-4 flex min-h-[56px] w-full items-center justify-between gap-3 rounded-card bg-paper-2 px-4 py-3 text-left text-[0.9375rem] leading-[1.45] font-bold text-ink-soft transition-colors duration-150 active:bg-neutral-line"
+            >
+              <span>안전·전송 전체 안내</span>
+              <span aria-hidden className="flex-none text-brand-800">
+                {scopeOpen ? "접기" : "보기"}
+              </span>
+            </button>
+            {scopeOpen && (
+              <div id={scopePanelId} className="mt-3 rounded-card bg-paper-2 p-4">
+                <p className="text-[0.8438rem] leading-[1.6] text-ink-soft">{AI_DIALOGUE_NOTICE}</p>
+                <p className="mt-3 text-[0.8438rem] leading-[1.6] text-ink-soft">
+                  {ONLINE_COACHING_NOTICE}
+                </p>
+                <p className="mt-3 text-[0.8438rem] leading-[1.6] text-ink-soft">
+                  판정·게이지·기록은 설정에 따라 달라지지 않아요. 연결이 준비되지 않으면 외부
+                  AI로 전달되지 않아요.
+                </p>
+              </div>
+            )}
+
+            <div className="mt-4 grid gap-2">
+              <Link
+                href="/guide"
+                onClick={onNavigate}
+                className="inline-flex min-h-[56px] w-full items-center justify-center rounded-card bg-paper-2 px-4 text-[0.9375rem] font-bold text-ink-soft transition-colors duration-150 active:bg-neutral-line"
+              >
+                사용 방법 보기
+              </Link>
+              <Link
+                href="/safety"
+                prefetch={false}
+                onClick={onNavigate}
+                className="inline-flex min-h-[56px] w-full items-center justify-center rounded-card bg-paper-2 px-4 text-[0.9375rem] font-bold text-ink-soft transition-colors duration-150 active:bg-neutral-line"
+              >
+                안전·개인정보 보기
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ② 발화 전송 동의 — **기본 꺼짐**. 켜는 것도 끄는 것도 사용자 손에 있어야 하는 칸이고,
           그 사실을 스위치 바로 옆에서 문장으로 밝힙니다(`ONLINE_COACHING_NOTICE`). */}
-      <div className="mt-5 border-t border-line pt-4">
-        <p id={onlineLabelId} className="chim-label text-ink">
-          {ONLINE_MODE_LABEL}
-        </p>
-        <div role="group" aria-labelledby={onlineLabelId} className="mt-2 flex gap-2">
-          {SWITCH_OPTIONS.map((option) => (
-            <OptionButton
-              key={option.label}
-              label={option.label}
-              selected={online.enabled === option.value}
-              onSelect={() => onOnlineCoaching({ enabled: option.value })}
-            />
-          ))}
-        </div>
-        <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink-soft">
-          {ONLINE_COACHING_NOTICE}
-        </p>
-        <p className="mt-3 text-[0.7813rem] leading-[1.45] text-ink-muted">
-          켜도 판정·게이지·기록은 달라지지 않습니다. 판정이 닿지 않은 말씀에만 코칭 문장이 한 줄
-          더해지고, 근거를 확인하지 못한 문장은 화면에 나가지 않습니다. 연결이 준비돼 있지 않으면
-          외부 AI로는 아무것도 전달되지 않습니다.
-        </p>
-      </div>
-
-      <p className="mt-5 rounded-field bg-paper-2 px-3 py-2 text-[0.9375rem] leading-[1.6] text-ink-soft">
-        설정은 이 기기에만 저장됩니다.
+      <p className="mt-4 text-center text-[0.8438rem] leading-[1.45] text-ink-muted">
+        설정은 이 기기에 자동 저장돼요.
       </p>
 
       {/* 처음 오신 분이 가장 자주 여는 화면이 설정입니다 — 글자를 키우려고 들어왔다가
@@ -340,23 +432,6 @@ function SettingsPanel({
           클래스를 상수로 빼지 않고 두 줄에 그대로 적습니다: 48px 폭 게이트가 여는 태그
           안의 클래스를 읽어 라벨 폭을 어림하므로, 상수로 빼면 그 검사가 이 두 자리를
           「못 읽는 자리」 장부로 넘깁니다(`tests/designScale.test.ts`의 ⓐ 갈래). */}
-      <div className="mt-1 flex flex-wrap items-center gap-x-4">
-        <Link
-          href="/guide"
-          onClick={onNavigate}
-          className="inline-flex min-h-[48px] items-center text-[0.8438rem] leading-[1.45] font-semibold text-ink-muted underline decoration-1 underline-offset-[3px] transition-colors duration-150 hover:text-brand-800"
-        >
-          처음 오신 분께
-        </Link>
-        <Link
-          href="/safety"
-          prefetch={false}
-          onClick={onNavigate}
-          className="inline-flex min-h-[48px] items-center text-[0.8438rem] leading-[1.45] font-semibold text-ink-muted underline decoration-1 underline-offset-[3px] transition-colors duration-150 hover:text-brand-800"
-        >
-          안전·검증 안내
-        </Link>
-      </div>
     </div>
   );
 }

@@ -69,7 +69,7 @@ export function ListRow({
 }: ListRowProps) {
   const s = SIZE[size];
   const base = cx(
-    "flex w-full min-h-[48px] items-center text-left",
+    "flex w-full min-h-[64px] items-center text-left",
     s.row,
     s.gap,
     divider && "border-b border-line",

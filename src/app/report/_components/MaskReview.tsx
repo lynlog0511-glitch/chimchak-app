@@ -252,11 +252,11 @@ export function MaskReview({
       <h2
         ref={headingRef}
         tabIndex={-1}
-        className="text-[0.7813rem] leading-[1.45] font-bold tracking-normal text-ink-muted"
+        className="text-[1.1875rem] leading-[1.3] font-bold tracking-[-0.015em] text-ink"
       >
         {total > 0
-          ? "이렇게 가렸어요. 확정 뒤에 남는 건 이 글뿐입니다"
-          : "가릴 항목을 찾지 못했어요. 확정 뒤에 남는 건 이 글뿐입니다"}
+          ? "가린 개인정보를 확인해 주세요"
+          : "가릴 개인정보가 남았는지 확인해 주세요"}
       </h2>
 
       <div className="mt-[8px] mb-[10px] rounded-card bg-paper-2 px-4 py-[15px] text-[1rem] leading-[1.85] text-ink">
@@ -479,10 +479,10 @@ export function MaskReview({
           누르는 것을 막지는 않습니다. 바 아래에 남는 `PrivacyPath`가 sticky가 움직일 자리입니다. */}
       <StickyCtaBar>
         <BigButton size="lg" block variant={passed ? "primary" : "secondary"} onClick={onNext}>
-          확인으로 넘어가기
+          저장 내용 확인하기
         </BigButton>
         <BigButton variant="ghost" block className="mt-1" onClick={onBack}>
-          다시 말하기
+          내용 다시 입력하기
         </BigButton>
       </StickyCtaBar>
 

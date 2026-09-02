@@ -137,9 +137,9 @@ export function nextStepPreview(steps: ProtocolStep[], index: number): string | 
 
 /* ── 컨트롤 규격 (시안 6d) ────────────────────────────────────
    [이전 | 잠시 멈춤] 아웃라인(line-strong 1px, 흰 바탕) + [다음 단계] 틸 채움(flex 1.4).
-   최소 높이 52px — 손이 바쁜 상황에서 눌리는 크기입니다(터치 48px+ 하한을 넘깁니다). */
+   최소 높이 64px — 손이 바쁜 상황에서도 주 행동을 크게 누를 수 있게 합니다. */
 const CONTROL_BASE =
-  "flex min-h-[52px] items-center justify-center rounded-card px-3 text-[0.9375rem] " +
+  "flex min-h-[64px] items-center justify-center rounded-card px-3 text-[1rem] " +
   "transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-45";
 
 export const CONTROL_OUTLINE = `${CONTROL_BASE} flex-1 border border-line-strong bg-paper font-semibold text-ink-soft active:bg-paper-2`;
@@ -162,7 +162,7 @@ export const CONTROL_QUIET =
    안전을 단언하는 문장에는 쓰지 않습니다(장식 각주가 아니라 읽혀야 하는 고지입니다). */
 export function ProtocolFootnote({ className }: { className?: string }) {
   return (
-    <p className={cx("text-center text-[0.6875rem] leading-[1.6] text-ink-muted", className)}>
+    <p className={cx("text-center text-[1rem] leading-[1.6] text-ink-muted", className)}>
       {PROTOCOL_NOTICE}
       <br />
       신체 술기는 119 상황실이 목소리로 직접 지도합니다

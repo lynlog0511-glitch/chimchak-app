@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { BackGlyph, StatusDot, type StatusTone } from "@/components";
+import { BackGlyph, type StatusTone } from "@/components";
 import { cx } from "@/components/utils";
 
 export interface SessionHeaderProps {
@@ -41,47 +41,41 @@ export function SessionHeader({
   action,
   className,
 }: SessionHeaderProps) {
-  /* ‹ 글리프 자체는 `BackGlyph`가 한 벌로 들고 있습니다(라벨 옆 17px / 단독 19px · ink-soft).
-     여기는 라벨 없이 혼자 서는 아이콘 버튼이라 `solo`입니다. */
   const backClass =
-    "-ml-[14px] flex h-12 w-12 flex-none items-center justify-center rounded-field transition-colors duration-150 active:bg-paper-2";
+    "flex h-12 min-w-[68px] items-center gap-1 rounded-field px-1 text-[0.9375rem] font-bold text-ink transition-colors duration-150 active:bg-paper-2";
 
   return (
-    /* `flex-wrap` — 큰 글씨 대응의 전부입니다 (2026-08-30 · 파일럿 실기기 제보).
-       「아주 크게」(125%)에서는 우측 액션 셋(설정·소리 끄기·종료)의 글자가 함께 커져,
-       한 줄 배치로는 제목 칸이 150px 남짓까지 눌립니다 — 제목은 「현관 앞, 집에 …」로 잘리고
-       부제는 폭 좁은 기둥에서 네댓 줄로 꺾였습니다(실기기 캡처). 뷰포트 분기 없이(§9 레이아웃
-       정체성) **내용이 안 들어가는 순간에만** 액션 줄이 아래로 내려앉게 합니다: 제목 블록의
-       최소 폭(아래 min-w)이 자리를 지키므로, 셋이 한 줄에 못 서면 액션만 둘째 줄 오른쪽 끝으로
-       갑니다. 표준 글씨 430px 프레임에서는 예전처럼 한 줄 그대로입니다. */
-    <header className={cx("flex flex-wrap items-start gap-y-0.5 pt-1.5 pb-3", className)}>
+    <header
+      className={cx(
+        "grid grid-cols-[auto_1fr_auto] items-center gap-1 border-b border-line py-2",
+        className,
+      )}
+    >
       {backHref ? (
-        <Link href={backHref} aria-label={backLabel} onClick={onBack} className={backClass}>
-          <BackGlyph size="solo" />
+        <Link href={backHref} onClick={onBack} className={backClass}>
+          <BackGlyph size="inline" />
+          <span>{backLabel}</span>
         </Link>
       ) : onBack ? (
-        <button type="button" aria-label={backLabel} onClick={onBack} className={backClass}>
-          <BackGlyph size="solo" />
+        <button type="button" onClick={onBack} className={backClass}>
+          <BackGlyph size="inline" />
+          <span>{backLabel}</span>
         </button>
       ) : null}
 
-      {/* 최소 폭 11rem — rem이라 글자 배율을 따라 커지고, 그래서 「액션이 내려앉는 문턱」도
-          배율과 함께 움직입니다. 표준(176px)에서는 현행 한 줄이 그대로 성립하는 값입니다. */}
-      <div className="min-w-[11rem] flex-1">
-        <h1 className="truncate text-[1rem] leading-[1.3] font-bold tracking-[-0.01em] text-ink">
-          {title}
-        </h1>
-        {/* 「AI는 어르신 역만 맡습니다」는 이 제품의 방어 논리입니다 —
-            390px에서 잘리지 않도록 두 줄까지 허용합니다. */}
-        <p className="mt-[1px] flex min-w-0 items-start gap-[4px] text-[0.7813rem] leading-[1.45] text-ink-muted">
-          <StatusDot tone={statusTone} className="relative top-[4px]" />
-          <span className="min-w-0">{status}</span>
+      <div className="min-w-0 text-center">
+        <h1 className="sr-only">{title}</h1>
+        <p
+          className={cx(
+            "text-[0.9375rem] font-bold",
+            statusTone === "danger" ? "text-danger-ink" : "text-ink-soft",
+          )}
+        >
+          {status}
         </p>
       </div>
 
-      {/* `ml-auto` — 한 줄일 때는 지금 자리 그대로이고, 둘째 줄로 내려앉았을 때 오른쪽 끝에
-          붙습니다(종료가 늘 오른쪽 끝이라는 손 기억을 배율이 바꿔도 지킵니다). */}
-      {action && <div className="ml-auto flex-none whitespace-nowrap">{action}</div>}
+      {action && <div className="flex-none whitespace-nowrap">{action}</div>}
     </header>
   );
 }

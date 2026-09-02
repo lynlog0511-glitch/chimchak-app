@@ -104,7 +104,7 @@ export const DEFAULT_AI_DIALOGUE: AiDialogueSettings = { enabled: true };
 export const DEFAULT_ONLINE_COACHING: OnlineCoachingSettings = { enabled: false };
 
 export const DEFAULT_SETTINGS: ChimchakSettings = {
-  fontScale: "standard",
+  fontScale: "xlarge",
   speechRate: "standard",
   aiDialogue: DEFAULT_AI_DIALOGUE,
   onlineCoaching: DEFAULT_ONLINE_COACHING,

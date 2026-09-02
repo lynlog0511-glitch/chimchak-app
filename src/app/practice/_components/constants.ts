@@ -57,11 +57,11 @@ export const GATE_TRAIN_CTA = "상황 훈련으로 가기";
  * (`app/practice/page.tsx`의 ScreenHeader action) — 예전에는 없는 컨트롤을 가리켰습니다.
  */
 export const GATE_SETTINGS_HINT =
-  `이 설정은 화면 오른쪽 위 「설정」의 「${ONLINE_MODE_SHORT_LABEL}」에서 켜고 끄실 수 있습니다.`;
+  `이 설정은 화면 오른쪽 위 「글자·소리」의 「${ONLINE_MODE_SHORT_LABEL}」에서 켜고 끄실 수 있습니다.`;
 
 /** 꺼져 있어서 막힌 자리 — 여기서 바로 켜실 수 있습니다. */
 export const GATE_ENABLE_HINT =
-  "아래 버튼으로 지금 켜실 수 있습니다. 화면 오른쪽 위 「설정」에서 언제든 다시 끄실 수 있습니다.";
+  "아래 버튼으로 지금 켜실 수 있습니다. 화면 오른쪽 위 「글자·소리」에서 언제든 다시 끄실 수 있습니다.";
 export const GATE_ENABLE_CTA = "안내에 동의하고 켜기";
 
 /* ── 시드 고르기 ───────────────────────────────────────── */

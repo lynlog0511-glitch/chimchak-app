@@ -36,8 +36,8 @@ const INPUT =
   "text-[1.0625rem] leading-[1.6] text-ink placeholder:text-ink-faint";
 
 const SAVE_BUTTON =
-  "flex min-h-[48px] flex-1 items-center justify-center rounded-card bg-brand-700 px-3 " +
-  "text-[0.9375rem] font-bold text-paper transition-colors duration-150 active:bg-brand-800 " +
+  "flex min-h-[64px] flex-1 items-center justify-center rounded-card bg-brand-700 px-3 " +
+  "text-[1rem] font-bold text-paper transition-colors duration-150 active:bg-brand-800 " +
   "disabled:cursor-not-allowed disabled:opacity-45";
 
 const OUTLINE_BUTTON =

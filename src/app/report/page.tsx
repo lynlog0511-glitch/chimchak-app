@@ -4,9 +4,9 @@ import { SOURCE_DOCS } from "@/data/docs";
 import { ReportWizard } from "./_components/ReportWizard";
 
 export const metadata: Metadata = {
-  title: "보고 · 기록",
+  title: "돌봄 기록 만들기",
   description:
-    "말로 보고하면 기기 안에서 이름·번호를 가리고, 급여제공기록지 5요소 초안을 만들어 드립니다. 확정은 직접 누르실 때만 이 기기에 저장됩니다.",
+    "말하거나 적은 돌봄 내용을 기기 안에서 가리고, 확인한 기록만 이 기기에 저장합니다.",
 };
 
 /**
@@ -26,9 +26,9 @@ export const metadata: Metadata = {
  */
 export default function ReportPage() {
   return (
-    <PageShell sourceDocs={SOURCE_DOCS}>
+    <PageShell sourceDocs={SOURCE_DOCS} className="chim-report-shell">
       {/* 시안 6e — 제목과 단계 인디케이터 사이는 10px. 사이에 아무것도 끼우지 않습니다. */}
-      <ScreenHeader title="보고 · 기록" className="pb-[10px]" />
+      <ScreenHeader title="돌봄 기록 만들기" className="pb-[10px]" />
 
       <ReportWizard />
 
@@ -53,10 +53,9 @@ export default function ReportPage() {
           <div className="mt-2">
             <SourceChip docId="DOC-NOTI-002" />
           </div>
+          <InlineDisclaimer size="md" tone="readable" className="mt-4" />
         </div>
       </details>
-
-      <InlineDisclaimer size="md" tone="readable" className="mt-6 mb-3" />
     </PageShell>
   );
 }

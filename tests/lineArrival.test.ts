@@ -327,11 +327,12 @@ describe("배선 (TrainSession · useModalDismiss 소스)", () => {
     expect(session).toContain("typeof window === \"undefined\" ? useEffect : useLayoutEffect");
   });
 
-  it("로그 리전과 「읽어 주는 중」이 lineSpokenAloud 한 값을 함께 본다", () => {
-    expect(session).toContain("spokenAloud={logSpokenAloud}");
-    expect(session).toContain("const logSpokenAloud = lineSpokenAloud({");
+  it("현재 대사 리전과 「읽어 주는 중」이 lineSpokenAloud 한 값을 함께 본다", () => {
+    expect(session).toContain("spokenAloud={currentLineSpokenAloud}");
+    expect(session).toContain("const currentLineSpokenAloud = lineSpokenAloud({");
     // 낭독 효과 쪽 — 소리가 나지 않는 문장에는 「읽어 주는 중」을 달지 않는다.
-    const at = session.indexOf("if (lineSpokenAloud({ spokenAloud, varied: text !== lastLine.text");
+    const narration = session.indexOf("const text = variationsRef.current.get(key)");
+    const at = session.indexOf("lineSpokenAloud({", narration);
     expect(at).toBeGreaterThan(-1);
     expect(session.slice(at, at + 200)).toContain("setSpeakingKey(key);");
   });

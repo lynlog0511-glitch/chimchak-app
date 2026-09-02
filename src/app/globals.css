@@ -318,6 +318,10 @@
   --chim-safe-b: env(safe-area-inset-bottom, 0px);
   --chim-safe-t: env(safe-area-inset-top, 0px);
 
+  /* 세션 입력 도크는 글자가 클수록 낮춰 대화가 읽힐 자리를 남깁니다.
+     기본값은 신규 사용자 설정인 「아주 크게」이고, 저장값은 첫 페인트 전 data 속성으로 반영됩니다. */
+  --chim-dock-max-h: 40dvh;
+
   /* ※ v3 잔재 `--chim-disclaimer-h: 0rem`은 2026-08-26에 지웠습니다 — 전역 고지 바가 사라진 뒤
        참조가 0건이었고, 「남은 화면이 참조하더라도 0이 되도록」이라는 사유가 가리키는 화면이
        이미 없었습니다. 고지는 이제 각 화면이 인라인으로 그립니다(`InlineDisclaimer`).
@@ -332,6 +336,18 @@
      rem으로 바뀌면서 「아주 크게」에서는 76px까지 자랐습니다 — 같은 사실이 두 곳에 적혀 있으면
      한쪽만 낡습니다(페르소나 FE med). 숫자는 이제 탭바 하나만 압니다. */
   --chim-tabbar-h: 67px;
+}
+
+:root[data-chim-font-scale="standard"] {
+  --chim-dock-max-h: 45dvh;
+}
+
+:root[data-chim-font-scale="large"] {
+  --chim-dock-max-h: 42dvh;
+}
+
+:root[data-chim-font-scale="xlarge"] {
+  --chim-dock-max-h: 40dvh;
 }
 
 @layer base {
@@ -506,6 +522,17 @@
   /* 화면 좌우 여백 — 시안 20px. 전 뷰포트 한 값입니다(프레임이 이미 430px이라 읽기 폭이 따로 없습니다). */
   .chim-pad {
     padding-inline: var(--chim-pad-x);
+  }
+
+  /* 보고 1단계의 전진 버튼은 탭바 위에 고정됩니다. 버튼은 글자 크기와 줄바꿈에 따라 높이가
+     달라지므로 `StickyCtaBar`가 실제 높이를 재어 이 값에 씁니다. 고정 바만 띄우고 고정 숫자
+     여백을 두면 125%에서 마지막 안내가 가려지므로, 본문 끝은 같은 실측값과 12px 숨 쉴 틈을
+     함께 씁니다. */
+  .chim-report-shell {
+    padding-bottom: calc(var(--chim-report-cta-h, 0px) + 0.75rem);
+    scroll-padding-bottom: calc(
+      var(--chim-report-cta-h, 0px) + var(--chim-tabbar-h, 67px) + var(--chim-safe-b) + 0.75rem
+    );
   }
 
   /* 하단 탭바 — 문서 흐름 안 sticky. 짧은 화면에서는 바닥에, 긴 화면에서는 뷰포트 하단에 붙습니다.

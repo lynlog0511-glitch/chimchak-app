@@ -72,9 +72,9 @@ export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: Dr
   return (
     <div>
       <h2 ref={headingRef} tabIndex={-1} className="text-[1.1875rem] leading-[1.3] font-bold tracking-[-0.015em] text-ink">
-        급여제공기록지 초안을 확인하고 고쳐 주세요
+        저장할 돌봄 기록을 확인해 주세요
       </h2>
-      <p className="mt-[6px] text-[0.7813rem] leading-[1.6] text-ink-muted">
+      <p className="mt-[6px] text-[0.9375rem] leading-[1.6] text-ink-soft">
         가린 문장에서 5요소를 나눠 담았습니다. 기기 안의 규칙으로 나눈 초안이라 어색한
         곳이 있을 수 있습니다. 사실과 다르면 바로 고쳐 주세요.
       </p>
@@ -194,7 +194,7 @@ export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: Dr
           onClick={onConfirm}
           disabled={allEmpty}
         >
-          이대로 확정하기
+          이대로 저장하기
         </BigButton>
         {allEmpty && (
           <p className="mt-[6px] text-center text-[0.8438rem] leading-[1.45] text-ink-muted">
@@ -202,7 +202,7 @@ export function DraftForm({ draft, onChange, onBack, onConfirm, headingRef }: Dr
           </p>
         )}
         <BigButton variant="ghost" block className="mt-1" onClick={onBack}>
-          가리기 화면으로 돌아가기
+          개인정보 확인으로 돌아가기
         </BigButton>
       </StickyCtaBar>
 

@@ -151,6 +151,10 @@ export interface Scenario {
   durationMin: number;
   tiers: Tier[];
   summary: string; // 목록 카드용 한 줄 설명
+  /** 시작 전 화면에 그대로 보여 줄 짧은 상황 설명 두 문장 */
+  situationLines: readonly [string, string];
+  /** 시작 전 화면에 그대로 보여 줄 핵심 연습 포인트 두 문장 */
+  practicePoints: readonly [string, string];
   objectives: string[]; // 학습 목표
   personas: PersonaDef[];
   context: string; // 상황 개시 시점 서술

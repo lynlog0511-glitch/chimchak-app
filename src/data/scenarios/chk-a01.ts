@@ -78,10 +78,24 @@ const UNCLEAR_COACHING_CLOSING =
 const CF_RESTRAINT_MESSAGE =
   "잠시 멈추겠습니다. 어르신의 몸을 붙잡거나 문을 잠그는 것은 노인복지법 제39조의9가 금지하는 신체 자유의 제한에 해당합니다. 지금 하실 수 있는 것은 ①감정을 먼저 말로 인정하기 ②동의를 구한 뒤 손을 잡고 함께 걷기 ③함께 할 다른 활동을 제안하기입니다. 다시 해보시겠어요?";
 
+const CF_RESTRAINT_EMPATHY = "\"집에 가고 싶으시구나\" 하고 감정을 먼저 말로 인정합니다.";
+const CF_RESTRAINT_CONSENT =
+  "\"제 손 잡고 같이 가실까요?\" 하고 동의를 구한 뒤 함께 움직입니다.";
+const CF_RESTRAINT_ACTIVITY =
+  "\"사진첩 같이 볼까요?\" 하고 함께 할 다른 활동을 제안합니다.";
+
+/** 감정을 묻는 장면에서는 마음을 알아드리는 문장을 먼저 권합니다. */
 const CF_RESTRAINT_ALTERNATIVES = [
-  "\"집에 가고 싶으시구나\" 하고 감정을 먼저 말로 인정합니다.",
-  "\"제 손 잡고 같이 가실까요?\" 하고 동의를 구한 뒤 함께 움직입니다.",
-  "\"사진첩 같이 볼까요?\" 하고 함께 할 다른 활동을 제안합니다.",
+  CF_RESTRAINT_EMPATHY,
+  CF_RESTRAINT_CONSENT,
+  CF_RESTRAINT_ACTIVITY,
+];
+
+/** 행동을 묻는 장면에서는 현재 CUE를 실제로 통과하는 동의 문장을 먼저 권합니다. */
+const CF_RESTRAINT_ACTION_ALTERNATIVES = [
+  CF_RESTRAINT_CONSENT,
+  CF_RESTRAINT_ACTIVITY,
+  CF_RESTRAINT_EMPATHY,
 ];
 
 /**
@@ -137,6 +151,14 @@ export const CHK_A01: Scenario = {
   tiers: ["L1", "L2"],
   summary:
     "해 질 무렵 현관 앞에서 귀가를 요구하시는 어르신께, 제지하지 않고 말로 다가가는 연습입니다.",
+  situationLines: [
+    "어르신이 외투 없이 현관문을 열려 합니다.",
+    "밖은 어둡고 3℃이며, 서비스 종료까지 20분 남았습니다.",
+  ],
+  practicePoints: [
+    "마음을 먼저 알아드리고 이유를 여쭤봅니다.",
+    "붙잡지 않고 안전을 지킨 뒤 본 대로 보고합니다.",
+  ],
   objectives: [
     "LO-1 사실을 정정하기 전에 대상자의 정서를 언어로 먼저 인정합니다. (RE-01, RE-02)",
     "LO-2 배회 행동의 미충족 욕구와 환경 요인을 각 1개 이상 확인합니다. (SA-02, SA-03)",
@@ -499,7 +521,7 @@ export const CHK_A01: Scenario = {
             rubricHits: [{ itemId: "CO-02", score: 1 }],
             criticalFail: true,
             cfMessage: CF_RESTRAINT_MESSAGE,
-            cfAlternatives: CF_RESTRAINT_ALTERNATIVES,
+            cfAlternatives: CF_RESTRAINT_ACTION_ALTERNATIVES,
             docId: "DOC-LAW-003",
             next: "T-1",
           },
@@ -985,7 +1007,7 @@ export const CHK_A01: Scenario = {
             rubricHits: [{ itemId: "CO-02", score: 1 }],
             criticalFail: true,
             cfMessage: CF_RESTRAINT_MESSAGE,
-            cfAlternatives: CF_RESTRAINT_ALTERNATIVES,
+            cfAlternatives: CF_RESTRAINT_ACTION_ALTERNATIVES,
             docId: "DOC-LAW-003",
             next: "T-1B",
           },
@@ -1136,7 +1158,7 @@ export const CHK_A01: Scenario = {
             rubricHits: [{ itemId: "CO-02", score: 1 }],
             criticalFail: true,
             cfMessage: CF_RESTRAINT_MESSAGE,
-            cfAlternatives: CF_RESTRAINT_ALTERNATIVES,
+            cfAlternatives: CF_RESTRAINT_ACTION_ALTERNATIVES,
             docId: "DOC-LAW-003",
             next: "T3",
           },

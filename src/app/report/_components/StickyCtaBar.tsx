@@ -25,6 +25,8 @@ const DOCK_POSITION = "sticky bottom-[calc(var(--chim-tabbar-h,67px)_+_var(--chi
 export interface StickyCtaBarProps {
   children: ReactNode;
   className?: string;
+  /** 1단계 입력 뒤에는 편집 중에도 계속 보이도록 앱 프레임 하단에 고정합니다. */
+  fixed?: boolean;
 }
 
 /**
@@ -38,12 +40,42 @@ export interface StickyCtaBarProps {
  * 패딩 박스 안에서만 움직이므로, 마지막 자식으로 두면 움직일 자리가 0이 되어 붙지 않습니다.
  * 두 단계 모두 `PrivacyPath`(이 보고가 지나가는 길)를 바 아래로 내려 그 자리를 만들었습니다.
  */
-export function StickyCtaBar({ children, className }: StickyCtaBarProps) {
+export function StickyCtaBar({ children, className, fixed = false }: StickyCtaBarProps) {
+  const barRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!fixed) return undefined;
+    const node = barRef.current;
+    if (!node) return undefined;
+
+    const root = document.documentElement;
+    const updateHeight = (): void => {
+      root.style.setProperty("--chim-report-cta-h", `${Math.ceil(node.offsetHeight)}px`);
+    };
+
+    updateHeight();
+    const observer =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(updateHeight);
+    observer?.observe(node);
+    window.addEventListener("resize", updateHeight);
+
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", updateHeight);
+      root.style.removeProperty("--chim-report-cta-h");
+    };
+  }, [fixed]);
+
   return (
     <div
+      ref={barRef}
       className={cx(
-        DOCK_POSITION,
-        "z-10 mt-5 border-t border-line bg-paper pt-3.5 pb-3.5",
+        fixed
+          ? "fixed bottom-[calc(var(--chim-tabbar-h,67px)_+_var(--chim-safe-b))] left-1/2 z-20 w-[min(100vw,var(--chim-frame-w))] -translate-x-1/2 px-[var(--chim-pad-x)]"
+          : DOCK_POSITION,
+        fixed
+          ? "border-t border-line bg-paper pt-3.5 pb-3.5"
+          : "z-10 mt-5 border-t border-line bg-paper pt-3.5 pb-3.5",
         className,
       )}
     >

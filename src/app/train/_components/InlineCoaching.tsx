@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useState } from "react";
 import { SourceChip, useSourceDoc } from "@/components";
-import { ChevronGlyph, StatusMark, STATUS_MARK_LABEL, type StatusMarkKind } from "@/components/icons";
+import { ChevronGlyph, STATUS_MARK_LABEL, type StatusMarkKind } from "@/components/icons";
 import { cx } from "@/components/utils";
 import { getRubricItem } from "@/data/rubric";
 import type { FeedbackTrace, TracedFeedback } from "@/engine";
@@ -13,10 +13,9 @@ import {
 } from "@/lib/onlineCoach";
 import {
   COACH_HEAD,
-  COACH_HEAD_TEXT,
   gaugeDeltaChip,
-  gaugeDeltaTone,
 } from "./constants";
+import { splitCoachingMessage } from "./coachingCopy";
 
 export interface InlineCoachingProps {
   feedback: TracedFeedback;
@@ -223,6 +222,7 @@ export function InlineCoaching({ feedback, gaugeLabel, className }: InlineCoachi
   const chip = gaugeDeltaChip(gaugeLabel, feedback.gaugeDelta);
   const trace = feedback.trace;
   const online = useOnlineCoaching(feedback);
+  const coaching = splitCoachingMessage(feedback.message);
 
   /* 걸린 루브릭 항목 — 행동지표 문장만 가져옵니다. 점수·앵커는 내부 전용이라 읽지 않습니다. */
   const basis = (trace?.itemIds ?? []).flatMap((itemId) => {
@@ -235,93 +235,55 @@ export function InlineCoaching({ feedback, gaugeLabel, className }: InlineCoachi
     .filter((id): id is string => typeof id === "string" && id !== feedback.docId)
     .filter((id, index, all) => all.indexOf(id) === index);
 
+  const heading = feedback.criticalFail
+    ? "잠깐 멈춰 주세요"
+    : feedback.ok
+      ? "좋았어요"
+      : "이렇게 바꿔 보세요";
+
   return (
-    <div className={cx("flex gap-[8px] px-1", className)}>
-      <span className="relative top-[1px] flex-none">
-        <StatusMark kind={kind} size="sm" />
-      </span>
+    <section
+      className={cx(
+        "rounded-panel px-5 py-4",
+        feedback.ok ? "bg-brand-tint" : "bg-warn-soft",
+        className,
+      )}
+      aria-label="방금 답변 코칭"
+    >
+      <h2 className={cx("text-[1.1875rem] leading-[1.3] font-bold", feedback.ok ? "text-brand-800" : "text-warn-ink")}>
+        {heading}
+      </h2>
+      <p className="mt-2 text-[1.0625rem] leading-[1.6] text-ink">{coaching.lead}</p>
 
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          {/* 판정어는 「충족 / 코칭 / 즉시 중단」 세 낱말을 그대로 씁니다. */}
-          <span className="sr-only">{STATUS_MARK_LABEL[kind]} 판정</span>
-          <span className={cx("text-[0.7813rem] leading-[1.45] font-bold", COACH_HEAD_TEXT[kind])}>
-            {COACH_HEAD[kind]}
-          </span>
-          {chip && (
-            <span
-              className={cx(
-                "rounded-[5px] px-1.5 py-px text-[0.6875rem] leading-[1.45] font-semibold",
-                gaugeDeltaTone(feedback.gaugeDelta),
-              )}
-            >
-              {chip}
-            </span>
-          )}
-        </div>
-
-        {/* 코칭 문장 — 이 덩어리의 주인공입니다 (시안 15px). */}
-        <p className="mt-[3px] text-[0.9375rem] leading-[1.6] text-ink-soft">{feedback.message}</p>
-
-        {/* 온라인 코칭을 켠 경우에만 한 덩어리가 더 붙습니다. 기다리는 동안에는 아무것도
-            그리지 않습니다 — 스피너로 흐름을 막지 않고, 검수 코칭이 먼저 자리를 지킵니다. */}
-        {online && <OnlineCoachingBlock outcome={online} />}
-
-        {/* 근거 문서 칩과 토글을 한 덩어리로 묶어 **행 전체**를 누를 수 있게 합니다.
-            예전에는 밑줄 텍스트만 27px이라, 48px을 지키는 이 앱에서 유일하게 손가락이
-            미끄러지는 컨트롤이었습니다(평가 UI/UX mi9 실측 · 완주 한 회에 7개 노출).
-
-            2026-08-24 — 이 줄에 상시 노출하던 판정 경로(「판정: 시나리오 규칙표 · 선택지 그대로」)는
-            접힘 안으로 내렸습니다. 사실을 지운 것이 아니라 자리를 옮긴 것입니다: 코칭 문장 바로 밑에서
-            매 턴 읽히던 것이 판정기의 이름이라, 정작 읽으셔야 할 코칭 한 문장과 같은 무게로 서 있었습니다.
-            겉에 남는 것은 「어느 문서에서 왔는가」 하나와 그 문을 여는 말 하나입니다. */}
-        {trace ? (
+      {(coaching.detail || trace || doc || feedback.branchLabel.length > 0 || chip || online) && (
+        <>
           <button
             type="button"
             onClick={() => setOpen((value) => !value)}
             aria-expanded={open}
             aria-controls={panelId}
-            className="-mx-1.5 mt-1 flex min-h-[48px] w-full flex-wrap items-center gap-x-1.5 gap-y-0.5 rounded-field px-1.5 py-1 text-left text-[0.7813rem] leading-[1.45] text-ink-muted transition-colors duration-150 hover:bg-paper-2 active:bg-paper-2"
+            className="mt-2 flex min-h-[48px] w-full items-center rounded-field text-left text-[0.9375rem] font-bold text-ink-soft underline decoration-1 underline-offset-[4px]"
           >
-            {doc && (
-              /* 문서명 칩 — 면 대신 헤어라인 하나로만 두릅니다. 행 전체가 눌리는 컨트롤이라
-                 여기에 면을 깔면 눌림 반응(paper-2)에 칩이 함께 잠깁니다. */
-              <span className="min-w-0 truncate rounded-[5px] border border-line-strong px-1.5 py-px text-[0.6875rem] leading-[1.45] font-semibold text-ink-muted">
-                <span aria-hidden>§ </span>
-                {doc.title}
-              </span>
-            )}
-            {/* 손잡이 문구 — 접힘 구조와 aria(aria-expanded/controls)는 그대로 두고 말만 바꿉니다.
-                「왜 이 판정인가요?」를 누른 분이 알고 싶은 것은 「내가 왜 틀렸지」인데, 열면
-                판정 경위가 나옵니다(교육생 검증). 문을 여는 말을 안에 있는 것과 맞춥니다. */}
-            <span className="font-semibold underline decoration-1 underline-offset-[3px]">
-              무엇을 보고 정했나요
-            </span>
+            왜 그런가요?
             <ChevronGlyph
               size="sm"
-              className={cx("ml-auto flex-none text-ink-ghost", open && "rotate-180")}
+              className={cx("ml-auto flex-none text-ink-muted", open && "rotate-180")}
             />
           </button>
-        ) : (
-          (doc || feedback.branchLabel.length > 0) && (
-            <div className="mt-1 flex flex-wrap items-baseline gap-x-1.5 text-[0.7813rem] leading-[1.45] text-ink-muted">
-              {doc ? (
-                <span className="min-w-0">
-                  <span aria-hidden>§ </span>
-                  {doc.title}
-                </span>
-              ) : (
-                <span>{feedback.branchLabel}</span>
-              )}
-            </div>
-          )
-        )}
 
-        {trace && open && (
-          <div
-            id={panelId}
-            className="mt-2 space-y-2.5 rounded-card bg-paper-2 px-3.5 py-3 text-[0.7813rem] leading-[1.6] text-ink-soft"
-          >
+          {open && (
+            <div
+              id={panelId}
+              className="mt-2 space-y-3 border-t border-line pt-3 text-[0.9375rem] leading-[1.6] text-ink-soft"
+            >
+              {coaching.detail && <p className="font-semibold text-ink">{coaching.detail}</p>}
+              <p className="font-semibold text-ink">
+                {STATUS_MARK_LABEL[kind]} · {COACH_HEAD[kind]}
+                {chip ? ` · ${chip}` : ""}
+              </p>
+              {online && <OnlineCoachingBlock outcome={online} />}
+              {trace && (
+                <>
             {/* 첫 줄은 **돌봄 근거**입니다 — 판정기의 계보가 아니라 「현장에서 무엇이 옳은가」를
                 먼저 세웁니다. 걸린 항목이 있으면 그 항목의 할 일 한 문장, 없으면 근거 문서의
                 해당 대목입니다. 판정 경위는 그 아래로 내려갑니다(교육생 검증). */}
@@ -392,10 +354,16 @@ export function InlineCoaching({ feedback, gaugeLabel, className }: InlineCoachi
             <p className="border-t border-line pt-2 font-semibold text-ink-muted">
               이 확인은 기기 안에서 했습니다
             </p>
-          </div>
-        )}
-      </div>
-    </div>
+                </>
+              )}
+              {!trace && (
+                <p>{doc?.title ?? feedback.branchLabel}</p>
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </section>
   );
 }
 

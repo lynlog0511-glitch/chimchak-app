@@ -1,9 +1,8 @@
-import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
   BigButton,
-  EyebrowLabel,
+  ChevronGlyph,
   InlineDisclaimer,
   ListRow,
   ListRows,
@@ -12,371 +11,170 @@ import {
 } from "@/components";
 import { CALL_119_CAPTION } from "@/app/emergency/_components/Call119Bar";
 import { SOURCE_DOCS } from "@/data/docs";
-import { PROTOCOLS, PROTOCOL_COUNT_PHRASE } from "@/data/protocols";
-import { CHK_A01, getActiveScenarios } from "@/data/scenarios";
+import { CHK_A01 } from "@/data/scenarios";
 import { DocCloseButton } from "../_components/DocCloseButton";
-import { ONLINE_MODE_SHORT_LABEL } from "@/lib/settings";
 import { GUIDE_PRIVACY_FAQ_ID } from "../_components/guideAnchors";
 
 export const metadata: Metadata = {
-  title: "처음 오신 분께",
-  description:
-    "네 화면이 하루 어디에 놓이는지, 첫 훈련을 시작하기까지 세 걸음, 그리고 자주 묻는 다섯 가지를 한 장에 적었습니다.",
+  title: "사용 방법",
+  description: "연습을 시작하는 세 단계와 자주 묻는 질문을 간단히 안내합니다.",
 };
 
-/* 화면에 적는 숫자는 데이터에서 세어 옵니다 — 시나리오·프로토콜이 늘면 이 문장도 함께 바뀝니다.
-   손으로 적어 두면 편성표가 늘어난 날 이 화면만 옛 숫자를 말하게 됩니다. */
-const ACTIVE_SCENARIOS = getActiveScenarios();
-const ACTIVE_COUNT = ACTIVE_SCENARIOS.length;
-const PROTOCOL_COUNT = PROTOCOLS.length;
+const FIRST_SCENARIO_HREF = `/train/${CHK_A01.id.toLowerCase()}`;
 
-/** 한 판이 몇 분인지 — 열린 시나리오의 실제 소요 폭입니다(한 종뿐이면 「약 N분」). */
-const DURATIONS = ACTIVE_SCENARIOS.map((scenario) => scenario.durationMin);
-const MIN_MINUTES = Math.min(...DURATIONS);
-const MAX_MINUTES = Math.max(...DURATIONS);
-const DURATION_TEXT =
-  MIN_MINUTES === MAX_MINUTES ? `약 ${MIN_MINUTES}분` : `${MIN_MINUTES}~${MAX_MINUTES}분`;
-
-/** 첫 연습으로 여는 시나리오 — 홈 히어로 CTA와 같은 자리로 보냅니다(두 곳이 갈리지 않게). */
-const FIRST_SCENARIO = CHK_A01;
-const FIRST_SCENARIO_HREF = `/train/${FIRST_SCENARIO.id.toLowerCase()}`;
-
-/**
- * 첫 화면 고정 문구 — 안전 규칙(브리프 §3-3)에 걸린 문장입니다. 한 글자도 바꾸지 마세요.
- * 홈(`app/page.tsx`)의 히어로와 같은 문장이며, 처음 오신 분이 홈을 지나쳐 이 화면으로 바로
- * 들어오셔도 같은 약속을 먼저 읽으시게 두는 자리입니다.
- */
-const PRACTICE_LINE = "정답을 맞히는 시험이 아니라, 말이 나오게 만드는 연습입니다.";
-
-function Section({
-  title,
-  lead,
-  children,
-}: {
-  title: string;
-  lead?: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className="mt-7">
-      <h2 className="text-[1.1875rem] leading-[1.3] font-bold tracking-[-0.015em] text-ink">{title}</h2>
-      {lead && <p className="mt-[6px] text-[0.8438rem] leading-[1.6] text-ink-soft">{lead}</p>}
-      {children}
-    </section>
-  );
-}
-
-/** 하루의 어느 자리에서 여는 화면인지 — 시간 순서 그대로 놓습니다. */
-const WHEN_ROWS: readonly { when: string; title: string; desc: string; href: string }[] = [
+const STEPS: readonly { title: string; description: string }[] = [
   {
-    when: "근무 전",
-    title: "훈련 — 말이 나오는지 미리 한 번",
-    desc: `어르신 역은 AI가 맡고, 옳고 그름은 법령·공단 지침이 봅니다. 지금 열린 상황은 ${ACTIVE_COUNT}종이고 한 판이 ${DURATION_TEXT}입니다.`,
-    href: "/train",
+    title: "연습할 상황을 고르세요.",
+    description: "처음에는 ‘현관 앞, 집에 가야 해요’를 추천해요.",
   },
   {
-    when: "근무 중",
-    title: "응급 안내 — 손이 급할 때 목소리로",
-    // 문두의 「검수된」은 2026-08-30에 걷었습니다 — 그 한 낱말이 뒤따르는 셈을 통째로 덮어,
-    // 아직 감수를 마치지 않은 다섯 종까지 검수된 것으로 읽혔습니다(적대 검증 M7).
-    // 감수 상태는 이제 셈 안에 그대로 적힙니다(`PROTOCOL_COUNT_PHRASE`).
-    desc: `고정 문구 — ${PROTOCOL_COUNT_PHRASE}을 음성과 큰 자막으로 읽어 드립니다. 통신이 끊긴 자리에서도 열리고, 신체 술기는 119 상황실이 목소리로 직접 지도합니다.`,
-    href: "/emergency",
+    title: "어르신의 말을 듣고 답하세요.",
+    description: "마이크가 어려우면 큰 버튼이나 글 입력으로 답할 수 있어요.",
   },
   {
-    when: "근무 후",
-    title: "보고 — 말로 하면 기록 초안까지",
-    desc: "말이나 타이핑으로 상황을 보고하시면 기기 안에서 가려야 할 곳을 표시하고, 급여제공기록지 5요소 초안을 만들어 드립니다. 확정은 직접 누르십니다.",
-    href: "/report",
-  },
-  {
-    when: "이따금",
-    title: "내 이력 — 해 본 것과 다시 볼 것",
-    desc: "지나온 훈련과 확정하신 기록이 모입니다. 기관에 낼 이수 확인서도 이 화면에서 만드십니다.",
-    href: "/history",
+    title: "바로 나오는 도움말을 확인하세요.",
+    description: "한 번 답할 때마다 잘한 점과 다음에 해 볼 말을 알려드려요.",
   },
 ];
 
-/** 첫 훈련을 시작하기까지 — 화면에서 실제로 누르시는 순서 그대로입니다. */
-const STEPS: readonly { title: string; desc: string }[] = [
+const FAQ: readonly {
+  id?: string;
+  question: string;
+  answer: string;
+  href: string;
+  linkLabel: string;
+}[] = [
   {
-    title: "상황을 고릅니다",
-    desc: "훈련 화면에서 카드 하나를 누르시면 됩니다. 처음이시라면 「현관 앞, 집에 가야 해요」를 권해 드립니다.",
-  },
-  {
-    title: "브리핑을 읽고 시작합니다",
-    desc: "어떤 분이고 무슨 상황인지 한 장으로 먼저 보여 드립니다. 등장인물은 전원 가상 인물이며 실존 인물·기관과 무관합니다.",
-  },
-  {
-    title: "말이나 버튼으로 답합니다",
-    desc: "마이크를 꾹 누른 채 말씀하셔도 되고, 아래 제안 버튼이나 직접 입력만 쓰셔도 됩니다. 한 번 답할 때마다 그 자리에서 코칭 한 줄이 붙습니다.",
-  },
-];
-
-/**
- * 자주 묻는 다섯 가지.
- *
- * 답은 **지금 코드가 하는 일**만 적습니다 — 「곧 됩니다」·「대체로 안전합니다」류의 여지를 두면
- * 이 화면이 앱보다 앞서가 버립니다. 각 항목은 실제로 확인하실 수 있는 화면으로 보냅니다.
- */
-const FAQ: readonly { id?: string; q: string; a: ReactNode; href: string; linkLabel: string }[] = [
-  {
-    q: "마이크가 안 되면 훈련을 못 하나요?",
-    a: (
-      <>
-        하실 수 있습니다. 마이크는 거들 뿐이고, <b className="font-bold text-ink">제안 버튼과 직접
-        입력만으로 처음부터 끝까지 완주</b>하도록 만들었습니다. 마이크 버튼을 처음 누르시면
-        브라우저가 사용 허용을 묻는데, 허용하지 않으셔도 훈련은 그대로 이어집니다. 소리로 읽어
-        주는 기능이 없는 기기에서도 안내 문구는 화면 자막으로 전부 보실 수 있습니다.
-      </>
-    ),
+    question: "마이크가 안 돼요",
+    answer:
+      "괜찮아요. 제안 버튼이나 글 입력만으로 처음부터 끝까지 연습할 수 있어요. 소리로 읽어주는 기능이 없어도 안내 글은 모두 보여요.",
     href: "/train",
-    linkLabel: "훈련 화면 열기",
+    linkLabel: "연습 화면 열기",
   },
   {
-    q: "인터넷이 끊기면 어떻게 되나요?",
-    a: (
-      <>
-        한 번 여신 적이 있는 기기라면 응급 안내 {PROTOCOL_COUNT}종과 훈련 한 바퀴가 기기에 저장돼
-        있어 그대로 열립니다. 이 앱은 판정도 기록도 전부 기기 안에서 하기 때문에, 회선이 끊겨도
-        멈추는 곳이 없습니다. 다만 <b className="font-bold text-ink">음성 인식만은 브라우저 내장
-        기능</b>이라 기기·브라우저에 따라 제조사 서버를 경유할 수 있고, 끊긴 자리에서는 동작하지
-        않을 수 있습니다. 그때도 버튼과 타이핑은 그대로 됩니다.
-      </>
-    ),
+    question: "인터넷이 끊겼어요",
+    answer:
+      "한 번 연 기기에서는 저장된 응급 안내와 연습 한 바퀴를 다시 열 수 있어요. 음성 인식은 기기나 브라우저에 따라 인터넷이 필요할 수 있지만, 버튼과 글 입력은 그대로 쓸 수 있어요.",
     href: "/emergency",
-    linkLabel: "응급 안내 미리 저장해 두기",
+    linkLabel: "응급 안내 열기",
   },
   {
-    /* 홈의 「안전 설계 보기」가 이 항목으로 들어옵니다 — 안심하려고 누른 분이 3계층 설명서
-       대신 자기 말로 된 답을 먼저 만나시게 하는 자리입니다(페르소나 현직 med). */
     id: GUIDE_PRIVACY_FAQ_ID,
-    q: "제가 말한 내용은 어디로 가나요?",
-    a: (
-      <>
-        <b className="font-bold text-ink">기본 상태에서는 이 기기 밖으로 나가지 않습니다.</b>{" "}
-        계정이 없고, 하신 말씀 원문은 저장하지 않습니다. 훈련이 끝나면 남는 것은 해 본
-        상황과 코칭 요약까지입니다. 설정의 「{ONLINE_MODE_SHORT_LABEL}」을 켜신 경우에만 가명처리를 지난
-        말이 침착 서버를 거쳐 나갑니다. 어르신 대사를 다시 쓰는 데 쓰이는 전송에는 하신 말씀이
-        실리지 않습니다. 무엇이 나가는지는 안전·개인정보 설계와 약관·개인정보에 그대로 적혀
-        있습니다. 보고 화면에서는 성명·번호·기관명·주소·생년을 가린 뒤에야 저장되고,
-        확정 버튼은 직접 누르십니다. 기기에서 기록을 지우시면 되살릴 수 없습니다.
-      </>
-    ),
+    question: "내 말은 어디로 가나요?",
+    answer:
+      "기본 상태에서는 이 기기 밖으로 나가지 않고, 말씀 원문도 저장하지 않아요. 글자·소리의 AI·개인정보에서 전송을 허용한 경우에만 앱이 판단하지 못한 답변 한 문장과 자유 연습 내용·대화가 가림 처리를 거쳐 침착 서버를 통해 외부 AI로 전송돼요. 가림이 완벽하지 않을 수 있으니 실제 개인정보는 입력하거나 말하지 마세요.",
     href: "/safety",
-    linkLabel: "안전·개인정보 설계 보기",
+    linkLabel: "안전·개인정보 자세히 보기",
   },
   {
-    q: "왜 점수가 없나요?",
-    a: (
-      <>
-        점수를 두면 점수를 올리는 연습이 되기 쉬워서, 처음부터 만들지 않았습니다. 대신 한 번
-        답하실 때마다{" "}
-        <b className="font-bold text-ink">「충족 · 코칭 · 즉시 중단」 세 낱말</b>과 코칭 한 문장,
-        그리고 무슨 문서를 근거로 그렇게 봤는지를 붙입니다. 내 이력에도 등급·순위·백분위는
-        만들지 않고, 해 본 것과 다시 볼 것만 남습니다.
-      </>
-    ),
+    question: "왜 점수가 없나요?",
+    answer:
+      "점수를 올리는 연습이 되지 않도록 등수와 등급을 만들지 않았어요. 대신 답할 때마다 잘한 점과 다시 해 볼 말을 보여드려요.",
     href: "/history",
-    linkLabel: "내 이력 보기",
+    linkLabel: "내 기록 보기",
   },
   {
-    q: "빨간 119 버튼을 눌러도 되나요?",
-    a: (
-      <>
-        훈련 중에는 누르지 마십시오. 그 버튼은 시늉이 아니라 실제 전화 앱을 여는 링크입니다.
-        버튼 아래에도{" "}
-        <b className="font-bold text-ink">「{CALL_119_CAPTION}」</b>라고 적혀 있습니다. 실제 상황이라면 망설이지 말고
-        먼저 누르십시오. 응급 안내는 119보다 앞서지 않고, 119에 알리는 것을 언제나 먼저 놓습니다.
-      </>
-    ),
+    question: "119 버튼을 눌러도 되나요?",
+    answer: `훈련 중에는 누르지 마세요. 실제 전화 앱을 여는 버튼이에요. 버튼 아래에도 ‘${CALL_119_CAPTION}’라고 적혀 있어요. 실제 상황이라면 먼저 119에 신고하세요.`,
     href: "/emergency",
-    linkLabel: "응급 안내 화면 열기",
+    linkLabel: "응급 안내 열기",
   },
 ];
 
-/**
- * `/guide` — 처음 오신 분께.
- *
- * 왜 별도 화면인가: 홈은 「지금 한 판 하러 왔다」는 분의 화면이라 설명을 얹을수록 첫 CTA가
- * 뒤로 밀립니다. 그렇다고 설명이 아무 데도 없으면, 앱을 처음 여신 분이 네 화면 중 어디부터
- * 눌러야 하는지를 스스로 알아내셔야 합니다. 그 설명만 이 한 장으로 빼 두었습니다.
- *
- * 규칙 셋.
- *  1. **탭바에 넣지 않습니다** — 탭 5칸은 매일 쓰는 이동 경로이고, 이 화면은 한 번 읽고 나면
- *     다시 오지 않는 곳입니다(/for-orgs·/safety와 같은 취급).
- *  2. **여기서 끝내지 않습니다** — 모든 항목이 실제 화면으로 나갑니다. 읽기만 하고 닫는 화면이
- *     되면 「말이 나오게 만드는 연습」이 한 번도 시작되지 않습니다.
- *  3. **지금 되는 것만 적습니다** — 답은 전부 현재 코드가 하는 일이고, 되지 않는 것은 되지
- *     않는다고 적습니다(마이크·오프라인 항목의 단서 문장).
- */
 export default function GuidePage() {
   return (
     <PageShell sourceDocs={SOURCE_DOCS} tabBar={false}>
       <ScreenHeader
-        title="처음 오신 분께"
-        subtitle="네 화면이 하루 어디에 놓이는지 · 시작까지 세 걸음 · 자주 묻는 다섯 가지"
+        title="사용 방법"
         action={
-          /* 48px은 높이만이 아니라 **폭**이기도 합니다 — `min-w`가 없던 동안 이 링크는
-             39×48px이었습니다. 화면 우상단 모서리라 엄지가 닿기 가장 어려운 자리이고,
-             이 화면은 탭바가 없어 이 버튼이 유일한 출구입니다(3차 페르소나 UI/UX low). */
           <DocCloseButton
             fallbackHref="/"
-            className="flex min-h-[48px] min-w-[48px] items-center justify-center rounded-field px-1 text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper-2"
+            className="flex min-h-[48px] min-w-[48px] items-center justify-center rounded-field px-1 text-[0.9375rem] font-bold text-ink-muted transition-colors duration-150 active:bg-paper-2"
           />
         }
       />
 
-      {/* 리드 문단은 이 화면에서 처음 읽는 문장입니다 — 14.5px은 가이드 §7-8의 가독 하한
-          (읽어야 하는 문장 15px)을 어기는 값이라 한 단 올렸습니다(페르소나 디자이너 high).
-
-          2026-08-28: 가운데 한 문장을 새로 넣었습니다. 이 문단은 「시험이 아니다 · 화면은 네
-          개다」까지만 말하고, 정작 **여기서 무엇을 하게 되는지**는 아래 목록에 가서야
-          나왔습니다. 새 문장이 하는 일은 둘입니다 — 상대가 AI라는 사실을 첫 문단에서 세우고,
-          연습해서 무엇이 남는지(현장에서 쓸 말)를 사람 말로 적습니다. 「역량」 같은 문서 낱말은
-          쓰지 않습니다(§4-3 — 이 화면은 사용자에게 말하는 자리입니다). */}
-      <p className="mt-4 text-[0.9375rem] leading-[1.6] text-ink">
-        <b className="font-bold">{PRACTICE_LINE}</b> 그래서 이 앱에는 시험도 등수도 없습니다.
-        어르신 역을 맡은 AI와 소리 내어 주고받으면서, 현장에서 쓸 말을 하나씩 늘려 가시면 됩니다.
-        매일 여실 화면은 네 개뿐이고, 각각이 하루의 어느 자리에 놓이는지만 알고 계시면 됩니다.
+      <p className="mt-4 text-[1rem] leading-[1.6] text-ink-soft">
+        처음 한 번은 마이크 없이도 약 4분이면 할 수 있어요.
       </p>
 
-      <Section
-        title="네 화면이 하루 어디에 놓이는지"
-        lead="한 번에 다 보실 필요는 없습니다. 오늘은 근무 전 한 판만 하셔도 됩니다."
-      >
-        <div className="mt-[8px]">
-          <ListRows>
-            {WHEN_ROWS.map((row) => (
-              <ListRow
-                key={row.href}
-                href={row.href}
-                title={
-                  <span className="flex flex-wrap items-baseline gap-x-2">
-                    {/* 링크 제목 안이라 문단(`EyebrowLabel`)을 넣을 수 없는 자리입니다 —
-                        크기·자간은 그 컴포넌트와 같은 값입니다(12.5px / 700 / +.06em). */}
-                    <span className="text-[0.7813rem] leading-[1.45] font-bold tracking-[0.06em] text-ink-muted">
-                      {row.when}
-                    </span>
-                    <span>{row.title}</span>
-                  </span>
-                }
-                subtitle={<span className="leading-[1.6] text-ink-soft">{row.desc}</span>}
-                ariaLabel={`${row.when} — ${row.title}`}
-              />
-            ))}
-          </ListRows>
-        </div>
-      </Section>
-
-      <Section
-        title="첫 훈련까지 세 걸음"
-        lead="처음 한 판은 마이크 없이 버튼만으로도 끝납니다."
-      >
-        <ol className="chim-hairline mt-[8px] border-y border-line">
+      <section className="mt-6" aria-labelledby="guide-steps">
+        <h2 id="guide-steps" className="text-[1.1875rem] leading-[1.3] font-extrabold text-ink">
+          이렇게 연습해요
+        </h2>
+        <ol className="mt-3 flex flex-col gap-3">
           {STEPS.map((step, index) => (
-            <li key={step.title} className="py-[12px]">
-              <p className="text-[0.9375rem] leading-[1.45] font-bold text-ink">
-                <span className="chim-num">{index + 1}</span>. {step.title}
+            <li key={step.title} className="rounded-card bg-paper-2 px-4 py-4">
+              <p className="text-[1.0625rem] leading-[1.45] font-bold text-ink">
+                <span className="chim-num text-brand-800">{index + 1}</span>. {step.title}
               </p>
-              <p className="mt-[3px] text-[0.8438rem] leading-[1.6] text-ink-soft">{step.desc}</p>
+              <p className="mt-2 text-[0.9375rem] leading-[1.6] text-ink-soft">
+                {step.description}
+              </p>
             </li>
           ))}
         </ol>
 
-        <div className="mt-4 flex flex-col gap-2">
-          <BigButton href={FIRST_SCENARIO_HREF} size="lg" block className="font-bold">
-            첫 상황 연습하기 · 약 {FIRST_SCENARIO.durationMin}분
-          </BigButton>
-          <BigButton href="/train" variant="secondary" block>
-            다른 상황 먼저 둘러보기
-          </BigButton>
-        </div>
-        <p className="mt-[10px] text-center text-[0.8438rem] leading-[1.6] text-ink-soft">
-          「{FIRST_SCENARIO.title}」 — {FIRST_SCENARIO.typeLabel}. 중간에 그만두셔도 이어서 하실 수
-          있습니다.
-        </p>
-      </Section>
+        <BigButton href={FIRST_SCENARIO_HREF} size="lg" block className="mt-4 font-bold">
+          첫 연습 시작하기
+        </BigButton>
+      </section>
 
-      <Section title="자주 묻는 다섯 가지">
-        <div className="mt-[10px] flex flex-col gap-[10px]">
+      <section className="mt-7" aria-labelledby="guide-faq">
+        <h2 id="guide-faq" className="text-[1.1875rem] leading-[1.3] font-extrabold text-ink">
+          자주 묻는 질문
+        </h2>
+        <div className="mt-3 flex flex-col gap-2">
           {FAQ.map((item) => (
-            <div
-              key={item.q}
+            <details
+              key={item.question}
               {...(item.id ? { id: item.id } : {})}
-              className="scroll-mt-4 rounded-card bg-paper-2 px-4 py-[14px]"
+              className="group scroll-mt-4 rounded-card bg-paper-2"
             >
-              <h3 className="text-[0.9375rem] leading-[1.45] font-bold text-ink">{item.q}</h3>
-              <p className="mt-[6px] text-[0.8438rem] leading-[1.6] text-ink-soft">{item.a}</p>
-              <p className="mt-[2px]">
-                {/* 링크 색이 brand-800인 이유 — 이 카드는 paper-2 면이고, brand-700은 흰 지면에서만
-                    AA(4.86:1)입니다. paper-2 위에서는 4.49:1로 0.01 모자랍니다(2026-08-25 실측).
-                    globals.css의 brand-700 주석에 같은 단서를 달아 두었습니다. */}
+              <summary className="flex min-h-[64px] cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-[1rem] leading-[1.45] font-bold text-ink transition-colors duration-150 active:bg-neutral-line [&::-webkit-details-marker]:hidden">
+                <span>{item.question}</span>
+                <ChevronGlyph
+                  size="sm"
+                  className="flex-none text-ink-muted transition-transform duration-150 group-open:rotate-180"
+                />
+              </summary>
+              <div className="border-t border-line px-4 pt-4 pb-3">
+                <p className="text-[0.9375rem] leading-[1.6] text-ink-soft">{item.answer}</p>
                 <Link
                   href={item.href}
-                  className="inline-flex min-h-[48px] items-center rounded-field text-[0.8438rem] font-bold text-brand-800 transition-colors duration-150 hover:text-brand-press"
+                  prefetch={false}
+                  className="mt-2 inline-flex min-h-[48px] items-center rounded-field text-[0.9375rem] font-bold text-brand-800 underline underline-offset-4"
                 >
-                  {item.linkLabel} ›
+                  {item.linkLabel}
                 </Link>
-              </p>
-            </div>
+              </div>
+            </details>
           ))}
         </div>
-      </Section>
+      </section>
 
-      <Section
-        title="더 자세히 보고 싶으시다면"
-        lead="여기까지 읽지 않으셔도 훈련에는 아무 지장이 없습니다."
-      >
-        <EyebrowLabel className="mt-4 mb-[2px]">두 화면</EyebrowLabel>
-        <ListRows>
-          {/* 2026-08-28: 부제가 「위험할수록 AI의 지분을 줄이는 3계층」으로 시작하고 있었습니다.
-              문 앞에 붙는 한 줄이 「무엇을 줄였는가」로만 열리면, 그 문 안쪽 절반(AI가 실제로
-              닿는 여섯 자리·검증을 마친 구간부터 넓혀 온 계단)이 없는 것처럼 읽힙니다.
-              항목은 그대로 두고 **차례만** 바꿉니다 — 3계층은 뒤로 물러나 그대로 있습니다. */}
-          <ListRow
-            href="/safety"
-            title="안전·개인정보 설계"
-            subtitle="AI가 쓰이는 여섯 자리, 검증을 마친 구간부터 넓히는 순서, 3계층 생성통제, 가명처리가 지나는 길, 지금 이 기기에서 재는 실시간 계측"
+      <details className="group mt-6 border-y border-line">
+        <summary className="flex min-h-[64px] cursor-pointer list-none items-center justify-between gap-3 py-3 text-[1rem] leading-[1.45] font-bold text-ink [&::-webkit-details-marker]:hidden">
+          <span>더 자세한 안내</span>
+          <ChevronGlyph
+            size="sm"
+            className="flex-none text-ink-muted transition-transform duration-150 group-open:rotate-180"
           />
-          <ListRow
-            href="/for-orgs"
-            title="기관 도입 안내"
-            subtitle="기관 담당자용 한 장 — 무엇이 서류로 남고, 무엇이 아직 아닌지"
-          />
-        </ListRows>
-      </Section>
-
-      {/* 약관·개인정보는 「더 자세히」 목록에 섞지 않고 제목을 그대로 세워 둡니다 —
-          「약관」이라는 낱말을 찾아 내려오신 분이 헤딩에서 바로 보시게 하려는 자리입니다. */}
-      <Section
-        title="약관·개인정보"
-        lead="개인정보 처리방침·이용약관·파일럿 참여 동의. 지금 이 앱이 실제로 하는 일만 적혀 있습니다."
-      >
-        <div className="mt-[8px]">
+        </summary>
+        <div className="pb-3">
           <ListRows>
-            <ListRow
-              href="/legal"
-              title="개인정보 처리방침 · 이용약관 · 파일럿 참여 동의"
-              subtitle="무엇이 기기 안에만 남는지, 기기 밖으로 나가는 경우 셋, 그리고 파일럿에 참여하실 때의 약속"
-            />
+            <ListRow href="/safety" title="안전·개인정보 설계" size="lg" />
+            <ListRow href="/for-orgs" title="기관 도입 안내" size="lg" />
+            <ListRow href="/legal" title="약관·개인정보" size="lg" />
           </ListRows>
         </div>
-      </Section>
+      </details>
 
-      {/* 이 화면에는 탭바가 없습니다. 끝까지 읽고 내려오신 분이 바닥에서 만나는 것이 고지 한
-          줄뿐이면, 나가려고 읽은 만큼을 도로 올라가야 합니다 — 바닥에도 문 하나를 둡니다
-          (페르소나 UI/UX med). */}
-      <p className="mt-7 border-t border-line pt-4 text-center">
-        <Link
-          href="/"
-          className="inline-flex min-h-[48px] items-center rounded-field px-2 text-[0.8438rem] font-semibold text-ink-muted underline underline-offset-4 transition-colors duration-150 active:bg-paper-2"
-        >
-          홈으로
-        </Link>
-      </p>
+      <BigButton href="/" variant="secondary" size="lg" block className="mt-5">
+        홈으로
+      </BigButton>
 
-      <InlineDisclaimer size="md" tone="readable" className="mt-2 mb-3" />
+      <InlineDisclaimer size="md" tone="readable" className="mt-3 mb-5" />
     </PageShell>
   );
 }

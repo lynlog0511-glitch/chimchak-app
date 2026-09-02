@@ -21,6 +21,8 @@ export function makeScenario(overrides: Partial<Scenario> = {}): Scenario {
     durationMin: 5,
     tiers: ["L1", "L2"],
     summary: "판정 우선순위 검증용 뼈대입니다.",
+    situationLines: ["테스트 상황이 시작되었습니다.", "화면의 안내를 따라 진행합니다."],
+    practicePoints: ["상황을 차분히 확인합니다.", "안전한 답을 골라 말합니다."],
     objectives: ["판정 경로 확인"],
     personas: [{ role: "care_recipient", name: "테스트 어르신 (가상 인물)", profile: "가상 인물" }],
     context: "테스트 상황",

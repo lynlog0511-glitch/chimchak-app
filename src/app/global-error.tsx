@@ -1,22 +1,25 @@
 "use client";
 
+import { useEffect } from "react";
 import { INLINE_DISCLAIMER_TEXT } from "@/components/InlineDisclaimer";
+import {
+  DEFAULT_SETTINGS,
+  FONT_SCALE_PERCENT,
+  applyFontScale,
+  getSettings,
+} from "@/lib/settings";
 
 export interface GlobalErrorProps {
   error: Error & { digest?: string };
   reset: () => void;
 }
 
-/* 이 화면은 layout.tsx를 대체하므로 globals.css가 적용되지 않습니다 —
-   토큰 이름 대신 v4 §1의 값을 인라인으로 직접 적습니다.
-
-   여기만 글자 크기가 px 고정입니다(앱 전체는 rem — 설정 「크게/아주 크게」에 연동됩니다).
-   루트 레이아웃 자체가 무너진 뒤에 뜨는 화면이라, 설정을 읽어 오는 코드에도 기대지 않고
-   무엇이 깨져 있든 같은 크기로 뜨는 쪽을 택했습니다. 담는 것은 사과 한 줄·복구 버튼·고지뿐이라
-   확대가 필요한 읽을거리가 없습니다. */
+/* 이 화면은 layout.tsx를 대체하므로 globals.css가 적용되지 않습니다 — 토큰 대신 v4 §1의 값을
+   인라인으로 적습니다. 글자는 px로 고정하지 않고 rem을 써 브라우저와 이미 적용된 루트 글자
+   크기를 그대로 따릅니다. 오류 상황의 안내·복구 문구도 모두 기본 16px 이상을 지킵니다. */
 const INK = "#191f1e";
 const INK_SOFT = "#454f4c";
-const INK_MUTED = "#8a918e";
+const INK_MUTED = "#5a625f";
 const PAPER = "#ffffff";
 const PAPER_2 = "#f5f6f6";
 const PAPER_OUT = "#f1f2f0";
@@ -24,16 +27,16 @@ const LINE = "#eef0ef";
 const BRAND_700 = "#157f75";
 const DANGER_INK = "#b03636";
 
-/** 버튼 공통 — 터치 56px · r14 · 라벨 17px w700 (v4 §2 CTA). */
+/** 버튼 공통 — 고령 사용자 기본 터치 64px · r14 · 라벨 17px w700. */
 const buttonBase = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  minHeight: 56,
-  padding: "0 20px",
-  borderRadius: 14,
+  minHeight: 64,
+  padding: "0 1.25rem",
+  borderRadius: "0.875rem",
   border: "none",
-  fontSize: 17,
+  fontSize: "1.0625rem",
   fontWeight: 700,
   textDecoration: "none",
   cursor: "pointer",
@@ -47,8 +50,15 @@ const buttonBase = {
  * 골격은 다른 화면과 같습니다 — 지면 밖 `#f1f2f0`, 가운데 430px 흰 화면, 22px 제목.
  */
 export default function GlobalError({ reset }: GlobalErrorProps) {
+  useEffect(() => {
+    applyFontScale(getSettings().fontScale);
+  }, []);
+
   return (
-    <html lang="ko">
+    <html
+      lang="ko"
+      style={{ fontSize: FONT_SCALE_PERCENT[DEFAULT_SETTINGS.fontScale] }}
+    >
       <body
         style={{
           margin: 0,
@@ -74,11 +84,11 @@ export default function GlobalError({ reset }: GlobalErrorProps) {
             boxSizing: "border-box",
           }}
         >
-          <main style={{ flex: 1, padding: "24px 20px 0" }}>
+          <main style={{ flex: 1, padding: "1.5rem 1.25rem 0" }}>
             <h1
               style={{
                 margin: 0,
-                fontSize: 22,
+                fontSize: "1.375rem",
                 lineHeight: 1.3,
                 fontWeight: 800,
                 letterSpacing: "-0.01em",
@@ -86,25 +96,25 @@ export default function GlobalError({ reset }: GlobalErrorProps) {
             >
               화면을 여는 중 문제가 생겼습니다
             </h1>
-            <p style={{ margin: "3px 0 0", fontSize: 12.5, color: INK_MUTED }}>
+            <p style={{ margin: "0.25rem 0 0", fontSize: "1rem", color: INK_MUTED }}>
               잠시 후 다시 시도해 주세요
             </p>
 
             <div
               style={{
-                marginTop: 16,
-                padding: "14px 15px",
-                borderRadius: 14,
+                marginTop: "1rem",
+                padding: "0.875rem 1rem",
+                borderRadius: "0.875rem",
                 background: PAPER_2,
               }}
             >
-              <p style={{ margin: 0, fontSize: 13.5, color: INK_SOFT }}>
+              <p style={{ margin: 0, fontSize: "1rem", color: INK_SOFT }}>
                 급하신 상황이라면 아래에서 응급 안내를 바로 여실 수 있습니다. 응급 안내는 미리
                 적어 둔 고정 문구로 되어 있고, 연결이 끊겨도 열리도록 기기에 저장해 둡니다.
               </p>
             </div>
 
-            <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
               <button
                 type="button"
                 onClick={reset}
@@ -125,10 +135,10 @@ export default function GlobalError({ reset }: GlobalErrorProps) {
             role="note"
             style={{
               margin: 0,
-              padding: "24px 20px 24px",
+              padding: "1.5rem 1.25rem",
               textAlign: "center",
               color: INK_MUTED,
-              fontSize: 11.5,
+              fontSize: "1rem",
               lineHeight: 1.6,
             }}
           >

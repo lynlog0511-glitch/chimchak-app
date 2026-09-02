@@ -4,7 +4,7 @@ import { RouteFocus } from "@/components/RouteFocus";
 import { SettingsBoot } from "@/components/SettingsBoot";
 import { SwRegister } from "@/components/SwRegister";
 import { COACH_TOKEN_META, coachTokenMetaValue } from "@/lib/coachLimits";
-import { FONT_SCALE_PERCENT, SETTINGS_KEY } from "@/lib/settings";
+import { DEFAULT_SETTINGS, FONT_SCALE_PERCENT, SETTINGS_KEY } from "@/lib/settings";
 import "./globals.css";
 
 /**
@@ -25,7 +25,11 @@ const FONT_SCALE_BOOT = `(function(){try{var r=JSON.parse(localStorage.getItem($
   SETTINGS_KEY,
 )})||"{}");var m=${JSON.stringify(
   FONT_SCALE_PERCENT,
-)};var v=m[r&&r.fontScale];if(v){var e=document.documentElement;e.style.fontSize=v;e.dataset.chimFontScale=r.fontScale;}}catch(_){}})();`;
+)};var k=m[r&&r.fontScale]?r.fontScale:${JSON.stringify(
+  DEFAULT_SETTINGS.fontScale,
+)};var v=m[k];var e=document.documentElement;e.style.fontSize=v;e.dataset.chimFontScale=k;}catch(_){var e=document.documentElement;e.style.fontSize=${JSON.stringify(
+  FONT_SCALE_PERCENT[DEFAULT_SETTINGS.fontScale],
+)};e.dataset.chimFontScale=${JSON.stringify(DEFAULT_SETTINGS.fontScale)};}})();`;
 
 export const metadata: Metadata = {
   title: {

@@ -1,7 +1,7 @@
 import { cx } from "@/components";
 
 export interface Call119BarProps {
-  /** md — 시안 5b의 목록·상세 상단(58px) · lg — 프로토콜 1단계 확대(72px) */
+  /** md — 목록·상세 상단(64px) · lg — 프로토콜 1단계 확대(72px) */
   size?: "md" | "lg";
   className?: string;
 }
@@ -12,7 +12,7 @@ export interface Call119BarProps {
  * 적용되는데 흰 글자 on danger(#d64545)는 4.38:1이라 걸립니다. 19px이면 큰 글자(3:1)로 통과.
  */
 const SIZE = {
-  md: "min-h-[58px] text-[1.1875rem]",
+  md: "min-h-[64px] text-[1.1875rem]",
   lg: "min-h-[72px] text-[1.375rem]",
 } as const;
 
@@ -34,15 +34,15 @@ const SIZE = {
  * 사라지지 않았습니다 — 목록 화면 각주와 「처음 오신 분께」의 119 항목이 그대로 들고 있습니다.
  * (없는 안전장치를 있다고 적지 않는다는 원칙은 이 문구에서도 그대로입니다.)
  */
-export const CALL_119_CAPTION = "실제 상황이면 지금 누르세요 · 연습 중이면 누르지 마세요";
+export const CALL_119_CAPTION = "실제 상황이면 먼저 119에 전화하세요";
 
 /**
- * 캡션 크기 — 13.5px 하한.
+ * 캡션 크기 — 표준 글자 설정에서도 16px 하한.
  * 「무엇이 일어나는가」를 알리는 문장이라 메타·각주가 아닙니다(평가 초보 m35: 12px → 13.5px↑).
  * 색은 흰 지면 위 `ink-soft`(8.5:1)로, 빨강 채움 위 흰 글자(4.4:1)를 피해 버튼 밖에 둡니다.
  */
 export const CALL_119_CAPTION_CLASS =
-  "text-[0.8438rem] leading-[1.45] font-semibold text-ink-soft";
+  "text-[1rem] leading-[1.45] font-semibold text-ink-soft";
 
 /**
  * 119 신고 버튼 — 시안 5b의 danger 채움·r14·58px을 그대로 씁니다.
@@ -69,7 +69,7 @@ export function Call119Bar({ size = "md", className }: Call119BarProps) {
           SIZE[size],
         )}
       >
-        119 눌러 신고
+        119에 전화하기
       </a>
       <p className={cx("mt-[5px] text-center", CALL_119_CAPTION_CLASS)}>{CALL_119_CAPTION}</p>
     </div>

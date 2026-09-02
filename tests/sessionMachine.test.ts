@@ -316,6 +316,34 @@ describe("⚑CF — 멈춰 세우고, 같은 자리에서 점수 없이 다시 �
     expect(last?.kind === "notice" && last.text).toContain("점수는 매기지 않습니다");
   });
 
+  it("행동 장면의 추천 문장은 한 번 제출하면 불명확에 머물지 않고 다음 단계로 간다", () => {
+    const { reduce, started } = machine(CHK_A01);
+    const stopped = play(
+      CHK_A01,
+      started,
+      reduce,
+      (cue) =>
+        cue.id === "CUE-3"
+          ? cue.branches.find((branch) => branch.id === "D3-d")
+          : safeBranch(cue),
+      { stopAtInterrupt: true },
+    );
+
+    expect(stopped.session.currentTurnId).toBe("T3");
+    const recommended = stopped.critical?.alternatives[0] as string;
+    expect(recommended).toContain("제 손 잡고 같이 가실까요");
+
+    const retried = reduce(stopped, { type: "retryAfterCritical" });
+    const answered = reduce(retried, {
+      type: "submit",
+      input: { utterance: recommended, viaButton: true },
+    });
+
+    expect(answered.lastFeedback?.branchId).toBe("D3-a");
+    expect(answered.lastFeedback?.trace?.source).not.toBe("default");
+    expect(answered.session.currentTurnId).toBe("T4");
+  });
+
   it("대안 없이 다시 하기도 같은 자리로 돌아온다", () => {
     const { reduce, started } = machine(CHK_A01);
     const stopped = play(CHK_A01, started, reduce, pickCritical, { stopAtInterrupt: true });

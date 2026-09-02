@@ -50,7 +50,7 @@ const VARIANT: Record<BigButtonVariant, string> = {
    **하한 17px은 그대로입니다.** 크기 대신 터치 타겟(48/56px)과 여백으로 두 단을 가릅니다. */
 const SIZE: Record<BigButtonSize, string> = {
   md: "min-h-[48px] px-5 py-2.5 text-[1.0625rem]", // 17px
-  lg: "min-h-[56px] px-7 py-3 text-[1.0625rem]", // 17px
+  lg: "min-h-[64px] px-7 py-3 text-[1.1875rem]", // 19px
 };
 
 /**

@@ -9,9 +9,9 @@ import type { ScenarioTypeMap } from "./_components/nextTraining";
 import type { ScenarioRubricMap } from "./_components/rubricCoverage";
 
 export const metadata: Metadata = {
-  title: "내 이력",
+  title: "내 기록",
   description:
-    "점수와 등급 없이 해 본 것과 다시 볼 것만 남깁니다. 훈련 이력과 확정한 기록은 이 기기 안에만 쌓입니다.",
+    "최근 연습과 저장한 돌봄 기록을 확인하고 새 돌봄 기록을 만듭니다.",
 };
 
 /**
@@ -57,8 +57,8 @@ export default function HistoryPage() {
   return (
     <PageShell sourceDocs={SOURCE_DOCS}>
       <ScreenHeader
-        title="내 이력"
-        subtitle="점수와 등급 없이 해 본 것과 다시 볼 것만 남깁니다"
+        title="내 기록"
+        subtitle="최근 연습과 저장한 돌봄 기록을 확인하세요"
       />
       <HistoryBoard
         typeByScenarioId={buildTypeMap()}

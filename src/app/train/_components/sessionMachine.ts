@@ -116,6 +116,35 @@ function demoBranch(cue: CueDef): BranchDef | undefined {
   return best;
 }
 
+export interface CriticalReplyOption {
+  /** 화면에 그대로 보이고, 로그에도 같은 문장으로 남는 검수 선택지 */
+  sentence: string;
+  /** 이 문장과 한 쌍인 시나리오 분기 */
+  branchId: string;
+}
+
+/** 안전 중단 뒤 한 번에 제출할 수 있는, 문장과 분기가 정확히 연결된 선택지입니다. */
+export function criticalReplyOptions(
+  cue: CueDef,
+  currentTurnId: string,
+): CriticalReplyOption[] {
+  const eligible = cue.branches.filter(
+    (branch) =>
+      !branch.criticalFail &&
+      !branch.retrainAdvice &&
+      branch.next !== currentTurnId &&
+      Boolean(branch.fallbackOption?.trim()),
+  );
+  const [recommended] = [...eligible]
+    .sort((left, right) => {
+      const quality = branchQuality(right) - branchQuality(left);
+      return quality !== 0 ? quality : left.gaugeDelta - right.gaugeDelta;
+    });
+  return recommended
+    ? [{ sentence: recommended.fallbackOption!.trim(), branchId: recommended.id }]
+    : [];
+}
+
 /** 이 CUE에서 자동 재생을 멈출지 — 보여 드릴 장면 「직전」에서 손을 뗍니다. */
 function demoStopsBefore(
   cue: CueDef,
@@ -146,7 +175,10 @@ export type LogItem =
 
 export interface CriticalInterruptState {
   feedback: TracedFeedback;
+  /** 엔딩 상세에 보존하는 원래 안전 대안 설명 */
   alternatives: string[];
+  /** 즉시 제출 버튼에 쓰는 검수 문장↔분기 쌍 */
+  replyOptions: CriticalReplyOption[];
 }
 
 export interface TrainState {
@@ -483,6 +515,7 @@ export function makeTrainReducer(scenario: Scenario) {
             critical: {
               feedback,
               alternatives: criticalAlternatives(scenario, result.state, feedback),
+              replyOptions: criticalReplyOptions(cue, turn.id),
             },
             lastFeedback: feedback,
             judgeTick: state.judgeTick + 1,

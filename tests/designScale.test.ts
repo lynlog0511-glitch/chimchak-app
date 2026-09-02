@@ -277,7 +277,6 @@ describe("디자인 눈금 게이트", () => {
       // 가림 인라인 칩(가이드 §4.9가 6px으로 지정) — 2026-08-27에 네 자리를 상수 하나로 모았다
       // (`components/maskChip.ts`). 남은 둘은 그 상수와, /report의 「눌러서 가리기」 터치 영역이다.
       "rounded-[6px]": 2,
-      "rounded-[5px]": 2, // 코칭 델타 칩 — 11px 글자에 6px은 과해 한 단 아래
       "rounded-[2px]": 1, // 세션 진행 막대(3px 높이) — 토큰은 전부 이보다 크다
       "rounded-[1px]": 2, // 파형 막대(3px 폭) — 끝을 죽이지 않을 만큼만
     };
@@ -501,7 +500,8 @@ describe("디자인 눈금 게이트", () => {
 
        ※ 세는 대상은 **출고되는 코드**다(주석은 위 `stripComments`가 지운다). 가이드 §9-11도
          같은 수를 적는다 — 2026-08-26까지 문서가 「13곳」이라고 적었는데 그중 하나는
-         globals.css의 주석 언급이었다(5차 페르소나 디자이너 low). 지금은 양쪽 다 12곳이다. */
+         globals.css의 주석 언급이었다(5차 페르소나 디자이너 low). 훈련 목록의 문자 셰브론
+         둘을 SVG 컴포넌트로 바꾼 뒤에는 양쪽 다 10곳이다. */
     const ALLOWED_LEADING_NONE: Record<string, number> = {
       "src/app/history/_components/ReportList.tsx": 1, // 펼침 셰브론
       "src/app/history/certificate/_components/CertificateSheet.tsx": 1, // 예시 워터마크 한 줄
@@ -511,7 +511,6 @@ describe("디자인 눈금 게이트", () => {
       "src/app/safety/page.tsx": 2, // 접힘 셰브론 · 목록 `·`
       "src/app/train/_components/BriefingPanel.tsx": 1, // 되돌아가기 화살표 줄
       "src/app/train/_components/EndingPanel.tsx": 1, // 54px 원 안 `✓`/`↺`
-      "src/app/train/page.tsx": 2, // 카드 CTA 셰브론 둘(연습하기 › · 열어 보기 ›)
       "src/components/BackGlyph.tsx": 1, // `‹`
     };
 
@@ -652,8 +651,6 @@ describe("디자인 눈금 게이트", () => {
     const ALLOWED_INLINE_EYEBROW: Record<string, number> = {
       "src/components/EyebrowLabel.tsx": 1, // 정본 그 자체
       "src/app/console/_components/ConsoleClient.tsx": 1, // 표 머리 `<th>`
-      "src/app/guide/page.tsx": 1, // 링크 제목 안 `<span>`
-      "src/app/history/_components/HistoryBoard.tsx": 1, // 추천 카드 링크 안 `<span>`
       "src/app/safety/page.tsx": 2, // `<summary>` 안 절 번호 · `<dl>`의 `<dt>`
       "src/app/safety/_components/AiMap.tsx": 1, // `<dl>`의 `<dt>`
       "src/app/emergency/[id]/page.tsx": 2, // `<dl>`의 `<dt>` — 아래 PENDING 참조
@@ -771,27 +768,21 @@ describe("디자인 눈금 게이트", () => {
       "src/app/emergency/_components/PlayerParts.tsx": 1, // 재생기 컨트롤 공통 클래스
       "src/app/report/_components/VoiceInput.tsx": 1, // 보조 버튼 공통 클래스
       "src/components/BigButton.tsx": 1, // 크기 변형 표(md)
-      "src/components/ListRow.tsx": 1, // 행 공통 클래스
     };
 
     /** ⓑ 라벨이 표현식인데 문자열 리터럴이 없는 자리(변수·함수 호출) — 폭을 어림할 근거가 없다. */
     const EXPR_LABEL: Record<string, number> = {
-      "src/app/emergency/_components/ProtocolAddressCard.tsx": 4,
+      "src/app/emergency/_components/ProtocolAddressCard.tsx": 3,
       "src/app/for-orgs/page.tsx": 1,
       "src/app/guide/page.tsx": 2,
       "src/app/legal/page.tsx": 1,
-      "src/app/page.tsx": 1,
       "src/app/practice/_components/FreeComposer.tsx": 1,
       "src/app/practice/_components/FreeInterrupt.tsx": 1,
       "src/app/report/_components/DraftForm.tsx": 1,
       "src/app/report/_components/MaskReview.tsx": 1,
-      "src/app/train/_components/CriticalInterrupt.tsx": 1,
-      "src/app/train/_components/CueResponder.tsx": 2,
-      "src/app/train/_components/InlineCoaching.tsx": 1,
-      "src/app/train/_components/TrainSession.tsx": 1,
       "src/app/_components/FirstVisitHint.tsx": 1,
       "src/app/_components/WeeklyGoalCard.tsx": 1,
-      "src/components/SettingsMenu.tsx": 2,
+      "src/components/SettingsMenu.tsx": 1,
     };
 
     /** ⓒ 여는 태그 뒤가 곧바로 다른 요소인 자리(아이콘·중첩 span) — 읽을 글자가 그 자리에 없다. */
@@ -815,13 +806,10 @@ describe("디자인 눈금 게이트", () => {
       "src/app/safety/_components/EvidenceFlow.tsx": 1,
       "src/app/safety/_components/RubricAllList.tsx": 1,
       "src/app/safety/_components/SafetyToc.tsx": 1,
-      "src/app/train/page.tsx": 1,
-      "src/app/train/_components/BriefingPanel.tsx": 2,
-      "src/app/train/_components/CriticalInterrupt.tsx": 1,
+      "src/app/train/_components/BriefingPanel.tsx": 1,
       "src/app/train/_components/EndingPanel.tsx": 3,
       "src/app/train/_components/ProtocolInline.tsx": 1,
       "src/app/train/_components/TrainSession.tsx": 1,
-      "src/app/_components/ResumeCard.tsx": 1,
       "src/components/SourceChip.tsx": 1,
     };
 

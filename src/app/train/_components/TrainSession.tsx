@@ -9,7 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { BigButton, InlineDisclaimer, SettingsMenu } from "@/components";
+import { BigButton } from "@/components";
 import { useModalDismiss, useOverlayTransition } from "@/components/useModalDismiss";
 import { cx } from "@/components/utils";
 import { buildRecord, currentCue, currentTurn, protocolIdOf, resolveEnding } from "@/engine";
@@ -37,22 +37,12 @@ import {
 import type { CueDef, EmergencyProtocol, Scenario } from "@/types";
 import { BriefingPanel } from "./BriefingPanel";
 import { CriticalInterrupt } from "./CriticalInterrupt";
-import { CueResponder, DOCK_MAX_RATIO } from "./CueResponder";
-import { DialogueLog } from "./DialogueLog";
+import { CueResponder } from "./CueResponder";
 import { EndingPanel } from "./EndingPanel";
+import { InlineCoaching } from "./InlineCoaching";
 import { ProtocolInline } from "./ProtocolInline";
 import { SessionHeader } from "./SessionHeader";
-import { SessionProgressBar } from "./SessionProgressBar";
-import {
-  EMOTION_WORD,
-  emotionLevel,
-  FICTION_NOTICE,
-  SESSION_STATUS_ENDED,
-  SESSION_STATUS_PROTOCOL,
-  sessionSubtitle,
-  TAIL_ANCHOR,
-  type MicCheck,
-} from "./constants";
+import type { MicCheck } from "./constants";
 import {
   isSpokenLine,
   lineHoldMs,
@@ -68,6 +58,7 @@ import {
   initialTrainState,
   makeTrainReducer,
   parseDemoPreset,
+  type CriticalReplyOption,
   type CriticalInterruptState,
   type LogItem,
 } from "./sessionMachine";
@@ -189,6 +180,52 @@ export interface TrainSessionProps {
   protocols: EmergencyProtocol[];
 }
 
+type CurrentLine = Extract<LogItem, { kind: "line" }>;
+
+function CurrentLineCard({
+  line,
+  text,
+  waiting,
+  speaking,
+  spokenAloud,
+}: {
+  line: CurrentLine;
+  text: string;
+  waiting: boolean;
+  speaking: boolean;
+  spokenAloud: boolean;
+}) {
+  const heading =
+    line.speaker === "elder"
+      ? "어르신이 말씀하셨어요"
+      : line.speaker === "guardian"
+        ? "보호자가 말씀했어요"
+        : line.speaker === "dispatcher"
+          ? "상황실에서 말씀했어요"
+          : "지금 상황이에요";
+
+  return (
+    <section
+      aria-label="현재 대사"
+      aria-live={spokenAloud ? "off" : "polite"}
+      aria-atomic="true"
+      className="rounded-panel bg-paper-2 px-5 py-5"
+    >
+      <div className="flex items-center gap-2">
+        <span aria-hidden className="h-3 w-3 flex-none rounded-full bg-brand-600" />
+        <h2 className="text-[1rem] leading-[1.45] font-bold text-brand-800">{heading}</h2>
+        {speaking && <span className="ml-auto text-[0.9375rem] font-bold text-brand-800">읽는 중</span>}
+      </div>
+      {line.note && (
+        <p className="mt-3 text-[0.9375rem] leading-[1.45] text-ink-soft">{line.note}</p>
+      )}
+      <p className="mt-3 text-[1.375rem] leading-[1.45] font-bold tracking-[-0.015em] text-ink">
+        {waiting ? "잠시만 기다려 주세요…" : `“${text}”`}
+      </p>
+    </section>
+  );
+}
+
 /**
  * 훈련 세션 화면 (시안 3a 골격 + 4a 디테일 + 4b 말하는 중).
  *
@@ -216,6 +253,10 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
    * 앱 목소리도 리더 목소리도 없는 구간이 생겼습니다(7차 페르소나 UI/UX P0).
    */
   const { spokenAloud } = useVoicePresence(ttsOn);
+  const [synthesisReady, setSynthesisReady] = useState(true);
+  useEffect(() => {
+    setSynthesisReady(isSpeechSynthesisSupported());
+  }, []);
   /**
    * 이 기기에 **브라우저 낭독**(`speechSynthesis`)이 있는가 — 변주문 한 줄이 여기 걸립니다.
    *
@@ -227,10 +268,6 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
    * 서버·첫 페인트에서는 잴 수 없으므로 「된다」로 시작합니다 —
    * 「안 된다」로 시작하면 지원하는 기기에서 첫 대사만 리전이 두 번 말합니다.
    */
-  const [synthesisReady, setSynthesisReady] = useState(true);
-  useEffect(() => {
-    setSynthesisReady(isSpeechSynthesisSupported());
-  }, []);
   /**
    * 이 세션 화면이 **사용자가 버튼을 눌러** 열렸는지 (「시작하기」·「이어서 하기」).
    *
@@ -253,7 +290,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   /** ‹ 로 브리핑으로 되돌아가 있는 중인지 (세션 상태는 그대로 두고 화면만 바꿉니다) */
   const [atBriefing, setAtBriefing] = useState(false);
   /** 말하는 중 — 본문을 흐리게 합니다 (시안 4b) */
-  const [listening, setListening] = useState(false);
+  const [, setListening] = useState(false);
   /** 종료 확인 */
   const [exitOpen, setExitOpen] = useState(false);
   /** 이번 회차 저장이 막혔는가(시크릿 모드 등) — 엔딩에서 성공한 척하지 않기 위한 사실 표시 */
@@ -368,66 +405,6 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
    * 같은 CUE로 돌아왔을 때 보기 맨 위에 다시 세웁니다 — 다음 응답을 보내면 지웁니다.
    */
   const [chosenAlternative, setChosenAlternative] = useState<string>("");
-
-  /* ── 하단 도킹 (페이지 스크롤 하나 + 컴포저 도크) ────────────────
-     도크가 로그 바닥을 가리므로, 그 높이만큼을 스크롤 여백으로 로그에 알려 줍니다.
-     도크는 어느 폭에서도 sticky이므로 뷰포트 분기 없이 실측 하나만 씁니다. */
-  const [dockNode, setDockNode] = useState<HTMLDivElement | null>(null);
-  const [dockHeight, setDockHeight] = useState(0);
-  /**
-   * 로그 꼬리가 가려졌는지 재는 데 쓰는 **고정** 도크 높이 — 앵커가 없을 때의 값입니다.
-   *
-   * 앵커는 도크 안에 렌더되므로 앵커가 뜨면 도크가 두꺼워집니다. 그 값을 그대로 관찰자에 물리면
-   * 「앵커가 뜬다 → 도크가 커진다 → 관찰자가 다시 만들어진다 → 앵커가 꺼진다」가 됩니다
-   * (평가 UI/UX m2의 자기취소 루프). 그래서 앵커가 떠 있는 동안에는 이 값을 갱신하지 않습니다 —
-   * 앵커가 스스로의 판단 근거를 바꾸지 못합니다.
-   */
-  const [dockLimit, setDockLimit] = useState(0);
-  /** 지금 앵커가 떠 있는지 — 위 값의 갱신을 멈추는 표시(효과를 다시 돌리지 않으려고 ref로 둡니다) */
-  const anchorShownRef = useRef(false);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    if (!dockNode) {
-      setDockHeight(0);
-      setDockLimit(0);
-      /* 도크가 없는 구간(브리핑·엔딩)에서는 변수도 거둡니다 — 남겨 두면 스크롤러가 있지도 않은
-         도크만큼 아래 여백을 잡습니다. */
-      root.style.removeProperty("--chim-dock-h");
-      return undefined;
-    }
-    const measure = () => {
-      const height = Math.round(dockNode.getBoundingClientRect().height);
-      setDockHeight(height);
-      /* 실측 높이를 스크롤러도 보게 합니다 — `.chim-screen--fill main`의 `scroll-padding-bottom`이
-         이 값을 읽어, Tab으로 옮긴 초점이 입력 도크 밑으로 들어가지 않습니다
-         (WCAG 2.2 SC 2.4.11). 스크롤러가 `main`이므로 변수는 그보다 위(html)에 있어야 합니다. */
-      root.style.setProperty("--chim-dock-h", `${height}px`);
-      if (anchorShownRef.current) return;
-      /* 도크는 CSS로도 45dvh를 넘지 않지만, 관찰자 쪽 상한을 한 번 더 걸어 둡니다 —
-         이 값이 커질수록 「가려졌다」고 보는 띠가 넓어집니다. */
-      setDockLimit(Math.min(height, Math.round(window.innerHeight * DOCK_MAX_RATIO)));
-    };
-    measure();
-    const observer =
-      typeof ResizeObserver === "undefined" ? undefined : new ResizeObserver(measure);
-    observer?.observe(dockNode);
-    window.addEventListener("resize", measure);
-    return () => {
-      observer?.disconnect();
-      window.removeEventListener("resize", measure);
-      root.style.removeProperty("--chim-dock-h");
-    };
-  }, [dockNode]);
-
-  /** 새 대사 아래로 이어지는 코칭이 화면 밖일 때 컴포저 위에 뜨는 앵커 */
-  const [tailOffscreen, setTailOffscreen] = useState(false);
-  const scrollToTailRef = useRef<(() => void) | null>(null);
-  /** 앵커가 뜨고 지는 순간 도크 높이 갱신을 멈추도록, 상태보다 **먼저** 표시를 바꿔 둡니다. */
-  const handleTailOffscreen = useCallback((offscreen: boolean) => {
-    anchorShownRef.current = offscreen;
-    setTailOffscreen(offscreen);
-  }, []);
 
   /** 엔딩 패널 — 완주 직후 이 자리를 화면 맨 위로 끌어옵니다 */
   const endingRef = useRef<HTMLDivElement | null>(null);
@@ -773,7 +750,13 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     const text = variationsRef.current.get(key) ?? lastLine.text;
     let cancelled = false;
     /* 「읽어 주는 중」은 **실제로 소리가 나는 문장에만** 답니다(이름줄 파형 포함). */
-    if (lineSpokenAloud({ spokenAloud, varied: text !== lastLine.text, synthesis: synthesisReady })) {
+    if (
+      lineSpokenAloud({
+        spokenAloud,
+        varied: text !== lastLine.text,
+        synthesis: synthesisReady,
+      })
+    ) {
       setSpeakingKey(key);
     }
     void speak(text).then(() => {
@@ -784,28 +767,6 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
       cancelled = true;
     };
   }, [pendingLineKey, spokenAloud, state.log, synthesisReady, ttsOn]);
-
-  /**
-   * 대화 로그 리전이 말해도 되는가 — 로그 맨 끝 대사가 **소리로 전해지지 않을 때만** 말합니다.
-   *
-   * 값의 뿌리는 `useVoicePresence`의 `spokenAloud` 그대로이고, 여기서 더하는 것은 기기
-   * 판단이 아니라 **문장 하나의 조건**입니다: 그 문장에 낼 소리가 있는가(`lineSpokenAloud`).
-   * 이 좁힘이 없으면, 브라우저 낭독이 없는 기기에서 변주문이 선 순간 앱 목소리도 리더
-   * 목소리도 없는 구간이 생깁니다 — 7차 P0가 세 곳에 「닫혔다」고 적힌 채 열려 있던 자리이고,
-   * 12차가 대사 변주를 기본값으로 돌리면서 예외가 아니라 기본값이 된 경로입니다.
-   */
-  const tailLineKey = useMemo(() => {
-    for (let i = state.log.length - 1; i >= 0; i -= 1) {
-      const item = state.log[i];
-      if (item && item.kind === "line") return item.key;
-    }
-    return "";
-  }, [state.log]);
-  const logSpokenAloud = lineSpokenAloud({
-    spokenAloud,
-    varied: tailLineKey.length > 0 && variations.has(tailLineKey),
-    synthesis: synthesisReady,
-  });
 
   /**
    * 소리 스위치 — 낭독 안내 줄(sr-only)은 **여기서 손대지 않습니다.**
@@ -986,6 +947,12 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   }, []);
 
   const handleRestart = useCallback(() => {
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm("지금까지의 진행을 지우고 처음부터 다시 할까요?")
+    ) {
+      return;
+    }
     resetLineTiming();
     resetVariations();
     demoSeededRef.current = false;
@@ -1011,6 +978,17 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
     setChosenAlternative((alternative ?? "").trim());
     dispatch({ type: "retryAfterCritical", alternative });
   }, []);
+
+  /** 안전한 추천 문장은 확인 한 번으로 같은 장면에 제출해 흐름을 이어 갑니다. */
+  const handleRecommendedReply = useCallback(
+    (option: CriticalReplyOption) => {
+      demoFastForwardRef.current = false;
+      setChosenAlternative("");
+      dispatch({ type: "retryAfterCritical" });
+      handleSubmit({ branchId: option.branchId, viaButton: true });
+    },
+    [handleSubmit],
+  );
 
   /** 이어서 하기 — 저장해 둔 결정 목록을 엔진에 순서대로 다시 넣습니다. */
   const handleResume = useCallback(() => {
@@ -1083,14 +1061,18 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
   const ended = state.phase === "ended";
   const inProtocol = state.session.status === "protocol";
   const progress = cueProgress(scenario, state.session, cue);
-  const level = emotionLevel(scenario.gauge, state.session.gauge);
-  const emotion = { level, word: EMOTION_WORD[scenario.gauge.label][level] };
-
-  const statusText = ended
-    ? SESSION_STATUS_ENDED
-    : inProtocol
-      ? SESSION_STATUS_PROTOCOL
-      : sessionSubtitle(scenario, progress.index);
+  const statusText = ended ? "완료" : inProtocol ? "응급 연습" : `${progress.index} / ${progress.total}단계`;
+  const currentLine = [...state.log]
+    .reverse()
+    .find((item): item is CurrentLine => item.kind === "line");
+  const currentLineText = currentLine
+    ? (variations.get(currentLine.key) ?? currentLine.text)
+    : "";
+  const currentLineSpokenAloud = lineSpokenAloud({
+    spokenAloud,
+    varied: Boolean(currentLine && variations.has(currentLine.key)),
+    synthesis: synthesisReady,
+  });
 
   const interrupted = state.critical !== null;
   const composing = Boolean(cue && turn && !ended && !inProtocol);
@@ -1142,24 +1124,14 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
             statusTone={ended ? "neutral" : inProtocol ? "danger" : "brand"}
             backHref={ended ? "/train" : undefined}
             onBack={ended ? undefined : handleBackToBriefing}
-            backLabel={ended ? "훈련 목록으로" : "브리핑으로 돌아가기"}
+            backLabel="뒤로"
             action={
-              <div className="-mr-2 flex items-center">
-                {/* 설정 — 세션 안에는 진입점이 0건이라, 대사가 작다고 느낀 분이 훈련을 나갔다가
-                    홈까지 가서 설정하고 돌아와야 했습니다(평가 UI/UX mi5 · 초보 m2).
-                    「소리 끄기」와 같은 문법의 텍스트 버튼 하나로 같은 팝오버를 엽니다.
-                    이름은 전 화면 「설정」 하나입니다 — 이 자리가 「글자 크기」이던 동안, 세션 안에서
-                    「이거 마이크 꼭 써야 하나」가 궁금해진 분은 그 답(팝오버 안 「처음 오신 분께」)이
-                    든 문을 이름 때문에 지나쳤습니다(3차 페르소나 교육생 · 리더 판정 2026-08-26). */}
-                <SettingsMenu align="screen" />
-                {/* 헤더의 텍스트 버튼도 눌리면 면이 한 단 어두워집니다 —
-                    Tailwind v4는 hover를 `@media (hover:hover)`에 가두므로, 터치 기기에서
-                    피드백이 남는 곳은 `active:`뿐입니다(모션 감사 1). */}
+              <div className="flex items-center gap-0.5">
                 <button
                   type="button"
                   onClick={toggleTts}
                   aria-pressed={ttsOn}
-                  className="flex min-h-[48px] items-center rounded-field px-2 text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper-2"
+                  className="flex min-h-[48px] items-center rounded-field px-1.5 text-[0.8438rem] font-bold text-ink-soft transition-colors duration-150 active:bg-paper-2"
                 >
                   {ttsOn ? "소리 끄기" : "소리 켜기"}
                 </button>
@@ -1167,16 +1139,14 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
                   <button
                     type="button"
                     onClick={() => setExitOpen(true)}
-                    className="flex min-h-[48px] min-w-[48px] items-center justify-center rounded-field px-2 text-[0.8438rem] font-semibold text-ink-muted transition-colors duration-150 active:bg-paper-2"
+                    className="flex min-h-[48px] min-w-[48px] items-center justify-center rounded-field px-1.5 text-[0.8438rem] font-bold text-ink-soft transition-colors duration-150 active:bg-paper-2"
                   >
-                    종료
+                    그만하기
                   </button>
                 )}
               </div>
             }
           />
-          {/* 진행바 — 헤더 아래 전폭 한 줄입니다(시안 4a). */}
-          <SessionProgressBar index={progress.index} total={progress.total} />
         </div>
 
         {/* 낭독 사용자를 위한 한 줄 — 화면에는 나오지 않습니다(`VOICE_ON_NOTICE` 주석 참고).
@@ -1205,44 +1175,30 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
           {voiceNotice}
         </p>
 
-        {/* 본문 — 지문과 대화. 말하는 중에는 옅어집니다(시안 4b). */}
-        <div
-          className={cx(
-            "flex-1 px-[18px] pt-4 pb-6 transition-opacity duration-200",
-            listening && "pointer-events-none opacity-45",
+        <div className="flex-1 px-[18px] pt-5 pb-6">
+          {scenario.type === "EMERGENCY" && !ended && (
+            <p className="mb-4 rounded-panel bg-danger-soft px-4 py-3 text-[1rem] leading-[1.45] font-bold text-danger-ink">
+              지금은 응급 상황 연습입니다. 실제 신고로 연결되지 않습니다.
+            </p>
           )}
-        >
-          <p className="text-center text-[0.7813rem] leading-[1.6] text-ink-faint">
-            {scenario.context}
-          </p>
-          {/* 가상 인물 고지 — 화면마다 한 번은 또렷하게 남습니다(말풍선의 「가상 인물」과 별도). */}
-          <p className="mt-1 text-center text-[0.6875rem] leading-[1.6] text-ink-muted">
-            {FICTION_NOTICE}
-          </p>
-          {/* 여기 있던 생성 자리 고지(「…경량 LLM 어댑터 자리는 근거 가드 검증을 통과한
-              구간부터 엽니다」)는 2026-08-24에 걷어냈습니다. 어르신 대사 바로 위 두 줄이
-              개발 로드맵을 말하고 있었고, 훈련하러 오신 분이 읽을 문장이 아니었습니다.
-              같은 사실은 /safety §02가 그대로 들고 있고, 이 화면에서는 실제로 생성이 붙은
-              턴에만 말풍선이 「AI 생성」을 답니다 — 단언이 아니라 그 자리의 사실로 남깁니다. */}
 
-          {/* 고지는 로그 위에 한 번 둡니다 — 예전에는 입력 도크 안에 상주해
-              상시 안내문 넉 줄(141px)의 한 몫을 하고 있었습니다(평가 UI/UX m1). */}
-          <InlineDisclaimer tone="readable" className="mt-1 mb-4" />
+          {!ended && !inProtocol && currentLine && (
+            <CurrentLineCard
+              line={currentLine}
+              text={currentLineText}
+              waiting={pendingLineKey === currentLine.key}
+              speaking={speakingKey === currentLine.key}
+              spokenAloud={currentLineSpokenAloud}
+            />
+          )}
 
-          <DialogueLog
-            items={state.log}
-            gaugeLabel={scenario.gauge.label}
-            emotion={emotion}
-            speaking={speakingKey.length > 0}
-            spokenAloud={logSpokenAloud}
-            bottomInset={dockHeight}
-            tailInset={dockLimit}
-            autoScroll={!ended}
-            pendingLineKey={pendingLineKey}
-            onTailOffscreen={composing ? handleTailOffscreen : undefined}
-            scrollToTailRef={scrollToTailRef}
-            variations={variations}
-          />
+          {!ended && !inProtocol && state.lastFeedback && !state.critical && (
+            <InlineCoaching
+              feedback={state.lastFeedback}
+              gaugeLabel={scenario.gauge.label}
+              className="mt-4"
+            />
+          )}
 
           {/* 규칙 엔진 시연 진입 — 컴포저 밖, 대화 로그 바로 아래입니다.
               발표자가 찾는 자리이자, 평소에는 대화 끝에 조용히 남는 한 줄입니다.
@@ -1313,7 +1269,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
         {/* 입력 도크 — 대화 중에만 섭니다. 그 밖의 구간에서는 고지 한 줄만 남깁니다.
             화면 아래에 붙어 있습니다(sticky) — 어느 폭에서도 같습니다. */}
         {composing && cue && turn ? (
-          <div ref={setDockNode} className="sticky bottom-0 z-20">
+          <div className="sticky bottom-0 z-20">
             <CueResponder
               scenario={scenario}
               session={state.session}
@@ -1324,18 +1280,6 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
                  (`startedByUser` 주석 참고). 도크가 마운트되는 순간의 값만 씁니다. */
               focusFirstCue={startedByUser}
               chosenAlternative={chosenAlternative || undefined}
-              anchor={
-                tailOffscreen ? (
-                  <button
-                    type="button"
-                    onClick={() => scrollToTailRef.current?.()}
-                    className="flex min-h-[48px] w-full items-center justify-center gap-1.5 border-b border-line bg-brand-tint px-[18px] text-[0.8438rem] leading-[1.45] font-bold text-brand-800 transition-colors duration-150 active:bg-mint-200"
-                  >
-                    {TAIL_ANCHOR}
-                    <span aria-hidden>↓</span>
-                  </button>
-                ) : null
-              }
               demoExamples={demoExamples}
               /* 스위치를 끄면 시트도 함께 닫힙니다 — 열어 둔 채 꺼도 화면에 남지 않게. */
               demoOpen={stageOn && ruleDemoOpen}
@@ -1344,11 +1288,7 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
               onListeningChange={setListening}
             />
           </div>
-        ) : (
-          <div className="border-t border-line bg-paper px-[18px] pt-3 pb-6">
-            <InlineDisclaimer tone="readable" />
-          </div>
-        )}
+        ) : null}
       </div>
 
       {/* 종료 확인 — ⚑CF 시트와 같은 훅으로 초점·Esc·Tab을 다룹니다(모달 문법 하나로 통일) */}
@@ -1358,8 +1298,9 @@ export function TrainSession({ scenario, protocols }: TrainSessionProps) {
       {state.critical && (
         <CriticalInterrupt
           feedback={state.critical.feedback}
-          alternatives={state.critical.alternatives}
+          replyOptions={state.critical.replyOptions}
           onRetry={handleRetryAfterCritical}
+          onRecommendedReply={handleRecommendedReply}
         />
       )}
     </>

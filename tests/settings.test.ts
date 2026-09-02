@@ -67,11 +67,12 @@ async function withStored(raw: unknown) {
 
 /* ── 기본값 ────────────────────────────────────────────── */
 
-describe("기본값 — 두 스위치는 서로 다른 곳에서 출발한다", () => {
-  it("저장된 값이 없으면 어르신 말투는 「매번 조금씩 다르게」, 발화 전송은 꺼짐이다", async () => {
+describe("기본값 — 큰 글씨와 두 스위치는 정해진 곳에서 출발한다", () => {
+  it("저장된 값이 없으면 글자는 아주 크게, 어르신 말투는 다르게, 발화 전송은 꺼짐이다", async () => {
     const settings = await withStored(undefined);
     const loaded = settings.loadSettings();
 
+    expect(loaded.fontScale).toBe("xlarge");
     expect(loaded.aiDialogue.enabled).toBe(true);
     expect(loaded.onlineCoaching.enabled).toBe(false);
   });
@@ -81,6 +82,7 @@ describe("기본값 — 두 스위치는 서로 다른 곳에서 출발한다", 
 
     expect(settings.DEFAULT_AI_DIALOGUE.enabled).toBe(true);
     expect(settings.DEFAULT_ONLINE_COACHING.enabled).toBe(false);
+    expect(settings.DEFAULT_SETTINGS.fontScale).toBe("xlarge");
     expect(settings.DEFAULT_SETTINGS.aiDialogue.enabled).toBe(true);
     expect(settings.DEFAULT_SETTINGS.onlineCoaching.enabled).toBe(false);
   });
@@ -90,8 +92,19 @@ describe("기본값 — 두 스위치는 서로 다른 곳에서 출발한다", 
     const settings = await import("@/lib/settings");
     const loaded = settings.getSettings();
 
+    expect(loaded.fontScale).toBe("xlarge");
     expect(loaded.aiDialogue.enabled).toBe(true);
     expect(loaded.onlineCoaching.enabled).toBe(false);
+  });
+
+  it("글자 설정이 빠졌거나 손상되면 아주 크게로 안전하게 메운다", async () => {
+    const missing = await withStored({ speechRate: "slow" });
+    expect(missing.loadSettings().fontScale).toBe("xlarge");
+
+    vi.resetModules();
+    store.setItem(KEY, JSON.stringify({ fontScale: "giant" }));
+    const damaged = await import("@/lib/settings");
+    expect(damaged.loadSettings().fontScale).toBe("xlarge");
   });
 });
 

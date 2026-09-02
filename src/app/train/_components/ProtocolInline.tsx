@@ -1,13 +1,9 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useState } from "react";
 import { ChevronGlyph } from "@/components/icons";
 import { BigButton, EyebrowLabel } from "@/components";
 import { cx } from "@/components/utils";
-import {
-  CALL_119_CAPTION,
-  CALL_119_CAPTION_CLASS,
-} from "@/app/emergency/_components/Call119Bar";
 import {
   CONTROL_OUTLINE,
   CONTROL_PRIMARY,
@@ -29,91 +25,6 @@ import {
 import { unlockAudio } from "@/lib/speech";
 import type { EmergencyProtocol } from "@/types";
 import { PROTOCOL_HANDOFF_BODY, PROTOCOL_HANDOFF_TITLE } from "./constants";
-
-/* ── 세션 안(L3)의 119 바 ───────────────────────────────────
-   응급 탭(`/emergency`)의 119 바는 **그대로 둡니다** — 실제 응급에서 마찰을 0으로 둔 판단은
-   옳고, 거기서는 이 화면이 진짜 상황입니다.
-
-   갈리는 것은 훈련 세션 안입니다. 여기서 화면에서 가장 크고 가장 빨간 상시 노출 타깃이
-   실제 발신 링크인데, 그 위 화면의 대부분은 연습입니다 — 시연 자리나 첫 사용 중 오탭 하나가
-   진짜 119 호출이 됩니다(UIUX 검증). 그래서 이 자리에만 **확인 한 탭**을 둡니다.
-   길게 누르기가 아니라 한 탭인 이유는, 홀드가 키보드·스위치·떨리는 손에서 가장 먼저
-   무너지는 조작이기 때문입니다.
-
-   문구는 손대지 않습니다 — 캡션은 앱에 하나뿐인 원문 그대로이고, 확인 자리는 실제로
-   일어나는 일(전화 앱이 열린다)만 한 줄 더 적습니다. 확인 버튼은 진짜 `tel:119` 링크입니다. */
-
-/** 확인 상태를 스스로 거두는 시간 — 눌러 둔 채 잊고 지나가도 빨간 문이 열려 있지 않게 합니다. */
-const CALL_ARM_MS = 6000;
-
-/* 크기·모양은 응급 탭의 119 바와 같은 값입니다(58px · r14 · 19px w800) —
-   같은 버튼이 자리에 따라 다르게 보이지 않게, 갈리는 것은 확인 한 단계뿐입니다. */
-const CALL_BAR_BASE =
-  "flex min-h-[58px] items-center justify-center rounded-card px-4 py-2 text-center text-[1.1875rem] font-extrabold transition-colors duration-150";
-
-function SessionCall119({ className }: { className?: string }) {
-  const [armed, setArmed] = useState(false);
-  const confirmRef = useRef<HTMLAnchorElement | null>(null);
-  /* 이 조각은 화면당 한 번만 그려지지만(전환 화면과 재생 화면은 서로 배타적입니다),
-     안내줄을 id로 묶는 자리라 id를 손으로 적지 않습니다 — 언젠가 둘이 함께 서는 날
-     중복 id가 되고, 그때 증상은 「엉뚱한 문장이 읽힌다」입니다. */
-  const hintId = useId();
-
-  useEffect(() => {
-    if (!armed) return;
-    confirmRef.current?.focus({ preventScroll: true });
-    const timer = window.setTimeout(() => setArmed(false), CALL_ARM_MS);
-    return () => window.clearTimeout(timer);
-  }, [armed]);
-
-  return (
-    <div className={className}>
-      {armed ? (
-        <div className="flex gap-2">
-          <a
-            href="tel:119"
-            ref={confirmRef}
-            /* 아래 안내줄을 이 링크의 설명으로 묶습니다 — 확인 단계로 넘어오면 초점이 이 링크에
-               놓이므로, 그 한 번에 「눌리면 무슨 일이 일어나는지」까지 함께 읽힙니다.
-               예전에는 같은 문장이 자기 `role="status"`를 들고 있어, 초점 이동과 리전 발화가
-               같은 사실을 두 번 말했습니다(라이브 리전은 화면당 하나 — 페르소나 FE low). */
-            aria-describedby={hintId}
-            className={cx(CALL_BAR_BASE, "min-w-0 flex-1 bg-danger text-paper active:bg-danger-ink")}
-          >
-            네, 지금 걸기
-          </a>
-          <button
-            type="button"
-            onClick={() => setArmed(false)}
-            className={cx(
-              CALL_BAR_BASE,
-              "flex-none border border-line-strong bg-paper px-5 text-[1.0625rem] text-ink active:bg-paper-2",
-            )}
-          >
-            취소
-          </button>
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setArmed(true)}
-          className={cx(CALL_BAR_BASE, "w-full bg-danger text-paper active:bg-danger-ink")}
-        >
-          119 눌러 신고
-        </button>
-      )}
-      {armed && (
-        <p
-          id={hintId}
-          className="mt-[6px] text-center text-[0.8438rem] leading-[1.45] font-semibold text-danger-ink"
-        >
-          「네, 지금 걸기」를 누르시면 전화 앱이 열립니다.
-        </p>
-      )}
-      <p className={cx("mt-[5px] text-center", CALL_119_CAPTION_CLASS)}>{CALL_119_CAPTION}</p>
-    </div>
-  );
-}
 
 export interface ProtocolInlineProps {
   protocol: EmergencyProtocol;
@@ -167,7 +78,9 @@ export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolI
         </p>
 
         <div className="mt-4 space-y-2">
-          <SessionCall119 />
+          <p className="rounded-card bg-paper px-4 py-3 text-[1rem] leading-[1.6] font-bold text-danger-ink">
+            지금은 응급 상황 연습입니다. 실제 119로 연결되지 않습니다.
+          </p>
           {/* 이 탭이 이 구간의 **확실한 첫 제스처**입니다 — 그 자리에서 오디오 요소 잠금을 풀어 두면
               아이폰에서도 이후 단계의 자동 낭독이 검수된 목소리 그대로 이어집니다. */}
           <BigButton
@@ -223,8 +136,9 @@ export function ProtocolInline({ protocol, ttsOn, onDone, className }: ProtocolI
 
         <ProtocolSegments steps={steps} index={index} className="mt-2" />
 
-        {/* 119 버튼은 단계와 무관하게 같은 크기(58px)로 늘 같은 자리에 있습니다 — 단독 화면과 같은 규칙입니다. */}
-        <SessionCall119 className="mt-3" />
+        <p className="mt-3 rounded-card bg-danger-soft px-4 py-3 text-center text-[1rem] leading-[1.45] font-bold text-danger-ink">
+          지금은 응급 상황 연습입니다
+        </p>
       </div>
 
       {/* 본문 — 이 구간에서 가장 큰 글자는 자막 하나뿐입니다. */}
